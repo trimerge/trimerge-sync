@@ -2,21 +2,21 @@ export type Node<T, M> =
   | {
       type: 'init';
       ref: string;
-      value: T | undefined;
+      value: T;
       editMetadata: M;
     }
   | {
       type: 'edit';
       ref: string;
       base: Node<T, M>;
-      value: T | undefined;
+      value: T;
       editMetadata: M;
     }
   | {
       type: 'merge';
       ref: string;
       parents: Node<T, M>[];
-      value: T | undefined;
+      value: T;
       editMetadata: M;
     };
 
