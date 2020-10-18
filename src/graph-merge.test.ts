@@ -1,5 +1,4 @@
 import { Graph, Node } from './graph';
-import { mergeHeadNodes } from './merge-nodes';
 import {
   combineMergers,
   trimergeEquality,
@@ -22,15 +21,21 @@ const trimergeObjects = combineMergers(
   trimergeObject,
 );
 
-function mergeGraphHeadNodes(
-  graph: Graph<any, string>,
-): Node<any, string> | undefined {
-  return mergeHeadNodes(Array.from(graph.getHeads()), (base, left, right) => {
-    const mergedValue = trimergeObjects(base?.value, left.value, right.value);
-    return graph.merge(mergedValue, 'merge', [left, right]);
-  });
+function mergeGraphHeadNodes(graph: Graph<any, string>): Node<any, string> {
+  return graph.mergeHeads((base, left, right) => ({
+    value: trimergeObjects(base?.value, left.value, right.value),
+    editMetadata: 'merge',
+  }));
 }
-describe('merge()', () => {
+describe('graph.mergeHeads()', () => {
+  it('"merges" single node', () => {
+    const graph = new Graph<any, string>(newId);
+    const root = graph.addInit({}, 'initialize');
+    let foo = graph.addEdit(root, { hello: 'world' }, 'add hello');
+    foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
+    const mergeNode = mergeGraphHeadNodes(graph);
+    expect(mergeNode).toBe(foo);
+  });
   it('merges v split', () => {
     const graph = new Graph<any, string>(newId);
     const root = graph.addInit({}, 'initialize');

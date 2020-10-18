@@ -1,3 +1,5 @@
+import { mergeHeadNodes } from './merge-nodes';
+
 export type Node<T, M> =
   | {
       type: 'init';
@@ -59,6 +61,7 @@ export class Graph<T, M> {
       editMetadata,
     });
   }
+
   addEdit(base: Node<T, M>, value: T, editMetadata: M) {
     return this.addNode({
       type: 'edit',
@@ -68,13 +71,27 @@ export class Graph<T, M> {
       editMetadata,
     });
   }
-  merge(value: T, editMetadata: M, parents: Node<T, M>[]) {
-    return this.addNode({
-      type: 'merge',
-      ref: this.newId(),
-      parents,
-      value,
-      editMetadata,
-    });
+
+  mergeHeads(
+    mergeFn: (
+      base: Node<T, M> | undefined,
+      left: Node<T, M>,
+      right: Node<T, M>,
+    ) => { value: T; editMetadata: M },
+  ): Node<T, M> {
+    const merged = mergeHeadNodes(
+      Array.from(this.branchHeads),
+      (base, left, right) =>
+        this.addNode({
+          type: 'merge',
+          ref: this.newId(),
+          parents: [left, right],
+          ...mergeFn(base, left, right),
+        }),
+    );
+    if (!merged) {
+      throw new Error('no merge result!');
+    }
+    return merged;
   }
 }
