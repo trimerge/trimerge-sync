@@ -1,4 +1,4 @@
-import { Node } from './graph';
+import { Node } from './trimerge-graph';
 
 type Visitor<T, M> = {
   node: Node<T, M>;
@@ -16,9 +16,9 @@ export type MergeNodeFn<T, M> = (
 /**
  * This function walks up the tree starting at the nodes in a breadth-first manner, merging nodes as common ancestors are found.
  *
- * Those merged nodes then continue to be merged together until everything has been merged to a single node.
+ * Those merged nodes then continue to be merged together until there is just one head node left.
  *
- * If there are un-connected nodes at the end, these will be merged with base === undefined
+ * If there are completely un-connected nodes, these will be merged with base === undefined
  */
 export function mergeHeadNodes<T, M>(
   originNodes: Node<T, M>[],

@@ -1,4 +1,4 @@
-import { Graph } from './graph';
+import { TrimergeGraph } from './trimerge-graph';
 
 let nextId = 1;
 function newId(): string {
@@ -10,7 +10,7 @@ beforeEach(() => {
 
 describe('Graph', () => {
   it('add linear edits', () => {
-    const graph = new Graph<any, string>(newId);
+    const graph = new TrimergeGraph<any, string>(newId);
     let node = graph.addInit({}, 'initialize');
     node = graph.addEdit(node, { hello: 'world' }, 'add hello');
     node = graph.addEdit(node, { hello: 'vorld' }, 'change hello');
@@ -50,7 +50,7 @@ describe('Graph', () => {
   });
 
   it('add diverging edits', () => {
-    const graph = new Graph<any, string>(newId);
+    const graph = new TrimergeGraph<any, string>(newId);
     let foo = graph.addInit({}, 'initialize');
     foo = graph.addEdit(foo, { hello: 'world' }, 'add hello');
     foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');

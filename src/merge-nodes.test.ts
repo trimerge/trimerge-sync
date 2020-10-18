@@ -1,4 +1,4 @@
-import { Graph } from './graph';
+import { TrimergeGraph } from './trimerge-graph';
 import { mergeHeadNodes, MergeNodeFn } from './merge-nodes';
 
 let nextId = 1;
@@ -21,7 +21,7 @@ const basicMerge: MergeNodeFn<any, string> = (base, left, right) => {
 
 describe('mergeHeadNodes()', () => {
   it('find no common parent if there is none', () => {
-    const graph = new Graph<any, string>(newId);
+    const graph = new TrimergeGraph<any, string>(newId);
     let foo = graph.addInit({}, 'initialize');
     foo = graph.addEdit(foo, { hello: 'world' }, 'add hello');
     foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
@@ -36,7 +36,7 @@ describe('mergeHeadNodes()', () => {
   });
 
   it('find no common parent if there is no overlay', () => {
-    const graph = new Graph<any, string>(newId);
+    const graph = new TrimergeGraph<any, string>(newId);
     const foo = graph.addInit({}, 'initialize');
     const bar = graph.addInit({}, 'initialize');
     const baz = graph.addInit({}, 'initialize');
@@ -49,7 +49,7 @@ describe('mergeHeadNodes()', () => {
   });
 
   it('find common parent on v split', () => {
-    const graph = new Graph<any, string>(newId);
+    const graph = new TrimergeGraph<any, string>(newId);
     const root = graph.addInit({}, 'initialize');
     let foo = graph.addEdit(root, { hello: 'world' }, 'add hello');
     foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
@@ -62,7 +62,7 @@ describe('mergeHeadNodes()', () => {
     expect(fn.mock.calls).toEqual([[root, foo, bar, 3]]);
   });
   it('find common parent on equal three-way split', () => {
-    const graph = new Graph<any, string>(newId);
+    const graph = new TrimergeGraph<any, string>(newId);
     const root = graph.addInit({}, 'initialize');
     let foo = graph.addEdit(root, { hello: 'world' }, 'add hello');
     foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
@@ -78,7 +78,7 @@ describe('mergeHeadNodes()', () => {
     ]);
   });
   it('find common parent on staggered three-way split', () => {
-    const graph = new Graph<any, string>(newId);
+    const graph = new TrimergeGraph<any, string>(newId);
     const root = graph.addInit({}, 'initialize');
     let foo = graph.addEdit(root, { hello: 'world' }, 'add hello');
     foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
@@ -95,7 +95,7 @@ describe('mergeHeadNodes()', () => {
     ]);
   });
   it('find common parent on staggered three-way split 2', () => {
-    const graph = new Graph<any, string>(newId);
+    const graph = new TrimergeGraph<any, string>(newId);
     const root = graph.addInit({}, 'initialize');
     let foo = graph.addEdit(root, { hello: 'world' }, 'add hello');
     foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');

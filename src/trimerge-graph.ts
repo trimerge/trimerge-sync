@@ -22,7 +22,7 @@ export type Node<T, M> =
       editMetadata: M;
     };
 
-export class Graph<T, M> {
+export class TrimergeGraph<T, M> {
   private nodes = new Set<Node<T, M>>();
   private branchHeads = new Set<Node<T, M>>();
 
