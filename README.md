@@ -46,7 +46,30 @@ It “steals” ideas from a number of projects:
 
 ## Architecture
 
+### Graph
 
+The collaboration is represented as a directed acyclic add-only graph. 
+
+You can only add new nodes that point to existing nodes, never delete or change existing nodes. 
+
+Each edit is a graph node, there are 3 types of nodes: init, edit, and merge.
+
+**init**: the initial edit on a given branch, generally a blank document
+**edit**: a single-parent node with a changed document
+**merge**: a multi-parent node that combines N documents into one
+
+### Trimerge
+
+A node is considered a "head" node if it has no child nodes (i.e. no nodes that reference it as a parent).
+
+Whenever a client has more than one head node, it attempts to trimerge all the head nodes into one node.
+
+This is done with trimerge:
+
+1. find the two head nodes with the closest common ancestor
+2. trimerge those two nodes against their common base
+3. create a merge node
+4. repeat until all head nodes are merged
 
 ## License
 
