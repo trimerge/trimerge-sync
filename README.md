@@ -6,7 +6,7 @@
 
 ## Background
 
-This library is an attempt to describe and implement synchronization using the [trimerge](https://github.com/marcello3d/trimerge/) algorithm. 
+This WIP library intends to implement synchronization using the [trimerge](https://github.com/marcello3d/trimerge/) algorithm.
 It is an iteration on top of my original [collabodux](https://github.com/marcello3d/collabodux) proof-of-concept.
 
 Trimerge-sync is a client-first declarative/functional approach to synchronizing application state across devices/users.
@@ -29,7 +29,7 @@ It “steals” ideas from a number of projects:
 - Conflict resolution is data-oriented and declarative
   - Unlike Operational Transform, which becomes increasingly more complex with more types of operations
   - Scales with data type complexity, not schema size
-  - Easy to write unit tests against 
+  - Easy to write unit tests against
 - Offline-first
 - Integrated multi-user undo
   - Can easily rollback specific edits
@@ -46,11 +46,11 @@ It “steals” ideas from a number of projects:
 
 ## Architecture
 
-### Graph
+### Trimerge Graph
 
-The collaboration is represented as a directed acyclic add-only graph. 
+The state history is represented as a directed acyclic add-only graph.
 
-You can only add new nodes that point to existing nodes, never delete or change existing nodes. 
+You can only add new nodes that point to existing nodes, never delete or change existing nodes.
 
 Each edit is a graph node, there are 3 types of nodes: init, edit, and merge.
 
@@ -58,9 +58,9 @@ Each edit is a graph node, there are 3 types of nodes: init, edit, and merge.
 **edit**: a single-parent node with a changed document
 **merge**: a multi-parent node that combines N documents into one
 
-### Trimerge
+### Trimerge Graph Head Nodes
 
-A node is considered a "head" node if it has no child nodes (i.e. no nodes that reference it as a parent).
+A node is a "head" node if it has no child nodes (i.e. no nodes that reference it as a parent).
 
 Whenever a client has more than one head node, it attempts to trimerge all the head nodes into one node.
 
@@ -70,6 +70,17 @@ This is done with trimerge:
 2. trimerge those two nodes against their common base
 3. create a merge node
 4. repeat until all head nodes are merged
+
+### Trimerge Graph Sync
+
+So how do you synchronize these graphs across clients?
+
+The first thing is to have a simpler version of each node:
+
+1. Only store a diff of a node and its parent (pick one for merges)
+2. To avoid reading an entire path of the graph, you can store snapshots at arbitrary nodes
+
+Then you need a way to know when a node should be sent to another client or not. I haven't quite figured out the best way to do this.
 
 ## License
 
