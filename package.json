@@ -61,6 +61,8 @@
     "husky": "4.3.0",
     "immer": "7.0.9",
     "jest": "26.5.3",
+    "jsondiffpatch": "^0.4.1",
+    "jssha": "^3.1.2",
     "prettier": "2.1.2",
     "pretty-quick": "3.1.0",
     "rollup": "2.32.0",

@@ -69,11 +69,11 @@ export function mergeHeadNodes<T, M>(
             hasNodes = true;
             break;
           case 'merge':
-            for (const parent of node.parents) {
-              nextNodes.add(parent);
-              leaf.seenRefs.add(parent.ref);
-              hasNodes = true;
-            }
+            nextNodes.add(node.base);
+            nextNodes.add(node.base2);
+            leaf.seenRefs.add(node.base.ref);
+            leaf.seenRefs.add(node.base2.ref);
+            hasNodes = true;
             break;
         }
         leaf.current = nextNodes;

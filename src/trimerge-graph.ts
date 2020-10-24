@@ -4,6 +4,8 @@ export type Node<T, M> =
   | {
       type: 'init';
       ref: string;
+      base?: Node<T, M>;
+      base2?: Node<T, M>;
       value: T;
       editMetadata: M;
     }
@@ -11,16 +13,25 @@ export type Node<T, M> =
       type: 'edit';
       ref: string;
       base: Node<T, M>;
+      base2?: Node<T, M>;
       value: T;
       editMetadata: M;
     }
   | {
       type: 'merge';
       ref: string;
-      parents: Node<T, M>[];
+      base: Node<T, M>;
+      base2: Node<T, M>;
       value: T;
       editMetadata: M;
     };
+
+export type MergeHeadsResult<T, M> = { value: T; editMetadata: M };
+export type MergeHeadsFn<T, M> = (
+  base: Node<T, M> | undefined,
+  left: Node<T, M>,
+  right: Node<T, M>,
+) => MergeHeadsResult<T, M>;
 
 export class TrimergeGraph<T, M> {
   private nodes = new Set<Node<T, M>>();
@@ -32,7 +43,7 @@ export class TrimergeGraph<T, M> {
     return this.branchHeads;
   }
 
-  addNode(node: Node<T, M>): Node<T, M> {
+  protected addNode(node: Node<T, M>): Node<T, M> {
     if (this.nodes.has(node)) {
       throw new Error('node already added');
     }
@@ -44,9 +55,8 @@ export class TrimergeGraph<T, M> {
         this.branchHeads.delete(node.base);
         break;
       case 'merge':
-        for (const parent of node.parents) {
-          this.branchHeads.delete(parent);
-        }
+        this.branchHeads.delete(node.base);
+        this.branchHeads.delete(node.base2);
         break;
     }
     this.branchHeads.add(node);
@@ -73,11 +83,7 @@ export class TrimergeGraph<T, M> {
   }
 
   mergeHeads(
-    mergeFn: (
-      base: Node<T, M> | undefined,
-      left: Node<T, M>,
-      right: Node<T, M>,
-    ) => { value: T; editMetadata: M },
+    mergeFn: MergeHeadsFn<T, M>,
   ): Node<T, M> {
     const merged = mergeHeadNodes(
       Array.from(this.branchHeads),
@@ -85,7 +91,8 @@ export class TrimergeGraph<T, M> {
         this.addNode({
           type: 'merge',
           ref: this.newId(),
-          parents: [left, right],
+          base: left,
+          base2: right,
           ...mergeFn(base, left, right),
         }),
     );

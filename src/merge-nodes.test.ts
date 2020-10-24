@@ -13,7 +13,8 @@ const basicMerge: MergeNodeFn<any, string> = (base, left, right) => {
   return {
     type: 'merge',
     ref: newId(),
-    parents: [left, right],
+    base: left,
+    base2: right,
     editMetadata: 'merge',
     value: base,
   };
