@@ -1,30 +1,12 @@
 import { mergeHeadNodes } from './merge-nodes';
 
-export type Node<T, M> =
-  | {
-      type: 'init';
-      ref: string;
-      base?: Node<T, M>;
-      base2?: Node<T, M>;
-      value: T;
-      editMetadata: M;
-    }
-  | {
-      type: 'edit';
-      ref: string;
-      base: Node<T, M>;
-      base2?: Node<T, M>;
-      value: T;
-      editMetadata: M;
-    }
-  | {
-      type: 'merge';
-      ref: string;
-      base: Node<T, M>;
-      base2: Node<T, M>;
-      value: T;
-      editMetadata: M;
-    };
+export type Node<T, M> = {
+  ref: string;
+  base?: Node<T, M>;
+  base2?: Node<T, M>;
+  value: T;
+  editMetadata: M;
+};
 
 export type MergeHeadsResult<T, M> = { value: T; editMetadata: M };
 export type MergeHeadsFn<T, M> = (
@@ -48,33 +30,22 @@ export class TrimergeGraph<T, M> {
       throw new Error('node already added');
     }
     this.nodes.add(node);
-    switch (node.type) {
-      case 'init':
-        break;
-      case 'edit':
-        this.branchHeads.delete(node.base);
-        break;
-      case 'merge':
-        this.branchHeads.delete(node.base);
-        this.branchHeads.delete(node.base2);
-        break;
+    if (node.base !== undefined) {
+      this.branchHeads.delete(node.base);
+    }
+    if (node.base2 !== undefined) {
+      this.branchHeads.delete(node.base2);
     }
     this.branchHeads.add(node);
     return node;
   }
 
   addInit(value: T, editMetadata: M) {
-    return this.addNode({
-      type: 'init',
-      ref: this.newId(),
-      value,
-      editMetadata,
-    });
+    return this.addNode({ ref: this.newId(), value, editMetadata });
   }
 
   addEdit(base: Node<T, M>, value: T, editMetadata: M) {
     return this.addNode({
-      type: 'edit',
       base,
       ref: this.newId(),
       value,
@@ -82,14 +53,11 @@ export class TrimergeGraph<T, M> {
     });
   }
 
-  mergeHeads(
-    mergeFn: MergeHeadsFn<T, M>,
-  ): Node<T, M> {
+  mergeHeads(mergeFn: MergeHeadsFn<T, M>): Node<T, M> {
     const merged = mergeHeadNodes(
       Array.from(this.branchHeads),
       (base, left, right) =>
         this.addNode({
-          type: 'merge',
           ref: this.newId(),
           base: left,
           base2: right,

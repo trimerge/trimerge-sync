@@ -62,19 +62,15 @@ export function mergeHeadNodes<T, M>(
             return true;
           }
         }
-        switch (node.type) {
-          case 'edit':
-            nextNodes.add(node.base);
-            leaf.seenRefs.add(node.base.ref);
-            hasNodes = true;
-            break;
-          case 'merge':
-            nextNodes.add(node.base);
-            nextNodes.add(node.base2);
-            leaf.seenRefs.add(node.base.ref);
-            leaf.seenRefs.add(node.base2.ref);
-            hasNodes = true;
-            break;
+        if (node.base !== undefined) {
+          nextNodes.add(node.base);
+          leaf.seenRefs.add(node.base.ref);
+          hasNodes = true;
+        }
+        if (node.base2 !== undefined) {
+          nextNodes.add(node.base2);
+          leaf.seenRefs.add(node.base2.ref);
+          hasNodes = true;
         }
         leaf.current = nextNodes;
       }

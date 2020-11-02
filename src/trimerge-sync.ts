@@ -9,7 +9,6 @@ export type Step<M, D> = {
 };
 
 export class TrimergeDiffGraph<T, M, D> extends TrimergeGraph<T, M> {
-  public readonly steps: Step<M, D>[] = [];
   constructor(
     private readonly diff: (prior: T | undefined, value: T) => D,
     private readonly refHash: (
@@ -36,7 +35,6 @@ export class TrimergeDiffGraph<T, M, D> extends TrimergeGraph<T, M> {
     if (baseRef2) {
       step.baseRef2 = baseRef2;
     }
-    this.steps.push(step);
     return super.addNode({ ...node, ref });
   }
 }

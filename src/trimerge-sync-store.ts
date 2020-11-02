@@ -18,31 +18,48 @@ export type SnapshotNode<State, EditMetadata, Delta> = {
   editMetadata: EditMetadata;
 };
 
-export type InitialState<State, EditMetadata, Delta> = {
+export type Snapshot<State, EditMetadata, Delta> = {
   syncCounter: number;
-  snapshot?: SnapshotNode<State, EditMetadata, Delta>;
-  nodes: DiffNode<State, EditMetadata, Delta>[];
+  snapshot: SnapshotNode<State, EditMetadata, Delta> | undefined;
 };
 
-export type DiffNodeSubscriber<State, EditMetadata, Delta> = (
-  nodes: DiffNode<State, EditMetadata, Delta>[],
+export type SyncSubscriber<State, EditMetadata, Delta> = (
+  data: SyncData<State, EditMetadata, Delta>,
 ) => void;
 export type UnsubscribeFn = () => void;
 
-export type SyncResult<State, EditMetadata, Delta> = {
+export type SyncData<State, EditMetadata, Delta> = {
   syncCounter: number;
   newNodes: DiffNode<State, EditMetadata, Delta>[];
 };
 
 export interface TrimergeSyncStore<State, EditMetadata, Delta> {
-  initialize(): Promise<InitialState<State, EditMetadata, Delta>>;
+  /**
+   * This should represent everything to show the current document.
+   *
+   * It should also return the current sync counter for use in subscribe/sync methods
+   */
+  getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>>;
 
+  /**
+   * This sets up a subscriber callback that's called for every new node since lastSyncCounter
+   *
+   * @param lastSyncCounter
+   * @param onNodes
+   */
   subscribe(
-    onDiffNodes: (nodes: DiffNode<State, EditMetadata, Delta>[]) => void,
-  ): Promise<UnsubscribeFn>;
-
-  sync(
     lastSyncCounter: number,
+    onNodes: SyncSubscriber<State, EditMetadata, Delta>,
+  ): UnsubscribeFn;
+
+  /**
+   * This sends up new nodes and returns any new added in the interim.
+   *
+   * @param lastSyncCounter
+   * @param newNodes
+   */
+  sync(
+    lastSyncCounter?: number,
     newNodes?: DiffNode<State, EditMetadata, Delta>[],
-  ): Promise<SyncResult<State, EditMetadata, Delta>>;
+  ): Promise<SyncData<State, EditMetadata, Delta>>;
 }
