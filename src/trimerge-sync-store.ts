@@ -10,17 +10,17 @@ export type DiffNode<State, EditMetadata, Delta> = {
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-export type SnapshotNode<State, EditMetadata, Delta> = {
+export type ValueNode<State, EditMetadata, Delta> = {
   ref: string;
   baseRef?: string;
   baseRef2?: string;
-  snapshot: State;
+  value: State;
   editMetadata: EditMetadata;
 };
 
 export type Snapshot<State, EditMetadata, Delta> = {
   syncCounter: number;
-  snapshot: SnapshotNode<State, EditMetadata, Delta> | undefined;
+  node: ValueNode<State, EditMetadata, Delta> | undefined;
 };
 
 export type SyncSubscriber<State, EditMetadata, Delta> = (
@@ -32,6 +32,23 @@ export type SyncData<State, EditMetadata, Delta> = {
   syncCounter: number;
   newNodes: DiffNode<State, EditMetadata, Delta>[];
 };
+
+export type ComputeRefFn<Delta, EditMetadata> = (
+  baseRef: string | undefined,
+  baseRef2: string | undefined,
+  delta: Delta,
+  editMetadata: EditMetadata,
+) => string;
+
+export type DiffFn<State, Delta> = (
+  prior: State | undefined,
+  state: State,
+) => Delta;
+
+export type PatchFn<State, Delta> = (
+  prior: State | undefined,
+  delta: Delta,
+) => State;
 
 export interface TrimergeSyncStore<State, EditMetadata, Delta> {
   /**
@@ -62,4 +79,8 @@ export interface TrimergeSyncStore<State, EditMetadata, Delta> {
     lastSyncCounter?: number,
     newNodes?: DiffNode<State, EditMetadata, Delta>[],
   ): Promise<SyncData<State, EditMetadata, Delta>>;
+
+  readonly diff: DiffFn<State, Delta>;
+  readonly patch: PatchFn<State, Delta>;
+  readonly computeRef: ComputeRefFn<Delta, EditMetadata>;
 }

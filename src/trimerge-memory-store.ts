@@ -5,6 +5,9 @@ import {
   SyncData,
   TrimergeSyncStore,
   UnsubscribeFn,
+  DiffFn,
+  PatchFn,
+  ComputeRefFn,
 } from './trimerge-sync-store';
 
 function flatten<T>(array: T[][]): T[] {
@@ -21,6 +24,12 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
   implements TrimergeSyncStore<State, EditMetadata, Delta> {
   private syncs: DiffNode<State, EditMetadata, Delta>[][] = [];
   private subscribers: SyncSubscriber<State, EditMetadata, Delta>[] = [];
+
+  constructor(
+    public readonly diff: DiffFn<State, Delta>,
+    public readonly patch: PatchFn<State, Delta>,
+    public readonly computeRef: ComputeRefFn<Delta, EditMetadata>,
+  ) {}
 
   async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {
     return {
