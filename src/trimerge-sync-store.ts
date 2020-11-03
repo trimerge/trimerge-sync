@@ -46,7 +46,7 @@ export type DiffFn<State, Delta> = (
 ) => Delta;
 
 export type PatchFn<State, Delta> = (
-  prior: State | undefined,
+  priorOrNext: State | undefined,
   delta: Delta,
 ) => State;
 

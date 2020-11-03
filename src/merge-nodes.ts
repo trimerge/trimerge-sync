@@ -1,17 +1,21 @@
-import { Node } from './trimerge-graph';
+export type MergableNode = {
+  ref: string;
+  baseRef?: string;
+  baseRef2?: string;
+};
 
-type Visitor<T, M> = {
-  node: Node<T, M>;
-  current: Set<Node<T, M>>;
+type Visitor<N extends MergableNode> = {
+  node: N;
+  current: Set<string>;
   seenRefs: Set<string>;
 };
 
-export type MergeNodeFn<T, M> = (
-  base: Node<T, M> | undefined,
-  left: Node<T, M>,
-  right: Node<T, M>,
+export type MergeNodeFn<N extends MergableNode> = (
+  base: N | undefined,
+  left: N,
+  right: N,
   depth: number,
-) => Node<T, M>;
+) => N;
 
 /**
  * This function walks up the tree starting at the nodes in a breadth-first manner, merging nodes as common ancestors are found.
@@ -20,29 +24,31 @@ export type MergeNodeFn<T, M> = (
  *
  * If there are completely un-connected nodes, these will be merged with base === undefined
  */
-export function mergeHeadNodes<T, M>(
-  originNodes: Node<T, M>[],
-  merge: MergeNodeFn<T, M>,
-  sortOrder: (a: Node<T, M>, b: Node<T, M>) => number = (a, b) =>
-    a.ref < b.ref ? -1 : 1,
-): Node<T, M> | undefined {
+export function mergeHeadNodes<N extends MergableNode>(
+  originNodes: N[],
+  getNode: (ref: string) => N,
+  merge: MergeNodeFn<N>,
+  sortOrder: (a: N, b: N) => number = (a, b) => (a.ref < b.ref ? -1 : 1),
+): N | undefined {
   originNodes.sort(sortOrder);
   const visitors = originNodes.map(
-    (node): Visitor<T, M> => ({
+    (node): Visitor<N> => ({
       node,
-      current: new Set([node]),
+      current: new Set([node.ref]),
       seenRefs: new Set([node.ref]),
     }),
   );
   let depth = 0;
 
-  function mergeLeaves(i: number, j: number, base?: Node<T, M>) {
+  function mergeVisitors(i: number, j: number, base?: N) {
     const a = visitors[i];
     const b = visitors[j];
-    const [left, right] =
-      sortOrder(a.node, b.node) <= 0 ? [a.node, b.node] : [b.node, a.node];
+    const node =
+      sortOrder(a.node, b.node) <= 0
+        ? merge(base, a.node, b.node, depth)
+        : merge(base, b.node, a.node, depth);
     visitors[i] = {
-      node: merge(base, left, right, depth),
+      node,
       current: new Set([...a.current, ...b.current]),
       seenRefs: new Set([...a.seenRefs, ...b.seenRefs]),
     };
@@ -54,25 +60,26 @@ export function mergeHeadNodes<T, M>(
     let hasNodes = false;
     for (let i = 0; i < visitors.length; i++) {
       const leaf = visitors[i];
-      const nextNodes = new Set<Node<T, M>>();
-      for (const node of leaf.current) {
+      const nextNodeRefs = new Set<string>();
+      for (const nodeRef of leaf.current) {
         for (let j = 0; j < visitors.length; j++) {
-          if (j !== i && visitors[j].seenRefs.has(node.ref)) {
-            mergeLeaves(i, j, node);
+          if (j !== i && visitors[j].seenRefs.has(nodeRef)) {
+            mergeVisitors(i, j, getNode(nodeRef));
             return true;
           }
         }
-        if (node.base !== undefined) {
-          nextNodes.add(node.base);
-          leaf.seenRefs.add(node.base.ref);
+        const { baseRef, baseRef2 } = getNode(nodeRef);
+        if (baseRef !== undefined) {
+          nextNodeRefs.add(baseRef);
+          leaf.seenRefs.add(baseRef);
           hasNodes = true;
         }
-        if (node.base2 !== undefined) {
-          nextNodes.add(node.base2);
-          leaf.seenRefs.add(node.base2.ref);
+        if (baseRef2 !== undefined) {
+          nextNodeRefs.add(baseRef2);
+          leaf.seenRefs.add(baseRef2);
           hasNodes = true;
         }
-        leaf.current = nextNodes;
+        leaf.current = nextNodeRefs;
       }
     }
     depth++;
@@ -82,9 +89,11 @@ export function mergeHeadNodes<T, M>(
   while (iterate());
 
   if (visitors.length > 1) {
+    // If we still have multiple visitors, we have unconnected root nodes (undefined baseRef)
+    // Sort them deterministically and merge from left to right: e.g. merge(merge(merge(0,1),2),3)
     visitors.sort((a, b) => sortOrder(a.node, b.node));
     while (visitors.length > 1) {
-      mergeLeaves(0, 1);
+      mergeVisitors(0, 1);
     }
   }
   return visitors[0]?.node;

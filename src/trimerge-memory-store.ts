@@ -1,13 +1,14 @@
 import {
+  ComputeRefFn,
+  DiffFn,
   DiffNode,
-  SyncSubscriber,
+  PatchFn,
   Snapshot,
   SyncData,
+  SyncSubscriber,
   TrimergeSyncStore,
   UnsubscribeFn,
-  DiffFn,
-  PatchFn,
-  ComputeRefFn,
+  ValueNode,
 } from './trimerge-sync-store';
 
 function flatten<T>(array: T[][]): T[] {
@@ -24,18 +25,65 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
   implements TrimergeSyncStore<State, EditMetadata, Delta> {
   private syncs: DiffNode<State, EditMetadata, Delta>[][] = [];
   private subscribers: SyncSubscriber<State, EditMetadata, Delta>[] = [];
+  private nodes = new Map<string, DiffNode<State, EditMetadata, Delta>>();
+  private snapshots = new Map<string, State>();
+  private heads: Set<string> = [];
+  private primary: string | undefined;
 
   constructor(
     public readonly diff: DiffFn<State, Delta>,
     public readonly patch: PatchFn<State, Delta>,
+    public readonly reversePatch: PatchFn<State, Delta>,
     public readonly computeRef: ComputeRefFn<Delta, EditMetadata>,
   ) {}
 
-  async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {
+  public async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {
     return {
       syncCounter: this.syncs.length,
-      nodes: flatten(this.syncs),
+      node: this.getValueNode(this.primary),
     };
+  }
+
+  private getValueNode(
+    targetRef: string | undefined,
+  ): ValueNode<State, EditMetadata, Delta> | undefined {
+    if (targetRef === undefined) {
+      return undefined;
+    }
+    const node = this.nodes.get(targetRef);
+    if (node === undefined) {
+      return undefined;
+    }
+    const { editMetadata, delta, ref: ref, baseRef, baseRef2 } = node;
+    const value =
+      this.snapshots.get(targetRef) ??
+      this.patch(this.getValueNode(baseRef)?.value, delta);
+
+    return { ref, baseRef, baseRef2, editMetadata, value };
+  }
+
+  private addChild(parentRef: string | undefined, childRef: string) {
+    if (parentRef !== undefined) {
+      this.heads.delete(parentRef);
+    }
+    if (this.primary === parentRef) {
+      this.primary = childRef;
+    }
+  }
+
+  private addNodes(addNodes: DiffNode<State, EditMetadata, Delta>[]) {
+    for (const node of addNodes) {
+      if (this.nodes.has(node.ref)) {
+        throw new Error(`attempting to add ref "${node.ref}" twice`);
+      }
+      this.heads.add(node.ref);
+      this.addChild(node.baseRef, node.ref);
+      this.addChild(node.baseRef2, node.ref);
+    }
+    this.syncs.push(addNodes);
+    for (const subscriber of this.subscribers) {
+      subscriber({ syncCounter: this.syncs.length, newNodes: addNodes });
+    }
   }
 
   subscribe(
@@ -65,7 +113,7 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
     };
   }
 
-  async sync(
+  public async sync(
     lastSyncCounter: number,
     addNodes?: DiffNode<State, EditMetadata, Delta>[],
   ): Promise<SyncData<State, EditMetadata, Delta>> {
@@ -74,10 +122,7 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
         ? flatten(this.syncs.slice(lastSyncCounter))
         : [];
     if (addNodes && addNodes.length > 0) {
-      this.syncs.push(addNodes);
-      for (const subscriber of this.subscribers) {
-        subscriber({ syncCounter: this.syncs.length, newNodes: addNodes });
-      }
+      this.addNodes(addNodes);
     }
     return { syncCounter: this.syncs.length, newNodes };
   }

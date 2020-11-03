@@ -1,4 +1,4 @@
-import { MergeHeadsFn } from './trimerge-graph';
+import { MergeHeadNodesFn } from './trimerge-graph';
 import {
   combineMergers,
   trimergeEquality,
@@ -16,7 +16,7 @@ const trimergeObjects = combineMergers(
   trimergeObject,
 );
 
-const mergeHeadsFn: MergeHeadsFn<any, string> = (base, left, right) => ({
+const mergeHeadsFn: MergeHeadNodesFn<any, string> = (base, left, right) => ({
   value: trimergeObjects(base?.value, left.value, right.value),
   editMetadata: `merge ${left.ref.slice(0, 8)} and ${right.ref.slice(
     0,
