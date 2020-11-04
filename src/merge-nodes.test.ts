@@ -1,13 +1,5 @@
 import { MergableNode, mergeHeadNodes, MergeNodeFn } from './merge-nodes';
 
-let nextId = 1;
-function newId(): string {
-  return (nextId++).toString();
-}
-beforeEach(() => {
-  nextId = 1;
-});
-
 const basicMerge: MergeNodeFn<MergableNode> = (base, left, right) => {
   return {
     ref: `(${base?.ref ?? '-'}:${left.ref}+${right.ref})`,
@@ -32,21 +24,21 @@ function makeGetNodeFn(nodes: MergableNode[]) {
 
 describe('mergeHeadNodes()', () => {
   it('find no common parent if there is none', () => {
+    const foo3 = { ref: 'foo-3', baseRef: 'foo-2' };
+    const bar3 = { ref: 'bar-3', baseRef: 'bar-2' };
     const getNode = makeGetNodeFn([
       { ref: 'foo' },
       { ref: 'foo-1', baseRef: 'foo' },
       { ref: 'foo-2', baseRef: 'foo-1' },
-      { ref: 'foo-3', baseRef: 'foo-2' },
+      foo3,
       { ref: 'bar' },
       { ref: 'bar-1', baseRef: 'bar' },
       { ref: 'bar-2', baseRef: 'bar-1' },
-      { ref: 'bar-3', baseRef: 'bar-2' },
+      bar3,
     ]);
     const mergeFn = jest.fn(basicMerge);
-    mergeHeadNodes([getNode('foo-3'), getNode('bar-3')], getNode, mergeFn);
-    expect(mergeFn.mock.calls).toEqual([
-      [undefined, getNode('foo-3'), getNode('bar-3'), 4],
-    ]);
+    mergeHeadNodes([foo3, bar3], getNode, mergeFn);
+    expect(mergeFn.mock.calls).toEqual([[undefined, bar3, foo3, 4]]);
   });
 
   it('find no common parent if there is no overlay', () => {
@@ -63,63 +55,61 @@ describe('mergeHeadNodes()', () => {
   });
 
   it('find common parent on v split', () => {
-    const root = graph.addInit({}, 'initialize');
-    let foo = graph.addEdit(root, { hello: 'world' }, 'add hello');
-    foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
-    foo = graph.addEdit(foo, {}, 'delete hello');
-    let bar = graph.addEdit(root, { world: 'world' }, 'add world');
-    bar = graph.addEdit(bar, { world: 'vorld' }, 'change world');
-    bar = graph.addEdit(bar, {}, 'delete world');
-    const fn = jest.fn(basicMerge);
-    mergeHeadNodes([foo, bar], fn);
-    expect(fn.mock.calls).toEqual([[root, foo, bar, 3]]);
+    const root = { ref: 'root' };
+    const foo = { ref: 'foo-2', baseRef: 'foo-1' };
+    const bar = { ref: 'bar-2', baseRef: 'bar-1' };
+    const getNode = makeGetNodeFn([
+      root,
+      { ref: 'foo', baseRef: 'root' },
+      { ref: 'foo-1', baseRef: 'foo' },
+      foo,
+      { ref: 'bar', baseRef: 'root' },
+      { ref: 'bar-1', baseRef: 'bar' },
+      bar,
+    ]);
+    const mergeFn = jest.fn(basicMerge);
+    mergeHeadNodes([foo, bar], getNode, mergeFn);
+    expect(mergeFn.mock.calls).toEqual([[root, bar, foo, 3]]);
   });
   it('find common parent on equal three-way split', () => {
-    const root = graph.addInit({}, 'initialize');
-    let foo = graph.addEdit(root, { hello: 'world' }, 'add hello');
-    foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
-    let bar = graph.addEdit(root, { world: 'world' }, 'add world');
-    bar = graph.addEdit(bar, { world: 'vorld' }, 'change world');
-    let baz = graph.addEdit(root, { sup: '' }, 'add sup');
-    baz = graph.addEdit(baz, { sup: 'yo' }, 'change sup');
-    const fn = jest.fn(basicMerge);
-    mergeHeadNodes([foo, bar, baz], fn);
-    expect(fn.mock.calls).toMatchObject([
+    const root = { ref: 'root' };
+    const foo = { ref: 'foo', baseRef: 'root' };
+    const bar = { ref: 'bar', baseRef: 'root' };
+    const baz = { ref: 'baz', baseRef: 'root' };
+    const getNode = makeGetNodeFn([root, foo, bar, baz]);
+    const mergeFn = jest.fn(basicMerge);
+    mergeHeadNodes([foo, bar, baz], getNode, mergeFn);
+    expect(mergeFn.mock.calls).toMatchObject([
       [root, foo, bar, 2],
       [root, baz, expect.anything(), 2],
     ]);
   });
   it('find common parent on staggered three-way split', () => {
-    const root = graph.addInit({}, 'initialize');
-    let foo = graph.addEdit(root, { hello: 'world' }, 'add hello');
-    foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
-    let bar = graph.addEdit(root, { world: 'world' }, 'add world');
-    bar = graph.addEdit(bar, { world: 'vorld' }, 'change world');
-    let baz = graph.addEdit(root, { sup: '' }, 'add sup');
-    baz = graph.addEdit(baz, { sup: 'yo' }, 'change sup');
-    baz = graph.addEdit(baz, { sup: 'yoyo' }, 'change sup');
-    const fn = jest.fn(basicMerge);
-    mergeHeadNodes([foo, bar, baz], fn);
-    expect(fn.mock.calls).toMatchObject([
+    const root = { ref: 'root' };
+    const foo = { ref: 'foo', baseRef: 'root' };
+    const bar = { ref: 'bar', baseRef: 'root' };
+    const baz = { ref: 'baz', baseRef: 'root' };
+    const baz1 = { ref: 'baz-1', baseRef: 'baz' };
+    const getNode = makeGetNodeFn([root, foo, bar, baz, baz1]);
+    const mergeFn = jest.fn(basicMerge);
+    mergeHeadNodes([foo, bar, baz1], getNode, mergeFn);
+    expect(mergeFn.mock.calls).toMatchObject([
       [root, foo, bar, 2],
-      [root, baz, expect.anything(), 3],
+      [root, baz1, expect.anything(), 3],
     ]);
   });
   it('find common parent on staggered three-way split 2', () => {
-    const root = graph.addInit({}, 'initialize');
-    let foo = graph.addEdit(root, { hello: 'world' }, 'add hello');
-    foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
-    const barRoot = graph.addEdit(root, { world: 'world' }, 'add world');
-    const bar = graph.addEdit(barRoot, { world: 'vorld' }, 'change world');
-    const baz = graph.addEdit(
-      barRoot,
-      { world: 'world', sup: 'yo' },
-      'add sup',
-    );
-    const fn = jest.fn(basicMerge);
-    mergeHeadNodes([foo, bar, baz], fn);
-    expect(fn.mock.calls).toMatchObject([
-      [barRoot, bar, baz, 1],
+    const root = { ref: 'root' };
+    const foo = { ref: 'foo', baseRef: 'root' };
+    const foo1 = { ref: 'foo-1', baseRef: 'foo' };
+    const bar = { ref: 'bar', baseRef: 'root' };
+    const bar1 = { ref: 'bar-1', baseRef: 'bar' };
+    const baz = { ref: 'baz', baseRef: 'bar' };
+    const getNode = makeGetNodeFn([root, foo, foo1, bar, bar1, baz]);
+    const mergeFn = jest.fn(basicMerge);
+    mergeHeadNodes([foo, bar1, baz], getNode, mergeFn);
+    expect(mergeFn.mock.calls).toMatchObject([
+      [bar, bar1, baz, 1],
       [root, foo, expect.anything(), 2],
     ]);
   });
