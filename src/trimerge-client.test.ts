@@ -50,8 +50,11 @@ function makeClient(store: TrimergeMemoryStore<any, string, any>) {
   return TrimergeClient.create(store, mergeHeadsFn, 0);
 }
 
-describe('client.mergeHeads()', () => {
-  it('"merges" single node', async () => {
+function timeout() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+describe('TrimergeClient', () => {
+  it('tracks edits', async () => {
     const store = newStore();
     const client = await makeClient(store);
 
@@ -62,7 +65,7 @@ describe('client.mergeHeads()', () => {
     expect(client.state).toEqual({ hello: 'vorld' });
   });
 
-  it('editing with multiple clients', async () => {
+  it('edit syncs across two clients', async () => {
     const store = newStore();
     const client1 = await makeClient(store);
     const client2 = await makeClient(store);
@@ -83,13 +86,34 @@ describe('client.mergeHeads()', () => {
     // Client2 is updated now
     expect(client1.state).toEqual({});
     expect(client2.state).toEqual({});
+  });
 
+  it('two edits sync across two clients', async () => {
+    const store = newStore();
+    const client1 = await makeClient(store);
+    const client2 = await makeClient(store);
+
+    client1.editState({}, 'initialize');
+    client1.editState({ edit: true }, 'edit');
+
+    // Client 1 is updated, but not client2
+    expect(client1.state).toEqual({ edit: true });
+    expect(client2.state).toBe(undefined);
+
+    await timeout();
+    await timeout();
+
+    expect(client2.state).toEqual({ edit: true });
+  });
+
+  it('edit syncs back and forth with two clients', async () => {
+    const store = newStore();
+    const client1 = await makeClient(store);
+    const client2 = await makeClient(store);
+
+    client1.editState({}, 'initialize');
     client1.editState({ hello: 'world' }, 'add hello');
     client1.editState({ hello: 'vorld' }, 'change hello');
-
-    // Client 1 is updated, but not client 2
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual({});
 
     await client1.sync();
     await client2.sync();
@@ -111,7 +135,7 @@ describe('client.mergeHeads()', () => {
     expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
   });
 
-  it('merges v split', async () => {
+  it('automatic merging if two clients edit simultaneously', async () => {
     const store = newStore();
     const client1 = await makeClient(store);
     const client2 = await makeClient(store);
@@ -137,12 +161,18 @@ describe('client.mergeHeads()', () => {
     await client1.sync();
     await client2.sync();
 
+    await timeout();
+    await timeout();
+
     //  Now they should both have trimerged changes
     expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
 
     await client1.sync();
     await client2.sync();
+
+    await timeout();
+    await timeout();
 
     // Should be the same
     expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });

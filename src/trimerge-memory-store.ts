@@ -4,7 +4,6 @@ import {
   DiffNode,
   PatchFn,
   Snapshot,
-  SyncData,
   SyncSubscriber,
   TrimergeSyncStore,
   UnsubscribeFn,
@@ -66,21 +65,6 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
       this.primary = childRef;
     }
   }
-
-  private addNodes(addNodes: DiffNode<State, EditMetadata, Delta>[]): void {
-    for (const node of addNodes) {
-      if (this.nodes.has(node.ref)) {
-        throw new Error(`attempting to add ref "${node.ref}" twice`);
-      }
-      this.addChild(node.baseRef, node.ref);
-      this.addChild(node.baseRef2, node.ref);
-    }
-    this.syncs.push(addNodes);
-    for (const subscriber of this.subscribers) {
-      subscriber({ syncCounter: this.syncs.length, newNodes: addNodes });
-    }
-  }
-
   subscribe(
     lastSyncCounter: number,
     onSync: SyncSubscriber<State, EditMetadata, Delta>,
@@ -108,17 +92,23 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
     };
   }
 
-  public async sync(
-    lastSyncCounter: number,
-    addNodes?: DiffNode<State, EditMetadata, Delta>[],
-  ): Promise<SyncData<State, EditMetadata, Delta>> {
-    const newNodes =
-      this.syncs.length > lastSyncCounter
-        ? flatten(this.syncs.slice(lastSyncCounter))
-        : [];
-    if (addNodes && addNodes.length > 0) {
-      this.addNodes(addNodes);
+  public async addNodes(
+    newNodes: DiffNode<State, EditMetadata, Delta>[],
+  ): Promise<number> {
+    if (newNodes.length > 0) {
+      for (const node of newNodes) {
+        if (this.nodes.has(node.ref)) {
+          throw new Error(`attempting to add ref "${node.ref}" twice`);
+        }
+        this.addChild(node.baseRef, node.ref);
+        this.addChild(node.baseRef2, node.ref);
+      }
+      this.syncs.push(newNodes);
+      const syncCounter = this.syncs.length;
+      for (const subscriber of this.subscribers) {
+        subscriber({ syncCounter, newNodes });
+      }
     }
-    return { syncCounter: this.syncs.length, newNodes };
+    return this.syncs.length;
   }
 }

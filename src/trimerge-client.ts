@@ -31,8 +31,7 @@ export class TrimergeClient<State, EditMetadata, Delta> {
   private headRefs = new Set<string>();
 
   private unsubscribe: UnsubscribeFn;
-  private pendingDiffNodes: DiffNode<State, EditMetadata, Delta>[] = [];
-  private bufferTimeout: ReturnType<typeof setTimeout> | undefined;
+  private unsyncedNodes: DiffNode<State, EditMetadata, Delta>[] = [];
 
   public static async create<State, EditMetadata, Delta>(
     store: TrimergeSyncStore<State, EditMetadata, Delta>,
@@ -63,7 +62,7 @@ export class TrimergeClient<State, EditMetadata, Delta> {
   }
 
   editState(value: State, editMetadata: EditMetadata) {
-    this.current = this.addNewNode(
+    this.addNewNode(
       value,
       editMetadata,
       this.current?.value,
@@ -82,6 +81,9 @@ export class TrimergeClient<State, EditMetadata, Delta> {
   };
 
   private mergeHeads() {
+    if (this.headRefs.size <= 1) {
+      return;
+    }
     console.log('merging heads:', Array.from(this.headRefs));
     mergeHeadNodes(
       Array.from(this.headRefs),
@@ -122,24 +124,23 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     this.sync();
   };
 
-  private syncPromise: Promise<void> | undefined;
+  private syncPromise: Promise<boolean> | undefined;
 
-  sync() {
-    if (!this.syncPromise) {
+  sync(): Promise<boolean> | undefined {
+    if (!this.syncPromise && this.unsyncedNodes.length > 0) {
       this.syncPromise = this.doSync();
     }
     return this.syncPromise;
   }
   private async doSync() {
-    if (this.bufferMs > 0) {
+    while (this.unsyncedNodes.length > 0) {
       await waitMs(this.bufferMs);
+      const nodes = this.unsyncedNodes;
+      this.unsyncedNodes = [];
+      this.lastSyncCounter = await this.store.addNodes(nodes);
     }
-    const nodes = this.pendingDiffNodes;
-    this.pendingDiffNodes = [];
-    this.bufferTimeout = undefined;
-    const syncData = await this.store.sync(this.lastSyncCounter, nodes);
-    this.onNodes(syncData);
     this.syncPromise = undefined;
+    return true;
   }
 
   private addNode(node: ValueNode<State, EditMetadata>): boolean {
@@ -155,6 +156,10 @@ export class TrimergeClient<State, EditMetadata, Delta> {
       this.headRefs.delete(node.baseRef2);
     }
     this.headRefs.add(ref);
+    const currentRef = this.current?.ref;
+    if (currentRef === node.baseRef || currentRef === node.baseRef2) {
+      this.current = node;
+    }
     return true;
   }
 
@@ -169,7 +174,7 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     const ref = this.store.computeRef(baseRef, baseRef2, delta, editMetadata);
     const node = { ref, baseRef, baseRef2, value, editMetadata };
     if (this.addNode(node)) {
-      this.pendingDiffNodes.push({
+      this.unsyncedNodes.push({
         ref,
         baseRef,
         baseRef2,

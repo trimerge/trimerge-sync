@@ -73,10 +73,7 @@ export interface TrimergeSyncStore<State, EditMetadata, Delta> {
    * @param lastSyncCounter
    * @param newNodes
    */
-  sync(
-    lastSyncCounter?: number,
-    newNodes?: DiffNode<State, EditMetadata, Delta>[],
-  ): Promise<SyncData<State, EditMetadata, Delta>>;
+  addNodes(newNodes: DiffNode<State, EditMetadata, Delta>[]): Promise<number>;
 
   readonly diff: DiffFn<State, Delta>;
   readonly patch: PatchFn<State, Delta>;
