@@ -27,7 +27,6 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
   private subscribers: SyncSubscriber<State, EditMetadata, Delta>[] = [];
   private nodes = new Map<string, DiffNode<State, EditMetadata, Delta>>();
   private snapshots = new Map<string, State>();
-  private heads: Set<string> = [];
   private primary: string | undefined;
 
   constructor(
@@ -37,7 +36,7 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
     public readonly computeRef: ComputeRefFn<Delta, EditMetadata>,
   ) {}
 
-  public async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {
+  public async getSnapshot(): Promise<Snapshot<State, EditMetadata>> {
     return {
       syncCounter: this.syncs.length,
       node: this.getValueNode(this.primary),
@@ -46,7 +45,7 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
 
   private getValueNode(
     targetRef: string | undefined,
-  ): ValueNode<State, EditMetadata, Delta> | undefined {
+  ): ValueNode<State, EditMetadata> | undefined {
     if (targetRef === undefined) {
       return undefined;
     }
@@ -63,20 +62,16 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
   }
 
   private addChild(parentRef: string | undefined, childRef: string) {
-    if (parentRef !== undefined) {
-      this.heads.delete(parentRef);
-    }
     if (this.primary === parentRef) {
       this.primary = childRef;
     }
   }
 
-  private addNodes(addNodes: DiffNode<State, EditMetadata, Delta>[]) {
+  private addNodes(addNodes: DiffNode<State, EditMetadata, Delta>[]): void {
     for (const node of addNodes) {
       if (this.nodes.has(node.ref)) {
         throw new Error(`attempting to add ref "${node.ref}" twice`);
       }
-      this.heads.add(node.ref);
       this.addChild(node.baseRef, node.ref);
       this.addChild(node.baseRef2, node.ref);
     }

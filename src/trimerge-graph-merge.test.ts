@@ -80,11 +80,7 @@ describe('graph.mergeHeads()', () => {
     foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
     let bar = graph.addEdit(root, { world: 'world' }, 'add world');
     bar = graph.addEdit(bar, { world: 'vorld' }, 'change world');
-    const mergeNode = graph.mergeHeads(mergeHeadsFn);
-    expect(mergeNode?.value).toEqual({
-      hello: 'vorld',
-      world: 'vorld',
-    });
+    graph.mergeHeads(mergeHeadsFn);
     expect(graph.getHeads()).toMatchInlineSnapshot(`
       Set {
         Object {

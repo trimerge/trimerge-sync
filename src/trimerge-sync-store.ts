@@ -8,9 +8,7 @@ export type DiffNode<State, EditMetadata, Delta> = {
   editMetadata: EditMetadata;
 };
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-export type ValueNode<State, EditMetadata, Delta> = {
+export type ValueNode<State, EditMetadata> = {
   ref: string;
   baseRef?: string;
   baseRef2?: string;
@@ -18,9 +16,9 @@ export type ValueNode<State, EditMetadata, Delta> = {
   editMetadata: EditMetadata;
 };
 
-export type Snapshot<State, EditMetadata, Delta> = {
+export type Snapshot<State, EditMetadata> = {
   syncCounter: number;
-  node: ValueNode<State, EditMetadata, Delta> | undefined;
+  node: ValueNode<State, EditMetadata> | undefined;
 };
 
 export type SyncSubscriber<State, EditMetadata, Delta> = (
@@ -56,7 +54,7 @@ export interface TrimergeSyncStore<State, EditMetadata, Delta> {
    *
    * It should also return the current sync counter for use in subscribe/sync methods
    */
-  getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>>;
+  getSnapshot(): Promise<Snapshot<State, EditMetadata>>;
 
   /**
    * This sets up a subscriber callback that's called for every new node since lastSyncCounter

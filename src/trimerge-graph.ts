@@ -65,19 +65,23 @@ export class TrimergeGraph<T, M> {
     });
   }
 
-  mergeHeads(mergeFn: MergeHeadNodesFn<T, M>): Node<T, M> {
+  mergeHeads(mergeFn: MergeHeadNodesFn<T, M>): string {
     const merged = mergeHeadNodes<Node<T, M>>(
-      Array.from(this.branchHeads),
+      Array.from(this.branchHeads).map(({ ref }) => ref),
       (ref) => this.getNode(ref),
-      (base, left, right) =>
+      (baseRef, leftRef, rightRef) =>
         this.addNode({
           ref: this.newId(),
-          baseRef: left.ref,
-          baseRef2: right.ref,
-          ...mergeFn(base, left, right),
-        }),
+          baseRef: leftRef,
+          baseRef2: rightRef,
+          ...mergeFn(
+            baseRef !== undefined ? this.getNode(baseRef) : undefined,
+            this.getNode(leftRef),
+            this.getNode(rightRef),
+          ),
+        }).ref,
     );
-    if (!merged) {
+    if (merged === undefined) {
       throw new Error('no merge result!');
     }
     return merged;
