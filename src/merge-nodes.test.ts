@@ -48,9 +48,14 @@ describe('mergeHeadNodes()', () => {
     const getNode = makeGetNodeFn([foo, bar, baz]);
     const mergeFn = jest.fn(basicMerge);
     mergeHeadNodes([foo, bar, baz], getNode, mergeFn);
-    expect(mergeFn.mock.calls).toMatchObject([
+    expect(mergeFn.mock.calls).toEqual([
       [undefined, bar, baz, 1],
-      [undefined, foo, expect.anything(), 1],
+      [
+        undefined,
+        { baseRef: 'bar', baseRef2: 'baz', ref: '(-:bar+baz)' },
+        foo,
+        1,
+      ],
     ]);
   });
 
@@ -79,9 +84,14 @@ describe('mergeHeadNodes()', () => {
     const getNode = makeGetNodeFn([root, foo, bar, baz]);
     const mergeFn = jest.fn(basicMerge);
     mergeHeadNodes([foo, bar, baz], getNode, mergeFn);
-    expect(mergeFn.mock.calls).toMatchObject([
-      [root, foo, bar, 2],
-      [root, baz, expect.anything(), 2],
+    expect(mergeFn.mock.calls).toEqual([
+      [root, bar, baz, 1],
+      [
+        root,
+        { ref: '(root:bar+baz)', baseRef: 'bar', baseRef2: 'baz' },
+        foo,
+        1,
+      ],
     ]);
   });
   it('find common parent on staggered three-way split', () => {
@@ -93,9 +103,14 @@ describe('mergeHeadNodes()', () => {
     const getNode = makeGetNodeFn([root, foo, bar, baz, baz1]);
     const mergeFn = jest.fn(basicMerge);
     mergeHeadNodes([foo, bar, baz1], getNode, mergeFn);
-    expect(mergeFn.mock.calls).toMatchObject([
-      [root, foo, bar, 2],
-      [root, baz1, expect.anything(), 3],
+    expect(mergeFn.mock.calls).toEqual([
+      [root, bar, foo, 1],
+      [
+        root,
+        { baseRef: 'bar', baseRef2: 'foo', ref: '(root:bar+foo)' },
+        baz1,
+        2,
+      ],
     ]);
   });
   it('find common parent on staggered three-way split 2', () => {
@@ -108,9 +123,14 @@ describe('mergeHeadNodes()', () => {
     const getNode = makeGetNodeFn([root, foo, foo1, bar, bar1, baz]);
     const mergeFn = jest.fn(basicMerge);
     mergeHeadNodes([foo, bar1, baz], getNode, mergeFn);
-    expect(mergeFn.mock.calls).toMatchObject([
+    expect(mergeFn.mock.calls).toEqual([
       [bar, bar1, baz, 1],
-      [root, foo, expect.anything(), 2],
+      [
+        root,
+        { baseRef: 'bar-1', baseRef2: 'baz', ref: '(bar:bar-1+baz)' },
+        foo,
+        1,
+      ],
     ]);
   });
 });
