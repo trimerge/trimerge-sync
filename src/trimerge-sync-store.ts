@@ -31,23 +31,6 @@ export type SyncData<State, EditMetadata, Delta> = {
   newNodes: DiffNode<State, EditMetadata, Delta>[];
 };
 
-export type ComputeRefFn<Delta, EditMetadata> = (
-  baseRef: string | undefined,
-  baseRef2: string | undefined,
-  delta: Delta,
-  editMetadata: EditMetadata,
-) => string;
-
-export type DiffFn<State, Delta> = (
-  prior: State | undefined,
-  state: State,
-) => Delta;
-
-export type PatchFn<State, Delta> = (
-  priorOrNext: State | undefined,
-  delta: Delta,
-) => State;
-
 export interface TrimergeSyncStore<State, EditMetadata, Delta> {
   /**
    * This should represent everything to show the current document.
@@ -74,8 +57,4 @@ export interface TrimergeSyncStore<State, EditMetadata, Delta> {
    * @param newNodes
    */
   addNodes(newNodes: DiffNode<State, EditMetadata, Delta>[]): Promise<number>;
-
-  readonly diff: DiffFn<State, Delta>;
-  readonly patch: PatchFn<State, Delta>;
-  readonly computeRef: ComputeRefFn<Delta, EditMetadata>;
 }

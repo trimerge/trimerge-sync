@@ -7,6 +7,7 @@ import {
   ValueNode,
 } from './trimerge-sync-store';
 import { mergeHeadNodes } from './merge-nodes';
+import { Differ } from './differ';
 
 export type ValueState<State, EditMetadata> = {
   value: State;
@@ -35,21 +36,17 @@ export class TrimergeClient<State, EditMetadata, Delta> {
 
   public static async create<State, EditMetadata, Delta>(
     store: TrimergeSyncStore<State, EditMetadata, Delta>,
-    merge: MergeStateFn<State, EditMetadata>,
+    differ: Differ<State, EditMetadata, Delta>,
     bufferMs: number = 100,
   ): Promise<TrimergeClient<State, EditMetadata, Delta>> {
-    return new TrimergeClient(
-      await store.getSnapshot(),
-      store,
-      merge,
-      bufferMs,
-    );
+    const snapshot = await store.getSnapshot();
+    return new TrimergeClient(snapshot, store, differ, bufferMs);
   }
 
   private constructor(
     { node, syncCounter }: Snapshot<State, EditMetadata>,
     private readonly store: TrimergeSyncStore<State, EditMetadata, Delta>,
-    private readonly merge: MergeStateFn<State, EditMetadata>,
+    private readonly differ: Differ<State, EditMetadata, Delta>,
     private readonly bufferMs: number = 100,
   ) {
     this.unsubscribe = store.subscribe(syncCounter, this.onNodes);
@@ -63,7 +60,7 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     return this.current?.value;
   }
 
-  editState(value: State, editMetadata: EditMetadata) {
+  addEdit(value: State, editMetadata: EditMetadata) {
     this.addNewNode(
       value,
       editMetadata,
@@ -93,7 +90,7 @@ export class TrimergeClient<State, EditMetadata, Delta> {
         const base = baseRef !== undefined ? this.getNode(baseRef) : undefined;
         const left = this.getNode(leftRef);
         const right = this.getNode(rightRef);
-        const { value, editMetadata } = this.merge(base, left, right);
+        const { value, editMetadata } = this.differ.merge(base, left, right);
         return this.addNewNode(
           value,
           editMetadata,
@@ -116,7 +113,7 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     } of data.newNodes) {
       const base =
         baseRef !== undefined ? this.getNode(baseRef).value : undefined;
-      const value = this.store.patch(base, delta);
+      const value = this.differ.patch(base, delta);
       this.addNode({ ref, baseRef, baseRef2, value, editMetadata });
     }
     this.mergeHeads();
@@ -174,17 +171,11 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     baseRef?: string,
     baseRef2?: string,
   ): ValueNode<State, EditMetadata> {
-    const delta = this.store.diff(baseValue, value);
-    const ref = this.store.computeRef(baseRef, baseRef2, delta, editMetadata);
+    const delta = this.differ.diff(baseValue, value);
+    const ref = this.differ.computeRef(baseRef, baseRef2, delta, editMetadata);
     const node = { ref, baseRef, baseRef2, value, editMetadata };
     if (this.addNode(node)) {
-      this.unsyncedNodes.push({
-        ref,
-        baseRef,
-        baseRef2,
-        delta,
-        editMetadata,
-      });
+      this.unsyncedNodes.push({ ref, baseRef, baseRef2, delta, editMetadata });
     }
     return node;
   }

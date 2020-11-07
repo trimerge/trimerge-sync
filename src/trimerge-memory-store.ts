@@ -1,14 +1,12 @@
 import {
-  ComputeRefFn,
-  DiffFn,
   DiffNode,
-  PatchFn,
   Snapshot,
   SyncSubscriber,
   TrimergeSyncStore,
   UnsubscribeFn,
   ValueNode,
 } from './trimerge-sync-store';
+import { Differ } from './differ';
 
 function flatten<T>(array: T[][]): T[] {
   if (array.length === 0) {
@@ -28,12 +26,7 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
   private snapshots = new Map<string, State>();
   private primary: string | undefined;
 
-  constructor(
-    public readonly diff: DiffFn<State, Delta>,
-    public readonly patch: PatchFn<State, Delta>,
-    public readonly reversePatch: PatchFn<State, Delta>,
-    public readonly computeRef: ComputeRefFn<Delta, EditMetadata>,
-  ) {}
+  constructor(private readonly differ: Differ<State, EditMetadata, Delta>) {}
 
   public async getSnapshot(): Promise<Snapshot<State, EditMetadata>> {
     return {
@@ -55,7 +48,7 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
     const { editMetadata, delta, ref: ref, baseRef, baseRef2 } = node;
     const value =
       this.snapshots.get(targetRef) ??
-      this.patch(this.getValueNode(baseRef)?.value, delta);
+      this.differ.patch(this.getValueNode(baseRef)?.value, delta);
 
     return { ref, baseRef, baseRef2, editMetadata, value };
   }
@@ -65,6 +58,7 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
       this.primary = childRef;
     }
   }
+
   subscribe(
     lastSyncCounter: number,
     onSync: SyncSubscriber<State, EditMetadata, Delta>,
