@@ -102,6 +102,7 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
         }
         this.addChild(node.baseRef, node.ref);
         this.addChild(node.baseRef2, node.ref);
+        this.nodes.set(node.ref, node);
       }
       this.syncs.push(newNodes);
       const syncCounter = this.syncs.length;

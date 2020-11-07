@@ -6,8 +6,9 @@ import {
 } from 'trimerge';
 import { TrimergeMemoryStore } from './trimerge-memory-store';
 import Jssha from 'jssha';
-import { create } from 'jsondiffpatch';
+import { create, Delta } from 'jsondiffpatch';
 import { MergeStateFn, TrimergeClient } from './trimerge-client';
+import { produce } from 'immer';
 
 // Basic trimerge function that merges values, strings, and objects
 const trimergeObjects = combineMergers(
@@ -34,19 +35,25 @@ function refHash(
 
 const jdp = create({ textDiff: { minLength: 20 } });
 
+function immerPatch<T>(base: T, delta: Delta | undefined): T {
+  if (delta === undefined) {
+    return base;
+  }
+  return produce(base, (draft) => jdp.patch(draft, delta));
+}
+
 function newStore() {
   return new TrimergeMemoryStore<any, string, any>(
     (left, right) => jdp.diff(left, right),
-    (prior, delta) => jdp.patch(prior, delta),
-    (next, delta) => {
-      delta = jdp.reverse(delta);
-      return delta !== undefined ? jdp.patch(next, delta) : next;
-    },
+    immerPatch,
+    (next, delta) => immerPatch(next, jdp.reverse(delta)),
     refHash,
   );
 }
 
-function makeClient(store: TrimergeMemoryStore<any, string, any>) {
+function makeClient(
+  store: TrimergeMemoryStore<any, string, any>,
+): Promise<TrimergeClient<any, string, any>> {
   return TrimergeClient.create(store, mergeHeadsFn, 0);
 }
 
@@ -80,8 +87,7 @@ describe('TrimergeClient', () => {
     expect(client1.state).toEqual({});
     expect(client2.state).toBe(undefined);
 
-    await client1.sync();
-    await client2.sync();
+    await timeout();
 
     // Client2 is updated now
     expect(client1.state).toEqual({});
@@ -101,7 +107,6 @@ describe('TrimergeClient', () => {
     expect(client2.state).toBe(undefined);
 
     await timeout();
-    await timeout();
 
     expect(client2.state).toEqual({ edit: true });
   });
@@ -115,8 +120,7 @@ describe('TrimergeClient', () => {
     client1.editState({ hello: 'world' }, 'add hello');
     client1.editState({ hello: 'vorld' }, 'change hello');
 
-    await client1.sync();
-    await client2.sync();
+    await timeout();
 
     expect(client1.state).toEqual({ hello: 'vorld' });
     expect(client2.state).toEqual({ hello: 'vorld' });
@@ -128,8 +132,7 @@ describe('TrimergeClient', () => {
     expect(client1.state).toEqual({ hello: 'vorld' });
     expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
 
-    await client1.sync();
-    await client2.sync();
+    await timeout();
 
     expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
@@ -158,24 +161,61 @@ describe('TrimergeClient', () => {
     expect(client1.state).toEqual({ hello: 'vorld' });
     expect(client2.state).toEqual({ world: 'vorld' });
 
-    await client1.sync();
-    await client2.sync();
-
-    await timeout();
     await timeout();
 
     //  Now they should both have trimerged changes
     expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
 
-    await client1.sync();
-    await client2.sync();
-
-    await timeout();
     await timeout();
 
     // Should be the same
     expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+  });
+
+  it('sync up when second client comes in later', async () => {
+    const store = newStore();
+    const client1 = await makeClient(store);
+
+    client1.editState({}, 'initialize');
+    client1.editState({ hello: 'world' }, 'add hello');
+    client1.editState({ hello: 'vorld' }, 'change hello');
+
+    await timeout();
+
+    const client2 = await makeClient(store);
+
+    // client 2 starts out synced
+    expect(client1.state).toEqual({ hello: 'vorld' });
+    expect(client2.state).toEqual({ hello: 'vorld' });
+  });
+
+  it('first two clients conflict, then third one joins', async () => {
+    const store = newStore();
+    const client1 = await makeClient(store);
+    const client2 = await makeClient(store);
+
+    client1.editState({}, 'initialize');
+
+    await client1.sync();
+    client1.editState({ hello: 'world' }, 'add hello');
+    client1.editState({ hello: 'vorld' }, 'change hello');
+    client2.editState({ world: 'world' }, 'add world');
+    client2.editState({ world: 'vorld' }, 'change world');
+
+    // Now client 1 and client 2 have different changes
+    expect(client1.state).toEqual({ hello: 'vorld' });
+    expect(client2.state).toEqual({ world: 'vorld' });
+
+    const client3 = await makeClient(store);
+    expect(client3.state).toEqual({});
+
+    await timeout();
+
+    //  Now they should all have the trimerged state
+    expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client3.state).toEqual({ hello: 'vorld', world: 'vorld' });
   });
 });

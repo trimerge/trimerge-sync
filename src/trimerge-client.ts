@@ -53,7 +53,9 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     private readonly bufferMs: number = 100,
   ) {
     this.unsubscribe = store.subscribe(syncCounter, this.onNodes);
-    this.current = node;
+    if (node !== undefined) {
+      this.addNode(node);
+    }
     this.lastSyncCounter = syncCounter;
   }
 
@@ -84,17 +86,14 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     if (this.headRefs.size <= 1) {
       return;
     }
-    console.log('merging heads:', Array.from(this.headRefs));
     mergeHeadNodes(
       Array.from(this.headRefs),
       this.getNode,
       (baseRef, leftRef, rightRef) => {
+        const base = baseRef !== undefined ? this.getNode(baseRef) : undefined;
         const left = this.getNode(leftRef);
-        const { value, editMetadata } = this.merge(
-          baseRef !== undefined ? this.getNode(baseRef) : undefined,
-          left,
-          this.getNode(rightRef),
-        );
+        const right = this.getNode(rightRef);
+        const { value, editMetadata } = this.merge(base, left, right);
         return this.addNewNode(
           value,
           editMetadata,
@@ -137,7 +136,12 @@ export class TrimergeClient<State, EditMetadata, Delta> {
       await waitMs(this.bufferMs);
       const nodes = this.unsyncedNodes;
       this.unsyncedNodes = [];
-      this.lastSyncCounter = await this.store.addNodes(nodes);
+      const syncCounter = await this.store.addNodes(nodes);
+      if (syncCounter !== this.lastSyncCounter) {
+        this.lastSyncCounter = syncCounter;
+      } else {
+        console.log('nothing synced');
+      }
     }
     this.syncPromise = undefined;
     return true;
