@@ -1,8 +1,6 @@
 name: Node CI
 
-on:
-  push:
-    tags-ignore: 'v*'
+on: [push]
 
 jobs:
   build:
