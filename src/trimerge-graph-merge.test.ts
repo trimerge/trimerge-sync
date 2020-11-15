@@ -33,7 +33,7 @@ describe('graph.mergeHeads()', () => {
     let foo = graph.addEdit(root, { hello: 'world' }, 'add hello');
     foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
     const mergeNode = graph.mergeHeads(mergeHeadsFn);
-    expect(mergeNode).toBe(foo);
+    expect(mergeNode).toBe(foo.ref);
     expect(graph.getHeads()).toMatchInlineSnapshot(`
       Set {
         Object {
@@ -156,11 +156,7 @@ describe('graph.mergeHeads()', () => {
     let bar = graph.addInit({}, 'initialize');
     bar = graph.addEdit(bar, { world: 'world' }, 'add world');
     bar = graph.addEdit(bar, { world: 'vorld' }, 'change world');
-    const mergeNode = graph.mergeHeads(mergeHeadsFn);
-    expect(mergeNode?.value).toEqual({
-      hello: 'vorld',
-      world: 'vorld',
-    });
+    graph.mergeHeads(mergeHeadsFn);
     expect(graph.getHeads()).toMatchInlineSnapshot(`
       Set {
         Object {
@@ -244,8 +240,7 @@ describe('graph.mergeHeads()', () => {
     let baz = graph.addInit({}, 'initialize');
     baz = graph.addEdit(baz, { sup: 'yo' }, 'add sup');
     baz = graph.addEdit(baz, { sup: 'yoyo' }, 'change sup');
-    const mergeNode = graph.mergeHeads(mergeHeadsFn);
-    expect(Array.from(graph.getHeads())).toEqual([mergeNode]);
+    graph.mergeHeads(mergeHeadsFn);
     expect(graph.getHeads()).toMatchInlineSnapshot(`
       Set {
         Object {
