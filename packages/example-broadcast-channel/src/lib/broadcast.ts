@@ -101,16 +101,19 @@ export function useOnMessage(callback?: (message: BroadcastMessage) => void) {
   });
 }
 
+export function getCurrentUsers() {
+  return Array.from(currentUsers.keys());
+}
 export function useCurrentUsers(): string[] {
-  const [users, setCurrentUsers] = useState(Array.from(currentUsers.keys()));
+  const [users, setCurrentUsers] = useState(getCurrentUsers());
   useEffect(() => {
     function update() {
-      setCurrentUsers(Array.from(currentUsers.keys()));
+      setCurrentUsers(getCurrentUsers());
     }
     currentUserSubscribers.add(update);
     return () => {
       currentUserSubscribers.delete(update);
     };
-  });
+  }, []);
   return users;
 }
