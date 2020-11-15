@@ -8,7 +8,7 @@
   "sideEffects": false,
   "scripts": {
     "test": "jest --watch",
-    "test-ci": "jest --coverage",
+    "test-ci": "jest --coverage --passWithNoTests",
     "build": "rollup -c",
     "lint": "eslint src/**/*.ts",
     "prepublishOnly": "rm -rf dist/ && npm run build"
@@ -54,5 +54,16 @@
     "trimerge": "^1.3.0-alpha.14",
     "trimerge-sync": "^0.1.1",
     "typescript": "4.0.5"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "globals": {
+      "ts-jest": {
+        "diagnostics": {
+          "warnOnly": true
+        }
+      }
+    }
   }
 }
