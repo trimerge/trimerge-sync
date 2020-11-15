@@ -12,9 +12,7 @@ jobs:
           node-version: 12
       - run: yarn --frozen-lockfile
       - run: yarn lint
-      - run: yarn workspace trimerge-sync run build
-      - run: yarn workspace trimerge-sync-indexed-db run build
-      - run: yarn workspace example-broadcast-channel run build
+      - run: yarn build-all
       - run: yarn test-ci
       - run: yarn codecov
         env:

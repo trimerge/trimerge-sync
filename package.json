@@ -6,6 +6,7 @@
   "scripts": {
     "test": "jest --watch",
     "test-ci": "jest --coverage",
+    "build-all": "wsrun --serial build",
     "lint": "eslint packages/*/src/**/*.ts"
   },
   "husky": {
@@ -31,7 +32,8 @@
     "pretty-quick": "3.1.0",
     "ts-jest": "26.4.4",
     "tslint-config-prettier": "1.18.0",
-    "typescript": "4.0.5"
+    "typescript": "4.0.5",
+    "wsrun": "5.2.4"
   },
   "jest": {
     "preset": "ts-jest",
