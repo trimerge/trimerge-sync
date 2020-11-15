@@ -14,13 +14,15 @@ const NODES_STORE = 'nodes';
 export class TrimergeIndexedDb<State, EditMetadata, Delta>
   implements TrimergeSyncStore<State, EditMetadata, Delta> {
   static async create<State, EditMetadata, Delta>(
+    docId: string,
     differ: Differ<State, EditMetadata, Delta>,
     dbName: string,
   ): Promise<TrimergeIndexedDb<State, EditMetadata, Delta>> {
     const db = await createIndexedDb(dbName);
-    return new TrimergeIndexedDb<State, EditMetadata, Delta>(db, differ);
+    return new TrimergeIndexedDb<State, EditMetadata, Delta>(docId, db, differ);
   }
   constructor(
+    private readonly docId: string,
     private readonly db: IDBDatabase,
     private readonly differ: Differ<State, EditMetadata, Delta>,
   ) {}
@@ -33,10 +35,23 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
       );
       tx.onerror = () => reject(tx.error || new Error('transaction error'));
       tx.onabort = () => reject(tx.error || new Error('transaction error'));
+      tx.oncomplete = () => resolve();
 
-      const docs = tx.objectStore(DOCS_STORE);
+      // const docs = tx.objectStore(DOCS_STORE);
       const heads = tx.objectStore(HEADS_STORE);
       const nodes = tx.objectStore(NODES_STORE);
+
+      const docId = this.docId;
+      for (const node of newNodes) {
+        nodes.add({ ...node, docId }, node.ref);
+        if (node.baseRef !== undefined) {
+          heads.delete(node.baseRef);
+        }
+        if (node.baseRef2 !== undefined) {
+          heads.delete(node.baseRef2);
+        }
+        heads.add({ ref: node.ref, docId }, node.ref);
+      }
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore for some reason typescript doesn't define this
@@ -45,14 +60,14 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
   }
 
   getSnapshot(): Promise<Snapshot<State, EditMetadata>> {
-    return Promise.resolve(undefined);
+    return Promise.reject(new Error('unsupported'));
   }
 
   subscribe(
     lastSyncCounter: number,
     onNodes: SyncSubscriber<State, EditMetadata, Delta>,
   ): UnsubscribeFn {
-    return undefined;
+    throw new Error('unsupported');
   }
 
   close() {
