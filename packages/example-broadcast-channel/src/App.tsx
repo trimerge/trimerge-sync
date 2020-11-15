@@ -18,7 +18,7 @@ export function App() {
   );
   const users = useMemo(
     () =>
-      Array.from(currentUsers.entries()).map(([userId, age]) => (
+      currentUsers.map((userId) => (
         <span
           key={userId}
           className={classNames(styles.userPill, {

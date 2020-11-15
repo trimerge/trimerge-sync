@@ -1,5 +1,5 @@
 import { BroadcastChannel } from 'broadcast-channel';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { produce } from 'immer';
 
 export type BroadcastMessage =
@@ -30,13 +30,18 @@ function newId() {
 
 export const currentUserId = newId();
 
-let currentUsers: ReadonlyMap<string, number> = new Map([
-  [currentUserId, Date.now()],
-]);
+let currentUsers = new Map<string, number>([[currentUserId, Date.now()]]);
+const currentUserSubscribers = new Set<() => void>();
 
 const bc = new BroadcastChannel<BroadcastMessage>(
   'trimerge-sync-broadcast-example',
 );
+
+function updateUsers() {
+  for (const sub of currentUserSubscribers) {
+    sub();
+  }
+}
 
 bc.addEventListener('message', (message) => {
   console.log(`[BC] Received: <---`, message);
@@ -47,20 +52,17 @@ bc.addEventListener('message', (message) => {
   switch (message.type) {
     case 'join':
       broadcast({ type: 'here', id: currentUserId });
-      currentUsers = produce(currentUsers, (draft) => {
-        draft.set(message.id, Date.now());
-      });
+      currentUsers.set(message.id, Date.now());
+      updateUsers();
       break;
     case 'here':
     case '💗':
-      currentUsers = produce(currentUsers, (draft) => {
-        draft.set(message.id, Date.now());
-      });
+      currentUsers.set(message.id, Date.now());
+      updateUsers();
       break;
     case 'leave':
-      currentUsers = produce(currentUsers, (draft) => {
-        draft.delete(message.id);
-      });
+      currentUsers.delete(message.id);
+      updateUsers();
       break;
   }
 });
@@ -76,14 +78,17 @@ window.addEventListener('beforeunload', () => {
 
 setInterval(() => {
   broadcast({ type: '💗', id: currentUserId });
-  currentUsers = produce(currentUsers, (draft) => {
-    const expire = Date.now() - 5_000;
-    for (const [userId, age] of currentUsers) {
-      if (userId !== currentUserId && age < expire) {
-        draft.delete(userId);
-      }
+  let deletes = false;
+  const expire = Date.now() - 5_000;
+  for (const [userId, age] of currentUsers) {
+    if (userId !== currentUserId && age < expire) {
+      currentUsers.delete(userId);
+      deletes = true;
     }
-  });
+  }
+  if (deletes) {
+    updateUsers();
+  }
 }, 2_500);
 
 export function useOnMessage(callback?: (message: BroadcastMessage) => void) {
@@ -96,6 +101,16 @@ export function useOnMessage(callback?: (message: BroadcastMessage) => void) {
   });
 }
 
-export function useCurrentUsers() {
-  return currentUsers;
+export function useCurrentUsers(): string[] {
+  const [users, setCurrentUsers] = useState(Array.from(currentUsers.keys()));
+  useEffect(() => {
+    function update() {
+      setCurrentUsers(Array.from(currentUsers.keys()));
+    }
+    currentUserSubscribers.add(update);
+    return () => {
+      currentUserSubscribers.delete(update);
+    };
+  });
+  return users;
 }
