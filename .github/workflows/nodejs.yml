@@ -10,10 +10,10 @@ jobs:
       - uses: actions/setup-node@v2-beta
         with:
           node-version: 12
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run build
-      - run: npm run test-ci
-      - run: npx codecov
+      - run: yarn --frozen-lockfile
+      - run: yarn lint
+      - run: yarn build-all
+      - run: yarn test-ci
+      - run: yarn codecov
         env:
           CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}

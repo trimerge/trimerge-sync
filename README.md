@@ -48,17 +48,17 @@ It “steals” ideas from a number of projects:
 
 ### Trimerge Graph
 
-The state history is represented as a directed acyclic add-only graph.
+The state history is a directed acyclic append-only graph. Each node represents an edit.
 
-You can only add new nodes that point to existing nodes, never delete or change existing nodes.
+All nodes are immutable: you can only add new nodes that point to them.
 
-Each edit is a graph node, there are 3 types of nodes: init, edit, and merge.
+Each graph node represents an edit with zero, one, or two parents:
 
-**init**: the initial edit on a given branch, generally a blank document
-**edit**: a single-parent node with a changed document
-**merge**: a multi-parent node that combines N documents into one
+0: an initial edit has no parent, generally a blank document
+1: a single-parent node is a simple edit
+2: a dual-parent node is a merge of the two parents
 
-### Trimerge Graph Head Nodes
+#### Trimerging Nodes
 
 A node is a "head" node if it has no child nodes (i.e. no nodes that reference it as a parent).
 
@@ -69,9 +69,38 @@ This is done with trimerge:
 1. find the two head nodes with the closest common ancestor
 2. trimerge those two nodes against their common base
 3. create a merge node
-4. repeat until all head nodes are merged
+4. repeat until there is one head node
 
 ### Trimerge Graph Sync
+
+First let's look at the four levels of possible synchronization:
+
+- LEVEL 1: Local process sync
+- LEVEL 2: Persisted local process sync
+- LEVEL 3: Persisted remote sync
+- LEVEL 4: Persisted p2p sync
+
+All levels assume some kind of 2-way communication between processes. This could be broadcast-channel, websockets, or something custom   
+
+#### LEVEL 1: Local process sync
+
+In order to synchronize local processes (e.g. browser tabs or between webworkers), we need the following:
+
+1. Start listening on a shared message channel
+2. Make “hello” request to see if anyone is out there
+3. Get snapshot from another process, or start new one
+4. On local change send diff nodes
+5. On receive do send acknowledgment / trimerge as needed
+6. On receiving acknowledgement delete old nodes
+
+
+#### LEVEL 2: Persisted local process sync
+
+This is similar, but assumes all processes can access a central data store (like IndexedDB or Sqlite, etc).
+
+
+
+#### other
 
 So how do you synchronize these graphs across clients?
 

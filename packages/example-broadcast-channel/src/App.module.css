@@ -1,0 +1,36 @@
+.root {
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.header {
+  background: #333;
+  color: #fff;
+  padding: 10px;
+  display: flex;flex-direction: row;
+}
+.appName {
+  flex-grow: 1;
+}
+
+.main {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: row;
+}
+.userList {
+  backgrounD: #ddd;
+}
+.userList ul {
+  margin: 0;
+  padding: 10px;
+  list-style: none;
+}
+.userList li {
+  white-space: nowrap;
+}
+
+.currentUser {
+  font-weight: bold;
+}
