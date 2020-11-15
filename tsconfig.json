@@ -3,7 +3,7 @@
     "target": "es6",
     "module": "esnext",
     "moduleResolution": "node",
-    "lib": ["es2015"],
+    "lib": ["es2015", "DOM"],
 
     "rootDir": "src",
     "outDir": "dist",

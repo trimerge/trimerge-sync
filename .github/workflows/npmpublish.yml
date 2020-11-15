@@ -6,16 +6,21 @@ on:
 
 jobs:
   publish-npm:
+    strategy:
+      matrix:
+        package:
+          - trimerge-sync
+          - trimerge-sync-indexed-db
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2-beta
         with:
           node-version: 12
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run test-ci
-      - run: npm run build
-      - run: npm publish --access public
+      - run: yarn --frozen-lockfile
+      - run: yarn lint
+      - run: yarn test-ci
+      - run: yarn workspace ${{ matrix.package }} run build
+      - run: yarn workspace ${{ matrix.package }} publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
