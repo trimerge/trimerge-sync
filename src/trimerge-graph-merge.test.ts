@@ -1,4 +1,4 @@
-import { TrimergeGraph, Node } from './trimerge-graph';
+import { MergeHeadNodesFn, TrimergeGraph } from './trimerge-graph';
 import {
   combineMergers,
   trimergeEquality,
@@ -21,22 +21,56 @@ const trimergeObjects = combineMergers(
   trimergeObject,
 );
 
-function mergeGraphHeadNodes(
-  graph: TrimergeGraph<any, string>,
-): Node<any, string> {
-  return graph.mergeHeads((base, left, right) => ({
-    value: trimergeObjects(base?.value, left.value, right.value),
-    editMetadata: `merge ${left.ref} and ${right.ref}`,
-  }));
-}
+const mergeHeadsFn: MergeHeadNodesFn<any, string> = (base, left, right) => ({
+  value: trimergeObjects(base?.value, left.value, right.value),
+  editMetadata: `merge ${left.ref} and ${right.ref}`,
+});
+
 describe('graph.mergeHeads()', () => {
   it('"merges" single node', () => {
     const graph = new TrimergeGraph<any, string>(newId);
     const root = graph.addInit({}, 'initialize');
     let foo = graph.addEdit(root, { hello: 'world' }, 'add hello');
     foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
-    const mergeNode = mergeGraphHeadNodes(graph);
-    expect(mergeNode).toBe(foo);
+    const mergeNode = graph.mergeHeads(mergeHeadsFn);
+    expect(mergeNode).toBe(foo.ref);
+    expect(graph.getHeads()).toMatchInlineSnapshot(`
+      Set {
+        Object {
+          "baseRef": "2",
+          "editMetadata": "change hello",
+          "ref": "3",
+          "value": Object {
+            "hello": "vorld",
+          },
+        },
+      }
+    `);
+    expect(graph.getNodes()).toMatchInlineSnapshot(`
+      Map {
+        "1" => Object {
+          "editMetadata": "initialize",
+          "ref": "1",
+          "value": Object {},
+        },
+        "2" => Object {
+          "baseRef": "1",
+          "editMetadata": "add hello",
+          "ref": "2",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        "3" => Object {
+          "baseRef": "2",
+          "editMetadata": "change hello",
+          "ref": "3",
+          "value": Object {
+            "hello": "vorld",
+          },
+        },
+      }
+    `);
   });
 
   it('merges v split', () => {
@@ -46,11 +80,72 @@ describe('graph.mergeHeads()', () => {
     foo = graph.addEdit(foo, { hello: 'vorld' }, 'change hello');
     let bar = graph.addEdit(root, { world: 'world' }, 'add world');
     bar = graph.addEdit(bar, { world: 'vorld' }, 'change world');
-    const mergeNode = mergeGraphHeadNodes(graph);
-    expect(mergeNode?.value).toEqual({
-      hello: 'vorld',
-      world: 'vorld',
-    });
+    graph.mergeHeads(mergeHeadsFn);
+    expect(graph.getHeads()).toMatchInlineSnapshot(`
+      Set {
+        Object {
+          "baseRef": "3",
+          "baseRef2": "5",
+          "editMetadata": "merge 3 and 5",
+          "ref": "6",
+          "value": Object {
+            "hello": "vorld",
+            "world": "vorld",
+          },
+        },
+      }
+    `);
+    expect(graph.getNodes()).toMatchInlineSnapshot(`
+      Map {
+        "1" => Object {
+          "editMetadata": "initialize",
+          "ref": "1",
+          "value": Object {},
+        },
+        "2" => Object {
+          "baseRef": "1",
+          "editMetadata": "add hello",
+          "ref": "2",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        "3" => Object {
+          "baseRef": "2",
+          "editMetadata": "change hello",
+          "ref": "3",
+          "value": Object {
+            "hello": "vorld",
+          },
+        },
+        "4" => Object {
+          "baseRef": "1",
+          "editMetadata": "add world",
+          "ref": "4",
+          "value": Object {
+            "world": "world",
+          },
+        },
+        "5" => Object {
+          "baseRef": "4",
+          "editMetadata": "change world",
+          "ref": "5",
+          "value": Object {
+            "world": "vorld",
+          },
+        },
+        "6" => Object {
+          "baseRef": "3",
+          "baseRef2": "5",
+          "editMetadata": "merge 3 and 5",
+          "ref": "6",
+          "value": Object {
+            "hello": "vorld",
+            "world": "vorld",
+          },
+        },
+      }
+    `);
   });
 
   it('merge with no common parent', () => {
@@ -61,11 +156,77 @@ describe('graph.mergeHeads()', () => {
     let bar = graph.addInit({}, 'initialize');
     bar = graph.addEdit(bar, { world: 'world' }, 'add world');
     bar = graph.addEdit(bar, { world: 'vorld' }, 'change world');
-    const mergeNode = mergeGraphHeadNodes(graph);
-    expect(mergeNode?.value).toEqual({
-      hello: 'vorld',
-      world: 'vorld',
-    });
+    graph.mergeHeads(mergeHeadsFn);
+    expect(graph.getHeads()).toMatchInlineSnapshot(`
+      Set {
+        Object {
+          "baseRef": "3",
+          "baseRef2": "6",
+          "editMetadata": "merge 3 and 6",
+          "ref": "7",
+          "value": Object {
+            "hello": "vorld",
+            "world": "vorld",
+          },
+        },
+      }
+    `);
+    expect(graph.getNodes()).toMatchInlineSnapshot(`
+      Map {
+        "1" => Object {
+          "editMetadata": "initialize",
+          "ref": "1",
+          "value": Object {},
+        },
+        "2" => Object {
+          "baseRef": "1",
+          "editMetadata": "add hello",
+          "ref": "2",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        "3" => Object {
+          "baseRef": "2",
+          "editMetadata": "change hello",
+          "ref": "3",
+          "value": Object {
+            "hello": "vorld",
+          },
+        },
+        "4" => Object {
+          "editMetadata": "initialize",
+          "ref": "4",
+          "value": Object {},
+        },
+        "5" => Object {
+          "baseRef": "4",
+          "editMetadata": "add world",
+          "ref": "5",
+          "value": Object {
+            "world": "world",
+          },
+        },
+        "6" => Object {
+          "baseRef": "5",
+          "editMetadata": "change world",
+          "ref": "6",
+          "value": Object {
+            "world": "vorld",
+          },
+        },
+        "7" => Object {
+          "baseRef": "3",
+          "baseRef2": "6",
+          "editMetadata": "merge 3 and 6",
+          "ref": "7",
+          "value": Object {
+            "hello": "vorld",
+            "world": "vorld",
+          },
+        },
+      }
+    `);
   });
 
   it('merge reduces graph to single head', () => {
@@ -79,100 +240,109 @@ describe('graph.mergeHeads()', () => {
     let baz = graph.addInit({}, 'initialize');
     baz = graph.addEdit(baz, { sup: 'yo' }, 'add sup');
     baz = graph.addEdit(baz, { sup: 'yoyo' }, 'change sup');
-    const mergeNode = mergeGraphHeadNodes(graph);
-    expect(Array.from(graph.getHeads())).toEqual([mergeNode]);
-    expect(Array.from(graph.getHeads())).toMatchInlineSnapshot(`
-      Array [
+    graph.mergeHeads(mergeHeadsFn);
+    expect(graph.getHeads()).toMatchInlineSnapshot(`
+      Set {
         Object {
+          "baseRef": "10",
+          "baseRef2": "9",
           "editMetadata": "merge 10 and 9",
-          "parents": Array [
-            Object {
-              "editMetadata": "merge 3 and 6",
-              "parents": Array [
-                Object {
-                  "base": Object {
-                    "base": Object {
-                      "editMetadata": "initialize",
-                      "ref": "1",
-                      "type": "init",
-                      "value": Object {},
-                    },
-                    "editMetadata": "add hello",
-                    "ref": "2",
-                    "type": "edit",
-                    "value": Object {
-                      "hello": "world",
-                    },
-                  },
-                  "editMetadata": "change hello",
-                  "ref": "3",
-                  "type": "edit",
-                  "value": Object {
-                    "hello": "vorld",
-                  },
-                },
-                Object {
-                  "base": Object {
-                    "base": Object {
-                      "editMetadata": "initialize",
-                      "ref": "4",
-                      "type": "init",
-                      "value": Object {},
-                    },
-                    "editMetadata": "add world",
-                    "ref": "5",
-                    "type": "edit",
-                    "value": Object {
-                      "world": "world",
-                    },
-                  },
-                  "editMetadata": "change world",
-                  "ref": "6",
-                  "type": "edit",
-                  "value": Object {
-                    "world": "vorld",
-                  },
-                },
-              ],
-              "ref": "10",
-              "type": "merge",
-              "value": Object {
-                "hello": "vorld",
-                "world": "vorld",
-              },
-            },
-            Object {
-              "base": Object {
-                "base": Object {
-                  "editMetadata": "initialize",
-                  "ref": "7",
-                  "type": "init",
-                  "value": Object {},
-                },
-                "editMetadata": "add sup",
-                "ref": "8",
-                "type": "edit",
-                "value": Object {
-                  "sup": "yo",
-                },
-              },
-              "editMetadata": "change sup",
-              "ref": "9",
-              "type": "edit",
-              "value": Object {
-                "sup": "yoyo",
-              },
-            },
-          ],
           "ref": "11",
-          "type": "merge",
           "value": Object {
             "hello": "vorld",
             "sup": "yoyo",
             "world": "vorld",
           },
         },
-      ]
+      }
+    `);
+    expect(graph.getNodes()).toMatchInlineSnapshot(`
+      Map {
+        "1" => Object {
+          "editMetadata": "initialize",
+          "ref": "1",
+          "value": Object {},
+        },
+        "2" => Object {
+          "baseRef": "1",
+          "editMetadata": "add hello",
+          "ref": "2",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        "3" => Object {
+          "baseRef": "2",
+          "editMetadata": "change hello",
+          "ref": "3",
+          "value": Object {
+            "hello": "vorld",
+          },
+        },
+        "4" => Object {
+          "editMetadata": "initialize",
+          "ref": "4",
+          "value": Object {},
+        },
+        "5" => Object {
+          "baseRef": "4",
+          "editMetadata": "add world",
+          "ref": "5",
+          "value": Object {
+            "world": "world",
+          },
+        },
+        "6" => Object {
+          "baseRef": "5",
+          "editMetadata": "change world",
+          "ref": "6",
+          "value": Object {
+            "world": "vorld",
+          },
+        },
+        "7" => Object {
+          "editMetadata": "initialize",
+          "ref": "7",
+          "value": Object {},
+        },
+        "8" => Object {
+          "baseRef": "7",
+          "editMetadata": "add sup",
+          "ref": "8",
+          "value": Object {
+            "sup": "yo",
+          },
+        },
+        "9" => Object {
+          "baseRef": "8",
+          "editMetadata": "change sup",
+          "ref": "9",
+          "value": Object {
+            "sup": "yoyo",
+          },
+        },
+        "10" => Object {
+          "baseRef": "3",
+          "baseRef2": "6",
+          "editMetadata": "merge 3 and 6",
+          "ref": "10",
+          "value": Object {
+            "hello": "vorld",
+            "world": "vorld",
+          },
+        },
+        "11" => Object {
+          "baseRef": "10",
+          "baseRef2": "9",
+          "editMetadata": "merge 10 and 9",
+          "ref": "11",
+          "value": Object {
+            "hello": "vorld",
+            "sup": "yoyo",
+            "world": "vorld",
+          },
+        },
+      }
     `);
   });
 });

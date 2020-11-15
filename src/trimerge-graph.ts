@@ -1,29 +1,22 @@
 import { mergeHeadNodes } from './merge-nodes';
 
-export type Node<T, M> =
-  | {
-      type: 'init';
-      ref: string;
-      value: T;
-      editMetadata: M;
-    }
-  | {
-      type: 'edit';
-      ref: string;
-      base: Node<T, M>;
-      value: T;
-      editMetadata: M;
-    }
-  | {
-      type: 'merge';
-      ref: string;
-      parents: Node<T, M>[];
-      value: T;
-      editMetadata: M;
-    };
+export type Node<T, M> = {
+  ref: string;
+  baseRef?: string;
+  baseRef2?: string;
+  value: T;
+  editMetadata: M;
+};
+
+export type MergeHeadsResult<T, M> = { value: T; editMetadata: M };
+export type MergeHeadNodesFn<T, M> = (
+  base: Node<T, M> | undefined,
+  left: Node<T, M>,
+  right: Node<T, M>,
+) => MergeHeadsResult<T, M>;
 
 export class TrimergeGraph<T, M> {
-  private nodes = new Set<Node<T, M>>();
+  private nodes = new Map<string, Node<T, M>>();
   private branchHeads = new Set<Node<T, M>>();
 
   constructor(private readonly newId: () => string) {}
@@ -32,64 +25,63 @@ export class TrimergeGraph<T, M> {
     return this.branchHeads;
   }
 
-  addNode(node: Node<T, M>): Node<T, M> {
-    if (this.nodes.has(node)) {
-      throw new Error('node already added');
+  getNodes(): ReadonlyMap<string, Node<T, M>> {
+    return this.nodes;
+  }
+
+  private getNode(ref: string): Node<T, M> {
+    const node = this.nodes.get(ref);
+    if (!node) {
+      throw new Error(`unknown ref "${ref}"`);
     }
-    this.nodes.add(node);
-    switch (node.type) {
-      case 'init':
-        break;
-      case 'edit':
-        this.branchHeads.delete(node.base);
-        break;
-      case 'merge':
-        for (const parent of node.parents) {
-          this.branchHeads.delete(parent);
-        }
-        break;
+    return node;
+  }
+
+  protected addNode(node: Node<T, M>): Node<T, M> {
+    if (this.nodes.has(node.ref)) {
+      throw new Error(`node ref "${node.ref}" already added`);
+    }
+    this.nodes.set(node.ref, node);
+    if (node.baseRef !== undefined) {
+      this.branchHeads.delete(this.getNode(node.baseRef));
+    }
+    if (node.baseRef2 !== undefined) {
+      this.branchHeads.delete(this.getNode(node.baseRef2));
     }
     this.branchHeads.add(node);
     return node;
   }
 
   addInit(value: T, editMetadata: M) {
-    return this.addNode({
-      type: 'init',
-      ref: this.newId(),
-      value,
-      editMetadata,
-    });
+    return this.addNode({ ref: this.newId(), value, editMetadata });
   }
 
   addEdit(base: Node<T, M>, value: T, editMetadata: M) {
     return this.addNode({
-      type: 'edit',
-      base,
+      baseRef: base.ref,
       ref: this.newId(),
       value,
       editMetadata,
     });
   }
 
-  mergeHeads(
-    mergeFn: (
-      base: Node<T, M> | undefined,
-      left: Node<T, M>,
-      right: Node<T, M>,
-    ) => { value: T; editMetadata: M },
-  ): Node<T, M> {
-    const merged = mergeHeadNodes(
-      Array.from(this.branchHeads),
-      (base, left, right) =>
+  mergeHeads(mergeFn: MergeHeadNodesFn<T, M>): string {
+    const merged = mergeHeadNodes<Node<T, M>>(
+      Array.from(this.branchHeads).map(({ ref }) => ref),
+      (ref) => this.getNode(ref),
+      (baseRef, leftRef, rightRef) =>
         this.addNode({
-          type: 'merge',
           ref: this.newId(),
-          parents: [left, right],
-          ...mergeFn(base, left, right),
-        }),
+          baseRef: leftRef,
+          baseRef2: rightRef,
+          ...mergeFn(
+            baseRef !== undefined ? this.getNode(baseRef) : undefined,
+            this.getNode(leftRef),
+            this.getNode(rightRef),
+          ),
+        }).ref,
     );
-    if (!merged) {
+    if (merged === undefined) {
       throw new Error('no merge result!');
     }
     return merged;
