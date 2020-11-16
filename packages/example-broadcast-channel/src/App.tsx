@@ -4,12 +4,18 @@ import { enableMapSet } from 'immer';
 
 import styles from './App.module.css';
 
-import { currentUserId, useCurrentUsers, useOnMessage } from './lib/broadcast';
+import {
+  currentUserId,
+  useCurrentLeader,
+  useCurrentUsers,
+  useOnMessage,
+} from './lib/broadcast';
 
 enableMapSet();
 
 export function App() {
   const [lastMessage, setLastMessage] = useState<string>('');
+  const currentLeaderId = useCurrentLeader();
   const currentUsers = useCurrentUsers();
   useOnMessage(
     useCallback((message) => {
@@ -25,10 +31,11 @@ export function App() {
             [styles.currentUser]: userId === currentUserId,
           })}
         >
+          {currentLeaderId === userId ? '👑' : '🤖'}
           {userId}
         </span>
       )),
-    [currentUsers],
+    [currentLeaderId, currentUsers],
   );
   return (
     <div className={styles.root}>

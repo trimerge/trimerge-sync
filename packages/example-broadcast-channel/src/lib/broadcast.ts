@@ -1,6 +1,5 @@
-import { BroadcastChannel } from 'broadcast-channel';
+import { BroadcastChannel, createLeaderElection } from 'broadcast-channel';
 import { useEffect, useState } from 'react';
-import { produce } from 'immer';
 
 export type BroadcastMessage =
   | {
@@ -9,6 +8,10 @@ export type BroadcastMessage =
     }
   | {
       type: 'here';
+      id: string;
+    }
+  | {
+      type: 'leader';
       id: string;
     }
   | {
@@ -31,49 +34,86 @@ function newId() {
 export const currentUserId = newId();
 
 let currentUsers = new Map<string, number>([[currentUserId, Date.now()]]);
-const currentUserSubscribers = new Set<() => void>();
+let currentLeaderId: string | undefined = undefined;
+const currentUserSubscribers = new Set<(users: string[]) => void>();
+const currentLeaderSubscribers = new Set<
+  (leader: string | undefined) => void
+>();
 
-const bc = new BroadcastChannel<BroadcastMessage>(
+const broadcastChannel = new BroadcastChannel<BroadcastMessage>(
   'trimerge-sync-broadcast-example',
 );
+const elector = createLeaderElection(broadcastChannel);
 
 function updateUsers() {
+  const users = getCurrentUsers();
   for (const sub of currentUserSubscribers) {
-    sub();
+    sub(users);
   }
 }
 
-bc.addEventListener('message', (message) => {
+function getLeader() {
+  console.log('electing leader');
+  elector.awaitLeadership().then(() => {
+    console.log('elector.awaitLeadership() resolved', elector);
+    if (elector.isLeader) {
+      broadcast({ type: 'leader', id: currentUserId });
+      updateLeader(currentUserId);
+    }
+  });
+}
+
+function updateLeader(newLeaderId: string | undefined) {
+  if (currentLeaderId === newLeaderId) {
+    return;
+  }
+  if (newLeaderId === undefined) {
+    getLeader();
+  }
+  currentLeaderId = newLeaderId;
+  for (const sub of currentLeaderSubscribers) {
+    sub(newLeaderId);
+  }
+}
+
+getLeader();
+
+broadcastChannel.addEventListener('message', (message) => {
   console.log(`[BC] Received: <---`, message);
   if (message.id === currentUserId) {
     console.warn(`[BC] ERRONEOUS ID`);
     return;
   }
+  currentUsers.set(message.id, Date.now());
   switch (message.type) {
     case 'join':
-      broadcast({ type: 'here', id: currentUserId });
-      currentUsers.set(message.id, Date.now());
-      updateUsers();
+      if (elector.isLeader) {
+        broadcast({ type: 'leader', id: currentUserId });
+      } else {
+        broadcast({ type: 'here', id: currentUserId });
+      }
       break;
-    case 'here':
-    case '💗':
-      currentUsers.set(message.id, Date.now());
-      updateUsers();
+    case 'leader':
+      updateLeader(message.id);
       break;
     case 'leave':
       currentUsers.delete(message.id);
-      updateUsers();
+      if (message.id === currentLeaderId) {
+        updateLeader(undefined);
+      }
       break;
   }
+  updateUsers();
 });
 
 export function broadcast(message: BroadcastMessage) {
   console.log(`[BC] Sending: --->`, message);
-  bc.postMessage(message);
+  broadcastChannel.postMessage(message);
 }
 broadcast({ type: 'join', id: currentUserId });
 window.addEventListener('beforeunload', () => {
   broadcast({ type: 'leave', id: currentUserId });
+  elector.die();
 });
 
 setInterval(() => {
@@ -96,24 +136,32 @@ export function useOnMessage(callback?: (message: BroadcastMessage) => void) {
     if (!callback) {
       return undefined;
     }
-    bc.addEventListener('message', callback);
-    return () => bc.removeEventListener('message', callback);
+    broadcastChannel.addEventListener('message', callback);
+    return () => broadcastChannel.removeEventListener('message', callback);
   });
 }
 
 export function getCurrentUsers() {
   return Array.from(currentUsers.keys());
 }
+
 export function useCurrentUsers(): string[] {
   const [users, setCurrentUsers] = useState(getCurrentUsers());
   useEffect(() => {
-    function update() {
-      setCurrentUsers(getCurrentUsers());
-    }
-    currentUserSubscribers.add(update);
+    currentUserSubscribers.add(setCurrentUsers);
     return () => {
-      currentUserSubscribers.delete(update);
+      currentUserSubscribers.delete(setCurrentUsers);
     };
   }, []);
   return users;
+}
+export function useCurrentLeader(): string | undefined {
+  const [leaderId, setLeaderId] = useState(currentLeaderId);
+  useEffect(() => {
+    currentLeaderSubscribers.add(setLeaderId);
+    return () => {
+      currentLeaderSubscribers.delete(setLeaderId);
+    };
+  }, []);
+  return leaderId;
 }
