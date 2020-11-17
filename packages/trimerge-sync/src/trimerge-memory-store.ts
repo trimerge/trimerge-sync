@@ -46,12 +46,12 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
     if (node === undefined) {
       return undefined;
     }
-    const { editMetadata, delta, ref: ref, baseRef, baseRef2 } = node;
+    const { ref, baseRef, baseRef2, depth, editMetadata, delta } = node;
     const value =
       this.snapshots.get(targetRef) ??
       this.differ.patch(this.getValueNode(baseRef)?.value, delta);
 
-    return { ref, baseRef, baseRef2, editMetadata, value };
+    return { ref, baseRef, baseRef2, depth, editMetadata, value };
   }
 
   private addChild(parentRef: string | undefined, childRef: string) {

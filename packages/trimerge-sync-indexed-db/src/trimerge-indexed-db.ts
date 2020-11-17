@@ -54,11 +54,10 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
   }
 
   async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {
-    const tx = this.db.transaction(['nodes'], 'readonly');
-    const nodes = await tx.objectStore('nodes').getAll();
+    const nodes = await this.db.getAllFromIndex('nodes', 'depth');
     return {
       node: undefined,
-      nodes,
+      nodes: nodes.filter(({ docId }) => docId === this.docId),
       syncCounter: 0,
     };
   }
@@ -96,17 +95,27 @@ interface TrimergeSyncDbSchema extends DBSchema {
     value: {
       docId: string;
     } & DiffNode<any, any, any>;
+    indexes: {
+      depth: [string, string];
+    };
   };
 }
 
 function createIndexedDb(
   dbName: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
-  return openDB<TrimergeSyncDbSchema>(dbName, 1, {
+  return openDB<TrimergeSyncDbSchema>(dbName, 2, {
     upgrade(db, oldVersion, newVersion, tx) {
-      db.createObjectStore('docs', { keyPath: ['docId'] });
-      db.createObjectStore('nodes', { keyPath: ['docId', 'ref'] });
-      db.createObjectStore('heads', { keyPath: ['docId', 'ref'] });
+      if (oldVersion < 1) {
+        db.createObjectStore('docs', { keyPath: ['docId'] });
+        db.createObjectStore('heads', { keyPath: ['docId', 'ref'] });
+        db.createObjectStore('nodes', {
+          keyPath: ['docId', 'ref'],
+        });
+      }
+      if (oldVersion < 2) {
+        tx.objectStore('nodes').createIndex('depth', ['docId', 'depth']);
+      }
     },
   });
 }
