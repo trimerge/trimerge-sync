@@ -11,17 +11,22 @@ const DOCS_STORE = 'docs';
 const HEADS_STORE = 'heads';
 const NODES_STORE = 'nodes';
 
+let dbPromise: Promise<IDBDatabase> | undefined;
+
 export class TrimergeIndexedDb<State, EditMetadata, Delta>
   implements TrimergeSyncStore<State, EditMetadata, Delta> {
   static async create<State, EditMetadata, Delta>(
     docId: string,
     differ: Differ<State, EditMetadata, Delta>,
-    dbName: string,
+    dbName: string = 'trimerge-sync-idb',
   ): Promise<TrimergeIndexedDb<State, EditMetadata, Delta>> {
-    const db = await createIndexedDb(dbName);
+    if (!dbPromise) {
+      dbPromise = createIndexedDb(dbName);
+    }
+    const db = await dbPromise;
     return new TrimergeIndexedDb<State, EditMetadata, Delta>(docId, db, differ);
   }
-  constructor(
+  private constructor(
     private readonly docId: string,
     private readonly db: IDBDatabase,
     private readonly differ: Differ<State, EditMetadata, Delta>,
@@ -29,10 +34,7 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
 
   addNodes(newNodes: DiffNode<State, EditMetadata, Delta>[]): Promise<number> {
     return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(
-        [DOCS_STORE, HEADS_STORE, NODES_STORE],
-        'readwrite',
-      );
+      const tx = this.db.transaction([HEADS_STORE, NODES_STORE], 'readwrite');
       tx.onerror = () => reject(tx.error || new Error('transaction error'));
       tx.onabort = () => reject(tx.error || new Error('transaction error'));
       tx.oncomplete = () => resolve();
@@ -43,31 +45,38 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
 
       const docId = this.docId;
       for (const node of newNodes) {
-        nodes.add({ ...node, docId }, node.ref);
+        nodes.add({ docId, ...node });
         if (node.baseRef !== undefined) {
-          heads.delete(node.baseRef);
+          heads.delete([docId, node.baseRef]);
         }
         if (node.baseRef2 !== undefined) {
-          heads.delete(node.baseRef2);
+          heads.delete([docId, node.baseRef2]);
         }
-        heads.add({ ref: node.ref, docId }, node.ref);
+        heads.add({ docId, ref: node.ref });
       }
-
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore for some reason typescript doesn't define this
-      tx.commit();
     });
   }
 
   getSnapshot(): Promise<Snapshot<State, EditMetadata>> {
-    return Promise.reject(new Error('unsupported'));
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction([HEADS_STORE, NODES_STORE], 'readonly');
+      tx.onerror = () => reject(tx.error || new Error('transaction error'));
+      tx.onabort = () => reject(tx.error || new Error('transaction error'));
+      tx.oncomplete = () => resolve({ node: undefined, syncCounter: 0 });
+
+      // const docs = tx.objectStore(DOCS_STORE);
+      const heads = tx.objectStore(HEADS_STORE);
+      const nodes = tx.objectStore(NODES_STORE);
+    });
   }
 
   subscribe(
     lastSyncCounter: number,
     onNodes: SyncSubscriber<State, EditMetadata, Delta>,
   ): UnsubscribeFn {
-    throw new Error('unsupported');
+    return () => {
+      // does nothing
+    };
   }
 
   close() {

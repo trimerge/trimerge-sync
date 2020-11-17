@@ -28,6 +28,8 @@ export class TrimergeClient<State, EditMetadata, Delta> {
   private current: ValueNode<State, EditMetadata> | undefined;
   private lastSyncCounter: number;
 
+  private stateSubscribers = new Set<(state: State | undefined) => void>();
+
   private nodes = new Map<string, ValueNode<State, EditMetadata>>();
   private headRefs = new Set<string>();
 
@@ -58,6 +60,13 @@ export class TrimergeClient<State, EditMetadata, Delta> {
 
   get state(): State | undefined {
     return this.current?.value;
+  }
+  subscribe(onStateChange: (state: State | undefined) => void) {
+    this.stateSubscribers.add(onStateChange);
+    onStateChange(this.state);
+    return () => {
+      this.stateSubscribers.delete(onStateChange);
+    };
   }
 
   addEdit(value: State, editMetadata: EditMetadata) {
@@ -160,6 +169,9 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     const currentRef = this.current?.ref;
     if (currentRef === node.baseRef || currentRef === node.baseRef2) {
       this.current = node;
+      for (const subscriber of this.stateSubscribers) {
+        subscriber(this.state);
+      }
     }
     return true;
   }

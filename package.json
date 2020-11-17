@@ -6,6 +6,7 @@
   "scripts": {
     "test-ci": "wsrun --serial test-ci",
     "build-all": "wsrun --serial build",
+    "watch-all": "wsrun --parallel watch",
     "lint": "eslint packages/*/src/**/*.ts"
   },
   "husky": {
