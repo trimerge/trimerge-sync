@@ -1,17 +1,14 @@
 import {
-  DiffNode,
   Differ,
+  DiffNode,
   Snapshot,
   SyncSubscriber,
   TrimergeSyncStore,
   UnsubscribeFn,
 } from 'trimerge-sync';
+import { DBSchema, IDBPDatabase, openDB } from 'idb';
 
-const DOCS_STORE = 'docs';
-const HEADS_STORE = 'heads';
-const NODES_STORE = 'nodes';
-
-let dbPromise: Promise<IDBDatabase> | undefined;
+let dbPromise: Promise<IDBPDatabase<TrimergeSyncDbSchema>> | undefined;
 
 export class TrimergeIndexedDb<State, EditMetadata, Delta>
   implements TrimergeSyncStore<State, EditMetadata, Delta> {
@@ -28,46 +25,42 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
   }
   private constructor(
     private readonly docId: string,
-    private readonly db: IDBDatabase,
+    private readonly db: IDBPDatabase<TrimergeSyncDbSchema>,
     private readonly differ: Differ<State, EditMetadata, Delta>,
   ) {}
 
-  addNodes(newNodes: DiffNode<State, EditMetadata, Delta>[]): Promise<number> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction([HEADS_STORE, NODES_STORE], 'readwrite');
-      tx.onerror = () => reject(tx.error || new Error('transaction error'));
-      tx.onabort = () => reject(tx.error || new Error('transaction error'));
-      tx.oncomplete = () => resolve();
+  async addNodes(
+    newNodes: DiffNode<State, EditMetadata, Delta>[],
+  ): Promise<number> {
+    const tx = this.db.transaction(['heads', 'nodes'], 'readwrite');
 
-      // const docs = tx.objectStore(DOCS_STORE);
-      const heads = tx.objectStore(HEADS_STORE);
-      const nodes = tx.objectStore(NODES_STORE);
+    // const docs = tx.objectStore(DOCS_STORE);
+    const heads = tx.objectStore('heads');
+    const nodes = tx.objectStore('nodes');
 
-      const docId = this.docId;
-      for (const node of newNodes) {
-        nodes.add({ docId, ...node });
-        if (node.baseRef !== undefined) {
-          heads.delete([docId, node.baseRef]);
-        }
-        if (node.baseRef2 !== undefined) {
-          heads.delete([docId, node.baseRef2]);
-        }
-        heads.add({ docId, ref: node.ref });
+    const docId = this.docId;
+    for (const node of newNodes) {
+      nodes.add({ docId, ...node });
+      if (node.baseRef !== undefined) {
+        heads.delete([docId, node.baseRef]);
       }
-    });
+      if (node.baseRef2 !== undefined) {
+        heads.delete([docId, node.baseRef2]);
+      }
+      heads.add({ docId, ref: node.ref });
+    }
+    await tx.done;
+    return 0;
   }
 
-  getSnapshot(): Promise<Snapshot<State, EditMetadata>> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction([HEADS_STORE, NODES_STORE], 'readonly');
-      tx.onerror = () => reject(tx.error || new Error('transaction error'));
-      tx.onabort = () => reject(tx.error || new Error('transaction error'));
-      tx.oncomplete = () => resolve({ node: undefined, syncCounter: 0 });
-
-      // const docs = tx.objectStore(DOCS_STORE);
-      const heads = tx.objectStore(HEADS_STORE);
-      const nodes = tx.objectStore(NODES_STORE);
-    });
+  async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {
+    const tx = this.db.transaction(['nodes'], 'readonly');
+    const nodes = await tx.objectStore('nodes').getAll();
+    return {
+      node: undefined,
+      nodes,
+      syncCounter: 0,
+    };
   }
 
   subscribe(
@@ -84,28 +77,36 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
   }
 }
 
-function createIndexedDb(dbName: string): Promise<IDBDatabase> {
-  return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = window.indexedDB.open(dbName, 1);
-    request.onblocked = () => {
-      reject(request.error || new Error('database blocked'));
+interface TrimergeSyncDbSchema extends DBSchema {
+  docs: {
+    key: [string];
+    value: {
+      docId: string;
     };
-    request.onsuccess = () => {
-      resolve(request.result);
+  };
+  heads: {
+    key: [string, string];
+    value: {
+      docId: string;
+      ref: string;
     };
-    request.onerror = () => {
-      reject(request.error || new Error('database error'));
-    };
-    request.onupgradeneeded = () => {
-      const db = request.result;
+  };
+  nodes: {
+    key: [string, string];
+    value: {
+      docId: string;
+    } & DiffNode<any, any, any>;
+  };
+}
 
-      db.onerror = () => reject(request.error || new Error('database error'));
-
-      db.createObjectStore(DOCS_STORE, { keyPath: ['docId'] });
-      db.createObjectStore(NODES_STORE, { keyPath: ['docId', 'ref'] });
-      db.createObjectStore(HEADS_STORE, { keyPath: ['docId', 'ref'] });
-
-      resolve(db);
-    };
+function createIndexedDb(
+  dbName: string,
+): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
+  return openDB<TrimergeSyncDbSchema>(dbName, 1, {
+    upgrade(db, oldVersion, newVersion, tx) {
+      db.createObjectStore('docs', { keyPath: ['docId'] });
+      db.createObjectStore('nodes', { keyPath: ['docId', 'ref'] });
+      db.createObjectStore('heads', { keyPath: ['docId', 'ref'] });
+    },
   });
 }

@@ -34,7 +34,9 @@
     "url": "https://github.com/marcello3d/trimerge-sync/issues"
   },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
-  "dependencies": {},
+  "dependencies": {
+    "idb": "5.0.7"
+  },
   "peerDependencies": {
     "trimerge-sync": "^0.1.1"
   },

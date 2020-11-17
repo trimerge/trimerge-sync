@@ -46,7 +46,7 @@ export class TrimergeClient<State, EditMetadata, Delta> {
   }
 
   private constructor(
-    { node, syncCounter }: Snapshot<State, EditMetadata>,
+    { node, syncCounter, nodes }: Snapshot<State, EditMetadata, Delta>,
     private readonly store: TrimergeSyncStore<State, EditMetadata, Delta>,
     private readonly differ: Differ<State, EditMetadata, Delta>,
     private readonly bufferMs: number = 100,
@@ -55,6 +55,7 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     if (node !== undefined) {
       this.addNode(node);
     }
+    this.onNodes({ syncCounter, newNodes: nodes });
     this.lastSyncCounter = syncCounter;
   }
 

@@ -16,9 +16,10 @@ export type ValueNode<State, EditMetadata> = {
   editMetadata: EditMetadata;
 };
 
-export type Snapshot<State, EditMetadata> = {
+export type Snapshot<State, EditMetadata, Delta> = {
   syncCounter: number;
   node: ValueNode<State, EditMetadata> | undefined;
+  nodes: DiffNode<State, EditMetadata, Delta>[];
 };
 
 export type SyncSubscriber<State, EditMetadata, Delta> = (
@@ -37,7 +38,7 @@ export interface TrimergeSyncStore<State, EditMetadata, Delta> {
    *
    * It should also return the current sync counter for use in subscribe/sync methods
    */
-  getSnapshot(): Promise<Snapshot<State, EditMetadata>>;
+  getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>>;
 
   /**
    * This sets up a subscriber callback that's called for every new node since lastSyncCounter
