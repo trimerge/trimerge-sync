@@ -63,9 +63,11 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
     const heads = tx.objectStore('heads');
     const nodes = tx.objectStore('nodes');
 
-    const syncId = Date.now();
+    const cursor = await nodes.index('syncId').openCursor(undefined, 'prev');
+    let syncId = cursor?.value.syncId ?? 0;
 
     for (const node of newNodes) {
+      syncId++;
       await nodes.add({ syncId, ...node });
       if (node.baseRef !== undefined) {
         await heads.delete(node.baseRef);
@@ -82,7 +84,7 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
   }
 
   async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {
-    const nodes = await this.db.getAllFromIndex('nodes', 'depth');
+    const nodes = await this.db.getAllFromIndex('nodes', 'syncId');
     return { nodes, syncCounter: getSyncCounter(nodes) };
   }
 
@@ -93,7 +95,7 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
     const newNodes = await this.db.getAllFromIndex(
       'nodes',
       'syncId',
-      IDBKeyRange.lowerBound([lastSyncCounter, 0], true),
+      IDBKeyRange.lowerBound(lastSyncCounter, true),
     );
     console.log('newNodes', newNodes);
     const syncCounter = getSyncCounter(newNodes);
@@ -128,7 +130,6 @@ interface TrimergeSyncDbSchema extends DBSchema {
     key: string;
     value: { syncId: number } & DiffNode<any, any, any>;
     indexes: {
-      depth: number;
       syncId: number;
     };
   };
@@ -137,15 +138,14 @@ interface TrimergeSyncDbSchema extends DBSchema {
 function createIndexedDb(
   dbName: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
-  return openDB<TrimergeSyncDbSchema>(dbName, 2, {
+  return openDB<TrimergeSyncDbSchema>(dbName, 1, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore('heads', { keyPath: 'ref' });
         const nodes = db.createObjectStore('nodes', {
           keyPath: 'ref',
         });
-        nodes.createIndex('depth', 'depth');
-        nodes.createIndex('syncId', ['syncId', 'depth']);
+        nodes.createIndex('syncId', 'syncId');
       }
     },
   });
