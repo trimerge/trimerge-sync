@@ -44,6 +44,8 @@ function immerPatch<T>(base: T, delta: Delta | undefined): T {
 }
 
 const differ: Differ<any, string, any> = {
+  defaultState: undefined,
+  defaultEditMetadata: 'initialize',
   diff: (left, right) => jdp.diff(left, right),
   patch: immerPatch,
   computeRef: refHash,

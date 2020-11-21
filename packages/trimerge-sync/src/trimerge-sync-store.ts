@@ -4,7 +4,7 @@ export type DiffNode<State, EditMetadata, Delta> = {
   ref: string;
   baseRef?: string;
   baseRef2?: string;
-  delta: Delta;
+  delta?: Delta;
   editMetadata: EditMetadata;
 };
 

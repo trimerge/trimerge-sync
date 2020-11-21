@@ -56,11 +56,17 @@ export class TrimergeClient<State, EditMetadata, Delta> {
       this.addNode(node);
     }
     this.onNodes({ syncCounter, newNodes: nodes });
+    if (!this.current) {
+      this.addEdit(differ.defaultState, differ.defaultEditMetadata);
+    }
     this.lastSyncCounter = syncCounter;
   }
 
-  get state(): State | undefined {
-    return this.current?.value;
+  get state(): State {
+    if (!this.current) {
+      throw new Error('unexpected state');
+    }
+    return this.current.value;
   }
   subscribe(onStateChange: (state: State | undefined) => void) {
     this.stateSubscribers.add(onStateChange);
