@@ -2,6 +2,7 @@ import {
   Differ,
   DiffNode,
   Snapshot,
+  SyncData,
   SyncSubscriber,
   TrimergeSyncStore,
   UnsubscribeFn,
@@ -39,19 +40,36 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
     SyncSubscriber<State, EditMetadata, Delta>,
     number
   >();
+  private readonly channel: BroadcastChannel | undefined;
 
   private constructor(
     private readonly dbName: string,
     private readonly db: IDBPDatabase<TrimergeSyncDbSchema>,
     private readonly differ: Differ<State, EditMetadata, Delta>,
   ) {
-    window.addEventListener('storage', (event) => {
-      if (event.key === dbName) {
-        for (const [listener, lastSyncCounter] of this.listeners.entries()) {
-          void this.sendNodesSince(listener, lastSyncCounter);
+    if (typeof window.BroadcastChannel !== 'undefined') {
+      console.log(`[trimerge-sync] Using BroadcastChannel for ${dbName}`);
+      this.channel = new window.BroadcastChannel(dbName);
+      this.channel.onmessage = (event) => {
+        const syncData: SyncData<State, EditMetadata, Delta> = event.data;
+        for (const listener of this.listeners.keys()) {
+          this.listeners.set(listener, syncData.syncCounter);
+          listener(syncData);
         }
-      }
-    });
+      };
+    } else if (typeof window.localStorage !== 'undefined') {
+      console.log(`[trimerge-sync] Using LocalStorage for ${dbName}`);
+      window.addEventListener('storage', (event) => {
+        if (event.key === dbName) {
+          for (const [listener, lastSyncCounter] of this.listeners.entries()) {
+            void this.sendNodesSince(listener, lastSyncCounter);
+          }
+        }
+      });
+    } else {
+      // TODO: fall back on some kind of polling?
+      throw new Error('BroadcastChannel and localStorage unavailable');
+    }
   }
 
   async addNodes(
@@ -59,27 +77,48 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
   ): Promise<number> {
     const tx = this.db.transaction(['heads', 'nodes'], 'readwrite');
 
-    // const docs = tx.objectStore(DOCS_STORE);
     const heads = tx.objectStore('heads');
     const nodes = tx.objectStore('nodes');
 
-    const cursor = await nodes.index('syncId').openCursor(undefined, 'prev');
+    const [currentHeads, cursor] = await Promise.all([
+      heads.getAllKeys(),
+      nodes.index('syncId').openCursor(undefined, 'prev'),
+    ]);
     let syncId = cursor?.value.syncId ?? 0;
 
+    const priorHeads = new Set(currentHeads);
+    const headsToDelete = new Set<string>();
+    const headsToAdd = new Set<string>();
+    const promises: Promise<unknown>[] = [];
     for (const node of newNodes) {
       syncId++;
-      await nodes.add({ syncId, ...node });
-      if (node.baseRef !== undefined) {
-        await heads.delete(node.baseRef);
+      promises.push(nodes.add({ syncId, ...node }));
+      const { ref, baseRef, baseRef2 } = node;
+      if (baseRef !== undefined) {
+        headsToDelete.add(baseRef);
       }
-      if (node.baseRef2 !== undefined) {
-        await heads.delete(node.baseRef2);
+      if (baseRef2 !== undefined) {
+        headsToDelete.add(baseRef2);
       }
-      heads.add({ ref: node.ref });
+      headsToAdd.add(ref);
     }
+    for (const ref of headsToDelete) {
+      headsToAdd.delete(ref);
+      if (priorHeads.has(ref)) {
+        promises.push(heads.delete(ref));
+      }
+    }
+    for (const ref of headsToAdd) {
+      promises.push(heads.add({ ref }));
+    }
+    await Promise.all(promises);
     await tx.done;
 
-    window.localStorage.setItem(this.dbName, String(syncId));
+    if (this.channel) {
+      this.channel.postMessage({ newNodes, syncCounter: syncId });
+    } else {
+      window.localStorage.setItem(this.dbName, String(syncId));
+    }
     return syncId;
   }
 
@@ -97,7 +136,6 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
       'syncId',
       IDBKeyRange.lowerBound(lastSyncCounter, true),
     );
-    console.log('newNodes', newNodes);
     const syncCounter = getSyncCounter(newNodes);
     onNodes({ newNodes, syncCounter });
     this.listeners.set(onNodes, syncCounter);
@@ -115,6 +153,7 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
   }
 
   close() {
+    this.channel?.close();
     this.db.close();
   }
 }
