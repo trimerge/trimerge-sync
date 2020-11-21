@@ -28,6 +28,8 @@ export class TrimergeClient<State, EditMetadata, Delta> {
   private current: ValueNode<State, EditMetadata> | undefined;
   private lastSyncCounter: number;
 
+  private stateSubscribers = new Set<(state: State | undefined) => void>();
+
   private nodes = new Map<string, ValueNode<State, EditMetadata>>();
   private headRefs = new Set<string>();
 
@@ -44,7 +46,7 @@ export class TrimergeClient<State, EditMetadata, Delta> {
   }
 
   private constructor(
-    { node, syncCounter }: Snapshot<State, EditMetadata>,
+    { node, syncCounter, nodes }: Snapshot<State, EditMetadata, Delta>,
     private readonly store: TrimergeSyncStore<State, EditMetadata, Delta>,
     private readonly differ: Differ<State, EditMetadata, Delta>,
     private readonly bufferMs: number = 100,
@@ -53,11 +55,19 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     if (node !== undefined) {
       this.addNode(node);
     }
+    this.onNodes({ syncCounter, newNodes: nodes });
     this.lastSyncCounter = syncCounter;
   }
 
   get state(): State | undefined {
     return this.current?.value;
+  }
+  subscribe(onStateChange: (state: State | undefined) => void) {
+    this.stateSubscribers.add(onStateChange);
+    onStateChange(this.state);
+    return () => {
+      this.stateSubscribers.delete(onStateChange);
+    };
   }
 
   addEdit(value: State, editMetadata: EditMetadata) {
@@ -136,8 +146,6 @@ export class TrimergeClient<State, EditMetadata, Delta> {
       const syncCounter = await this.store.addNodes(nodes);
       if (syncCounter !== this.lastSyncCounter) {
         this.lastSyncCounter = syncCounter;
-      } else {
-        console.log('nothing synced');
       }
     }
     this.syncPromise = undefined;
@@ -160,6 +168,9 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     const currentRef = this.current?.ref;
     if (currentRef === node.baseRef || currentRef === node.baseRef2) {
       this.current = node;
+      for (const subscriber of this.stateSubscribers) {
+        subscriber(this.state);
+      }
     }
     return true;
   }
@@ -175,7 +186,13 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     const ref = this.differ.computeRef(baseRef, baseRef2, delta, editMetadata);
     const node = { ref, baseRef, baseRef2, value, editMetadata };
     if (this.addNode(node)) {
-      this.unsyncedNodes.push({ ref, baseRef, baseRef2, delta, editMetadata });
+      this.unsyncedNodes.push({
+        ref,
+        baseRef,
+        baseRef2,
+        delta,
+        editMetadata,
+      });
     }
     return node;
   }

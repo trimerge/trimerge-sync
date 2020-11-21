@@ -28,10 +28,11 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
 
   constructor(private readonly differ: Differ<State, EditMetadata, Delta>) {}
 
-  public async getSnapshot(): Promise<Snapshot<State, EditMetadata>> {
+  public async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {
     return {
       syncCounter: this.syncs.length,
       node: this.getValueNode(this.primary),
+      nodes: [],
     };
   }
 
@@ -45,7 +46,7 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
     if (node === undefined) {
       return undefined;
     }
-    const { editMetadata, delta, ref: ref, baseRef, baseRef2 } = node;
+    const { ref, baseRef, baseRef2, editMetadata, delta } = node;
     const value =
       this.snapshots.get(targetRef) ??
       this.differ.patch(this.getValueNode(baseRef)?.value, delta);

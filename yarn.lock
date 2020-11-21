@@ -5743,6 +5743,11 @@ icss-utils@^4.0.0, icss-utils@^4.1.1:
   dependencies:
     postcss "^7.0.14"
 
+idb@5.0.7:
+  version "5.0.7"
+  resolved "https://registry.yarnpkg.com/idb/-/idb-5.0.7.tgz#9e57ef612c0d57db9bdd1e44b30a9b16a07b14f9"
+  integrity sha512-tXkkEtzOEolCKNLpxEvE5ctPqUhgTEi+wPWVWIWavl/Z0/NjSJx0o/79z4/etJWpEpVjhbQNZ7fvmp/UFv/Yog==
+
 identity-obj-proxy@3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/identity-obj-proxy/-/identity-obj-proxy-3.0.0.tgz#94d2bda96084453ef36fbc5aaec37e0f79f1fc14"
@@ -10909,7 +10914,7 @@ tr46@^2.0.2:
   dependencies:
     punycode "^2.1.1"
 
-trimerge@^1.3.0-alpha.14:
+trimerge@1.3.0-alpha.14, trimerge@^1.3.0-alpha.14:
   version "1.3.0-alpha.14"
   resolved "https://registry.yarnpkg.com/trimerge/-/trimerge-1.3.0-alpha.14.tgz#90940a3a9a51634f6ff17efa1e607c54fdfbf74e"
   integrity sha512-6WsH+iSzjZBms7D2R4H6wH8qk34C/V0eYwu4RMT/K1B4bdn8Ht+HRbaLTapM6zSF/YMKeOS9c2Fc2aMd5dLjeg==

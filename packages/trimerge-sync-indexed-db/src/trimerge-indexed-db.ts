@@ -1,73 +1,117 @@
 import {
-  DiffNode,
   Differ,
+  DiffNode,
   Snapshot,
   SyncSubscriber,
   TrimergeSyncStore,
   UnsubscribeFn,
 } from 'trimerge-sync';
+import { DBSchema, IDBPDatabase, openDB, StoreValue } from 'idb';
 
-const DOCS_STORE = 'docs';
-const HEADS_STORE = 'heads';
-const NODES_STORE = 'nodes';
+function getSyncCounter(
+  nodes: StoreValue<TrimergeSyncDbSchema, 'nodes'>[],
+): number {
+  let syncCounter = 0;
+  for (const node of nodes) {
+    if (syncCounter < node.syncId) {
+      syncCounter = node.syncId;
+    }
+  }
+  return syncCounter;
+}
 
 export class TrimergeIndexedDb<State, EditMetadata, Delta>
   implements TrimergeSyncStore<State, EditMetadata, Delta> {
   static async create<State, EditMetadata, Delta>(
     docId: string,
     differ: Differ<State, EditMetadata, Delta>,
-    dbName: string,
   ): Promise<TrimergeIndexedDb<State, EditMetadata, Delta>> {
+    const dbName = `trimerge-sync:${docId}`;
     const db = await createIndexedDb(dbName);
-    return new TrimergeIndexedDb<State, EditMetadata, Delta>(docId, db, differ);
+    return new TrimergeIndexedDb<State, EditMetadata, Delta>(
+      dbName,
+      db,
+      differ,
+    );
   }
-  constructor(
-    private readonly docId: string,
-    private readonly db: IDBDatabase,
+
+  private readonly listeners = new Map<
+    SyncSubscriber<State, EditMetadata, Delta>,
+    number
+  >();
+
+  private constructor(
+    private readonly dbName: string,
+    private readonly db: IDBPDatabase<TrimergeSyncDbSchema>,
     private readonly differ: Differ<State, EditMetadata, Delta>,
-  ) {}
-
-  addNodes(newNodes: DiffNode<State, EditMetadata, Delta>[]): Promise<number> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(
-        [DOCS_STORE, HEADS_STORE, NODES_STORE],
-        'readwrite',
-      );
-      tx.onerror = () => reject(tx.error || new Error('transaction error'));
-      tx.onabort = () => reject(tx.error || new Error('transaction error'));
-      tx.oncomplete = () => resolve();
-
-      // const docs = tx.objectStore(DOCS_STORE);
-      const heads = tx.objectStore(HEADS_STORE);
-      const nodes = tx.objectStore(NODES_STORE);
-
-      const docId = this.docId;
-      for (const node of newNodes) {
-        nodes.add({ ...node, docId }, node.ref);
-        if (node.baseRef !== undefined) {
-          heads.delete(node.baseRef);
+  ) {
+    window.addEventListener('storage', (event) => {
+      if (event.key === dbName) {
+        for (const [listener, lastSyncCounter] of this.listeners.entries()) {
+          void this.sendNodesSince(listener, lastSyncCounter);
         }
-        if (node.baseRef2 !== undefined) {
-          heads.delete(node.baseRef2);
-        }
-        heads.add({ ref: node.ref, docId }, node.ref);
       }
-
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore for some reason typescript doesn't define this
-      tx.commit();
     });
   }
 
-  getSnapshot(): Promise<Snapshot<State, EditMetadata>> {
-    return Promise.reject(new Error('unsupported'));
+  async addNodes(
+    newNodes: DiffNode<State, EditMetadata, Delta>[],
+  ): Promise<number> {
+    const tx = this.db.transaction(['heads', 'nodes'], 'readwrite');
+
+    // const docs = tx.objectStore(DOCS_STORE);
+    const heads = tx.objectStore('heads');
+    const nodes = tx.objectStore('nodes');
+
+    const cursor = await nodes.index('syncId').openCursor(undefined, 'prev');
+    let syncId = cursor?.value.syncId ?? 0;
+
+    for (const node of newNodes) {
+      syncId++;
+      await nodes.add({ syncId, ...node });
+      if (node.baseRef !== undefined) {
+        await heads.delete(node.baseRef);
+      }
+      if (node.baseRef2 !== undefined) {
+        await heads.delete(node.baseRef2);
+      }
+      heads.add({ ref: node.ref });
+    }
+    await tx.done;
+
+    window.localStorage.setItem(this.dbName, String(syncId));
+    return syncId;
+  }
+
+  async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {
+    const nodes = await this.db.getAllFromIndex('nodes', 'syncId');
+    return { nodes, syncCounter: getSyncCounter(nodes) };
+  }
+
+  private async sendNodesSince(
+    onNodes: SyncSubscriber<State, EditMetadata, Delta>,
+    lastSyncCounter: number,
+  ) {
+    const newNodes = await this.db.getAllFromIndex(
+      'nodes',
+      'syncId',
+      IDBKeyRange.lowerBound(lastSyncCounter, true),
+    );
+    console.log('newNodes', newNodes);
+    const syncCounter = getSyncCounter(newNodes);
+    onNodes({ newNodes, syncCounter });
+    this.listeners.set(onNodes, syncCounter);
   }
 
   subscribe(
     lastSyncCounter: number,
     onNodes: SyncSubscriber<State, EditMetadata, Delta>,
   ): UnsubscribeFn {
-    throw new Error('unsupported');
+    this.listeners.set(onNodes, lastSyncCounter);
+    void this.sendNodesSince(onNodes, lastSyncCounter);
+    return () => {
+      this.listeners.delete(onNodes);
+    };
   }
 
   close() {
@@ -75,28 +119,34 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
   }
 }
 
-function createIndexedDb(dbName: string): Promise<IDBDatabase> {
-  return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = window.indexedDB.open(dbName, 1);
-    request.onblocked = () => {
-      reject(request.error || new Error('database blocked'));
+interface TrimergeSyncDbSchema extends DBSchema {
+  heads: {
+    key: string;
+    value: {
+      ref: string;
     };
-    request.onsuccess = () => {
-      resolve(request.result);
+  };
+  nodes: {
+    key: string;
+    value: { syncId: number } & DiffNode<any, any, any>;
+    indexes: {
+      syncId: number;
     };
-    request.onerror = () => {
-      reject(request.error || new Error('database error'));
-    };
-    request.onupgradeneeded = () => {
-      const db = request.result;
+  };
+}
 
-      db.onerror = () => reject(request.error || new Error('database error'));
-
-      db.createObjectStore(DOCS_STORE, { keyPath: ['docId'] });
-      db.createObjectStore(NODES_STORE, { keyPath: ['docId', 'ref'] });
-      db.createObjectStore(HEADS_STORE, { keyPath: ['docId', 'ref'] });
-
-      resolve(db);
-    };
+function createIndexedDb(
+  dbName: string,
+): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
+  return openDB<TrimergeSyncDbSchema>(dbName, 1, {
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
+        db.createObjectStore('heads', { keyPath: 'ref' });
+        const nodes = db.createObjectStore('nodes', {
+          keyPath: 'ref',
+        });
+        nodes.createIndex('syncId', 'syncId');
+      }
+    },
   });
 }

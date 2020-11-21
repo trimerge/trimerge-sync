@@ -10,6 +10,7 @@
     "test": "jest --watch",
     "test-ci": "jest --coverage --passWithNoTests",
     "build": "rollup -c",
+    "watch": "rollup -c -w",
     "lint": "eslint src/**/*.ts",
     "prepublishOnly": "rm -rf dist/ && npm run build"
   },
@@ -33,7 +34,9 @@
     "url": "https://github.com/marcello3d/trimerge-sync/issues"
   },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
-  "dependencies": {},
+  "dependencies": {
+    "idb": "5.0.7"
+  },
   "peerDependencies": {
     "trimerge-sync": "^0.1.1"
   },

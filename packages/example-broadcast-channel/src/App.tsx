@@ -10,6 +10,8 @@ import {
   useCurrentUsers,
   useOnMessage,
 } from './lib/broadcast';
+import { useTrimergeState } from './lib/trimergeClient';
+import { differ } from './lib/trimergeDiffer';
 
 enableMapSet();
 
@@ -37,6 +39,20 @@ export function App() {
       )),
     [currentLeaderId, currentUsers],
   );
+
+  const [state, updateState] = useTrimergeState('demo', differ);
+  const onChangeTitle = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      updateState({ ...state, title: event.target.value }, 'edit title');
+    },
+    [state, updateState],
+  );
+  const onChangeText = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      updateState({ ...state, text: event.target.value }, 'edit text');
+    },
+    [state, updateState],
+  );
   return (
     <div className={styles.root}>
       <div className={styles.header}>
@@ -45,6 +61,11 @@ export function App() {
       <div className={styles.main}>
         <div className={styles.userList}>Online: {users}</div>
         <div>Last Message: {lastMessage}</div>
+        <div>
+          Title: <input value={state?.title ?? ''} onChange={onChangeTitle} />
+        </div>
+        <textarea value={state?.text ?? ''} onChange={onChangeText} rows={10} />
+        Raw State: <pre>{JSON.stringify(state, undefined, 2)}</pre>
       </div>
     </div>
   );
