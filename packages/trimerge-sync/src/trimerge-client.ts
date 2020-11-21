@@ -74,7 +74,6 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     this.addNewNode(
       value,
       editMetadata,
-      (this.current?.depth ?? 0) + 1,
       this.current?.value,
       this.current?.ref,
     );
@@ -105,7 +104,6 @@ export class TrimergeClient<State, EditMetadata, Delta> {
         return this.addNewNode(
           value,
           editMetadata,
-          Math.max(left.depth, right.depth),
           left.value,
           leftRef,
           rightRef,
@@ -120,14 +118,13 @@ export class TrimergeClient<State, EditMetadata, Delta> {
       ref,
       baseRef,
       baseRef2,
-      depth,
       delta,
       editMetadata,
     } of data.newNodes) {
       const base =
         baseRef !== undefined ? this.getNode(baseRef).value : undefined;
       const value = this.differ.patch(base, delta);
-      this.addNode({ ref, baseRef, baseRef2, depth, value, editMetadata });
+      this.addNode({ ref, baseRef, baseRef2, value, editMetadata });
     }
     this.mergeHeads();
     this.sync();
@@ -181,20 +178,18 @@ export class TrimergeClient<State, EditMetadata, Delta> {
   private addNewNode(
     value: State,
     editMetadata: EditMetadata,
-    depth: number = 0,
     baseValue?: State,
     baseRef?: string,
     baseRef2?: string,
   ): ValueNode<State, EditMetadata> {
     const delta = this.differ.diff(baseValue, value);
     const ref = this.differ.computeRef(baseRef, baseRef2, delta, editMetadata);
-    const node = { ref, baseRef, baseRef2, depth, value, editMetadata };
+    const node = { ref, baseRef, baseRef2, value, editMetadata };
     if (this.addNode(node)) {
       this.unsyncedNodes.push({
         ref,
         baseRef,
         baseRef2,
-        depth,
         delta,
         editMetadata,
       });

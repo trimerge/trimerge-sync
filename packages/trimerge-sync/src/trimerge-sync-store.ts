@@ -4,7 +4,6 @@ export type DiffNode<State, EditMetadata, Delta> = {
   ref: string;
   baseRef?: string;
   baseRef2?: string;
-  depth: number;
   delta: Delta;
   editMetadata: EditMetadata;
 };
@@ -13,7 +12,6 @@ export type ValueNode<State, EditMetadata> = {
   ref: string;
   baseRef?: string;
   baseRef2?: string;
-  depth: number;
   value: State;
   editMetadata: EditMetadata;
 };
