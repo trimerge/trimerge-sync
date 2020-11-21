@@ -18,7 +18,7 @@ export function useTrimergeState<State, EditMetadata, Delta>(
     [],
   );
   useEffect(() => {
-    let unmounted = false;
+    let mounted = true;
     let store: TrimergeIndexedDb<State, EditMetadata, Delta> | undefined;
     let unsub: (() => void) | undefined;
     TrimergeIndexedDb.create<State, EditMetadata, Delta>(docId, differ)
@@ -27,14 +27,16 @@ export function useTrimergeState<State, EditMetadata, Delta>(
         return TrimergeClient.create(_store, differ);
       })
       .then((_client) => {
-        client.current = _client;
-        unsub = _client.subscribe(setState);
+        if (mounted) {
+          client.current = _client;
+          unsub = _client.subscribe(setState);
+        }
       });
     return () => {
       unsub?.();
       client.current?.shutdown();
       store?.close();
-      unmounted = true;
+      mounted = false;
     };
   }, [docId, differ]);
   return [state, updateState];

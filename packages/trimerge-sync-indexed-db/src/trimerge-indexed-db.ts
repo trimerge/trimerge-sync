@@ -6,28 +6,53 @@ import {
   TrimergeSyncStore,
   UnsubscribeFn,
 } from 'trimerge-sync';
-import { DBSchema, IDBPDatabase, openDB } from 'idb';
+import { DBSchema, IDBPDatabase, openDB, StoreValue } from 'idb';
 
-let dbPromise: Promise<IDBPDatabase<TrimergeSyncDbSchema>> | undefined;
+function getSyncCounter(
+  nodes: StoreValue<TrimergeSyncDbSchema, 'nodes'>[],
+): number {
+  let syncCounter = 0;
+  for (const node of nodes) {
+    if (syncCounter < node.syncId) {
+      syncCounter = node.syncId;
+    }
+  }
+  return syncCounter;
+}
 
 export class TrimergeIndexedDb<State, EditMetadata, Delta>
   implements TrimergeSyncStore<State, EditMetadata, Delta> {
   static async create<State, EditMetadata, Delta>(
     docId: string,
     differ: Differ<State, EditMetadata, Delta>,
-    dbName: string = 'trimerge-sync-idb',
   ): Promise<TrimergeIndexedDb<State, EditMetadata, Delta>> {
-    if (!dbPromise) {
-      dbPromise = createIndexedDb(dbName);
-    }
-    const db = await dbPromise;
-    return new TrimergeIndexedDb<State, EditMetadata, Delta>(docId, db, differ);
+    const dbName = `trimerge-sync:${docId}`;
+    const db = await createIndexedDb(dbName);
+    return new TrimergeIndexedDb<State, EditMetadata, Delta>(
+      dbName,
+      db,
+      differ,
+    );
   }
+
+  private readonly listeners = new Map<
+    SyncSubscriber<State, EditMetadata, Delta>,
+    number
+  >();
+
   private constructor(
-    private readonly docId: string,
+    private readonly dbName: string,
     private readonly db: IDBPDatabase<TrimergeSyncDbSchema>,
     private readonly differ: Differ<State, EditMetadata, Delta>,
-  ) {}
+  ) {
+    window.addEventListener('storage', (event) => {
+      if (event.key === dbName) {
+        for (const [listener, lastSyncCounter] of this.listeners.entries()) {
+          void this.sendNodesSince(listener, lastSyncCounter);
+        }
+      }
+    });
+  }
 
   async addNodes(
     newNodes: DiffNode<State, EditMetadata, Delta>[],
@@ -38,36 +63,52 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
     const heads = tx.objectStore('heads');
     const nodes = tx.objectStore('nodes');
 
-    const docId = this.docId;
+    const syncId = Date.now();
+
     for (const node of newNodes) {
-      nodes.add({ docId, ...node });
+      await nodes.add({ syncId, ...node });
       if (node.baseRef !== undefined) {
-        heads.delete([docId, node.baseRef]);
+        await heads.delete(node.baseRef);
       }
       if (node.baseRef2 !== undefined) {
-        heads.delete([docId, node.baseRef2]);
+        await heads.delete(node.baseRef2);
       }
-      heads.add({ docId, ref: node.ref });
+      heads.add({ ref: node.ref });
     }
     await tx.done;
-    return 0;
+
+    window.localStorage.setItem(this.dbName, String(syncId));
+    return syncId;
   }
 
   async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {
     const nodes = await this.db.getAllFromIndex('nodes', 'depth');
-    return {
-      node: undefined,
-      nodes: nodes.filter(({ docId }) => docId === this.docId),
-      syncCounter: 0,
-    };
+    return { nodes, syncCounter: getSyncCounter(nodes) };
+  }
+
+  private async sendNodesSince(
+    onNodes: SyncSubscriber<State, EditMetadata, Delta>,
+    lastSyncCounter: number,
+  ) {
+    const newNodes = await this.db.getAllFromIndex(
+      'nodes',
+      'syncId',
+      IDBKeyRange.lowerBound([lastSyncCounter, 0], true),
+    );
+    console.log('newNodes', newNodes);
+    const syncCounter = getSyncCounter(newNodes);
+    onNodes({ newNodes, syncCounter });
+    this.listeners.set(onNodes, syncCounter);
   }
 
   subscribe(
     lastSyncCounter: number,
     onNodes: SyncSubscriber<State, EditMetadata, Delta>,
   ): UnsubscribeFn {
+    this.listeners.set(onNodes, lastSyncCounter);
+    void this.sendNodesSince(onNodes, lastSyncCounter);
     return () => {
-      // does nothing
+      this.listeners.delete(onNodes);
     };
   }
 
@@ -77,26 +118,18 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
 }
 
 interface TrimergeSyncDbSchema extends DBSchema {
-  docs: {
-    key: [string];
-    value: {
-      docId: string;
-    };
-  };
   heads: {
-    key: [string, string];
+    key: string;
     value: {
-      docId: string;
       ref: string;
     };
   };
   nodes: {
-    key: [string, string];
-    value: {
-      docId: string;
-    } & DiffNode<any, any, any>;
+    key: string;
+    value: { syncId: number } & DiffNode<any, any, any>;
     indexes: {
-      depth: [string, string];
+      depth: number;
+      syncId: number;
     };
   };
 }
@@ -105,16 +138,14 @@ function createIndexedDb(
   dbName: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
   return openDB<TrimergeSyncDbSchema>(dbName, 2, {
-    upgrade(db, oldVersion, newVersion, tx) {
+    upgrade(db, oldVersion) {
       if (oldVersion < 1) {
-        db.createObjectStore('docs', { keyPath: ['docId'] });
-        db.createObjectStore('heads', { keyPath: ['docId', 'ref'] });
-        db.createObjectStore('nodes', {
-          keyPath: ['docId', 'ref'],
+        db.createObjectStore('heads', { keyPath: 'ref' });
+        const nodes = db.createObjectStore('nodes', {
+          keyPath: 'ref',
         });
-      }
-      if (oldVersion < 2) {
-        tx.objectStore('nodes').createIndex('depth', ['docId', 'depth']);
+        nodes.createIndex('depth', 'depth');
+        nodes.createIndex('syncId', ['syncId', 'depth']);
       }
     },
   });

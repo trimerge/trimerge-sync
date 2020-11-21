@@ -20,7 +20,7 @@ export type ValueNode<State, EditMetadata> = {
 
 export type Snapshot<State, EditMetadata, Delta> = {
   syncCounter: number;
-  node: ValueNode<State, EditMetadata> | undefined;
+  node?: ValueNode<State, EditMetadata>;
   nodes: DiffNode<State, EditMetadata, Delta>[];
 };
 
@@ -54,9 +54,8 @@ export interface TrimergeSyncStore<State, EditMetadata, Delta> {
   ): UnsubscribeFn;
 
   /**
-   * This sends up new nodes and returns any new added in the interim.
+   * This sends up new nodes and returns new sync counter
    *
-   * @param lastSyncCounter
    * @param newNodes
    */
   addNodes(newNodes: DiffNode<State, EditMetadata, Delta>[]): Promise<number>;

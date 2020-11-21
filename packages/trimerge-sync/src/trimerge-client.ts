@@ -149,8 +149,6 @@ export class TrimergeClient<State, EditMetadata, Delta> {
       const syncCounter = await this.store.addNodes(nodes);
       if (syncCounter !== this.lastSyncCounter) {
         this.lastSyncCounter = syncCounter;
-      } else {
-        console.log('nothing synced');
       }
     }
     this.syncPromise = undefined;
