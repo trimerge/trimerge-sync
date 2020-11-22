@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="WEB_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/.tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/example-broadcast-channel/build" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/example-broadcast-channel/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-hash/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-hash/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-indexed-db/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-indexed-db/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-user-state/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-user-state/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/temp" />
+      <excludeFolder url="file://$MODULE_DIR$/tmp" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

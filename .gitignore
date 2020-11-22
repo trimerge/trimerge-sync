@@ -19,7 +19,6 @@ build/
 .env.test.local
 .env.production.local
 .rpt2_cache
-.idea
 
 npm-debug.log*
 yarn-debug.log*
