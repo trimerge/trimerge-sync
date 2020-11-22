@@ -23,12 +23,12 @@ export const merge: MergeStateFn<any, string> = (base, left, right) => ({
 
 export function computeRef(
   baseRef: string | undefined,
-  baseRef2: string | undefined,
+  mergeRef: string | undefined,
   delta: any,
   editMetadata: any,
 ): string {
   const sha = new Jssha('SHA-256', 'TEXT', { encoding: 'UTF8' });
-  sha.update(JSON.stringify([baseRef, baseRef2, delta, editMetadata]));
+  sha.update(JSON.stringify([baseRef, mergeRef, delta, editMetadata]));
   return sha.getHash('HEX');
 }
 

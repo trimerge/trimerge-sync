@@ -99,12 +99,12 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
     for (const node of newNodes) {
       syncId++;
       promises.push(nodes.add({ syncId, ...node }));
-      const { ref, baseRef, baseRef2 } = node;
+      const { ref, baseRef, mergeRef } = node;
       if (baseRef !== undefined) {
         headsToDelete.add(baseRef);
       }
-      if (baseRef2 !== undefined) {
-        headsToDelete.add(baseRef2);
+      if (mergeRef !== undefined) {
+        headsToDelete.add(mergeRef);
       }
       headsToAdd.add(ref);
     }

@@ -85,8 +85,8 @@ describe('graph.mergeHeads()', () => {
       Set {
         Object {
           "baseRef": "3",
-          "baseRef2": "5",
           "editMetadata": "merge 3 and 5",
+          "mergeRef": "5",
           "ref": "6",
           "value": Object {
             "hello": "vorld",
@@ -136,8 +136,8 @@ describe('graph.mergeHeads()', () => {
         },
         "6" => Object {
           "baseRef": "3",
-          "baseRef2": "5",
           "editMetadata": "merge 3 and 5",
+          "mergeRef": "5",
           "ref": "6",
           "value": Object {
             "hello": "vorld",
@@ -161,8 +161,8 @@ describe('graph.mergeHeads()', () => {
       Set {
         Object {
           "baseRef": "3",
-          "baseRef2": "6",
           "editMetadata": "merge 3 and 6",
+          "mergeRef": "6",
           "ref": "7",
           "value": Object {
             "hello": "vorld",
@@ -217,8 +217,8 @@ describe('graph.mergeHeads()', () => {
         },
         "7" => Object {
           "baseRef": "3",
-          "baseRef2": "6",
           "editMetadata": "merge 3 and 6",
+          "mergeRef": "6",
           "ref": "7",
           "value": Object {
             "hello": "vorld",
@@ -245,8 +245,8 @@ describe('graph.mergeHeads()', () => {
       Set {
         Object {
           "baseRef": "10",
-          "baseRef2": "9",
           "editMetadata": "merge 10 and 9",
+          "mergeRef": "9",
           "ref": "11",
           "value": Object {
             "hello": "vorld",
@@ -323,8 +323,8 @@ describe('graph.mergeHeads()', () => {
         },
         "10" => Object {
           "baseRef": "3",
-          "baseRef2": "6",
           "editMetadata": "merge 3 and 6",
+          "mergeRef": "6",
           "ref": "10",
           "value": Object {
             "hello": "vorld",
@@ -333,8 +333,8 @@ describe('graph.mergeHeads()', () => {
         },
         "11" => Object {
           "baseRef": "10",
-          "baseRef2": "9",
           "editMetadata": "merge 10 and 9",
+          "mergeRef": "9",
           "ref": "11",
           "value": Object {
             "hello": "vorld",

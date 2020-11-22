@@ -16,8 +16,7 @@ export const defaultState = {
 };
 
 export const differ: Differ<AppState, string, Delta> = {
-  defaultState,
-  defaultEditMetadata: 'initialize',
+  normalize: (state) => state ?? defaultState,
   diff,
   patch(priorOrNext, delta) {
     return patch(priorOrNext, delta) ?? defaultState;
