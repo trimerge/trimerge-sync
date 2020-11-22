@@ -1,7 +1,7 @@
 {
-  "name": "trimerge-sync-indexed-db",
+  "name": "trimerge-sync-user-state",
   "version": "0.1.0",
-  "description": "indexed-db backend for trimerge-sync",
+  "description": "user state for trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
   "typings": "./dist/index.d.ts",
@@ -35,7 +35,8 @@
   },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
   "dependencies": {
-    "idb": "5.0.7"
+    "idb": "5.0.7",
+    "immer": "^8.0.0"
   },
   "peerDependencies": {
     "trimerge-sync": "^0.1.1"
@@ -47,7 +48,6 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "16.0.0",
     "@rollup/plugin-node-resolve": "10.0.0",
-    "immer": "^8.0.0",
     "jest": "26.6.3",
     "jsondiffpatch": "^0.4.1",
     "jssha": "^3.1.2",

@@ -53,9 +53,7 @@ function updateUsers() {
 }
 
 function getLeader() {
-  console.log('electing leader');
   elector.awaitLeadership().then(() => {
-    console.log('elector.awaitLeadership() resolved', elector);
     if (elector.isLeader) {
       broadcast({ type: 'leader', id: currentUserId });
       updateLeader(currentUserId);
@@ -79,7 +77,6 @@ function updateLeader(newLeaderId: string | undefined) {
 getLeader();
 
 broadcastChannel.addEventListener('message', (message) => {
-  console.log(`[BC] Received: <---`, message);
   if (message.id === currentUserId) {
     console.warn(`[BC] ERRONEOUS ID`);
     return;
@@ -107,7 +104,6 @@ broadcastChannel.addEventListener('message', (message) => {
 });
 
 export function broadcast(message: BroadcastMessage) {
-  console.log(`[BC] Sending: --->`, message);
   broadcastChannel.postMessage(message);
 }
 broadcast({ type: 'join', id: currentUserId });
@@ -130,16 +126,6 @@ setInterval(() => {
     updateUsers();
   }
 }, 2_500);
-
-export function useOnMessage(callback?: (message: BroadcastMessage) => void) {
-  useEffect(() => {
-    if (!callback) {
-      return undefined;
-    }
-    broadcastChannel.addEventListener('message', callback);
-    return () => broadcastChannel.removeEventListener('message', callback);
-  });
-}
 
 export function getCurrentUsers() {
   return Array.from(currentUsers.keys());

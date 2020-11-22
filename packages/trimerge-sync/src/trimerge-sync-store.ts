@@ -3,15 +3,15 @@
 export type DiffNode<State, EditMetadata, Delta> = {
   ref: string;
   baseRef?: string;
-  baseRef2?: string;
-  delta: Delta;
+  mergeRef?: string;
+  delta?: Delta;
   editMetadata: EditMetadata;
 };
 
 export type ValueNode<State, EditMetadata> = {
   ref: string;
   baseRef?: string;
-  baseRef2?: string;
+  mergeRef?: string;
   value: State;
   editMetadata: EditMetadata;
 };

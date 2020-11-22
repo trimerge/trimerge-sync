@@ -14,18 +14,12 @@ export type ValueState<State, EditMetadata> = {
   editMetadata: EditMetadata;
 };
 
-export type MergeStateFn<State, EditMetadata> = (
-  base: ValueState<State, EditMetadata> | undefined,
-  left: ValueState<State, EditMetadata>,
-  right: ValueState<State, EditMetadata>,
-) => ValueState<State, EditMetadata>;
-
 function waitMs(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export class TrimergeClient<State, EditMetadata, Delta> {
-  private current: ValueNode<State, EditMetadata> | undefined;
+  private current?: { value: State; ref?: string };
   private lastSyncCounter: number;
 
   private stateSubscribers = new Set<(state: State | undefined) => void>();
@@ -56,11 +50,18 @@ export class TrimergeClient<State, EditMetadata, Delta> {
       this.addNode(node);
     }
     this.onNodes({ syncCounter, newNodes: nodes });
+    this.current = {
+      value: differ.normalize(this.current?.value),
+      ref: this.current?.ref,
+    };
     this.lastSyncCounter = syncCounter;
   }
 
-  get state(): State | undefined {
-    return this.current?.value;
+  get state(): State {
+    if (!this.current) {
+      throw new Error('unexpected state');
+    }
+    return this.current.value;
   }
   subscribe(onStateChange: (state: State | undefined) => void) {
     this.stateSubscribers.add(onStateChange);
@@ -71,12 +72,11 @@ export class TrimergeClient<State, EditMetadata, Delta> {
   }
 
   addEdit(value: State, editMetadata: EditMetadata) {
-    this.addNewNode(
-      value,
-      editMetadata,
-      this.current?.value,
-      this.current?.ref,
-    );
+    const delta = this.differ.diff(this.current?.value, value);
+    if (delta === undefined) {
+      return;
+    }
+    this.addNewNode(value, editMetadata, delta, this.current?.ref);
     this.mergeHeads();
     this.sync();
   }
@@ -101,13 +101,8 @@ export class TrimergeClient<State, EditMetadata, Delta> {
         const left = this.getNode(leftRef);
         const right = this.getNode(rightRef);
         const { value, editMetadata } = this.differ.merge(base, left, right);
-        return this.addNewNode(
-          value,
-          editMetadata,
-          left.value,
-          leftRef,
-          rightRef,
-        ).ref;
+        const delta = this.differ.diff(left.value, value);
+        return this.addNewNode(value, editMetadata, delta, leftRef, rightRef);
       },
     );
     // TODO: do we clear out nodes we don't need anymore?
@@ -117,14 +112,14 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     for (const {
       ref,
       baseRef,
-      baseRef2,
+      mergeRef,
       delta,
       editMetadata,
     } of data.newNodes) {
       const base =
         baseRef !== undefined ? this.getNode(baseRef).value : undefined;
       const value = this.differ.patch(base, delta);
-      this.addNode({ ref, baseRef, baseRef2, value, editMetadata });
+      this.addNode({ ref, baseRef, mergeRef, value, editMetadata });
     }
     this.mergeHeads();
     this.sync();
@@ -153,20 +148,20 @@ export class TrimergeClient<State, EditMetadata, Delta> {
   }
 
   private addNode(node: ValueNode<State, EditMetadata>): boolean {
-    const ref = node.ref;
+    const { ref, baseRef, mergeRef } = node;
     if (this.nodes.has(ref)) {
       return false;
     }
     this.nodes.set(ref, node);
-    if (node.baseRef !== undefined) {
-      this.headRefs.delete(node.baseRef);
+    if (baseRef !== undefined) {
+      this.headRefs.delete(baseRef);
     }
-    if (node.baseRef2 !== undefined) {
-      this.headRefs.delete(node.baseRef2);
+    if (mergeRef !== undefined) {
+      this.headRefs.delete(mergeRef);
     }
     this.headRefs.add(ref);
     const currentRef = this.current?.ref;
-    if (currentRef === node.baseRef || currentRef === node.baseRef2) {
+    if (currentRef === node.baseRef || currentRef === node.mergeRef) {
       this.current = node;
       for (const subscriber of this.stateSubscribers) {
         subscriber(this.state);
@@ -178,23 +173,26 @@ export class TrimergeClient<State, EditMetadata, Delta> {
   private addNewNode(
     value: State,
     editMetadata: EditMetadata,
-    baseValue?: State,
+    delta: Delta | undefined,
     baseRef?: string,
-    baseRef2?: string,
-  ): ValueNode<State, EditMetadata> {
-    const delta = this.differ.diff(baseValue, value);
-    const ref = this.differ.computeRef(baseRef, baseRef2, delta, editMetadata);
-    const node = { ref, baseRef, baseRef2, value, editMetadata };
-    if (this.addNode(node)) {
-      this.unsyncedNodes.push({
+    mergeRef?: string,
+  ): string {
+    const ref = this.differ.computeRef(baseRef, mergeRef, delta, editMetadata);
+    if (this.addNode({ ref, baseRef, mergeRef, value, editMetadata })) {
+      const syncNode: DiffNode<State, EditMetadata, Delta> = {
         ref,
-        baseRef,
-        baseRef2,
         delta,
         editMetadata,
-      });
+      };
+      if (baseRef) {
+        syncNode.baseRef = baseRef;
+      }
+      if (mergeRef) {
+        syncNode.mergeRef = mergeRef;
+      }
+      this.unsyncedNodes.push(syncNode);
     }
-    return node;
+    return ref;
   }
 
   public shutdown() {

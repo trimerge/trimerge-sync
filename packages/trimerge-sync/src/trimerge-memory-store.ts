@@ -46,12 +46,12 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
     if (node === undefined) {
       return undefined;
     }
-    const { ref, baseRef, baseRef2, editMetadata, delta } = node;
+    const { ref, baseRef, mergeRef, editMetadata, delta } = node;
     const value =
       this.snapshots.get(targetRef) ??
       this.differ.patch(this.getValueNode(baseRef)?.value, delta);
 
-    return { ref, baseRef, baseRef2, editMetadata, value };
+    return { ref, baseRef, mergeRef, editMetadata, value };
   }
 
   private addChild(parentRef: string | undefined, childRef: string) {
@@ -96,7 +96,7 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
           throw new Error(`attempting to add ref "${node.ref}" twice`);
         }
         this.addChild(node.baseRef, node.ref);
-        this.addChild(node.baseRef2, node.ref);
+        this.addChild(node.mergeRef, node.ref);
         this.nodes.set(node.ref, node);
       }
       this.syncs.push(newNodes);

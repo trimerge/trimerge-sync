@@ -1,7 +1,7 @@
 export type MergableNode = {
   ref: string;
   baseRef?: string;
-  baseRef2?: string;
+  mergeRef?: string;
 };
 
 type Visitor = {
@@ -69,15 +69,15 @@ export function mergeHeadNodes<N extends MergableNode>(
             return true;
           }
         }
-        const { baseRef, baseRef2 } = getNode(nodeRef);
+        const { baseRef, mergeRef } = getNode(nodeRef);
         if (baseRef !== undefined) {
           nextNodeRefs.add(baseRef);
           leaf.seenRefs.add(baseRef);
           hasNodes = true;
         }
-        if (baseRef2 !== undefined) {
-          nextNodeRefs.add(baseRef2);
-          leaf.seenRefs.add(baseRef2);
+        if (mergeRef !== undefined) {
+          nextNodeRefs.add(mergeRef);
+          leaf.seenRefs.add(mergeRef);
           hasNodes = true;
         }
         leaf.current = nextNodeRefs;

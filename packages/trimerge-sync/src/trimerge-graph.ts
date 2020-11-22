@@ -3,7 +3,7 @@ import { mergeHeadNodes } from './merge-nodes';
 export type Node<T, M> = {
   ref: string;
   baseRef?: string;
-  baseRef2?: string;
+  mergeRef?: string;
   value: T;
   editMetadata: M;
 };
@@ -45,8 +45,8 @@ export class TrimergeGraph<T, M> {
     if (node.baseRef !== undefined) {
       this.branchHeads.delete(this.getNode(node.baseRef));
     }
-    if (node.baseRef2 !== undefined) {
-      this.branchHeads.delete(this.getNode(node.baseRef2));
+    if (node.mergeRef !== undefined) {
+      this.branchHeads.delete(this.getNode(node.mergeRef));
     }
     this.branchHeads.add(node);
     return node;
@@ -73,7 +73,7 @@ export class TrimergeGraph<T, M> {
         this.addNode({
           ref: this.newId(),
           baseRef: leftRef,
-          baseRef2: rightRef,
+          mergeRef: rightRef,
           ...mergeFn(
             baseRef !== undefined ? this.getNode(baseRef) : undefined,
             this.getNode(leftRef),
