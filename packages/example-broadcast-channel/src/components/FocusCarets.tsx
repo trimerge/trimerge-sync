@@ -2,7 +2,6 @@ import getCaretCoordinates from 'textarea-caret';
 import materialColorHash from 'material-color-hash';
 import React from 'react';
 import { BaseUserState } from 'trimerge-sync-user-state';
-import styles from './Focus.module.css';
 
 export function FocusCarets({
   dom,
