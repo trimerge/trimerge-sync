@@ -4,7 +4,7 @@ import { StateWithUsers, updateUser } from 'trimerge-sync-user-state';
 import { updateInputValueMovingSelection } from './update-cursor-positions';
 import { UpdateStateFn } from '../lib/trimergeClient';
 
-export function useFocusInfo<State extends StateWithUsers, EditMetadata>(
+export function useFocusInfo<State extends StateWithUsers>(
   id: string,
   currentUser: string,
   state: State,

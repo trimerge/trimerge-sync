@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
 
 import styles from './Focus.module.css';
-import { FocusBorders } from './FocusBorders';
 import { FocusCarets } from './FocusCarets';
 import { UpdateStateFn } from '../lib/trimergeClient';
 import { useFocusInfo, useUpdateFocus } from './focusHooks';

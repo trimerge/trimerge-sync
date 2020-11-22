@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Differ, TrimergeClient } from 'trimerge-sync';
 import { TrimergeIndexedDb } from 'trimerge-sync-indexed-db';
 
@@ -30,9 +30,7 @@ export function useTrimergeState<State, EditMetadata, Delta>(
     TrimergeClient<State, EditMetadata, Delta> | undefined
   >(undefined);
 
-  const updateState = useMemo(() => client && client.addEdit.bind(client), [
-    client,
-  ]);
+  const updateState = useMemo(() => client?.addEdit.bind(client), [client]);
 
   // Setup client
   useEffect(() => {
