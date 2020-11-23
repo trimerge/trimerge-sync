@@ -134,6 +134,9 @@ export class TrimergeClient<State, EditMetadata, Delta> {
   private syncPromise: Promise<boolean> | undefined;
 
   sync(): Promise<boolean> | undefined {
+    for (const subscriber of this.stateSubscribers) {
+      subscriber(this.state);
+    }
     if (!this.syncPromise && this.unsyncedNodes.length > 0) {
       this.syncPromise = this.doSync();
     }
@@ -169,9 +172,6 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     const currentRef = this.current?.ref;
     if (currentRef === node.baseRef || currentRef === node.mergeRef) {
       this.current = node;
-      for (const subscriber of this.stateSubscribers) {
-        subscriber(this.state);
-      }
     }
     return true;
   }
