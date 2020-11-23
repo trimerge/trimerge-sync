@@ -1,5 +1,4 @@
 import { BaseUserState, StateWithUsers } from './type';
-import { TrimergeClient } from 'trimerge-sync';
 import { Draft, produce } from 'immer';
 
 export function updateUser<State extends StateWithUsers>(

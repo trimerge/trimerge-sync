@@ -6,7 +6,6 @@ import {
   trimergeString,
 } from 'trimerge';
 import { MergeStateFn } from 'trimerge-sync';
-import Jssha from 'jssha';
 import { create, Delta } from 'jsondiffpatch';
 import { produce } from 'immer';
 
@@ -20,17 +19,6 @@ export const merge: MergeStateFn<any, string> = (base, left, right) => ({
   value: trimergeObjects(base?.value, left.value, right.value),
   editMetadata: `merge`,
 });
-
-export function computeRef(
-  baseRef: string | undefined,
-  mergeRef: string | undefined,
-  delta: any,
-  editMetadata: any,
-): string {
-  const sha = new Jssha('SHA-256', 'TEXT', { encoding: 'UTF8' });
-  sha.update(JSON.stringify([baseRef, mergeRef, delta, editMetadata]));
-  return sha.getHash('HEX');
-}
 
 const jdp = create({ textDiff: { minLength: 20 } });
 

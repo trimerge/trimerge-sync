@@ -50,6 +50,7 @@ export function FocusTextarea<State extends StateWithUsers, EditMetadata>({
         onSelect={updateFocus}
         onInput={updateFocus}
         onFocus={updateFocus}
+        onBlur={updateFocus}
       />
     </span>
   );

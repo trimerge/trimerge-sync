@@ -1,6 +1,6 @@
 import getCaretCoordinates from 'textarea-caret';
 import materialColorHash from 'material-color-hash';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BaseUserState } from 'trimerge-sync-user-state';
 
 export function FocusCarets({
@@ -23,7 +23,7 @@ export function FocusCarets({
             return null;
           }
           return (
-            <MemoizedFocusCaret
+            <FocusCaret
               key={userId}
               dom={dom}
               name={includeNames ? name : undefined}
@@ -50,37 +50,43 @@ function FocusCaret({
   selectionStart: number;
   selectionEnd: number;
 }) {
-  const startCaret = getCaretCoordinates(dom, selectionStart);
-  const endCaret = getCaretCoordinates(dom, selectionEnd);
-  const { backgroundColor } = materialColorHash(userId, 500);
-  return (
-    <>
-      {name && (
+  // TODO: replace this with something that works with multiline selection on textarea
+  //  Maybe using https://developer.mozilla.org/en-US/docs/Web/API/Range/getClientRects
+  const { left: startCaretLeft, top: startCaretTop } = getCaretCoordinates(
+    dom,
+    selectionStart,
+  );
+  const { left: endCaretLeft } = getCaretCoordinates(dom, selectionEnd);
+  return useMemo(() => {
+    const { backgroundColor } = materialColorHash(userId, 500);
+    return (
+      <>
+        {name && (
+          <div
+            style={{
+              position: 'absolute',
+              backgroundColor,
+              opacity: 0.5,
+              left: `${startCaretLeft}px`,
+              bottom: `${startCaretTop - 3}px`,
+            }}
+          >
+            {name}
+          </div>
+        )}
         <div
           style={{
             position: 'absolute',
             backgroundColor,
             opacity: 0.5,
-            left: `${startCaret.left}px`,
-            bottom: `${startCaret.top - 3}px`,
+            left: `${startCaretLeft}px`,
+            width: `${Math.max(endCaretLeft - startCaretLeft, 2)}px`,
+            top: `${startCaretTop - 3}px`,
+            height: `1em`,
+            zIndex: -1,
           }}
-        >
-          {name}
-        </div>
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          backgroundColor,
-          opacity: 0.5,
-          left: `${startCaret.left}px`,
-          width: `${Math.max(endCaret.left - startCaret.left, 2)}px`,
-          top: `${startCaret.top - 3}px`,
-          height: `1em`,
-          zIndex: -1,
-        }}
-      />
-    </>
-  );
+        />
+      </>
+    );
+  }, [startCaretLeft, startCaretTop, endCaretLeft, name, userId]);
 }
-const MemoizedFocusCaret = React.memo(FocusCaret);

@@ -5,7 +5,7 @@ import {
   trimergeString,
 } from 'trimerge';
 import { TrimergeMemoryStore } from './trimerge-memory-store';
-import Jssha from 'jssha';
+import { computeRef } from 'trimerge-sync-hash';
 import { create, Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './trimerge-client';
 import { produce } from 'immer';
@@ -23,17 +23,6 @@ const merge: MergeStateFn<any, string> = (base, left, right) => ({
   editMetadata: `merge`,
 });
 
-function computeRef(
-  baseRef: string | undefined,
-  mergeRef: string | undefined,
-  delta: any,
-  editMetadata: any,
-): string {
-  const sha = new Jssha('SHA-256', 'TEXT', { encoding: 'UTF8' });
-  sha.update(JSON.stringify([baseRef, mergeRef, delta, editMetadata]));
-  return sha.getHash('HEX');
-}
-
 const jdp = create({ textDiff: { minLength: 20 } });
 
 function patch<T>(base: T, delta: Delta | undefined): T {
@@ -44,7 +33,7 @@ function patch<T>(base: T, delta: Delta | undefined): T {
 }
 
 const differ: Differ<any, string, any> = {
-  normalize: (state) => state,
+  normalize: (state) => [state, 'normalize'],
   diff: (left, right) => jdp.diff(left, right),
   patch,
   computeRef,
@@ -272,20 +261,20 @@ describe('TrimergeClient', () => {
                   Object {},
                 ],
                 "editMetadata": "initialize",
-                "ref": "0ee41efbe561307a650fe711d40fc7993f21bcd4ba0dcc1c1abde43974746fba",
+                "ref": "DuQe--VhMHplD-cR1A_HmT8hvNS6DcwcGr3kOXR0b7o",
               },
               Object {
-                "baseRef": "0ee41efbe561307a650fe711d40fc7993f21bcd4ba0dcc1c1abde43974746fba",
+                "baseRef": "DuQe--VhMHplD-cR1A_HmT8hvNS6DcwcGr3kOXR0b7o",
                 "delta": Object {
                   "hello": Array [
                     "world",
                   ],
                 },
                 "editMetadata": "add hello",
-                "ref": "a8283d4659134ca86b90fe9fa73786c080243081ff1c03df3fbcc9f9c12143a9",
+                "ref": "HEzioYxFkpuDepy8S78JI-4TcDVQv6VVb6O6k7xw5aY",
               },
               Object {
-                "baseRef": "a8283d4659134ca86b90fe9fa73786c080243081ff1c03df3fbcc9f9c12143a9",
+                "baseRef": "HEzioYxFkpuDepy8S78JI-4TcDVQv6VVb6O6k7xw5aY",
                 "delta": Object {
                   "hello": Array [
                     "world",
@@ -293,10 +282,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "7905b53e5a0ed3d10dfcc2537d500c343d713da4b419ca928a0b33e5e9834c2e",
+                "ref": "cN0gzU5zDnyC3KhRdxDn-TNlOtzkPiQkPdq_3eu6Z0U",
               },
               Object {
-                "baseRef": "7905b53e5a0ed3d10dfcc2537d500c343d713da4b419ca928a0b33e5e9834c2e",
+                "baseRef": "cN0gzU5zDnyC3KhRdxDn-TNlOtzkPiQkPdq_3eu6Z0U",
                 "delta": Object {
                   "hello": Array [
                     "world. t",
@@ -304,10 +293,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "a38015b938792838c8fd8f654442ef5f57cddf07fdc55014534cdfe7db06c038",
+                "ref": "_GLt24TNA2NVBL68AWX0mznNIfE6GVPOGEwY-PAGGyM",
               },
               Object {
-                "baseRef": "a38015b938792838c8fd8f654442ef5f57cddf07fdc55014534cdfe7db06c038",
+                "baseRef": "_GLt24TNA2NVBL68AWX0mznNIfE6GVPOGEwY-PAGGyM",
                 "delta": Object {
                   "hello": Array [
                     "world. th",
@@ -315,10 +304,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "ee55d5056392b2d44bd7cfcd74f940cbd0f07c23794148d70fcd5bb4c8fc6a57",
+                "ref": "hwPBh_C7c8c7BlbSpdnPTt8UJy8TIgigqsoV6DlT3oc",
               },
               Object {
-                "baseRef": "ee55d5056392b2d44bd7cfcd74f940cbd0f07c23794148d70fcd5bb4c8fc6a57",
+                "baseRef": "hwPBh_C7c8c7BlbSpdnPTt8UJy8TIgigqsoV6DlT3oc",
                 "delta": Object {
                   "hello": Array [
                     "world. thi",
@@ -326,10 +315,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "05df9df3725488b8fb2360fb9cd38cc8b40aef30a81ee63e5e54a53f552ecaa2",
+                "ref": "1wrvJ1pusx4u3p6iwe4CJ4oY61qkyeo27F2tKuyXqXc",
               },
               Object {
-                "baseRef": "05df9df3725488b8fb2360fb9cd38cc8b40aef30a81ee63e5e54a53f552ecaa2",
+                "baseRef": "1wrvJ1pusx4u3p6iwe4CJ4oY61qkyeo27F2tKuyXqXc",
                 "delta": Object {
                   "hello": Array [
                     "world. this",
@@ -337,10 +326,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "b09e5f059434efb8277ee7afe6b473a4321babc6f3c71165c8ddb0d771fb319e",
+                "ref": "xXPKMsKTy65RhbF811UkUyJyV17bdezJC5NAkzFqRPA",
               },
               Object {
-                "baseRef": "b09e5f059434efb8277ee7afe6b473a4321babc6f3c71165c8ddb0d771fb319e",
+                "baseRef": "xXPKMsKTy65RhbF811UkUyJyV17bdezJC5NAkzFqRPA",
                 "delta": Object {
                   "hello": Array [
                     "world. this ",
@@ -348,10 +337,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "adbcc7dd1a479b828e5b458c1c88f893c65122a03267ed15bee47bbe1e94aac1",
+                "ref": "xj1FJ11hMP95O2YBQlIS3qgmG4X11e2VgI_Z0ItgqLM",
               },
               Object {
-                "baseRef": "adbcc7dd1a479b828e5b458c1c88f893c65122a03267ed15bee47bbe1e94aac1",
+                "baseRef": "xj1FJ11hMP95O2YBQlIS3qgmG4X11e2VgI_Z0ItgqLM",
                 "delta": Object {
                   "hello": Array [
                     "world. this i",
@@ -359,10 +348,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "3d33771a1d7581681156ef965650789d1b4e8c13a097d7f5537364e9639b05ea",
+                "ref": "u6YRpKr_-g110VuTdXrTy1ZQ2XM4h-hurUxBqaULdRQ",
               },
               Object {
-                "baseRef": "3d33771a1d7581681156ef965650789d1b4e8c13a097d7f5537364e9639b05ea",
+                "baseRef": "u6YRpKr_-g110VuTdXrTy1ZQ2XM4h-hurUxBqaULdRQ",
                 "delta": Object {
                   "hello": Array [
                     "world. this is",
@@ -370,10 +359,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "1ea4161eb3bf07817b7f1ce1781c9c10358c95c3207ca435c4da253ac987dcf9",
+                "ref": "Ns8F28YUQUQKHAERVkKGRehPAvvCQnLKMazr3aCoWjI",
               },
               Object {
-                "baseRef": "1ea4161eb3bf07817b7f1ce1781c9c10358c95c3207ca435c4da253ac987dcf9",
+                "baseRef": "Ns8F28YUQUQKHAERVkKGRehPAvvCQnLKMazr3aCoWjI",
                 "delta": Object {
                   "hello": Array [
                     "world. this is ",
@@ -381,10 +370,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "8205248c6d72d78459a58f5eb876ba1e18dc6a414dec677e9397a22c6a4d2705",
+                "ref": "RIAXoS18MnXlsfclBzhjgQpqU7XcFtjOSkUgNAXzsxw",
               },
               Object {
-                "baseRef": "8205248c6d72d78459a58f5eb876ba1e18dc6a414dec677e9397a22c6a4d2705",
+                "baseRef": "RIAXoS18MnXlsfclBzhjgQpqU7XcFtjOSkUgNAXzsxw",
                 "delta": Object {
                   "hello": Array [
                     "world. this is a",
@@ -392,10 +381,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "1dbe67875bdddeef54dd7f7429770e8d3aaee4adf339a5e6d34960add7c2edff",
+                "ref": "smibOYzKySZP5IUi0C4ve2QtPo9cNceFrMMkWfShqS8",
               },
               Object {
-                "baseRef": "1dbe67875bdddeef54dd7f7429770e8d3aaee4adf339a5e6d34960add7c2edff",
+                "baseRef": "smibOYzKySZP5IUi0C4ve2QtPo9cNceFrMMkWfShqS8",
                 "delta": Object {
                   "hello": Array [
                     "world. this is a t",
@@ -403,10 +392,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "b80063db3dd368ebc28f38fe7fe4aa752245d60533c10f4a2c6cd925a725bbf7",
+                "ref": "r4Gt8j4s5fKbEwdgb-vjvme3QtL2hAvU9ZzzhCznb60",
               },
               Object {
-                "baseRef": "b80063db3dd368ebc28f38fe7fe4aa752245d60533c10f4a2c6cd925a725bbf7",
+                "baseRef": "r4Gt8j4s5fKbEwdgb-vjvme3QtL2hAvU9ZzzhCznb60",
                 "delta": Object {
                   "hello": Array [
                     "world. this is a te",
@@ -414,10 +403,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "bf6c1b3116b32b294888c69a907739d94743199d070074005da09643fdbf0c0c",
+                "ref": "3jM0UuucdEXbLT9Nkm0k2_2E9vi11QkaWDWhbcVm_eg",
               },
               Object {
-                "baseRef": "bf6c1b3116b32b294888c69a907739d94743199d070074005da09643fdbf0c0c",
+                "baseRef": "3jM0UuucdEXbLT9Nkm0k2_2E9vi11QkaWDWhbcVm_eg",
                 "delta": Object {
                   "hello": Array [
                     "@@ -13,8 +13,9 @@
@@ -429,10 +418,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "54b96d1a4ed4afb011d8e5bea7418e7dfc08848a10563e2b685e92cdb3ed5168",
+                "ref": "BYv1aNJTeM4KWxLxbUq7K8Ezo8Avl7BIRxdPA3_YMa0",
               },
               Object {
-                "baseRef": "54b96d1a4ed4afb011d8e5bea7418e7dfc08848a10563e2b685e92cdb3ed5168",
+                "baseRef": "BYv1aNJTeM4KWxLxbUq7K8Ezo8Avl7BIRxdPA3_YMa0",
                 "delta": Object {
                   "hello": Array [
                     "@@ -14,8 +14,9 @@
@@ -444,10 +433,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "735db63f87967f72d18fb99561e0f2fa05eefc6bf5ad41fb388539e6e34fd915",
+                "ref": "mUCEo0ahS-cyutoEMBy6Z1goBB19H9nVhIlcRIR1gXA",
               },
               Object {
-                "baseRef": "735db63f87967f72d18fb99561e0f2fa05eefc6bf5ad41fb388539e6e34fd915",
+                "baseRef": "mUCEo0ahS-cyutoEMBy6Z1goBB19H9nVhIlcRIR1gXA",
                 "delta": Object {
                   "hello": Array [
                     "@@ -15,8 +15,9 @@
@@ -459,10 +448,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "04e211d4ea3a2cdbea30e1a5c26b92661da16ac970cb9d8acc08b431f066d156",
+                "ref": "8xvrbABLv3aQCZ-mXSmz9aw99ycGnWfMDCBwuHe-hDY",
               },
               Object {
-                "baseRef": "04e211d4ea3a2cdbea30e1a5c26b92661da16ac970cb9d8acc08b431f066d156",
+                "baseRef": "8xvrbABLv3aQCZ-mXSmz9aw99ycGnWfMDCBwuHe-hDY",
                 "delta": Object {
                   "hello": Array [
                     "@@ -16,8 +16,9 @@
@@ -474,10 +463,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "1d421b9df0a1aa23e183a05cb452265c34721cb3a1deba5294a1112b8fe7c4bc",
+                "ref": "04an6zk86mFNbRBpcmzPncHkmhLYa4MElu2W7gpW-ug",
               },
               Object {
-                "baseRef": "1d421b9df0a1aa23e183a05cb452265c34721cb3a1deba5294a1112b8fe7c4bc",
+                "baseRef": "04an6zk86mFNbRBpcmzPncHkmhLYa4MElu2W7gpW-ug",
                 "delta": Object {
                   "hello": Array [
                     "@@ -17,8 +17,9 @@
@@ -489,10 +478,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "5435e17d462b5c677d117d680a65d2ec6c5cb9852cc879f334928409bbb9dac0",
+                "ref": "k3VTrJ_UAM_cDSFTR6BF7CG0L83GT3HnKCr380fo6Ec",
               },
               Object {
-                "baseRef": "5435e17d462b5c677d117d680a65d2ec6c5cb9852cc879f334928409bbb9dac0",
+                "baseRef": "k3VTrJ_UAM_cDSFTR6BF7CG0L83GT3HnKCr380fo6Ec",
                 "delta": Object {
                   "hello": Array [
                     "@@ -18,8 +18,9 @@
@@ -504,10 +493,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "62cba0e6a4547e5237c1255ea7642c5a2d765ff8a3f5b06ba8ba95987872a422",
+                "ref": "MQdenrPuumHKRCEXD6MgrvuOcJ96651XW1QXfIEP7IQ",
               },
               Object {
-                "baseRef": "62cba0e6a4547e5237c1255ea7642c5a2d765ff8a3f5b06ba8ba95987872a422",
+                "baseRef": "MQdenrPuumHKRCEXD6MgrvuOcJ96651XW1QXfIEP7IQ",
                 "delta": Object {
                   "hello": Array [
                     "@@ -19,8 +19,9 @@
@@ -519,10 +508,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "24998189be416fda56a59288c09854e562133c0647d511540488371add5bfb42",
+                "ref": "fhYumn1_x_DNmK1dw-_CHm4b31EIw8_Q_W_46RmEnLk",
               },
               Object {
-                "baseRef": "24998189be416fda56a59288c09854e562133c0647d511540488371add5bfb42",
+                "baseRef": "fhYumn1_x_DNmK1dw-_CHm4b31EIw8_Q_W_46RmEnLk",
                 "delta": Object {
                   "hello": Array [
                     "@@ -20,8 +20,9 @@
@@ -534,10 +523,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "5c149f58a1d86a675c28c3ad09ca693ec9dda8c80a9ce2d464ab18ad880565e2",
+                "ref": "vFe1kJf4tsYult6AebUBA4_SBwbBZm5EMj2Xa7TWJ7c",
               },
               Object {
-                "baseRef": "5c149f58a1d86a675c28c3ad09ca693ec9dda8c80a9ce2d464ab18ad880565e2",
+                "baseRef": "vFe1kJf4tsYult6AebUBA4_SBwbBZm5EMj2Xa7TWJ7c",
                 "delta": Object {
                   "hello": Array [
                     "@@ -21,8 +21,9 @@
@@ -549,10 +538,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "f8e18cdb72cbcf13a04babb3ec22ae1fde09430e6cc80fc96e9973605da19051",
+                "ref": "IDyckGvnUKARtG6E4AOid7VDdqRh2x1SS_xmVU9UZfM",
               },
               Object {
-                "baseRef": "f8e18cdb72cbcf13a04babb3ec22ae1fde09430e6cc80fc96e9973605da19051",
+                "baseRef": "IDyckGvnUKARtG6E4AOid7VDdqRh2x1SS_xmVU9UZfM",
                 "delta": Object {
                   "hello": Array [
                     "@@ -22,8 +22,9 @@
@@ -564,10 +553,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "d8d4222e2032c3e1724b3ffdf0194c070fb197c70c207c38dc6d391fa8058688",
+                "ref": "7qMRlGA8rvBBFGSU3KKxvtEQ9aJCjYWRCZYfSYOaDuE",
               },
               Object {
-                "baseRef": "d8d4222e2032c3e1724b3ffdf0194c070fb197c70c207c38dc6d391fa8058688",
+                "baseRef": "7qMRlGA8rvBBFGSU3KKxvtEQ9aJCjYWRCZYfSYOaDuE",
                 "delta": Object {
                   "hello": Array [
                     "@@ -23,8 +23,9 @@
@@ -579,10 +568,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "1370d281fc1aa6d8545a6373ced098ded3e584b3277ec2d2248ec592b5073c60",
+                "ref": "K2Zi-zy9qB8GXNWlnRzCV1QqcbRIi20OaXA0HmZnU8I",
               },
               Object {
-                "baseRef": "1370d281fc1aa6d8545a6373ced098ded3e584b3277ec2d2248ec592b5073c60",
+                "baseRef": "K2Zi-zy9qB8GXNWlnRzCV1QqcbRIi20OaXA0HmZnU8I",
                 "delta": Object {
                   "hello": Array [
                     "@@ -24,8 +24,9 @@
@@ -594,10 +583,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "588a2b5215dc84609ca477043f6f783aa2a29d37bead81ab411ecc82e3974e37",
+                "ref": "tdhK9Ud9T4mTIln3X1p1O_y9Cllv_-uqd82aUqMRNT4",
               },
               Object {
-                "baseRef": "588a2b5215dc84609ca477043f6f783aa2a29d37bead81ab411ecc82e3974e37",
+                "baseRef": "tdhK9Ud9T4mTIln3X1p1O_y9Cllv_-uqd82aUqMRNT4",
                 "delta": Object {
                   "hello": Array [
                     "@@ -25,8 +25,9 @@
@@ -609,10 +598,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "7c8a1cb9c2c4dd0f00ca59530509629a3b3c8fca5eb0b8584cf751ada3886052",
+                "ref": "uMNXZBwlkRdyx1P9RTaXUsR51lI8BoZaR0xdCwQc_44",
               },
               Object {
-                "baseRef": "7c8a1cb9c2c4dd0f00ca59530509629a3b3c8fca5eb0b8584cf751ada3886052",
+                "baseRef": "uMNXZBwlkRdyx1P9RTaXUsR51lI8BoZaR0xdCwQc_44",
                 "delta": Object {
                   "hello": Array [
                     "@@ -26,8 +26,9 @@
@@ -624,10 +613,10 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "46598f6ca6aaf5e373fd7cdec879ece6e58c6727853db0c5c1df121bca33c717",
+                "ref": "zXMIEZNPxkjAuwYAb6sFspB2ly4mjCJuKMRRfSSq2kw",
               },
               Object {
-                "baseRef": "46598f6ca6aaf5e373fd7cdec879ece6e58c6727853db0c5c1df121bca33c717",
+                "baseRef": "zXMIEZNPxkjAuwYAb6sFspB2ly4mjCJuKMRRfSSq2kw",
                 "delta": Object {
                   "hello": Array [
                     "@@ -27,8 +27,9 @@
@@ -639,7 +628,7 @@ describe('TrimergeClient', () => {
                   ],
                 },
                 "editMetadata": "typing",
-                "ref": "be692f4e02111722e67e8c82bc1dd0602627537d8412559970312a9adbe7f1f9",
+                "ref": "fiD1YJW-lrf11sDYv_PLb55X2_B_b_8p29NRVbEziJ4",
               },
             ],
             "syncCounter": 1,
