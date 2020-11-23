@@ -52,6 +52,7 @@ export function FocusInput<State extends StateWithUsers, EditMetadata>({
         onSelect={updateFocus}
         onInput={updateFocus}
         onFocus={updateFocus}
+        onBlur={updateFocus}
         disabled={rest.disabled || !updateState}
       />
     </span>
