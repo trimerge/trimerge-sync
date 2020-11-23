@@ -21,6 +21,7 @@
     "trimerge": "1.3.0-alpha.14",
     "trimerge-sync": "0.1.1",
     "trimerge-sync-indexed-db": "0.1.0",
+    "trimerge-sync-hash": "0.1.0",
     "trimerge-sync-user-state": "0.1.0",
     "typescript": "4.0.5"
   },

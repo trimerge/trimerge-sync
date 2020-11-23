@@ -17,7 +17,9 @@ export type PatchFn<State, Delta> = (
   delta: Delta | undefined,
 ) => State;
 
-export type NormalizeFn<State> = (state: any) => State;
+export type NormalizeFn<State, EditMetadata> = (
+  state: any,
+) => [State, EditMetadata];
 
 export type MergeStateFn<State, EditMetadata> = (
   base: ValueState<State, EditMetadata> | undefined,
@@ -27,7 +29,7 @@ export type MergeStateFn<State, EditMetadata> = (
 
 export interface Differ<State, EditMetadata, Delta> {
   /** Converts deserialized (or undefined) state into State type */
-  readonly normalize: NormalizeFn<State>;
+  readonly normalize: NormalizeFn<State, EditMetadata>;
 
   /** Calculate the ref string for a given edit */
   readonly computeRef: ComputeRefFn<Delta, EditMetadata>;

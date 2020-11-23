@@ -50,19 +50,22 @@ export class TrimergeClient<State, EditMetadata, Delta> {
       this.addNode(node);
     }
     this.onNodes({ syncCounter, newNodes: nodes });
-    this.current = {
-      value: differ.normalize(this.current?.value),
-      ref: this.current?.ref,
-    };
     this.lastSyncCounter = syncCounter;
+    this.normalize();
   }
 
-  get state(): State {
-    if (!this.current) {
-      throw new Error('unexpected state');
+  private normalize() {
+    const currentValue = this.current?.value;
+    const [normalized, editMetadata] = this.differ.normalize(currentValue);
+    if (this.current === undefined || normalized !== currentValue) {
+      this.addEdit(normalized, editMetadata, false);
     }
-    return this.current.value;
   }
+
+  get state(): State | undefined {
+    return this.current?.value;
+  }
+
   subscribe(onStateChange: (state: State | undefined) => void) {
     this.stateSubscribers.add(onStateChange);
     onStateChange(this.state);
@@ -71,14 +74,16 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     };
   }
 
-  addEdit(value: State, editMetadata: EditMetadata) {
+  addEdit(value: State, editMetadata: EditMetadata, sync: boolean = true) {
     const delta = this.differ.diff(this.current?.value, value);
     if (delta === undefined) {
       return;
     }
     this.addNewNode(value, editMetadata, delta, this.current?.ref);
     this.mergeHeads();
-    this.sync();
+    if (sync) {
+      this.sync();
+    }
   }
 
   getNode = (ref: string) => {
@@ -100,12 +105,13 @@ export class TrimergeClient<State, EditMetadata, Delta> {
         const base = baseRef !== undefined ? this.getNode(baseRef) : undefined;
         const left = this.getNode(leftRef);
         const right = this.getNode(rightRef);
+        // TODO: we likely need to normalize left/right
         const { value, editMetadata } = this.differ.merge(base, left, right);
         const delta = this.differ.diff(left.value, value);
         return this.addNewNode(value, editMetadata, delta, leftRef, rightRef);
       },
     );
-    // TODO: do we clear out nodes we don't need anymore?
+    // TODO: can we clear out nodes we don't need anymore?
   }
 
   private onNodes: SyncSubscriber<State, EditMetadata, Delta> = (data) => {
@@ -177,6 +183,7 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     baseRef?: string,
     mergeRef?: string,
   ): string {
+    // TODO: should edit metadata be part of the computed ref? this prevents different user merges from coalescing
     const ref = this.differ.computeRef(baseRef, mergeRef, delta, editMetadata);
     if (this.addNode({ ref, baseRef, mergeRef, value, editMetadata })) {
       const syncNode: DiffNode<State, EditMetadata, Delta> = {
