@@ -165,6 +165,9 @@ describe('TrimergeClient', () => {
     // Should be the same
     expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+
+    client1.shutdown();
+    client2.shutdown();
   });
 
   it('sync up when second client comes in later', async () => {
@@ -182,6 +185,36 @@ describe('TrimergeClient', () => {
     // client 2 starts out synced
     expect(client1.state).toEqual({ hello: 'vorld' });
     expect(client2.state).toEqual({ hello: 'vorld' });
+  });
+
+  it('subscription works', async () => {
+    const store = newStore();
+    const client1 = await makeClient(store);
+    const subscribeFn = jest.fn();
+
+    const unsubscribeFn = client1.subscribe(subscribeFn);
+
+    client1.addEdit({}, 'initialize');
+    client1.addEdit({ hello: 'world' }, 'add hello');
+    client1.addEdit({ hello: 'vorld' }, 'change hello');
+
+    await timeout();
+
+    const client2 = await makeClient(store);
+
+    // client 2 starts out synced
+    expect(client1.state).toEqual({ hello: 'vorld' });
+    expect(client2.state).toEqual({ hello: 'vorld' });
+
+    unsubscribeFn();
+
+    expect(subscribeFn.mock.calls).toEqual([
+      [undefined],
+      [{}],
+      [{ hello: 'world' }],
+      [{ hello: 'vorld' }],
+      [{ hello: 'vorld' }],
+    ]);
   });
 
   it('first two clients conflict, then third one joins', async () => {
