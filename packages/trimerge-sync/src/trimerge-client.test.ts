@@ -664,7 +664,7 @@ describe('TrimergeClient', () => {
                 "ref": "fiD1YJW-lrf11sDYv_PLb55X2_B_b_8p29NRVbEziJ4",
               },
             ],
-            "syncCounter": 1,
+            "syncCounter": 29,
           },
         ],
       ]

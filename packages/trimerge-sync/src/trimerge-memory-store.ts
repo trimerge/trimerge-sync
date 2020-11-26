@@ -8,19 +8,9 @@ import {
 } from './trimerge-sync-store';
 import { Differ } from './differ';
 
-function flatten<T>(array: T[][]): T[] {
-  if (array.length === 0) {
-    return [];
-  }
-  if (Array.length === 1) {
-    return array[0];
-  }
-  return ([] as T[]).concat(...array);
-}
-
 export class TrimergeMemoryStore<State, EditMetadata, Delta>
   implements TrimergeSyncStore<State, EditMetadata, Delta> {
-  private syncs: DiffNode<State, EditMetadata, Delta>[][] = [];
+  private syncs: DiffNode<State, EditMetadata, Delta>[] = [];
   private subscribers: SyncSubscriber<State, EditMetadata, Delta>[] = [];
   private nodes = new Map<string, DiffNode<State, EditMetadata, Delta>>();
   private snapshots = new Map<string, State>();
@@ -68,7 +58,7 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
 
     // Send everything new since lastSyncCounter
     if (this.syncs.length > lastSyncCounter) {
-      const newNodes = flatten(this.syncs.slice(lastSyncCounter));
+      const newNodes = this.syncs.slice(lastSyncCounter);
       if (newNodes.length > 0) {
         onSync({ syncCounter: this.syncs.length, newNodes });
       }
@@ -98,8 +88,8 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
         this.addChild(node.baseRef, node.ref);
         this.addChild(node.mergeRef, node.ref);
         this.nodes.set(node.ref, node);
+        this.syncs.push(node);
       }
-      this.syncs.push(newNodes);
       const syncCounter = this.syncs.length;
       for (const subscriber of this.subscribers) {
         subscriber({ syncCounter, newNodes });
