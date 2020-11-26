@@ -26,10 +26,10 @@
     "typescript": "4.0.5"
   },
   "scripts": {
-    "start": "SKIP_PREFLIGHT_CHECK=true react-scripts start",
-    "build": "SKIP_PREFLIGHT_CHECK=true react-scripts build",
-    "test": "SKIP_PREFLIGHT_CHECK=true react-scripts test",
-    "test-ci": "SKIP_PREFLIGHT_CHECK=true react-scripts test --coverage --passWithNoTests",
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "test-ci": "react-scripts test --coverage --passWithNoTests",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
