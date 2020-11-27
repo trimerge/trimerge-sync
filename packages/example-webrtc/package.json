@@ -1,0 +1,57 @@
+{
+  "name": "trimerge-sync-example-webrtc",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.11.4",
+    "@testing-library/react": "^11.2.2",
+    "@testing-library/user-event": "^12.1.8",
+    "@types/jest": "^26.0.14",
+    "@types/node": "^14.14.9",
+    "@types/react": "^17.0.0",
+    "@types/react-dom": "^17.0.0",
+    "broadcast-channel": "3.3.0",
+    "classnames": "2.2.6",
+    "immer": "^8.0.0",
+    "material-color-hash": "^0.1.6",
+    "p2pt": "1.5.0",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
+    "react-scripts": "4.0.0",
+    "textarea-caret": "^3.1.0",
+    "trimerge": "1.3.0-alpha.14",
+    "trimerge-sync": "0.1.1",
+    "trimerge-sync-hash": "0.1.0",
+    "trimerge-sync-indexed-db": "0.1.0",
+    "trimerge-sync-user-state": "0.1.0",
+    "typescript": "4.0.5"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "test-ci": "react-scripts test --coverage --passWithNoTests",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@types/classnames": "2.2.11",
+    "@types/simple-peer": "9.6.1",
+    "@types/textarea-caret": "^3.0.0",
+    "jest": "26.6.0"
+  }
+}

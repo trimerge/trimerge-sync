@@ -7,6 +7,8 @@
       <excludeFolder url="file://$MODULE_DIR$/dist" />
       <excludeFolder url="file://$MODULE_DIR$/packages/example-broadcast-channel/build" />
       <excludeFolder url="file://$MODULE_DIR$/packages/example-broadcast-channel/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/example-webrtc/build" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/example-webrtc/coverage" />
       <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-hash/coverage" />
       <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-hash/dist" />
       <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-indexed-db/coverage" />
