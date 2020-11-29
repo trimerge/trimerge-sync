@@ -80,52 +80,62 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
   async addNodes(
     newNodes: DiffNode<State, EditMetadata, Delta>[],
   ): Promise<number> {
-    const db = await this.db;
-    const tx = db.transaction(['heads', 'nodes'], 'readwrite');
+    try {
+      const db = await this.db;
+      const tx = db.transaction(['heads', 'nodes'], 'readwrite');
 
-    const heads = tx.objectStore('heads');
-    const nodes = tx.objectStore('nodes');
+      const heads = tx.objectStore('heads');
+      const nodes = tx.objectStore('nodes');
 
-    const [currentHeads, cursor] = await Promise.all([
-      heads.getAllKeys(),
-      nodes.index('syncId').openCursor(undefined, 'prev'),
-    ]);
-    let syncId = cursor?.value.syncId ?? 0;
+      const [currentHeads, cursor] = await Promise.all([
+        heads.getAllKeys(),
+        nodes.index('syncId').openCursor(undefined, 'prev'),
+      ]);
+      let syncId = cursor?.value.syncId ?? 0;
 
-    const priorHeads = new Set(currentHeads);
-    const headsToDelete = new Set<string>();
-    const headsToAdd = new Set<string>();
-    const promises: Promise<unknown>[] = [];
-    for (const node of newNodes) {
-      syncId++;
-      promises.push(nodes.add({ syncId, ...node }));
-      const { ref, baseRef, mergeRef } = node;
-      if (baseRef !== undefined) {
-        headsToDelete.add(baseRef);
+      const priorHeads = new Set(currentHeads);
+      const headsToDelete = new Set<string>();
+      const headsToAdd = new Set<string>();
+      const promises: Promise<unknown>[] = [];
+      for (const node of newNodes) {
+        syncId++;
+        const existingNode = await nodes.get(node.ref);
+        if (existingNode !== undefined) {
+          console.warn('skipping existing node ' + node.ref);
+          continue;
+        }
+        promises.push(nodes.add({ syncId, ...node }));
+        const { ref, baseRef, mergeRef } = node;
+        if (baseRef !== undefined) {
+          headsToDelete.add(baseRef);
+        }
+        if (mergeRef !== undefined) {
+          headsToDelete.add(mergeRef);
+        }
+        headsToAdd.add(ref);
       }
-      if (mergeRef !== undefined) {
-        headsToDelete.add(mergeRef);
+      for (const ref of headsToDelete) {
+        headsToAdd.delete(ref);
+        if (priorHeads.has(ref)) {
+          promises.push(heads.delete(ref));
+        }
       }
-      headsToAdd.add(ref);
-    }
-    for (const ref of headsToDelete) {
-      headsToAdd.delete(ref);
-      if (priorHeads.has(ref)) {
-        promises.push(heads.delete(ref));
+      for (const ref of headsToAdd) {
+        promises.push(heads.add({ ref }));
       }
-    }
-    for (const ref of headsToAdd) {
-      promises.push(heads.add({ ref }));
-    }
-    await Promise.all(promises);
-    await tx.done;
+      await Promise.all(promises);
+      await tx.done;
 
-    if (this.channel) {
-      this.channel.postMessage({ newNodes, syncCounter: syncId });
-    } else {
-      window.localStorage.setItem(this.dbName, String(syncId));
+      if (this.channel) {
+        this.channel.postMessage({ newNodes, syncCounter: syncId });
+      } else {
+        window.localStorage.setItem(this.dbName, String(syncId));
+      }
+      return syncId;
+    } catch (error) {
+      console.error(`Error adding nodes:`, newNodes, error);
+      throw error;
     }
-    return syncId;
   }
 
   async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {

@@ -1,17 +1,22 @@
 import {
   DiffNode,
   Snapshot,
+  SyncData,
   SyncSubscriber,
   TrimergeSyncStore,
   UnsubscribeFn,
   ValueNode,
 } from './trimerge-sync-store';
 import { Differ } from './differ';
+import { waitMs } from './wait-promise';
 
-export class TrimergeMemoryStore<State, EditMetadata, Delta>
+export class TrimergeMockStore<State, EditMetadata, Delta>
   implements TrimergeSyncStore<State, EditMetadata, Delta> {
   private syncs: DiffNode<State, EditMetadata, Delta>[] = [];
-  private subscribers: SyncSubscriber<State, EditMetadata, Delta>[] = [];
+  private subscribers = new Map<
+    SyncSubscriber<State, EditMetadata, Delta>,
+    number
+  >();
   private nodes = new Map<string, DiffNode<State, EditMetadata, Delta>>();
   private snapshots = new Map<string, State>();
   private primary: string | undefined;
@@ -54,15 +59,7 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
     lastSyncCounter: number,
     onSync: SyncSubscriber<State, EditMetadata, Delta>,
   ): UnsubscribeFn {
-    this.subscribers.push(onSync);
-
-    // Send everything new since lastSyncCounter
-    if (this.syncs.length > lastSyncCounter) {
-      const newNodes = this.syncs.slice(lastSyncCounter);
-      if (newNodes.length > 0) {
-        onSync({ syncCounter: this.syncs.length, newNodes });
-      }
-    }
+    this.sendToSubscriber(onSync, lastSyncCounter);
 
     let unsubscribed = false;
     return () => {
@@ -70,11 +67,29 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
         return;
       }
       unsubscribed = true;
-      const index = this.subscribers.indexOf(onSync);
-      if (index >= 0) {
-        this.subscribers.splice(index, 1);
-      }
+      this.subscribers.delete(onSync);
     };
+  }
+
+  private sendToSubscriber(
+    onSync: SyncSubscriber<State, EditMetadata, Delta>,
+    lastSyncCounter: number,
+  ) {
+    // Send everything new since lastSyncCounter
+    const syncCounter = this.syncs.length;
+    if (syncCounter > lastSyncCounter) {
+      const newNodes = this.syncs.slice(lastSyncCounter);
+      if (newNodes.length > 0) {
+        onSync({ syncCounter, newNodes });
+      }
+    }
+    this.subscribers.set(onSync, syncCounter);
+  }
+
+  public sendToSubscribers() {
+    for (const [subscriber, lastSyncCounter] of this.subscribers.entries()) {
+      this.sendToSubscriber(subscriber, lastSyncCounter);
+    }
   }
 
   public async addNodes(
@@ -83,16 +98,12 @@ export class TrimergeMemoryStore<State, EditMetadata, Delta>
     if (newNodes.length > 0) {
       for (const node of newNodes) {
         if (this.nodes.has(node.ref)) {
-          throw new Error(`attempting to add ref "${node.ref}" twice`);
+          continue;
         }
         this.addChild(node.baseRef, node.ref);
         this.addChild(node.mergeRef, node.ref);
         this.nodes.set(node.ref, node);
         this.syncs.push(node);
-      }
-      const syncCounter = this.syncs.length;
-      for (const subscriber of this.subscribers) {
-        subscriber({ syncCounter, newNodes });
       }
     }
     return this.syncs.length;

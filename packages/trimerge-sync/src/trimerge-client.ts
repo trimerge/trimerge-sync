@@ -8,15 +8,12 @@ import {
 } from './trimerge-sync-store';
 import { mergeHeadNodes } from './merge-nodes';
 import { Differ } from './differ';
+import { waitMs } from './wait-promise';
 
 export type ValueState<State, EditMetadata> = {
   value: State;
   editMetadata: EditMetadata;
 };
-
-function waitMs(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 export class TrimergeClient<State, EditMetadata, Delta> {
   private current?: { value: State; ref?: string };
@@ -74,7 +71,11 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     };
   }
 
-  addEdit(value: State, editMetadata: EditMetadata, sync: boolean = true) {
+  addEdit(
+    value: State,
+    editMetadata: EditMetadata,
+    sync: boolean = true,
+  ): Promise<void> | undefined {
     const delta = this.differ.diff(this.current?.value, value);
     if (delta === undefined) {
       return;
@@ -82,8 +83,9 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     this.addNewNode(value, editMetadata, delta, this.current?.ref);
     this.mergeHeads();
     if (sync) {
-      this.sync();
+      return this.sync();
     }
+    return undefined;
   }
 
   getNode = (ref: string) => {
@@ -94,7 +96,7 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     throw new Error(`unknown node ref "${ref}"`);
   };
 
-  private mergeHeads() {
+  private mergeHeads(): void {
     if (this.headRefs.size <= 1) {
       return;
     }
@@ -131,9 +133,9 @@ export class TrimergeClient<State, EditMetadata, Delta> {
     this.sync();
   };
 
-  private syncPromise: Promise<boolean> | undefined;
+  private syncPromise: Promise<void> | undefined;
 
-  sync(): Promise<boolean> | undefined {
+  sync(): Promise<void> | undefined {
     for (const subscriber of this.stateSubscribers) {
       subscriber(this.state);
     }
@@ -153,7 +155,6 @@ export class TrimergeClient<State, EditMetadata, Delta> {
       }
     }
     this.syncPromise = undefined;
-    return true;
   }
 
   private addNode(node: ValueNode<State, EditMetadata>): boolean {
