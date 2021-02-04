@@ -7,7 +7,7 @@ import {
 import { TrimergeMemoryStore } from './trimerge-memory-store';
 import { computeRef } from 'trimerge-sync-hash';
 import { create, Delta } from 'jsondiffpatch';
-import { TrimergeClient } from './trimerge-client';
+import { TrimergeClient } from './TrimergeClient';
 import { produce } from 'immer';
 import { Differ, MergeStateFn } from './differ';
 

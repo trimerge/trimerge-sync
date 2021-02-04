@@ -1,5 +1,3 @@
-import { ValueState } from './trimerge-client';
-
 export type ComputeRefFn<Delta, EditMetadata> = (
   baseRef: string | undefined,
   mergeRef: string | undefined,
@@ -21,11 +19,17 @@ export type NormalizeFn<State, EditMetadata> = (
   state: any,
 ) => [State, EditMetadata];
 
+export type NodeState<State, EditMetadata> = {
+  ref: string;
+  value: State;
+  editMetadata: EditMetadata;
+};
+
 export type MergeStateFn<State, EditMetadata> = (
-  base: ValueState<State, EditMetadata> | undefined,
-  left: ValueState<State, EditMetadata>,
-  right: ValueState<State, EditMetadata>,
-) => ValueState<State, EditMetadata>;
+  base: NodeState<State, EditMetadata> | undefined,
+  left: NodeState<State, EditMetadata>,
+  right: NodeState<State, EditMetadata>,
+) => NodeState<State, EditMetadata>;
 
 export interface Differ<State, EditMetadata, Delta> {
   /** Converts deserialized (or undefined) state into State type */
