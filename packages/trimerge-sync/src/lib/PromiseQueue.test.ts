@@ -15,7 +15,7 @@ describe('PromiseQueue', () => {
     const p2 = pq.add(() => exec(2));
     const p3 = pq.add(() => exec(3));
     const p4 = pq.add(() => exec(4));
-    expect(actions).toEqual(['start 1']);
+    expect(actions).toEqual([]);
     await expect(p1).resolves.toEqual(1);
     expect(actions).toEqual(['start 1', 'end 1', 'start 2', 'end 2']);
     await expect(p2).resolves.toEqual(2);
