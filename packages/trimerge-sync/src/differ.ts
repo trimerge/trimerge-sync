@@ -20,7 +20,6 @@ export type NormalizeFn<State, EditMetadata> = (
 ) => [State, EditMetadata];
 
 export type NodeState<State, EditMetadata> = {
-  ref: string;
   value: State;
   editMetadata: EditMetadata;
 };

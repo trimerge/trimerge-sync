@@ -13,7 +13,7 @@ function getFullId(userId: string, cursorId: string) {
 function getSyncCounter(syncId: string): number {
   return parseInt(syncId, 36);
 }
-export class TrimergeMemoryBackend<EditMetadata, Delta, CursorData> {
+export class TestMemoryStore<EditMetadata, Delta, CursorData> {
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
   private cursors = new Map<
     string,
@@ -23,6 +23,10 @@ export class TrimergeMemoryBackend<EditMetadata, Delta, CursorData> {
     }
   >();
   private queue = new PromiseQueue();
+
+  public getNodes(): readonly DiffNode<EditMetadata, Delta>[] {
+    return this.nodes;
+  }
 
   private get syncId(): string {
     return this.nodes.length.toString(36);

@@ -11,14 +11,24 @@ function waitMs(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export type NodeStateRef<State, EditMetadata> = NodeState<
+  State,
+  EditMetadata
+> & {
+  ref: string;
+};
+
 export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
-  private current?: NodeState<State, EditMetadata>;
+  private current?: NodeStateRef<State, EditMetadata>;
   private lastSyncId: string | undefined;
 
-  private stateSubscribers = new Set<(state: State | undefined) => void>();
+  private stateSubscribers = new Map<
+    (state: State | undefined) => void,
+    State | undefined
+  >();
 
   private nodes = new Map<string, DiffNode<EditMetadata, Delta>>();
-  private values = new Map<string, NodeState<State, EditMetadata>>();
+  private values = new Map<string, NodeStateRef<State, EditMetadata>>();
   private headRefs = new Set<string>();
 
   private backend: TrimergeSyncBackend<EditMetadata, Delta, CursorData>;
@@ -85,7 +95,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
   }
 
   subscribe(onStateChange: (state: State | undefined) => void) {
-    this.stateSubscribers.add(onStateChange);
+    this.stateSubscribers.set(onStateChange, this.state);
     onStateChange(this.state);
     return () => {
       this.stateSubscribers.delete(onStateChange);
@@ -100,7 +110,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
     }
   }
 
-  getNodeState(ref: string): NodeState<State, EditMetadata> {
+  getNodeState(ref: string): NodeStateRef<State, EditMetadata> {
     const value = this.values.get(ref);
     if (value !== undefined) {
       return value;
@@ -149,8 +159,12 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
   private syncPromise: Promise<boolean> | undefined;
 
   sync(): Promise<boolean> | undefined {
-    for (const subscriber of this.stateSubscribers) {
-      subscriber(this.state);
+    const state = this.state;
+    for (const [subscriber, lastState] of this.stateSubscribers.entries()) {
+      if (lastState !== state) {
+        subscriber(state);
+        this.stateSubscribers.set(subscriber, state);
+      }
     }
     if (!this.syncPromise && this.unsyncedNodes.length > 0) {
       this.syncPromise = this.doSync();
@@ -190,7 +204,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
   private addNewNode(
     value: State,
     editMetadata: EditMetadata,
-    base: NodeState<State, EditMetadata> | undefined = this.current,
+    base: NodeStateRef<State, EditMetadata> | undefined = this.current,
     mergeRef?: string,
   ): string {
     const { userId, cursorId } = this;

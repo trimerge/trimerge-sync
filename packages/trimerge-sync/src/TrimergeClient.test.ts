@@ -4,12 +4,12 @@ import {
   trimergeObject,
   trimergeString,
 } from 'trimerge';
-import { TrimergeMemoryStore } from './trimerge-memory-store';
 import { computeRef } from 'trimerge-sync-hash';
 import { create, Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { produce } from 'immer';
 import { Differ, MergeStateFn } from './differ';
+import { TestMemoryStore } from './TestMemoryStore';
 
 // Basic trimerge function that merges values, strings, and objects
 const trimergeObjects = combineMergers(
@@ -18,7 +18,15 @@ const trimergeObjects = combineMergers(
   trimergeObject,
 );
 
-const merge: MergeStateFn<any, string> = (base, left, right) => ({
+type TestEditMetadata = string;
+type TestState = any;
+type TestCursorData = any;
+
+const merge: MergeStateFn<TestState, TestEditMetadata> = (
+  base,
+  left,
+  right,
+) => ({
   value: trimergeObjects(base?.value, left.value, right.value),
   editMetadata: `merge`,
 });
@@ -32,7 +40,7 @@ function patch<T>(base: T, delta: Delta | undefined): T {
   return produce(base, (draft) => jdp.patch(draft, delta));
 }
 
-const differ: Differ<any, string, any> = {
+const differ: Differ<TestState, TestEditMetadata, TestCursorData> = {
   normalize: (state) => [state, 'normalize'],
   diff: (left, right) => jdp.diff(left, right),
   patch,
@@ -41,13 +49,14 @@ const differ: Differ<any, string, any> = {
 };
 
 function newStore() {
-  return new TrimergeMemoryStore<any, string, any>(differ);
+  return new TestMemoryStore<TestEditMetadata, Delta, TestCursorData>();
 }
 
 function makeClient(
-  store: TrimergeMemoryStore<any, string, any>,
-): Promise<TrimergeClient<any, string, any>> {
-  return TrimergeClient.create(store, differ, 0);
+  cursorId: string,
+  store: TestMemoryStore<TestEditMetadata, Delta, TestCursorData>,
+): TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorData> {
+  return new TrimergeClient('test', cursorId, store.getSyncBackend, differ, 0);
 }
 
 function timeout() {
@@ -56,7 +65,7 @@ function timeout() {
 describe('TrimergeClient', () => {
   it('tracks edits', async () => {
     const store = newStore();
-    const client = await makeClient(store);
+    const client = makeClient('a', store);
 
     client.addEdit({}, 'initialize');
     client.addEdit({ hello: 'world' }, 'add hello');
@@ -67,8 +76,8 @@ describe('TrimergeClient', () => {
 
   it('edit syncs across two clients', async () => {
     const store = newStore();
-    const client1 = await makeClient(store);
-    const client2 = await makeClient(store);
+    const client1 = makeClient('a', store);
+    const client2 = makeClient('b', store);
 
     // No values
     expect(client1.state).toBe(undefined);
@@ -89,8 +98,8 @@ describe('TrimergeClient', () => {
 
   it('two edits sync across two clients', async () => {
     const store = newStore();
-    const client1 = await makeClient(store);
-    const client2 = await makeClient(store);
+    const client1 = makeClient('a', store);
+    const client2 = makeClient('b', store);
 
     client1.addEdit({}, 'initialize');
     client1.addEdit({ edit: true }, 'edit');
@@ -106,8 +115,8 @@ describe('TrimergeClient', () => {
 
   it('edit syncs back and forth with two clients', async () => {
     const store = newStore();
-    const client1 = await makeClient(store);
-    const client2 = await makeClient(store);
+    const client1 = makeClient('a', store);
+    const client2 = makeClient('b', store);
 
     client1.addEdit({}, 'initialize');
     client1.addEdit({ hello: 'world' }, 'add hello');
@@ -133,8 +142,8 @@ describe('TrimergeClient', () => {
 
   it('automatic merging if two clients edit simultaneously', async () => {
     const store = newStore();
-    const client1 = await makeClient(store);
-    const client2 = await makeClient(store);
+    const client1 = makeClient('a', store);
+    const client2 = makeClient('b', store);
 
     client1.addEdit({}, 'initialize');
 
@@ -172,7 +181,7 @@ describe('TrimergeClient', () => {
 
   it('sync up when second client comes in later', async () => {
     const store = newStore();
-    const client1 = await makeClient(store);
+    const client1 = makeClient('a', store);
 
     client1.addEdit({}, 'initialize');
     client1.addEdit({ hello: 'world' }, 'add hello');
@@ -180,16 +189,17 @@ describe('TrimergeClient', () => {
 
     await timeout();
 
-    const client2 = await makeClient(store);
+    const client2 = makeClient('b', store);
 
-    // client 2 starts out synced
     expect(client1.state).toEqual({ hello: 'vorld' });
+    expect(client2.state).toEqual(undefined);
+    await timeout();
     expect(client2.state).toEqual({ hello: 'vorld' });
   });
 
   it('subscription works', async () => {
     const store = newStore();
-    const client1 = await makeClient(store);
+    const client1 = makeClient('a', store);
     const subscribeFn = jest.fn();
 
     const unsubscribeFn = client1.subscribe(subscribeFn);
@@ -200,11 +210,16 @@ describe('TrimergeClient', () => {
 
     await timeout();
 
-    const client2 = await makeClient(store);
+    const client2 = makeClient('b', store);
 
-    // client 2 starts out synced
     expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld' });
+    expect(client2.state).toEqual(undefined);
+
+    await timeout();
+
+    client1.addEdit({ hello: 'there' }, 'change hello again');
+
+    await timeout();
 
     unsubscribeFn();
 
@@ -213,14 +228,14 @@ describe('TrimergeClient', () => {
       [{}],
       [{ hello: 'world' }],
       [{ hello: 'vorld' }],
-      [{ hello: 'vorld' }],
+      [{ hello: 'there' }],
     ]);
   });
 
   it('first two clients conflict, then third one joins', async () => {
     const store = newStore();
-    const client1 = await makeClient(store);
-    const client2 = await makeClient(store);
+    const client1 = makeClient('a', store);
+    const client2 = makeClient('b', store);
 
     client1.addEdit({}, 'initialize');
 
@@ -234,8 +249,8 @@ describe('TrimergeClient', () => {
     expect(client1.state).toEqual({ hello: 'vorld' });
     expect(client2.state).toEqual({ world: 'vorld' });
 
-    const client3 = await makeClient(store);
-    expect(client3.state).toEqual({});
+    const client3 = makeClient('c', store);
+    expect(client3.state).toEqual(undefined);
 
     await timeout();
 
@@ -247,10 +262,7 @@ describe('TrimergeClient', () => {
 
   it('works with lots of character typing', async () => {
     const store = newStore();
-    const client1 = await makeClient(store);
-
-    const subscribeFn = jest.fn();
-    store.subscribe(0, subscribeFn);
+    const client1 = makeClient('a', store);
 
     client1.addEdit({}, 'initialize');
     client1.addEdit({ hello: 'world' }, 'add hello');
@@ -284,389 +296,479 @@ describe('TrimergeClient', () => {
 
     await timeout();
 
-    expect(subscribeFn.mock.calls).toMatchInlineSnapshot(`
+    expect(store.getNodes()).toMatchInlineSnapshot(`
       Array [
-        Array [
-          Object {
-            "newNodes": Array [
-              Object {
-                "delta": Array [
-                  Object {},
-                ],
-                "editMetadata": "initialize",
-                "ref": "DuQe--VhMHplD-cR1A_HmT8hvNS6DcwcGr3kOXR0b7o",
-              },
-              Object {
-                "baseRef": "DuQe--VhMHplD-cR1A_HmT8hvNS6DcwcGr3kOXR0b7o",
-                "delta": Object {
-                  "hello": Array [
-                    "world",
-                  ],
-                },
-                "editMetadata": "add hello",
-                "ref": "HEzioYxFkpuDepy8S78JI-4TcDVQv6VVb6O6k7xw5aY",
-              },
-              Object {
-                "baseRef": "HEzioYxFkpuDepy8S78JI-4TcDVQv6VVb6O6k7xw5aY",
-                "delta": Object {
-                  "hello": Array [
-                    "world",
-                    "world. t",
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "cN0gzU5zDnyC3KhRdxDn-TNlOtzkPiQkPdq_3eu6Z0U",
-              },
-              Object {
-                "baseRef": "cN0gzU5zDnyC3KhRdxDn-TNlOtzkPiQkPdq_3eu6Z0U",
-                "delta": Object {
-                  "hello": Array [
-                    "world. t",
-                    "world. th",
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "_GLt24TNA2NVBL68AWX0mznNIfE6GVPOGEwY-PAGGyM",
-              },
-              Object {
-                "baseRef": "_GLt24TNA2NVBL68AWX0mznNIfE6GVPOGEwY-PAGGyM",
-                "delta": Object {
-                  "hello": Array [
-                    "world. th",
-                    "world. thi",
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "hwPBh_C7c8c7BlbSpdnPTt8UJy8TIgigqsoV6DlT3oc",
-              },
-              Object {
-                "baseRef": "hwPBh_C7c8c7BlbSpdnPTt8UJy8TIgigqsoV6DlT3oc",
-                "delta": Object {
-                  "hello": Array [
-                    "world. thi",
-                    "world. this",
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "1wrvJ1pusx4u3p6iwe4CJ4oY61qkyeo27F2tKuyXqXc",
-              },
-              Object {
-                "baseRef": "1wrvJ1pusx4u3p6iwe4CJ4oY61qkyeo27F2tKuyXqXc",
-                "delta": Object {
-                  "hello": Array [
-                    "world. this",
-                    "world. this ",
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "xXPKMsKTy65RhbF811UkUyJyV17bdezJC5NAkzFqRPA",
-              },
-              Object {
-                "baseRef": "xXPKMsKTy65RhbF811UkUyJyV17bdezJC5NAkzFqRPA",
-                "delta": Object {
-                  "hello": Array [
-                    "world. this ",
-                    "world. this i",
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "xj1FJ11hMP95O2YBQlIS3qgmG4X11e2VgI_Z0ItgqLM",
-              },
-              Object {
-                "baseRef": "xj1FJ11hMP95O2YBQlIS3qgmG4X11e2VgI_Z0ItgqLM",
-                "delta": Object {
-                  "hello": Array [
-                    "world. this i",
-                    "world. this is",
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "u6YRpKr_-g110VuTdXrTy1ZQ2XM4h-hurUxBqaULdRQ",
-              },
-              Object {
-                "baseRef": "u6YRpKr_-g110VuTdXrTy1ZQ2XM4h-hurUxBqaULdRQ",
-                "delta": Object {
-                  "hello": Array [
-                    "world. this is",
-                    "world. this is ",
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "Ns8F28YUQUQKHAERVkKGRehPAvvCQnLKMazr3aCoWjI",
-              },
-              Object {
-                "baseRef": "Ns8F28YUQUQKHAERVkKGRehPAvvCQnLKMazr3aCoWjI",
-                "delta": Object {
-                  "hello": Array [
-                    "world. this is ",
-                    "world. this is a",
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "RIAXoS18MnXlsfclBzhjgQpqU7XcFtjOSkUgNAXzsxw",
-              },
-              Object {
-                "baseRef": "RIAXoS18MnXlsfclBzhjgQpqU7XcFtjOSkUgNAXzsxw",
-                "delta": Object {
-                  "hello": Array [
-                    "world. this is a",
-                    "world. this is a t",
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "smibOYzKySZP5IUi0C4ve2QtPo9cNceFrMMkWfShqS8",
-              },
-              Object {
-                "baseRef": "smibOYzKySZP5IUi0C4ve2QtPo9cNceFrMMkWfShqS8",
-                "delta": Object {
-                  "hello": Array [
-                    "world. this is a t",
-                    "world. this is a te",
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "r4Gt8j4s5fKbEwdgb-vjvme3QtL2hAvU9ZzzhCznb60",
-              },
-              Object {
-                "baseRef": "r4Gt8j4s5fKbEwdgb-vjvme3QtL2hAvU9ZzzhCznb60",
-                "delta": Object {
-                  "hello": Array [
-                    "world. this is a te",
-                    "world. this is a tes",
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "3jM0UuucdEXbLT9Nkm0k2_2E9vi11QkaWDWhbcVm_eg",
-              },
-              Object {
-                "baseRef": "3jM0UuucdEXbLT9Nkm0k2_2E9vi11QkaWDWhbcVm_eg",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -13,8 +13,9 @@
+        Object {
+          "baseRef": undefined,
+          "cursorId": "a",
+          "delta": undefined,
+          "editMetadata": "normalize",
+          "mergeRef": undefined,
+          "ref": "Zjb6U-4O69eXsiXh5qC7jFDxGbbx7SIcEan3_6MC3jE",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "Zjb6U-4O69eXsiXh5qC7jFDxGbbx7SIcEan3_6MC3jE",
+          "cursorId": "a",
+          "delta": Array [
+            Object {},
+          ],
+          "editMetadata": "initialize",
+          "mergeRef": undefined,
+          "ref": "sR6UhpAVdDk6k_bp_V2_NI09-2EF8JEnaEn2I3cbrh4",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "sR6UhpAVdDk6k_bp_V2_NI09-2EF8JEnaEn2I3cbrh4",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world",
+            ],
+          },
+          "editMetadata": "add hello",
+          "mergeRef": undefined,
+          "ref": "QIGDUlAgE1OU7uVHEhN-H4xu9b3bsntdFjoZjYoawUw",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "QIGDUlAgE1OU7uVHEhN-H4xu9b3bsntdFjoZjYoawUw",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world",
+              "world. t",
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "6G4bOfXy5A3sqFsbhpfoEpxltl2RpoejzhBvQIfGDDU",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "6G4bOfXy5A3sqFsbhpfoEpxltl2RpoejzhBvQIfGDDU",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world. t",
+              "world. th",
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "XqSUsu8XRagh2C1OON8CkgbicB8L_vc5K5BMBCIJtvg",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "XqSUsu8XRagh2C1OON8CkgbicB8L_vc5K5BMBCIJtvg",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world. th",
+              "world. thi",
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "_ekjNBXqy2umRSRFpGMvOR6WGwXIaIuGdTJrd5Zn_-k",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "_ekjNBXqy2umRSRFpGMvOR6WGwXIaIuGdTJrd5Zn_-k",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world. thi",
+              "world. this",
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "EDzjy8RvlfwtTE0tr2pkzO3DCN3Sr7eoShZjTYwx0As",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "EDzjy8RvlfwtTE0tr2pkzO3DCN3Sr7eoShZjTYwx0As",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world. this",
+              "world. this ",
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "XdLMr14SPL996frd_tm108WbkiOzEIoWtQ3fsNBXPY4",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "XdLMr14SPL996frd_tm108WbkiOzEIoWtQ3fsNBXPY4",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world. this ",
+              "world. this i",
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "Un_H1lzZ_V6YUSbyil4fkiaA-l5PXTfSqsK2vvVPENA",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "Un_H1lzZ_V6YUSbyil4fkiaA-l5PXTfSqsK2vvVPENA",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world. this i",
+              "world. this is",
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "jaC33SumjOuyFQXNudeMsP01BZT_HPeumBo6-bzCxhs",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "jaC33SumjOuyFQXNudeMsP01BZT_HPeumBo6-bzCxhs",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world. this is",
+              "world. this is ",
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "z9GrF5F4aGwcSMa-A-WlrrFQUR26JGejhiYUSA8lXAU",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "z9GrF5F4aGwcSMa-A-WlrrFQUR26JGejhiYUSA8lXAU",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world. this is ",
+              "world. this is a",
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "Yc0RDO-6DWg5dNgE2thDLXTBwrsDUH8i-PRUheXSlfo",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "Yc0RDO-6DWg5dNgE2thDLXTBwrsDUH8i-PRUheXSlfo",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world. this is a",
+              "world. this is a t",
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "2yPk0sBmhrPsy_aoZsKt2p3fGxvtXD3U-8DE3O5ytOQ",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "2yPk0sBmhrPsy_aoZsKt2p3fGxvtXD3U-8DE3O5ytOQ",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world. this is a t",
+              "world. this is a te",
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "SPGiu_EOR081ZUBz4CrRAm9m5ixLiqysf3Fu-wOIoY0",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "SPGiu_EOR081ZUBz4CrRAm9m5ixLiqysf3Fu-wOIoY0",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "world. this is a te",
+              "world. this is a tes",
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "8wFwXdSf87NRHFtjeoG4_IYIP3gKxclUem_jwWHyz2A",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "8wFwXdSf87NRHFtjeoG4_IYIP3gKxclUem_jwWHyz2A",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -13,8 +13,9 @@
        is a tes
       +t
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "BYv1aNJTeM4KWxLxbUq7K8Ezo8Avl7BIRxdPA3_YMa0",
-              },
-              Object {
-                "baseRef": "BYv1aNJTeM4KWxLxbUq7K8Ezo8Avl7BIRxdPA3_YMa0",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -14,8 +14,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "W6ycBb05K2cRoMcl2WuUu5B945expanGov3qdbBSQQQ",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "W6ycBb05K2cRoMcl2WuUu5B945expanGov3qdbBSQQQ",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -14,8 +14,9 @@
        s a test
       + 
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "mUCEo0ahS-cyutoEMBy6Z1goBB19H9nVhIlcRIR1gXA",
-              },
-              Object {
-                "baseRef": "mUCEo0ahS-cyutoEMBy6Z1goBB19H9nVhIlcRIR1gXA",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -15,8 +15,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "251qTDIqE80VXhzQwv6cxKQbdBKLZDF0cT7nb5yU9b4",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "251qTDIqE80VXhzQwv6cxKQbdBKLZDF0cT7nb5yU9b4",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -15,8 +15,9 @@
         a test 
       +o
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "8xvrbABLv3aQCZ-mXSmz9aw99ycGnWfMDCBwuHe-hDY",
-              },
-              Object {
-                "baseRef": "8xvrbABLv3aQCZ-mXSmz9aw99ycGnWfMDCBwuHe-hDY",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -16,8 +16,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "tCj62eJUeEfeJCwMuDHNbvRZb_amTJmaxosczQBtgHo",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "tCj62eJUeEfeJCwMuDHNbvRZb_amTJmaxosczQBtgHo",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -16,8 +16,9 @@
        a test o
       +f
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "04an6zk86mFNbRBpcmzPncHkmhLYa4MElu2W7gpW-ug",
-              },
-              Object {
-                "baseRef": "04an6zk86mFNbRBpcmzPncHkmhLYa4MElu2W7gpW-ug",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -17,8 +17,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "hNiND168TnM9INSyK1MnD2jPmzkakcWREm8WkrfD5YY",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "hNiND168TnM9INSyK1MnD2jPmzkakcWREm8WkrfD5YY",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -17,8 +17,9 @@
         test of
       + 
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "k3VTrJ_UAM_cDSFTR6BF7CG0L83GT3HnKCr380fo6Ec",
-              },
-              Object {
-                "baseRef": "k3VTrJ_UAM_cDSFTR6BF7CG0L83GT3HnKCr380fo6Ec",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -18,8 +18,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "9Vppb6TkT7qoiVc1IPUJfDwTwVroj0UVZe1j_PcOPpg",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "9Vppb6TkT7qoiVc1IPUJfDwTwVroj0UVZe1j_PcOPpg",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -18,8 +18,9 @@
        test of 
       +c
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "MQdenrPuumHKRCEXD6MgrvuOcJ96651XW1QXfIEP7IQ",
-              },
-              Object {
-                "baseRef": "MQdenrPuumHKRCEXD6MgrvuOcJ96651XW1QXfIEP7IQ",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -19,8 +19,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "5KyF7pJyI5cnbSBlq4RrawRLvKrdOzS5n0_IIhojznU",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "5KyF7pJyI5cnbSBlq4RrawRLvKrdOzS5n0_IIhojznU",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -19,8 +19,9 @@
        est of c
       +h
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "fhYumn1_x_DNmK1dw-_CHm4b31EIw8_Q_W_46RmEnLk",
-              },
-              Object {
-                "baseRef": "fhYumn1_x_DNmK1dw-_CHm4b31EIw8_Q_W_46RmEnLk",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -20,8 +20,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "XiskLWLZJ5tI8g3EEGJLy-n0CgjG9aTjBApKSMI9PqQ",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "XiskLWLZJ5tI8g3EEGJLy-n0CgjG9aTjBApKSMI9PqQ",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -20,8 +20,9 @@
        st of ch
       +a
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "vFe1kJf4tsYult6AebUBA4_SBwbBZm5EMj2Xa7TWJ7c",
-              },
-              Object {
-                "baseRef": "vFe1kJf4tsYult6AebUBA4_SBwbBZm5EMj2Xa7TWJ7c",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -21,8 +21,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "DZzcTpo0iO0aVJ0B_EzrgGEjl6b3s-N3HgVRSwUbMKw",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "DZzcTpo0iO0aVJ0B_EzrgGEjl6b3s-N3HgVRSwUbMKw",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -21,8 +21,9 @@
        t of cha
       +r
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "IDyckGvnUKARtG6E4AOid7VDdqRh2x1SS_xmVU9UZfM",
-              },
-              Object {
-                "baseRef": "IDyckGvnUKARtG6E4AOid7VDdqRh2x1SS_xmVU9UZfM",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -22,8 +22,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "c2xgeGDkfkHFGOSZAUDPKi3nXESnHR-L_CKkwCN1RIw",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "c2xgeGDkfkHFGOSZAUDPKi3nXESnHR-L_CKkwCN1RIw",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -22,8 +22,9 @@
         of char
       +a
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "7qMRlGA8rvBBFGSU3KKxvtEQ9aJCjYWRCZYfSYOaDuE",
-              },
-              Object {
-                "baseRef": "7qMRlGA8rvBBFGSU3KKxvtEQ9aJCjYWRCZYfSYOaDuE",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -23,8 +23,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "oyBJqg9yjBkN12X_8_7858dWbZ7_lRzgREyD42z10Bg",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "oyBJqg9yjBkN12X_8_7858dWbZ7_lRzgREyD42z10Bg",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -23,8 +23,9 @@
        of chara
       +c
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "K2Zi-zy9qB8GXNWlnRzCV1QqcbRIi20OaXA0HmZnU8I",
-              },
-              Object {
-                "baseRef": "K2Zi-zy9qB8GXNWlnRzCV1QqcbRIi20OaXA0HmZnU8I",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -24,8 +24,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "_aWnR2LdiqUQxGnaTmLQ2kYny5qLIXoB7rAIibfmjf8",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "_aWnR2LdiqUQxGnaTmLQ2kYny5qLIXoB7rAIibfmjf8",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -24,8 +24,9 @@
        f charac
       +t
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "tdhK9Ud9T4mTIln3X1p1O_y9Cllv_-uqd82aUqMRNT4",
-              },
-              Object {
-                "baseRef": "tdhK9Ud9T4mTIln3X1p1O_y9Cllv_-uqd82aUqMRNT4",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -25,8 +25,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "D7WOTuBQJ8EUrgF_Yrh7DsPI1Q93Y7jlV3MtNlVABS0",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "D7WOTuBQJ8EUrgF_Yrh7DsPI1Q93Y7jlV3MtNlVABS0",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -25,8 +25,9 @@
         charact
       +e
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "uMNXZBwlkRdyx1P9RTaXUsR51lI8BoZaR0xdCwQc_44",
-              },
-              Object {
-                "baseRef": "uMNXZBwlkRdyx1P9RTaXUsR51lI8BoZaR0xdCwQc_44",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -26,8 +26,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "D8YJ292UmmMo8lYtBd_HJJQVDfJzhaVfXjJkVNdatV8",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "D8YJ292UmmMo8lYtBd_HJJQVDfJzhaVfXjJkVNdatV8",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -26,8 +26,9 @@
        characte
       +r
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "zXMIEZNPxkjAuwYAb6sFspB2ly4mjCJuKMRRfSSq2kw",
-              },
-              Object {
-                "baseRef": "zXMIEZNPxkjAuwYAb6sFspB2ly4mjCJuKMRRfSSq2kw",
-                "delta": Object {
-                  "hello": Array [
-                    "@@ -27,8 +27,9 @@
+              0,
+              2,
+            ],
+          },
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "SMkmpDPzhBzCB0Mk5y6oYHEDnSr8BKzkYOcmh9pGmAk",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "SMkmpDPzhBzCB0Mk5y6oYHEDnSr8BKzkYOcmh9pGmAk",
+          "cursorId": "a",
+          "delta": Object {
+            "hello": Array [
+              "@@ -27,8 +27,9 @@
        haracter
       +.
       ",
-                    0,
-                    2,
-                  ],
-                },
-                "editMetadata": "typing",
-                "ref": "fiD1YJW-lrf11sDYv_PLb55X2_B_b_8p29NRVbEziJ4",
-              },
+              0,
+              2,
             ],
-            "syncCounter": 1,
           },
-        ],
+          "editMetadata": "typing",
+          "mergeRef": undefined,
+          "ref": "TPoZ3cydRw5-k1EJQ1p-cIiMSqU4Szb6x7GbJDK0IGo",
+          "userId": "test",
+        },
       ]
     `);
   });
