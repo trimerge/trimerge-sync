@@ -179,6 +179,189 @@ describe('TrimergeClient', () => {
     client2.shutdown();
   });
 
+  it('automatic merging if three clients edit simultaneously', async () => {
+    const store = newStore();
+    const client1 = makeClient('a', store);
+    const client2 = makeClient('b', store);
+    const client3 = makeClient('c', store);
+
+    client1.addEdit({ text: '' }, 'initialize');
+
+    await client1.sync();
+
+    // Synchronized
+    expect(client1.state).toEqual({ text: '' });
+    expect(client2.state).toEqual({ text: '' });
+    expect(client3.state).toEqual({ text: '' });
+
+    client1.addEdit({ text: 'a' }, 'set text');
+    client2.addEdit({ text: 'b' }, 'set text');
+    client3.addEdit({ text: 'c' }, 'set text');
+
+    // Now client 1 and client 2 have different changes
+    expect(client1.state).toEqual({ text: 'a' });
+    expect(client2.state).toEqual({ text: 'b' });
+    expect(client3.state).toEqual({ text: 'c' });
+
+    await timeout();
+
+    //  Now they should all have trimerged changes
+    expect(client1.state).toEqual({ text: 'babc' });
+    expect(client2.state).toEqual({ text: 'babc' });
+    expect(client3.state).toEqual({ text: 'babc' });
+
+    await client1.shutdown();
+    await client2.shutdown();
+    await client3.shutdown();
+
+    expect(store.getNodes()).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "baseRef": undefined,
+          "cursorId": "a",
+          "delta": undefined,
+          "editMetadata": "normalize",
+          "mergeRef": undefined,
+          "ref": "Zjb6U-4O69eXsiXh5qC7jFDxGbbx7SIcEan3_6MC3jE",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "Zjb6U-4O69eXsiXh5qC7jFDxGbbx7SIcEan3_6MC3jE",
+          "cursorId": "a",
+          "delta": Array [
+            Object {
+              "text": "",
+            },
+          ],
+          "editMetadata": "initialize",
+          "mergeRef": undefined,
+          "ref": "I8GtVLAH0oGCEkH_5qikLxEHrkBZRwMD1vaBbbG8oQQ",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": undefined,
+          "cursorId": "b",
+          "delta": undefined,
+          "editMetadata": "normalize",
+          "mergeRef": undefined,
+          "ref": "Zjb6U-4O69eXsiXh5qC7jFDxGbbx7SIcEan3_6MC3jE",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "I8GtVLAH0oGCEkH_5qikLxEHrkBZRwMD1vaBbbG8oQQ",
+          "cursorId": "b",
+          "delta": Object {
+            "text": Array [
+              "",
+              "b",
+            ],
+          },
+          "editMetadata": "set text",
+          "mergeRef": undefined,
+          "ref": "YUoxjetj8VbS-DFIZ_CbiawH4t6zRGvHP1Qm5SFttSc",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": undefined,
+          "cursorId": "c",
+          "delta": undefined,
+          "editMetadata": "normalize",
+          "mergeRef": undefined,
+          "ref": "Zjb6U-4O69eXsiXh5qC7jFDxGbbx7SIcEan3_6MC3jE",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "I8GtVLAH0oGCEkH_5qikLxEHrkBZRwMD1vaBbbG8oQQ",
+          "cursorId": "c",
+          "delta": Object {
+            "text": Array [
+              "",
+              "c",
+            ],
+          },
+          "editMetadata": "set text",
+          "mergeRef": undefined,
+          "ref": "ijUBwkeAVJkd0ZGFyYujp_F-MfjShL4-J3ao79S7ng8",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "YUoxjetj8VbS-DFIZ_CbiawH4t6zRGvHP1Qm5SFttSc",
+          "cursorId": "c",
+          "delta": Object {
+            "text": Array [
+              "b",
+              "bc",
+            ],
+          },
+          "editMetadata": "merge",
+          "mergeRef": "ijUBwkeAVJkd0ZGFyYujp_F-MfjShL4-J3ao79S7ng8",
+          "ref": "EXjoUwlYuclPDHHYeIjlbgJqAfY5-jtUw7sVcroXZVg",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "EXjoUwlYuclPDHHYeIjlbgJqAfY5-jtUw7sVcroXZVg",
+          "cursorId": "c",
+          "delta": undefined,
+          "editMetadata": "merge",
+          "mergeRef": "Zjb6U-4O69eXsiXh5qC7jFDxGbbx7SIcEan3_6MC3jE",
+          "ref": "ZRHpbAGGDflQ-aNYsp5fWPCoEVm-XCr50IjRycTrHlI",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "I8GtVLAH0oGCEkH_5qikLxEHrkBZRwMD1vaBbbG8oQQ",
+          "cursorId": "a",
+          "delta": Object {
+            "text": Array [
+              "",
+              "a",
+            ],
+          },
+          "editMetadata": "set text",
+          "mergeRef": undefined,
+          "ref": "_61Fa_p0XjaOcPbu_4HWjS2M4h-Dr_lTEu86Q_IHjdg",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "YUoxjetj8VbS-DFIZ_CbiawH4t6zRGvHP1Qm5SFttSc",
+          "cursorId": "a",
+          "delta": Object {
+            "text": Array [
+              "b",
+              "ba",
+            ],
+          },
+          "editMetadata": "merge",
+          "mergeRef": "_61Fa_p0XjaOcPbu_4HWjS2M4h-Dr_lTEu86Q_IHjdg",
+          "ref": "OQZRNaE9ZYnoQENtyzXFFt3eZ6QF-YM9ZNSSW6ykZJ0",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "OQZRNaE9ZYnoQENtyzXFFt3eZ6QF-YM9ZNSSW6ykZJ0",
+          "cursorId": "a",
+          "delta": undefined,
+          "editMetadata": "merge",
+          "mergeRef": "Zjb6U-4O69eXsiXh5qC7jFDxGbbx7SIcEan3_6MC3jE",
+          "ref": "PPSidNymXAjsOIdWi_zQq-_xVNcDHy-iZWLqknvrewk",
+          "userId": "test",
+        },
+        Object {
+          "baseRef": "PPSidNymXAjsOIdWi_zQq-_xVNcDHy-iZWLqknvrewk",
+          "cursorId": "a",
+          "delta": Object {
+            "text": Array [
+              "ba",
+              "babc",
+            ],
+          },
+          "editMetadata": "merge",
+          "mergeRef": "ZRHpbAGGDflQ-aNYsp5fWPCoEVm-XCr50IjRycTrHlI",
+          "ref": "DappAPCNNQfp2Lb_2cW__gAIksc4fmBIQYFlxXg30Yg",
+          "userId": "test",
+        },
+      ]
+    `);
+  });
+
   it('sync up when second client comes in later', async () => {
     const store = newStore();
     const client1 = makeClient('a', store);
