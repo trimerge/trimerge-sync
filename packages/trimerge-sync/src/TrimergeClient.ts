@@ -5,18 +5,11 @@ import {
   TrimergeSyncBackend,
 } from './TrimergeSyncBackend';
 import { mergeHeadNodes } from './merge-nodes';
-import { Differ, NodeState } from './differ';
+import { Differ, NodeState, NodeStateRef } from './differ';
 
 function waitMs(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-export type NodeStateRef<State, EditMetadata> = NodeState<
-  State,
-  EditMetadata
-> & {
-  ref: string;
-};
 
 export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
   private current?: NodeStateRef<State, EditMetadata>;
@@ -46,7 +39,6 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
     private readonly bufferMs: number = 100,
   ) {
     this.backend = getSyncBackend(userId, cursorId, undefined, this.onEvent);
-    this.normalize();
   }
 
   private onEvent: OnEventFn<EditMetadata, Delta, CursorData> = (event) => {
@@ -82,16 +74,8 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
     }
   };
 
-  private normalize() {
-    const currentValue = this.current?.value;
-    const [normalized, editMetadata] = this.differ.normalize(currentValue);
-    if (this.current === undefined || normalized !== currentValue) {
-      this.addEdit(normalized, editMetadata, false);
-    }
-  }
-
-  get state(): State | undefined {
-    return this.current?.value;
+  get state(): State {
+    return this.current ? this.current.value : this.differ.initialState;
   }
 
   subscribe(onStateChange: (state: State | undefined) => void) {
@@ -119,7 +103,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
     const baseValue = node.baseRef
       ? this.getNodeState(node.baseRef).value
       : undefined;
-    const valueState = {
+    const valueState: NodeStateRef<State, EditMetadata> = {
       ref: node.ref,
       value: this.differ.patch(baseValue, node.delta),
       editMetadata: node.editMetadata,
@@ -150,7 +134,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
         const right = this.getNodeState(rightRef);
         // TODO: we likely need to normalize left/right
         const { value, editMetadata } = this.differ.merge(base, left, right);
-        return this.addNewNode(value, editMetadata, left, rightRef);
+        return this.addNewNode(value, editMetadata, left, rightRef, baseRef);
       },
     );
     // TODO: can we clear out nodes we don't need anymore?
@@ -206,6 +190,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
     editMetadata: EditMetadata,
     base: NodeStateRef<State, EditMetadata> | undefined = this.current,
     mergeRef?: string,
+    mergeBaseRef?: string,
   ): string {
     const { userId, cursorId } = this;
     const delta = this.differ.diff(base?.value, value);
@@ -217,6 +202,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
       ref,
       baseRef,
       mergeRef,
+      mergeBaseRef,
       delta,
       editMetadata,
     };

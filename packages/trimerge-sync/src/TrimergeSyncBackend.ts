@@ -6,6 +6,7 @@ export type DiffNode<EditMetadata, Delta> = {
   ref: string;
   baseRef?: string;
   mergeRef?: string;
+  mergeBaseRef?: string;
   delta?: Delta;
   editMetadata: EditMetadata;
 };

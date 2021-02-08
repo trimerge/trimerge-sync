@@ -4,6 +4,7 @@ export type Node<T, M> = {
   ref: string;
   baseRef?: string;
   mergeRef?: string;
+  mergeBaseRef?: string;
   value: T;
   editMetadata: M;
 };
@@ -74,6 +75,7 @@ export class TrimergeGraph<T, M> {
           ref: this.newId(),
           baseRef: leftRef,
           mergeRef: rightRef,
+          mergeBaseRef: baseRef,
           ...mergeFn(
             baseRef !== undefined ? this.getNode(baseRef) : undefined,
             this.getNode(leftRef),

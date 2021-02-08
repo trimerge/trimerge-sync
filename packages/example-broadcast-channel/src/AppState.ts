@@ -17,7 +17,7 @@ export const defaultState = {
 };
 
 export const differ: Differ<AppState, string, Delta> = {
-  normalize: (state) => [state ?? defaultState, 'initialize'],
+  initialState: defaultState,
   diff,
   patch(priorOrNext, delta) {
     return patch(priorOrNext, delta) ?? defaultState;
@@ -28,8 +28,9 @@ export const differ: Differ<AppState, string, Delta> = {
 
 export function useDemoAppState() {
   return useTrimergeState<AppState, string, Delta>(
+    'userId',
+    Math.random(),
     'demo',
     differ,
-    defaultState,
   );
 }

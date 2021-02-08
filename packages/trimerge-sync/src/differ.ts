@@ -16,23 +16,25 @@ export type PatchFn<State, Delta> = (
 ) => State;
 
 export type NormalizeFn<State, EditMetadata> = (
-  state: any,
-) => [State, EditMetadata];
+  state: NodeStateRef<State, EditMetadata>,
+) => NodeStateRef<State, EditMetadata>;
 
 export type NodeState<State, EditMetadata> = {
   value: State;
   editMetadata: EditMetadata;
 };
+export type NodeStateRef<State, EditMetadata> = {
+  ref: string;
+} & NodeState<State, EditMetadata>;
 
 export type MergeStateFn<State, EditMetadata> = (
-  base: NodeState<State, EditMetadata> | undefined,
-  left: NodeState<State, EditMetadata>,
-  right: NodeState<State, EditMetadata>,
+  base: NodeStateRef<State, EditMetadata> | undefined,
+  left: NodeStateRef<State, EditMetadata>,
+  right: NodeStateRef<State, EditMetadata>,
 ) => NodeState<State, EditMetadata>;
 
 export interface Differ<State, EditMetadata, Delta> {
-  /** Converts deserialized (or undefined) state into State type */
-  readonly normalize: NormalizeFn<State, EditMetadata>;
+  readonly initialState: State;
 
   /** Calculate the ref string for a given edit */
   readonly computeRef: ComputeRefFn<Delta, EditMetadata>;
@@ -41,8 +43,6 @@ export interface Differ<State, EditMetadata, Delta> {
   readonly diff: DiffFn<State, Delta>;
   /** Apply a patch from one state to another */
   readonly patch: PatchFn<State, Delta>;
-  /** Reverse apply the patch */
-  readonly reversePatch?: PatchFn<State, Delta>;
 
   /** Trimerge three states */
   readonly merge: MergeStateFn<State, EditMetadata>;

@@ -1,65 +1,46 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Differ, TrimergeClient } from 'trimerge-sync';
+import { Differ, GetSyncBackendFn, TrimergeClient } from 'trimerge-sync';
 import { TrimergeIndexedDb } from 'trimerge-sync-indexed-db';
+import { Delta } from 'jsondiffpatch';
+import { AppState, differ } from '../AppState';
 
 export type UpdateStateFn<State, EditMetadata> = (
   newState: State,
   editMetadata: EditMetadata,
 ) => void;
 
-export function useTrimergeState<State, EditMetadata, Delta>(
+export function useGetSyncBackend<State, EditMetadata, Delta>(
   docId: string,
   differ: Differ<State, EditMetadata, Delta>,
-  defaultState: State,
-): [State, UpdateStateFn<State, EditMetadata> | undefined];
+) {
+  return useMemo(
+    () => new TrimergeIndexedDb<AppState, string, Delta>(docId, differ),
+    [differ, docId],
+  );
+}
 
-export function useTrimergeState<State, EditMetadata, Delta>(
-  docId: string,
+export function useTrimergeState<State, EditMetadata, Delta, CursorData>(
+  userId: string,
+  cursorId: string,
   differ: Differ<State, EditMetadata, Delta>,
-  defaultState?: State,
-): [State | undefined, UpdateStateFn<State, EditMetadata> | undefined];
+  getSyncBackend: GetSyncBackendFn<EditMetadata, Delta, CursorData>,
+): [State, UpdateStateFn<State, EditMetadata>] {
+  const client = useMemo(
+    () => new TrimergeClient(userId, cursorId, getSyncBackend, differ),
+    [cursorId, differ, getSyncBackend, userId],
+  );
+  const [state, setState] = useState(client.state);
 
-export function useTrimergeState<State, EditMetadata, Delta>(
-  docId: string,
-  differ: Differ<State, EditMetadata, Delta>,
-  defaultState?: State,
-): [State | undefined, UpdateStateFn<State, EditMetadata> | undefined] {
-  const [state, setState] = useState<State | undefined>(defaultState);
-
-  const [client, setClient] = useState<
-    TrimergeClient<State, EditMetadata, Delta> | undefined
-  >(undefined);
-
-  const updateState = useMemo(() => client?.addEdit.bind(client), [client]);
+  const updateState = useMemo(() => client.addEdit.bind(client), [client]);
 
   // Setup client
   useEffect(() => {
-    let mounted = true;
-    let unsub: (() => void) | undefined;
-    const store = new TrimergeIndexedDb<State, EditMetadata, Delta>(
-      docId,
-      differ,
-    );
-    TrimergeClient.create(store, differ).then((_client) => {
-      if (mounted) {
-        setClient(_client);
-        unsub = _client.subscribe(setState);
-      }
-    });
+    const unsub = client.subscribe(setState);
     return () => {
-      unsub?.();
-      store?.close();
-      mounted = false;
+      unsub();
+      client.shutdown();
     };
-  }, [docId, differ]);
-
-  // Unmount client
-  useEffect(() => {
-    if (client) {
-      return () => {
-        client.shutdown();
-      };
-    }
   }, [client]);
+
   return [state, updateState];
 }

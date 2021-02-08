@@ -4,8 +4,8 @@ import {
   GetSyncBackendFn,
   OnEventFn,
   CursorInfo,
-} from './TrimergeSyncBackend';
-import { PromiseQueue } from './lib/PromiseQueue';
+} from '../TrimergeSyncBackend';
+import { PromiseQueue } from '../lib/PromiseQueue';
 
 function getFullId(userId: string, cursorId: string) {
   return `${userId}:${cursorId}`;
@@ -13,7 +13,7 @@ function getFullId(userId: string, cursorId: string) {
 function getSyncCounter(syncId: string): number {
   return parseInt(syncId, 36);
 }
-export class TestMemoryStore<EditMetadata, Delta, CursorData> {
+export class MemoryStore<EditMetadata, Delta, CursorData> {
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
   private cursors = new Map<
     string,
