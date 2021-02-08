@@ -1,6 +1,6 @@
 import { Delta } from 'jsondiffpatch';
 
-import { useTrimergeState } from './lib/trimergeClient';
+import { useTrimergeState } from './lib/trimergeHooks';
 import { diff, merge, patch } from './lib/trimergeDiffer';
 import { StateWithUsers } from 'trimerge-sync-user-state';
 import { Differ } from 'trimerge-sync';

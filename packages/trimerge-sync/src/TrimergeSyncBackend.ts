@@ -76,5 +76,5 @@ export type GetSyncBackendFn<EditMetadata, Delta, CursorData> = (
 
 export interface TrimergeSyncBackend<EditMetadata, Delta, CursorData> {
   sendNodes(nodes: DiffNode<EditMetadata, Delta>[]): void;
-  close(): Promise<void>;
+  close(): void | Promise<void>;
 }

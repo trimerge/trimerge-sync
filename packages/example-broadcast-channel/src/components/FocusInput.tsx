@@ -3,7 +3,7 @@ import { StateWithUsers } from 'trimerge-sync-user-state';
 
 import styles from './Focus.module.css';
 
-import { UpdateStateFn } from '../lib/trimergeClient';
+import { UpdateStateFn } from '../lib/trimergeHooks';
 import { useFocusInfo, useUpdateFocus } from './focusHooks';
 import { FocusBorders } from './FocusBorders';
 import { FocusCarets } from './FocusCarets';

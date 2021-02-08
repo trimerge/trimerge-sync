@@ -1,21 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Differ, GetSyncBackendFn, TrimergeClient } from 'trimerge-sync';
-import { TrimergeIndexedDb } from 'trimerge-sync-indexed-db';
-import { Delta } from 'jsondiffpatch';
-import { AppState, differ } from '../AppState';
+import { createIndexedDbBackendFactory } from 'trimerge-sync-indexed-db';
 
 export type UpdateStateFn<State, EditMetadata> = (
   newState: State,
   editMetadata: EditMetadata,
 ) => void;
 
-export function useGetSyncBackend<State, EditMetadata, Delta>(
-  docId: string,
-  differ: Differ<State, EditMetadata, Delta>,
-) {
+export function useGetSyncBackend<State, EditMetadata, Delta>(docId: string) {
   return useMemo(
-    () => new TrimergeIndexedDb<AppState, string, Delta>(docId, differ),
-    [differ, docId],
+    () => createIndexedDbBackendFactory<State, EditMetadata, Delta>(docId),
+    [docId],
   );
 }
 

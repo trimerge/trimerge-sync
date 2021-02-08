@@ -5,7 +5,7 @@ import {
   TrimergeSyncBackend,
 } from './TrimergeSyncBackend';
 import { mergeHeadNodes } from './merge-nodes';
-import { Differ, NodeState, NodeStateRef } from './differ';
+import { Differ, NodeStateRef } from './differ';
 
 function waitMs(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -15,10 +15,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
   private current?: NodeStateRef<State, EditMetadata>;
   private lastSyncId: string | undefined;
 
-  private stateSubscribers = new Map<
-    (state: State | undefined) => void,
-    State | undefined
-  >();
+  private stateSubscribers = new Map<(state: State) => void, State>();
 
   private nodes = new Map<string, DiffNode<EditMetadata, Delta>>();
   private values = new Map<string, NodeStateRef<State, EditMetadata>>();
@@ -78,7 +75,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
     return this.current ? this.current.value : this.differ.initialState;
   }
 
-  subscribe(onStateChange: (state: State | undefined) => void) {
+  subscribe(onStateChange: (state: State) => void) {
     this.stateSubscribers.set(onStateChange, this.state);
     onStateChange(this.state);
     return () => {
@@ -210,7 +207,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorData> {
     return ref;
   }
 
-  public shutdown(): Promise<void> {
+  public shutdown(): Promise<void> | void {
     return this.backend.close();
   }
 }

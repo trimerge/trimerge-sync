@@ -1,11 +1,8 @@
 import {
-  Differ,
   DiffNode,
-  Snapshot,
-  SyncData,
-  SyncSubscriber,
-  TrimergeSyncStore,
-  UnsubscribeFn,
+  GetSyncBackendFn,
+  OnEventFn,
+  TrimergeSyncBackend,
 } from 'trimerge-sync';
 import { DBSchema, IDBPDatabase, openDB, StoreValue } from 'idb';
 
@@ -21,20 +18,32 @@ function getSyncCounter(
   return syncCounter;
 }
 
-export class TrimergeIndexedDb<State, EditMetadata, Delta>
-  implements TrimergeSyncStore<State, EditMetadata, Delta> {
+export function createIndexedDbBackendFactory<EditMetadata, Delta, CursorData>(
+  docId: string,
+): GetSyncBackendFn<EditMetadata, Delta, CursorData> {
+  return (userId, cursorId, lastSyncId, onEvent) => {
+    const db = new TrimergeIndexedDb(docId);
+    return {
+      sendNodes(nodes: DiffNode<EditMetadata, Delta>[]): void {
+        db.addNodes(nodes);
+      },
+      close() {
+        return db.close();
+      },
+    };
+  };
+}
+
+class TrimergeIndexedDb<EditMetadata, Delta, CursorData> {
   private readonly dbName: string;
   private db: Promise<IDBPDatabase<TrimergeSyncDbSchema>>;
   private readonly listeners = new Map<
-    SyncSubscriber<State, EditMetadata, Delta>,
+    OnEventFn<EditMetadata, Delta, CursorData>,
     number
   >();
   private readonly channel: BroadcastChannel | undefined;
 
-  public constructor(
-    private readonly docId: string,
-    private readonly differ: Differ<State, EditMetadata, Delta>,
-  ) {
+  public constructor(private readonly docId: string) {
     const dbName = `trimerge-sync:${docId}`;
     this.dbName = dbName;
     this.db = this.connect();
@@ -43,7 +52,7 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
       console.log(`[trimerge-sync] Using BroadcastChannel for ${dbName}`);
       this.channel = new window.BroadcastChannel(dbName);
       this.channel.onmessage = (event) => {
-        const syncData: SyncData<State, EditMetadata, Delta> = event.data;
+        const syncData: OnEventFn<EditMetadata, Delta, CursorData> = event.data;
         for (const listener of this.listeners.keys()) {
           this.listeners.set(listener, syncData.syncCounter);
           listener(syncData);
@@ -77,9 +86,7 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
     return db;
   }
 
-  async addNodes(
-    newNodes: DiffNode<State, EditMetadata, Delta>[],
-  ): Promise<number> {
+  async addNodes(newNodes: DiffNode<EditMetadata, Delta>[]): Promise<number> {
     const db = await this.db;
     const tx = db.transaction(['heads', 'nodes'], 'readwrite');
 
@@ -128,14 +135,8 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
     return syncId;
   }
 
-  async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {
-    const db = await this.db;
-    const nodes = await db.getAllFromIndex('nodes', 'syncId');
-    return { nodes, syncCounter: getSyncCounter(nodes) };
-  }
-
   private async sendNodesSince(
-    onNodes: SyncSubscriber<State, EditMetadata, Delta>,
+    onNodes: OnEventFn<EditMetadata, Delta, CursorData>,
     lastSyncCounter: number,
   ) {
     const db = await this.db;
@@ -162,7 +163,7 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
 
   close() {
     this.channel?.close();
-    this.db.then((db) => {
+    return this.db.then((db) => {
       // To prevent reconnect
       db.onclose = null;
       db.close();
@@ -179,7 +180,7 @@ interface TrimergeSyncDbSchema extends DBSchema {
   };
   nodes: {
     key: string;
-    value: { syncId: number } & DiffNode<any, any, any>;
+    value: { syncId: number } & DiffNode<any, any>;
     indexes: {
       syncId: number;
     };

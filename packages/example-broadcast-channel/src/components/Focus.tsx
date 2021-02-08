@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 
 import styles from './Focus.module.css';
 import { StateWithUsers, updateUser } from 'trimerge-sync-user-state';
-import { UpdateStateFn } from '../lib/trimergeClient';
+import { UpdateStateFn } from '../lib/trimergeHooks';
 import { useFocusInfo } from './focusHooks';
 import { FocusBorders } from './FocusBorders';
 
