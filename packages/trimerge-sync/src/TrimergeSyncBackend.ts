@@ -18,7 +18,7 @@ export type DiffNode<EditMetadata, Delta> = {
 export type CursorInfo<CursorState> = {
   userId: string;
   cursorId: string;
-  state: CursorState | undefined;
+  state?: CursorState;
 };
 export type CursorsEvent<CursorState> = {
   type: 'cursors';
@@ -38,13 +38,13 @@ export type CursorJoinEvent<CursorState> = {
   type: 'cursor-join';
   userId: string;
   cursorId: string;
-  state: CursorState | undefined;
+  state?: CursorState;
 };
 export type CursorUpdateEvent<CursorState> = {
   type: 'cursor-update';
   userId: string;
   cursorId: string;
-  state: CursorState | undefined;
+  state?: CursorState;
 };
 export type CursorLeaveEvent = {
   type: 'cursor-leave';

@@ -17,17 +17,27 @@ export function App() {
   const [state, updateState, cursors] = useDemoAppState();
   const users = useMemo(
     () =>
-      cursors.map(({ cursorId }) => (
-        <span
-          key={cursorId}
-          className={classNames(styles.userPill, {
-            [styles.currentUser]: cursorId === currentTabId,
-          })}
-        >
-          {currentLeaderId === cursorId ? '👑' : '🤖'}
-          {cursorId}
-        </span>
-      )),
+      Array.from(cursors)
+        .sort((a, b) => {
+          if (a.cursorId < b.cursorId) {
+            return -1;
+          }
+          if (a.cursorId > b.cursorId) {
+            return 1;
+          }
+          return 0;
+        })
+        .map(({ cursorId }) => (
+          <span
+            key={cursorId}
+            className={classNames(styles.userPill, {
+              [styles.currentUser]: cursorId === currentTabId,
+            })}
+          >
+            {currentLeaderId === cursorId ? '👑' : '🤖'}
+            {cursorId}
+          </span>
+        )),
     [currentLeaderId, cursors],
   );
 

@@ -40,10 +40,12 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     private readonly differ: Differ<State, EditMetadata, Delta>,
     private readonly bufferMs: number = 100,
   ) {
+    console.log('[TRIMERGE-SYNC] new TrimergeClient');
     this.backend = getSyncBackend(userId, cursorId, undefined, this.onEvent);
   }
 
   private onEvent: OnEventFn<EditMetadata, Delta, CursorState> = (event) => {
+    console.log('[TRIMERGE-SYNC] got event', event);
     switch (event.type) {
       case 'nodes':
         for (const node of event.nodes) {
@@ -258,6 +260,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
   }
 
   public shutdown(): Promise<void> | void {
+    console.log(`[TRIMERGE-SYNC] TrimergeClient: shutdown`);
     return this.backend.close();
   }
 }

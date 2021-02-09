@@ -1,6 +1,7 @@
 import {
   BackendEvent,
   DiffNode,
+  ErrorCode,
   GetSyncBackendFn,
   OnEventFn,
   TrimergeSyncBackend,
@@ -50,41 +51,52 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     private readonly onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
   ) {
     const dbName = `trimerge-sync:${docId}`;
+    console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.db = this.connect();
-    this.channel = new BroadcastChannel(dbName);
-    this.channel.addEventListener('message', onEvent);
-    this.sendUserList().catch(this.fail);
-    this.sendNodesSince(toSyncNumber(lastSyncId)).catch(this.fail);
+    this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
+    this.channel.addEventListener('message', (event) => {
+      onEvent(event);
+      if (event.type === 'cursor-join') {
+        this.broadcast({
+          type: 'cursor-update',
+          userId,
+          cursorId,
+        });
+      }
+    });
+    this.sendUserList().catch(this.handleAsError('internal'));
+    this.sendNodesSince(toSyncNumber(lastSyncId)).catch(
+      this.handleAsError('internal'),
+    );
     window.addEventListener('beforeunload', this.close);
   }
 
-  private fail = (error: Error) => {
-    this.onEvent({
-      type: 'error',
-      code: 'internal',
-      message: error.message,
-      fatal: true,
-    });
-    void this.close();
-  };
+  private handleAsError(code: ErrorCode) {
+    return (error: Error) => {
+      this.onEvent({
+        type: 'error',
+        code,
+        message: error.message,
+        fatal: true,
+      });
+      void this.close();
+    };
+  }
+  private broadcast(event: BackendEvent<EditMetadata, Delta, CursorState>) {
+    console.log('[TRIMERGE-SYNC] broadcasting event', event);
+    return this.channel.postMessage(event);
+  }
   private async sendUserList() {
     const { userId, cursorId } = this;
-    const db = await this.db;
-    const tx = db.transaction(['cursors'], 'readwrite');
-    const cursors = tx.objectStore('cursors');
-    await cursors.put({ userId, cursorId, state: undefined });
-    const allCursors = await cursors.getAll();
-    await tx.done;
     this.onEvent({
       type: 'cursors',
-      cursors: allCursors,
+      cursors: [{ userId, cursorId }],
     });
-    await this.channel.postMessage({
+    await this.broadcast({
       type: 'cursor-join',
       userId,
       cursorId,
-      state: undefined,
     });
   }
 
@@ -92,7 +104,9 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     reconnect: boolean = false,
   ): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
     if (reconnect) {
-      console.log('Reconnecting after 3 second timeout…');
+      console.log(
+        '[TRIMERGE-SYNC] IndexedDbBackend: reconnecting after 3 second timeout…',
+      );
       await new Promise((resolve) => setTimeout(resolve, 3_000));
     }
     const db = await createIndexedDb(this.dbName);
@@ -103,13 +117,7 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
   }
 
   sendNodes(newNodes: DiffNode<EditMetadata, Delta>[]) {
-    this.addNodes(newNodes).catch((error) => {
-      this.channel.postMessage({
-        type: 'error',
-        code: 'invalid-nodes',
-        message: error.message,
-      });
-    });
+    this.addNodes(newNodes).catch(this.handleAsError('invalid-nodes'));
   }
 
   private async addNodes(
@@ -161,13 +169,11 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       refs: nodes.map(({ ref }) => ref),
       syncId,
     });
-    this.channel
-      .postMessage({
-        type: 'nodes',
-        nodes: nodes,
-        syncId,
-      })
-      .catch(this.fail);
+    this.broadcast({
+      type: 'nodes',
+      nodes: nodes,
+      syncId,
+    }).catch(this.handleAsError('internal'));
     return syncCounter;
   }
 
@@ -199,7 +205,7 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
   }
   private async closeChannel() {
     const { userId, cursorId } = this;
-    await this.channel.postMessage({
+    await this.broadcast({
       type: 'cursor-leave',
       userId,
       cursorId,
@@ -207,6 +213,7 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     await this.channel.close();
   }
   close = async (): Promise<void> => {
+    console.log(`[TRIMERGE-SYNC] IndexedDbBackend(${this.dbName}): close`);
     window.removeEventListener('beforeunload', this.close);
     await Promise.all([this.closeChannel(), this.closeDb()]).catch((error) => {
       console.warn(`error closing IndexedDbBackend`, error);
@@ -233,7 +240,7 @@ interface TrimergeSyncDbSchema extends DBSchema {
     value: {
       userId: string;
       cursorId: string;
-      state: any;
+      state?: any;
     };
   };
 }

@@ -77,14 +77,13 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
         cursors: Array.from(this.cursors.values()).map(({ info }) => info),
       });
       this.cursors.set(userCursor, {
-        info: { userId, cursorId, state: undefined },
+        info: { userId, cursorId },
         onEvent,
       });
       this.broadcast(userCursor, {
         type: 'cursor-join',
         userId,
         cursorId,
-        state: undefined,
       });
     });
 

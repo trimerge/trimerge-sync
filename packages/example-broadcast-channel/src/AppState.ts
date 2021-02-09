@@ -1,6 +1,6 @@
 import { Delta } from 'jsondiffpatch';
 
-import { useIndexedDbSyncBackend, useTrimergeState } from './lib/trimergeHooks';
+import { useTrimergeState } from './lib/trimergeHooks';
 import { diff, merge, patch } from './lib/trimergeDiffer';
 import { StateWithUsers } from 'trimerge-sync-user-state';
 import { Differ } from 'trimerge-sync';
@@ -20,21 +20,16 @@ export const defaultState = {
 export const differ: Differ<AppState, string, Delta> = {
   initialState: defaultState,
   diff,
-  patch(priorOrNext, delta) {
-    return patch(priorOrNext, delta) ?? defaultState;
-  },
+  patch: (priorOrNext, delta) => patch(priorOrNext, delta) ?? defaultState,
   computeRef,
   merge,
 };
 
 export function useDemoAppState() {
-  const getSyncBackend = useIndexedDbSyncBackend<string, Delta, unknown>(
-    'demo',
-  );
   return useTrimergeState<AppState, string, Delta, unknown>(
+    'demo',
     'local',
     currentTabId,
     differ,
-    getSyncBackend,
   );
 }

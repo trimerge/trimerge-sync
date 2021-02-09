@@ -12,30 +12,40 @@ export type UpdateStateFn<State, EditMetadata> = (
   editMetadata: EditMetadata,
 ) => void;
 
-export function useIndexedDbSyncBackend<EditMetadata, Delta, CursorState>(
-  docId: string,
-) {
-  return useMemo(
-    () =>
-      createIndexedDbBackendFactory<EditMetadata, Delta, CursorState>(docId),
-    [docId],
-  );
-}
+const TRIMERGE_CLIENT_CACHE: Record<
+  string,
+  TrimergeClient<any, any, any, any>
+> = {};
 
-export function useTrimergeState<State, EditMetadata, Delta, CursorState>(
+function getCachedTrimergeClient<State, EditMetadata, Delta, CursorState>(
+  docId: string,
   userId: string,
   cursorId: string,
   differ: Differ<State, EditMetadata, Delta>,
-  getSyncBackend: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
+) {
+  const key = `${docId}:${userId}:${cursorId}`;
+  if (!TRIMERGE_CLIENT_CACHE[key]) {
+    TRIMERGE_CLIENT_CACHE[key] = new TrimergeClient<
+      State,
+      EditMetadata,
+      Delta,
+      CursorState
+    >(userId, cursorId, createIndexedDbBackendFactory(docId), differ);
+  }
+  return TRIMERGE_CLIENT_CACHE[key];
+}
+
+export function useTrimergeState<State, EditMetadata, Delta, CursorState>(
+  docId: string,
+  userId: string,
+  cursorId: string,
+  differ: Differ<State, EditMetadata, Delta>,
 ): [
   State,
   UpdateStateFn<State, EditMetadata>,
   readonly CursorInfo<CursorState>[],
 ] {
-  const client = useMemo(
-    () => new TrimergeClient(userId, cursorId, getSyncBackend, differ),
-    [cursorId, differ, getSyncBackend, userId],
-  );
+  const client = getCachedTrimergeClient(docId, userId, cursorId, differ);
   const [state, setState] = useState(client.state);
   const [cursors, setCursors] = useState(client.cursors);
 
