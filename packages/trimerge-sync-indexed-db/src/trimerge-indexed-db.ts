@@ -64,7 +64,7 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       type: 'error',
       code: 'internal',
       message: error.message,
-      disconnected: true,
+      fatal: true,
     });
     void this.close();
   };
