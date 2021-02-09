@@ -18,16 +18,16 @@ export type CursorInfo<CursorData> = {
 };
 export type CursorsEvent<CursorData> = {
   type: 'cursors';
-  cursors: CursorInfo<CursorData>[];
+  cursors: readonly CursorInfo<CursorData>[];
 };
 export type NodesEvent<EditMetadata, Delta> = {
   type: 'nodes';
-  nodes: DiffNode<EditMetadata, Delta>[];
+  nodes: readonly DiffNode<EditMetadata, Delta>[];
   syncId: string;
 };
 export type AckNodesEvent = {
   type: 'ack';
-  refs: string[];
+  refs: readonly string[];
   syncId: string;
 };
 export type CursorJoinEvent<CursorData> = {
@@ -54,14 +54,15 @@ export type ErrorEvent = {
   disconnected?: boolean;
 };
 
-export type BackendEvent<EditMetadata, Delta, CursorData> =
+export type BackendEvent<EditMetadata, Delta, CursorData> = Readonly<
   | NodesEvent<EditMetadata, Delta>
   | AckNodesEvent
   | CursorsEvent<CursorData>
   | CursorJoinEvent<CursorData>
   | CursorUpdateEvent<CursorData>
   | CursorLeaveEvent
-  | ErrorEvent;
+  | ErrorEvent
+>;
 
 export type OnEventFn<EditMetadata, Delta, CursorData> = (
   event: BackendEvent<EditMetadata, Delta, CursorData>,

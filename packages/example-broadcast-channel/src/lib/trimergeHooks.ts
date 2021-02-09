@@ -7,9 +7,11 @@ export type UpdateStateFn<State, EditMetadata> = (
   editMetadata: EditMetadata,
 ) => void;
 
-export function useGetSyncBackend<State, EditMetadata, Delta>(docId: string) {
+export function useIndexedDbSyncBackend<EditMetadata, Delta, CursorData>(
+  docId: string,
+) {
   return useMemo(
-    () => createIndexedDbBackendFactory<State, EditMetadata, Delta>(docId),
+    () => createIndexedDbBackendFactory<EditMetadata, Delta, CursorData>(docId),
     [docId],
   );
 }

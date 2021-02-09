@@ -1,5 +1,6 @@
 import { BroadcastChannel, createLeaderElection } from 'broadcast-channel';
 import { useEffect, useState } from 'react';
+import { currentTabId } from './currentTabId';
 
 export type BroadcastMessage =
   | {
@@ -23,15 +24,7 @@ export type BroadcastMessage =
       id: string;
     };
 
-function newId() {
-  return btoa(
-    String.fromCharCode(
-      ...Array.from(crypto.getRandomValues(new Uint8Array(12))),
-    ),
-  );
-}
-
-export const currentUserId = newId();
+export const currentUserId = currentTabId;
 
 let currentUsers = new Map<string, number>([[currentUserId, Date.now()]]);
 let currentLeaderId: string | undefined = undefined;
