@@ -54,13 +54,20 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     this.db = this.connect();
     this.channel = new BroadcastChannel(dbName);
     this.channel.addEventListener('message', onEvent);
-    void this.sendUserList();
-    void this.sendNodesSince(toSyncNumber(lastSyncId));
-    window.addEventListener('beforeunload', () => {
-      this.close();
-    });
+    this.sendUserList().catch(this.fail);
+    this.sendNodesSince(toSyncNumber(lastSyncId)).catch(this.fail);
+    window.addEventListener('beforeunload', this.close);
   }
 
+  private fail = (error: Error) => {
+    this.onEvent({
+      type: 'error',
+      code: 'internal',
+      message: error.message,
+      disconnected: true,
+    });
+    void this.close();
+  };
   private async sendUserList() {
     const { userId, cursorId } = this;
     const db = await this.db;
@@ -154,11 +161,13 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       refs: nodes.map(({ ref }) => ref),
       syncId,
     });
-    void this.channel.postMessage({
-      type: 'nodes',
-      nodes: nodes,
-      syncId,
-    });
+    this.channel
+      .postMessage({
+        type: 'nodes',
+        nodes: nodes,
+        syncId,
+      })
+      .catch(this.fail);
     return syncCounter;
   }
 
@@ -177,23 +186,32 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     });
   }
 
-  async close() {
-    this.channel?.close();
+  private async closeDb() {
     const db = await this.db;
     const tx = db.transaction(['cursors'], 'readwrite');
     const cursors = tx.objectStore('cursors');
     await cursors.delete([this.userId, this.cursorId]);
     await tx.done;
+
+    // To prevent reconnect
+    db.onclose = null;
+    db.close();
+  }
+  private async closeChannel() {
     const { userId, cursorId } = this;
     await this.channel.postMessage({
       type: 'cursor-leave',
       userId,
       cursorId,
     });
-    // To prevent reconnect
-    db.onclose = null;
-    db.close();
+    await this.channel.close();
   }
+  close = async (): Promise<void> => {
+    window.removeEventListener('beforeunload', this.close);
+    await Promise.all([this.closeChannel(), this.closeDb()]).catch((error) => {
+      console.warn(`error closing IndexedDbBackend`, error);
+    });
+  };
 }
 
 interface TrimergeSyncDbSchema extends DBSchema {

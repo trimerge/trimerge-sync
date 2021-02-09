@@ -61,7 +61,7 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
         onEvent({
           type: 'error',
           code: 'invalid-sync-id',
-          disconnected: true,
+          fatal: true,
         });
         closed = true;
         return;

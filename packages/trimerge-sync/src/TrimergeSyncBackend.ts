@@ -55,7 +55,7 @@ export type ErrorEvent = {
   type: 'error';
   code: ErrorCode;
   message?: string;
-  disconnected?: boolean;
+  fatal?: boolean;
 };
 
 export type BackendEvent<EditMetadata, Delta, CursorState> = Readonly<
