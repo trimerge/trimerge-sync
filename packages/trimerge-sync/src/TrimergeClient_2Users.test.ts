@@ -7,9 +7,9 @@ import { getBasicGraph } from './testLib/GraphVisualizers';
 
 type TestEditMetadata = string;
 type TestState = any;
-type TestCursorData = any;
+type TestCursorState = any;
 
-const differ: Differ<TestState, TestEditMetadata, TestCursorData> = {
+const differ: Differ<TestState, TestEditMetadata, TestCursorState> = {
   initialState: undefined,
   diff,
   patch,
@@ -18,19 +18,19 @@ const differ: Differ<TestState, TestEditMetadata, TestCursorData> = {
 };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestCursorData>();
+  return new MemoryStore<TestEditMetadata, Delta, TestCursorState>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorData>,
-): TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorData> {
+  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
+): TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState> {
   return new TrimergeClient(userId, 'test', store.getSyncBackend, differ, 0);
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorData>,
-  client1: TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorData>,
+  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
+  client1: TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState>,
 ) {
   return getBasicGraph(
     store,
@@ -249,7 +249,7 @@ describe('TrimergeClient: 2 users', () => {
     const client1 = makeClient('a', store);
     const subscribeFn = jest.fn();
 
-    const unsubscribeFn = client1.subscribe(subscribeFn);
+    const unsubscribeFn = client1.subscribeState(subscribeFn);
 
     client1.addEdit({}, 'initialize');
     client1.addEdit({ hello: 'world' }, 'add hello');

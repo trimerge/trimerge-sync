@@ -1,4 +1,8 @@
-export type ErrorCode = 'invalid-sync-id' | 'invalid-nodes' | 'disconnected';
+export type ErrorCode =
+  | 'invalid-sync-id'
+  | 'invalid-nodes'
+  | 'internal'
+  | 'disconnected';
 
 export type DiffNode<EditMetadata, Delta> = {
   userId: string;
@@ -11,14 +15,14 @@ export type DiffNode<EditMetadata, Delta> = {
   editMetadata: EditMetadata;
 };
 
-export type CursorInfo<CursorData> = {
+export type CursorInfo<CursorState> = {
   userId: string;
   cursorId: string;
-  cursorData: CursorData | undefined;
+  state: CursorState | undefined;
 };
-export type CursorsEvent<CursorData> = {
+export type CursorsEvent<CursorState> = {
   type: 'cursors';
-  cursors: readonly CursorInfo<CursorData>[];
+  cursors: readonly CursorInfo<CursorState>[];
 };
 export type NodesEvent<EditMetadata, Delta> = {
   type: 'nodes';
@@ -30,17 +34,17 @@ export type AckNodesEvent = {
   refs: readonly string[];
   syncId: string;
 };
-export type CursorJoinEvent<CursorData> = {
+export type CursorJoinEvent<CursorState> = {
   type: 'cursor-join';
   userId: string;
   cursorId: string;
-  cursorData: CursorData | undefined;
+  state: CursorState | undefined;
 };
-export type CursorUpdateEvent<CursorData> = {
+export type CursorUpdateEvent<CursorState> = {
   type: 'cursor-update';
   userId: string;
   cursorId: string;
-  cursorData: CursorData | undefined;
+  state: CursorState | undefined;
 };
 export type CursorLeaveEvent = {
   type: 'cursor-leave';
@@ -54,28 +58,28 @@ export type ErrorEvent = {
   disconnected?: boolean;
 };
 
-export type BackendEvent<EditMetadata, Delta, CursorData> = Readonly<
+export type BackendEvent<EditMetadata, Delta, CursorState> = Readonly<
   | NodesEvent<EditMetadata, Delta>
   | AckNodesEvent
-  | CursorsEvent<CursorData>
-  | CursorJoinEvent<CursorData>
-  | CursorUpdateEvent<CursorData>
+  | CursorsEvent<CursorState>
+  | CursorJoinEvent<CursorState>
+  | CursorUpdateEvent<CursorState>
   | CursorLeaveEvent
   | ErrorEvent
 >;
 
-export type OnEventFn<EditMetadata, Delta, CursorData> = (
-  event: BackendEvent<EditMetadata, Delta, CursorData>,
+export type OnEventFn<EditMetadata, Delta, CursorState> = (
+  event: BackendEvent<EditMetadata, Delta, CursorState>,
 ) => void;
 
-export type GetSyncBackendFn<EditMetadata, Delta, CursorData> = (
+export type GetSyncBackendFn<EditMetadata, Delta, CursorState> = (
   userId: string,
   cursorId: string,
   lastSyncId: string | undefined,
-  onEvent: OnEventFn<EditMetadata, Delta, CursorData>,
-) => TrimergeSyncBackend<EditMetadata, Delta, CursorData>;
+  onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
+) => TrimergeSyncBackend<EditMetadata, Delta, CursorState>;
 
-export interface TrimergeSyncBackend<EditMetadata, Delta, CursorData> {
+export interface TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
   sendNodes(nodes: DiffNode<EditMetadata, Delta>[]): void;
   close(): void | Promise<void>;
 }

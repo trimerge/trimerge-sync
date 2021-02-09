@@ -1,25 +1,24 @@
 import {
   BackendEvent,
+  CursorInfo,
   DiffNode,
   GetSyncBackendFn,
   OnEventFn,
-  CursorInfo,
 } from '../TrimergeSyncBackend';
 import { PromiseQueue } from '../lib/PromiseQueue';
+import { getFullId } from '../util';
 
-function getFullId(userId: string, cursorId: string) {
-  return `${userId}:${cursorId}`;
-}
 function getSyncCounter(syncId: string): number {
   return parseInt(syncId, 36);
 }
-export class MemoryStore<EditMetadata, Delta, CursorData> {
+
+export class MemoryStore<EditMetadata, Delta, CursorState> {
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
   private cursors = new Map<
     string,
     {
-      info: CursorInfo<CursorData>;
-      onEvent: OnEventFn<EditMetadata, Delta, CursorData>;
+      info: CursorInfo<CursorState>;
+      onEvent: OnEventFn<EditMetadata, Delta, CursorState>;
     }
   >();
   private queue = new PromiseQueue();
@@ -34,7 +33,7 @@ export class MemoryStore<EditMetadata, Delta, CursorData> {
 
   private broadcast(
     fromUserCursor: string,
-    event: BackendEvent<EditMetadata, Delta, CursorData>,
+    event: BackendEvent<EditMetadata, Delta, CursorState>,
   ) {
     for (const [userCursor, { onEvent }] of this.cursors.entries()) {
       if (userCursor !== fromUserCursor) {
@@ -43,7 +42,7 @@ export class MemoryStore<EditMetadata, Delta, CursorData> {
     }
   }
 
-  getSyncBackend: GetSyncBackendFn<EditMetadata, Delta, CursorData> = (
+  getSyncBackend: GetSyncBackendFn<EditMetadata, Delta, CursorState> = (
     userId,
     cursorId,
     lastSyncId,
@@ -78,14 +77,14 @@ export class MemoryStore<EditMetadata, Delta, CursorData> {
         cursors: Array.from(this.cursors.values()).map(({ info }) => info),
       });
       this.cursors.set(userCursor, {
-        info: { userId, cursorId, cursorData: undefined },
+        info: { userId, cursorId, state: undefined },
         onEvent,
       });
       this.broadcast(userCursor, {
         type: 'cursor-join',
         userId,
         cursorId,
-        cursorData: undefined,
+        state: undefined,
       });
     });
 

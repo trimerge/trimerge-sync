@@ -4,37 +4,32 @@ import { enableMapSet, produce } from 'immer';
 
 import styles from './App.module.css';
 
-import {
-  currentUserId,
-  useCurrentLeader,
-  useCurrentUsers,
-} from './lib/broadcast';
 import { useDemoAppState } from './AppState';
 import { FocusInput } from './components/FocusInput';
 import { FocusTextarea } from './components/FocusTextarea';
+import { currentTabId } from './lib/currentTabId';
 
 enableMapSet();
 
 export function App() {
-  const currentLeaderId = useCurrentLeader();
-  const currentUsers = useCurrentUsers();
+  const currentLeaderId = undefined; //useCurrentLeader();
+  // const currentUsers = useCurrentUsers();
+  const [state, updateState, cursors] = useDemoAppState();
   const users = useMemo(
     () =>
-      currentUsers.map((userId) => (
+      cursors.map(({ cursorId }) => (
         <span
-          key={userId}
+          key={cursorId}
           className={classNames(styles.userPill, {
-            [styles.currentUser]: userId === currentUserId,
+            [styles.currentUser]: cursorId === currentTabId,
           })}
         >
-          {currentLeaderId === userId ? '👑' : '🤖'}
-          {userId}
+          {currentLeaderId === cursorId ? '👑' : '🤖'}
+          {cursorId}
         </span>
       )),
-    [currentLeaderId, currentUsers],
+    [currentLeaderId, cursors],
   );
-
-  const [state, updateState] = useDemoAppState();
 
   const onChangeTitle = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) =>
@@ -71,7 +66,7 @@ export function App() {
             id="title"
             value={state.title}
             onChange={onChangeTitle}
-            currentUser={currentUserId}
+            currentUser={currentTabId}
             state={state}
             updateState={updateState}
             focusMetadata="focus title"
@@ -82,7 +77,7 @@ export function App() {
           value={state.text}
           onChange={onChangeText}
           rows={10}
-          currentUser={currentUserId}
+          currentUser={currentTabId}
           state={state}
           updateState={updateState}
           focusMetadata="focus text"

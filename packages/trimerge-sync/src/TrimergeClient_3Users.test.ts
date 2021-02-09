@@ -7,9 +7,9 @@ import { getBasicGraph } from './testLib/GraphVisualizers';
 
 type TestEditMetadata = { ref: string; message: string };
 type TestState = any;
-type TestCursorData = any;
+type TestCursorState = any;
 
-const differ: Differ<TestState, TestEditMetadata, TestCursorData> = {
+const differ: Differ<TestState, TestEditMetadata, TestCursorState> = {
   initialState: {},
   diff,
   patch,
@@ -20,13 +20,13 @@ const differ: Differ<TestState, TestEditMetadata, TestCursorData> = {
 };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestCursorData>();
+  return new MemoryStore<TestEditMetadata, Delta, TestCursorState>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorData>,
-): TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorData> {
+  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
+): TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState> {
   return new TrimergeClient(userId, 'test', store.getSyncBackend, differ, 0);
 }
 
@@ -35,8 +35,8 @@ function timeout() {
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorData>,
-  clientA: TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorData>,
+  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
+  clientA: TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState>,
 ) {
   return getBasicGraph(
     store,
