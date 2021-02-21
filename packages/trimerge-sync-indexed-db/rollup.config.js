@@ -6,7 +6,12 @@ import typescript from 'rollup-plugin-typescript2';
 
 export default {
   input: 'src/index.ts',
-  plugins: [commonjs(), resolve(), typescript({ exclude: '**/*.test.ts' })],
+  external: ['broadcast-channel', 'idb'],
+  plugins: [
+    commonjs(),
+    resolve({ browser: true }),
+    typescript({ exclude: '**/*.test.ts' }),
+  ],
   output: [
     {
       file: pkg.main,

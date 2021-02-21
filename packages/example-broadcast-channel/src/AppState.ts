@@ -1,10 +1,11 @@
 import { Delta } from 'jsondiffpatch';
 
-import { useTrimergeState } from './lib/trimergeClient';
+import { useTrimergeState } from './lib/trimergeHooks';
 import { diff, merge, patch } from './lib/trimergeDiffer';
 import { StateWithUsers } from 'trimerge-sync-user-state';
 import { Differ } from 'trimerge-sync';
 import { computeRef } from 'trimerge-sync-hash';
+import { currentTabId } from './lib/currentTabId';
 
 export type AppState = StateWithUsers & {
   title: string;
@@ -17,19 +18,18 @@ export const defaultState = {
 };
 
 export const differ: Differ<AppState, string, Delta> = {
-  normalize: (state) => [state ?? defaultState, 'initialize'],
+  initialState: defaultState,
   diff,
-  patch(priorOrNext, delta) {
-    return patch(priorOrNext, delta) ?? defaultState;
-  },
+  patch: (priorOrNext, delta) => patch(priorOrNext, delta) ?? defaultState,
   computeRef,
   merge,
 };
 
 export function useDemoAppState() {
-  return useTrimergeState<AppState, string, Delta>(
+  return useTrimergeState<AppState, string, Delta, unknown>(
     'demo',
+    'local',
+    currentTabId,
     differ,
-    defaultState,
   );
 }

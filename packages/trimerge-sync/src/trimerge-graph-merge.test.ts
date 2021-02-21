@@ -86,6 +86,7 @@ describe('graph.mergeHeads()', () => {
         Object {
           "baseRef": "3",
           "editMetadata": "merge 3 and 5",
+          "mergeBaseRef": "1",
           "mergeRef": "5",
           "ref": "6",
           "value": Object {
@@ -137,6 +138,7 @@ describe('graph.mergeHeads()', () => {
         "6" => Object {
           "baseRef": "3",
           "editMetadata": "merge 3 and 5",
+          "mergeBaseRef": "1",
           "mergeRef": "5",
           "ref": "6",
           "value": Object {
@@ -162,6 +164,7 @@ describe('graph.mergeHeads()', () => {
         Object {
           "baseRef": "3",
           "editMetadata": "merge 3 and 6",
+          "mergeBaseRef": undefined,
           "mergeRef": "6",
           "ref": "7",
           "value": Object {
@@ -218,6 +221,7 @@ describe('graph.mergeHeads()', () => {
         "7" => Object {
           "baseRef": "3",
           "editMetadata": "merge 3 and 6",
+          "mergeBaseRef": undefined,
           "mergeRef": "6",
           "ref": "7",
           "value": Object {
@@ -246,6 +250,7 @@ describe('graph.mergeHeads()', () => {
         Object {
           "baseRef": "10",
           "editMetadata": "merge 10 and 9",
+          "mergeBaseRef": undefined,
           "mergeRef": "9",
           "ref": "11",
           "value": Object {
@@ -324,6 +329,7 @@ describe('graph.mergeHeads()', () => {
         "10" => Object {
           "baseRef": "3",
           "editMetadata": "merge 3 and 6",
+          "mergeBaseRef": undefined,
           "mergeRef": "6",
           "ref": "10",
           "value": Object {
@@ -334,6 +340,7 @@ describe('graph.mergeHeads()', () => {
         "11" => Object {
           "baseRef": "10",
           "editMetadata": "merge 10 and 9",
+          "mergeBaseRef": undefined,
           "mergeRef": "9",
           "ref": "11",
           "value": Object {

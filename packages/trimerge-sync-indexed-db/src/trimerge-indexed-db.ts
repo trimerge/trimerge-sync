@@ -1,13 +1,13 @@
 import {
-  Differ,
+  BackendEvent,
   DiffNode,
-  Snapshot,
-  SyncData,
-  SyncSubscriber,
-  TrimergeSyncStore,
-  UnsubscribeFn,
+  ErrorCode,
+  GetSyncBackendFn,
+  OnEventFn,
+  TrimergeSyncBackend,
 } from 'trimerge-sync';
 import { DBSchema, IDBPDatabase, openDB, StoreValue } from 'idb';
+import { BroadcastChannel } from 'broadcast-channel';
 
 function getSyncCounter(
   nodes: StoreValue<TrimergeSyncDbSchema, 'nodes'>[],
@@ -21,53 +21,92 @@ function getSyncCounter(
   return syncCounter;
 }
 
-export class TrimergeIndexedDb<State, EditMetadata, Delta>
-  implements TrimergeSyncStore<State, EditMetadata, Delta> {
+function toSyncId(syncNumber: number): string {
+  return syncNumber.toString(36);
+}
+function toSyncNumber(syncId: string | undefined): number {
+  return syncId === undefined ? 0 : parseInt(syncId, 36);
+}
+
+export function createIndexedDbBackendFactory<EditMetadata, Delta, CursorState>(
+  docId: string,
+): GetSyncBackendFn<EditMetadata, Delta, CursorState> {
+  return (userId, cursorId, lastSyncId, onEvent) =>
+    new IndexedDbBackend(docId, userId, cursorId, lastSyncId, onEvent);
+}
+
+class IndexedDbBackend<EditMetadata, Delta, CursorState>
+  implements TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
   private readonly dbName: string;
   private db: Promise<IDBPDatabase<TrimergeSyncDbSchema>>;
-  private readonly listeners = new Map<
-    SyncSubscriber<State, EditMetadata, Delta>,
-    number
-  >();
-  private readonly channel: BroadcastChannel | undefined;
+  private readonly channel: BroadcastChannel<
+    BackendEvent<EditMetadata, Delta, CursorState>
+  >;
 
   public constructor(
     private readonly docId: string,
-    private readonly differ: Differ<State, EditMetadata, Delta>,
+    private readonly userId: string,
+    private readonly cursorId: string,
+    lastSyncId: string | undefined,
+    private readonly onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
   ) {
     const dbName = `trimerge-sync:${docId}`;
+    console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.db = this.connect();
-
-    if (typeof window.BroadcastChannel !== 'undefined') {
-      console.log(`[trimerge-sync] Using BroadcastChannel for ${dbName}`);
-      this.channel = new window.BroadcastChannel(dbName);
-      this.channel.onmessage = (event) => {
-        const syncData: SyncData<State, EditMetadata, Delta> = event.data;
-        for (const listener of this.listeners.keys()) {
-          this.listeners.set(listener, syncData.syncCounter);
-          listener(syncData);
-        }
-      };
-    } else if (typeof window.localStorage !== 'undefined') {
-      console.log(`[trimerge-sync] Using LocalStorage for ${dbName}`);
-      window.addEventListener('storage', (event) => {
-        if (event.key === dbName) {
-          for (const [listener, lastSyncCounter] of this.listeners.entries()) {
-            void this.sendNodesSince(listener, lastSyncCounter);
-          }
-        }
-      });
-    } else {
-      // TODO: fall back on some kind of polling?
-      throw new Error('BroadcastChannel and localStorage unavailable');
-    }
+    this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
+    this.channel.addEventListener('message', (event) => {
+      onEvent(event);
+      if (event.type === 'cursor-join') {
+        this.broadcast({
+          type: 'cursor-update',
+          userId,
+          cursorId,
+        });
+      }
+    });
+    this.sendUserList().catch(this.handleAsError('internal'));
+    this.sendNodesSince(toSyncNumber(lastSyncId)).catch(
+      this.handleAsError('internal'),
+    );
+    window.addEventListener('beforeunload', this.close);
   }
+
+  private handleAsError(code: ErrorCode) {
+    return (error: Error) => {
+      this.onEvent({
+        type: 'error',
+        code,
+        message: error.message,
+        fatal: true,
+      });
+      void this.close();
+    };
+  }
+  private broadcast(event: BackendEvent<EditMetadata, Delta, CursorState>) {
+    console.log('[TRIMERGE-SYNC] broadcasting event', event);
+    return this.channel.postMessage(event);
+  }
+  private async sendUserList() {
+    const { userId, cursorId } = this;
+    this.onEvent({
+      type: 'cursors',
+      cursors: [{ userId, cursorId }],
+    });
+    await this.broadcast({
+      type: 'cursor-join',
+      userId,
+      cursorId,
+    });
+  }
+
   private async connect(
     reconnect: boolean = false,
   ): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
     if (reconnect) {
-      console.log('Reconnecting after 3 second timeout…');
+      console.log(
+        '[TRIMERGE-SYNC] IndexedDbBackend: reconnecting after 3 second timeout…',
+      );
       await new Promise((resolve) => setTimeout(resolve, 3_000));
     }
     const db = await createIndexedDb(this.dbName);
@@ -77,28 +116,32 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
     return db;
   }
 
-  async addNodes(
-    newNodes: DiffNode<State, EditMetadata, Delta>[],
+  sendNodes(newNodes: DiffNode<EditMetadata, Delta>[]) {
+    this.addNodes(newNodes).catch(this.handleAsError('invalid-nodes'));
+  }
+
+  private async addNodes(
+    nodes: DiffNode<EditMetadata, Delta>[],
   ): Promise<number> {
     const db = await this.db;
     const tx = db.transaction(['heads', 'nodes'], 'readwrite');
 
-    const heads = tx.objectStore('heads');
-    const nodes = tx.objectStore('nodes');
+    const headsDb = tx.objectStore('heads');
+    const nodesDb = tx.objectStore('nodes');
 
     const [currentHeads, cursor] = await Promise.all([
-      heads.getAllKeys(),
-      nodes.index('syncId').openCursor(undefined, 'prev'),
+      headsDb.getAllKeys(),
+      nodesDb.index('syncId').openCursor(undefined, 'prev'),
     ]);
-    let syncId = cursor?.value.syncId ?? 0;
+    let syncCounter = cursor?.value.syncId ?? 0;
 
     const priorHeads = new Set(currentHeads);
     const headsToDelete = new Set<string>();
     const headsToAdd = new Set<string>();
     const promises: Promise<unknown>[] = [];
-    for (const node of newNodes) {
-      syncId++;
-      promises.push(nodes.add({ syncId, ...node }));
+    for (const node of nodes) {
+      syncCounter++;
+      promises.push(nodesDb.add({ syncId: syncCounter, ...node }));
       const { ref, baseRef, mergeRef } = node;
       if (baseRef !== undefined) {
         headsToDelete.add(baseRef);
@@ -111,63 +154,71 @@ export class TrimergeIndexedDb<State, EditMetadata, Delta>
     for (const ref of headsToDelete) {
       headsToAdd.delete(ref);
       if (priorHeads.has(ref)) {
-        promises.push(heads.delete(ref));
+        promises.push(headsDb.delete(ref));
       }
     }
     for (const ref of headsToAdd) {
-      promises.push(heads.add({ ref }));
+      promises.push(headsDb.add({ ref }));
     }
     await Promise.all(promises);
     await tx.done;
 
-    if (this.channel) {
-      this.channel.postMessage({ newNodes, syncCounter: syncId });
-    } else {
-      window.localStorage.setItem(this.dbName, String(syncId));
-    }
-    return syncId;
+    const syncId = toSyncId(syncCounter);
+    this.onEvent({
+      type: 'ack',
+      refs: nodes.map(({ ref }) => ref),
+      syncId,
+    });
+    this.broadcast({
+      type: 'nodes',
+      nodes: nodes,
+      syncId,
+    }).catch(this.handleAsError('internal'));
+    return syncCounter;
   }
 
-  async getSnapshot(): Promise<Snapshot<State, EditMetadata, Delta>> {
+  private async sendNodesSince(lastSyncCounter: number) {
     const db = await this.db;
-    const nodes = await db.getAllFromIndex('nodes', 'syncId');
-    return { nodes, syncCounter: getSyncCounter(nodes) };
-  }
-
-  private async sendNodesSince(
-    onNodes: SyncSubscriber<State, EditMetadata, Delta>,
-    lastSyncCounter: number,
-  ) {
-    const db = await this.db;
-    const newNodes = await db.getAllFromIndex(
+    const nodes = await db.getAllFromIndex(
       'nodes',
       'syncId',
       IDBKeyRange.lowerBound(lastSyncCounter, true),
     );
-    const syncCounter = getSyncCounter(newNodes);
-    onNodes({ newNodes, syncCounter });
-    this.listeners.set(onNodes, syncCounter);
-  }
-
-  subscribe(
-    lastSyncCounter: number,
-    onNodes: SyncSubscriber<State, EditMetadata, Delta>,
-  ): UnsubscribeFn {
-    this.listeners.set(onNodes, lastSyncCounter);
-    void this.sendNodesSince(onNodes, lastSyncCounter);
-    return () => {
-      this.listeners.delete(onNodes);
-    };
-  }
-
-  close() {
-    this.channel?.close();
-    this.db.then((db) => {
-      // To prevent reconnect
-      db.onclose = null;
-      db.close();
+    const syncCounter = getSyncCounter(nodes);
+    this.onEvent({
+      type: 'nodes',
+      nodes,
+      syncId: toSyncId(syncCounter),
     });
   }
+
+  private async closeDb() {
+    const db = await this.db;
+    const tx = db.transaction(['cursors'], 'readwrite');
+    const cursors = tx.objectStore('cursors');
+    await cursors.delete([this.userId, this.cursorId]);
+    await tx.done;
+
+    // To prevent reconnect
+    db.onclose = null;
+    db.close();
+  }
+  private async closeChannel() {
+    const { userId, cursorId } = this;
+    await this.broadcast({
+      type: 'cursor-leave',
+      userId,
+      cursorId,
+    });
+    await this.channel.close();
+  }
+  close = async (): Promise<void> => {
+    console.log(`[TRIMERGE-SYNC] IndexedDbBackend(${this.dbName}): close`);
+    window.removeEventListener('beforeunload', this.close);
+    await Promise.all([this.closeChannel(), this.closeDb()]).catch((error) => {
+      console.warn(`error closing IndexedDbBackend`, error);
+    });
+  };
 }
 
 interface TrimergeSyncDbSchema extends DBSchema {
@@ -179,9 +230,17 @@ interface TrimergeSyncDbSchema extends DBSchema {
   };
   nodes: {
     key: string;
-    value: { syncId: number } & DiffNode<any, any, any>;
+    value: { syncId: number } & DiffNode<any, any>;
     indexes: {
       syncId: number;
+    };
+  };
+  cursors: {
+    key: [string, string];
+    value: {
+      userId: string;
+      cursorId: string;
+      state?: any;
     };
   };
 }
@@ -189,7 +248,7 @@ interface TrimergeSyncDbSchema extends DBSchema {
 function createIndexedDb(
   dbName: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
-  return openDB<TrimergeSyncDbSchema>(dbName, 1, {
+  return openDB<TrimergeSyncDbSchema>(dbName, 2, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore('heads', { keyPath: 'ref' });
@@ -197,6 +256,9 @@ function createIndexedDb(
           keyPath: 'ref',
         });
         nodes.createIndex('syncId', 'syncId');
+      }
+      if (oldVersion < 2) {
+        db.createObjectStore('cursors', { keyPath: ['userId', 'cursorId'] });
       }
     },
   });

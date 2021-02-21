@@ -170,6 +170,7 @@ describe('mergeHeadNodes()', () => {
         Object {
           "baseRef": "4",
           "editMetadata": "merge 4 and 8",
+          "mergeBaseRef": undefined,
           "mergeRef": "8",
           "ref": "9",
           "value": undefined,
@@ -235,6 +236,7 @@ describe('mergeHeadNodes()', () => {
         "9" => Object {
           "baseRef": "4",
           "editMetadata": "merge 4 and 8",
+          "mergeBaseRef": undefined,
           "mergeRef": "8",
           "ref": "9",
           "value": undefined,
@@ -259,6 +261,7 @@ describe('mergeHeadNodes()', () => {
         Object {
           "baseRef": "3",
           "editMetadata": "merge 3 and 4",
+          "mergeBaseRef": undefined,
           "mergeRef": "4",
           "ref": "5",
           "value": undefined,
@@ -285,6 +288,7 @@ describe('mergeHeadNodes()', () => {
         "4" => Object {
           "baseRef": "1",
           "editMetadata": "merge 1 and 2",
+          "mergeBaseRef": undefined,
           "mergeRef": "2",
           "ref": "4",
           "value": undefined,
@@ -292,6 +296,7 @@ describe('mergeHeadNodes()', () => {
         "5" => Object {
           "baseRef": "3",
           "editMetadata": "merge 3 and 4",
+          "mergeBaseRef": undefined,
           "mergeRef": "4",
           "ref": "5",
           "value": undefined,
@@ -317,6 +322,7 @@ describe('mergeHeadNodes()', () => {
         Object {
           "baseRef": "4",
           "editMetadata": "merge 4 and 7",
+          "mergeBaseRef": "1",
           "mergeRef": "7",
           "ref": "8",
           "value": Object {
@@ -381,6 +387,7 @@ describe('mergeHeadNodes()', () => {
         "8" => Object {
           "baseRef": "4",
           "editMetadata": "merge 4 and 7",
+          "mergeBaseRef": "1",
           "mergeRef": "7",
           "ref": "8",
           "value": Object {
@@ -412,6 +419,7 @@ describe('mergeHeadNodes()', () => {
         Object {
           "baseRef": "7",
           "editMetadata": "merge 7 and 8",
+          "mergeBaseRef": "1",
           "mergeRef": "8",
           "ref": "9",
           "value": Object {
@@ -480,6 +488,7 @@ describe('mergeHeadNodes()', () => {
         "8" => Object {
           "baseRef": "3",
           "editMetadata": "merge 3 and 5",
+          "mergeBaseRef": "1",
           "mergeRef": "5",
           "ref": "8",
           "value": Object {
@@ -491,6 +500,7 @@ describe('mergeHeadNodes()', () => {
         "9" => Object {
           "baseRef": "7",
           "editMetadata": "merge 7 and 8",
+          "mergeBaseRef": "1",
           "mergeRef": "8",
           "ref": "9",
           "value": Object {
@@ -523,6 +533,7 @@ describe('mergeHeadNodes()', () => {
         Object {
           "baseRef": "8",
           "editMetadata": "merge 8 and 9",
+          "mergeBaseRef": "1",
           "mergeRef": "9",
           "ref": "10",
           "value": Object {
@@ -599,6 +610,7 @@ describe('mergeHeadNodes()', () => {
         "9" => Object {
           "baseRef": "3",
           "editMetadata": "merge 3 and 5",
+          "mergeBaseRef": "1",
           "mergeRef": "5",
           "ref": "9",
           "value": Object {
@@ -610,6 +622,7 @@ describe('mergeHeadNodes()', () => {
         "10" => Object {
           "baseRef": "8",
           "editMetadata": "merge 8 and 9",
+          "mergeBaseRef": "1",
           "mergeRef": "9",
           "ref": "10",
           "value": Object {
@@ -644,6 +657,7 @@ describe('mergeHeadNodes()', () => {
         Object {
           "baseRef": "3",
           "editMetadata": "merge 3 and 7",
+          "mergeBaseRef": "1",
           "mergeRef": "7",
           "ref": "8",
           "value": Object {
@@ -705,6 +719,7 @@ describe('mergeHeadNodes()', () => {
         "7" => Object {
           "baseRef": "5",
           "editMetadata": "merge 5 and 6",
+          "mergeBaseRef": "4",
           "mergeRef": "6",
           "ref": "7",
           "value": Object {
@@ -719,6 +734,7 @@ describe('mergeHeadNodes()', () => {
         "8" => Object {
           "baseRef": "3",
           "editMetadata": "merge 3 and 7",
+          "mergeBaseRef": "1",
           "mergeRef": "7",
           "ref": "8",
           "value": Object {

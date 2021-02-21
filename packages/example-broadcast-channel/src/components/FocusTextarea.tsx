@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 
 import styles from './Focus.module.css';
 import { FocusCarets } from './FocusCarets';
-import { UpdateStateFn } from '../lib/trimergeClient';
+import { UpdateStateFn } from '../lib/trimergeHooks';
 import { useFocusInfo, useUpdateFocus } from './focusHooks';
 import { StateWithUsers } from 'trimerge-sync-user-state';
 

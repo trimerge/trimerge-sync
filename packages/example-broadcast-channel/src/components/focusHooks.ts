@@ -2,7 +2,7 @@ import materialColorHash from 'material-color-hash';
 import { CSSProperties, useMemo } from 'react';
 import { StateWithUsers, updateUser } from 'trimerge-sync-user-state';
 import { updateInputValueMovingSelection } from './update-cursor-positions';
-import { UpdateStateFn } from '../lib/trimergeClient';
+import { UpdateStateFn } from '../lib/trimergeHooks';
 
 export function useFocusInfo<State extends StateWithUsers>(
   id: string,
