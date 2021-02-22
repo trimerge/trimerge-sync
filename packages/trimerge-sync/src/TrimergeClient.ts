@@ -83,8 +83,14 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
 
       case 'cursor-update':
       case 'cursor-join': {
-        const { userId, cursorId } = event;
-        this.cursorMap.set(getFullId(userId, cursorId), event);
+        const { userId, cursorId, ref, state } = event;
+        this.cursorMap.set(getFullId(userId, cursorId), {
+          userId,
+          cursorId,
+          ref,
+          state,
+          self: userId === this.userId && cursorId === this.cursorId,
+        });
         this.emitCursorsChange();
         break;
       }
@@ -131,7 +137,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     const ref = this.addNewNode(value, editMetadata);
     this.setCursorState(cursorState, ref);
     this.mergeHeads();
-    this.newCursorState = { ref, state: cursorState };
+    this.emitStateChange();
     this.sync();
   }
 
@@ -205,14 +211,6 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
 
   private syncPromise: Promise<boolean> | undefined;
 
-  sync(): Promise<boolean> | undefined {
-    this.emitStateChange();
-    if (!this.syncPromise && this.unsyncedNodes.length > 0) {
-      this.syncPromise = this.doSync();
-    }
-    return this.syncPromise;
-  }
-
   private emitStateChange() {
     const state = this.state;
     for (const [subscriber, lastState] of this.stateSubscribers.entries()) {
@@ -234,8 +232,17 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     }
   }
 
+  private get needsSync(): boolean {
+    return this.unsyncedNodes.length > 0 || this.newCursorState !== undefined;
+  }
+  sync(): Promise<boolean> | undefined {
+    if (!this.syncPromise && this.needsSync) {
+      this.syncPromise = this.doSync();
+    }
+    return this.syncPromise;
+  }
   private async doSync() {
-    while (this.unsyncedNodes.length > 0 || this.newCursorState) {
+    while (this.needsSync) {
       await waitMs(this.bufferMs);
       const nodes = this.unsyncedNodes;
       this.unsyncedNodes = [];

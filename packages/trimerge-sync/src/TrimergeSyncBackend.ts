@@ -18,7 +18,7 @@ export type DiffNode<EditMetadata, Delta> = {
 export type CursorRef<CursorState> = {
   ref: string | undefined;
   state: CursorState | undefined;
-  self?: true;
+  self?: boolean;
 };
 
 export type CursorInfo<CursorState> = CursorRef<CursorState> & {

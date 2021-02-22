@@ -88,6 +88,7 @@ export function App() {
           updateCursor={updateCursor}
         />
         Raw State: <pre>{JSON.stringify(state, undefined, 2)}</pre>
+        Raw Cursor State: <pre>{JSON.stringify(cursors, undefined, 2)}</pre>
       </div>
     </div>
   );

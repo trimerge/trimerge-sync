@@ -172,8 +172,10 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     for (const ref of headsToAdd) {
       promises.push(headsDb.add({ ref }));
     }
-    await Promise.all(promises);
-    await tx.done;
+    if (promises.length > 0) {
+      await Promise.all(promises);
+      await tx.done;
+    }
 
     const syncId = toSyncId(syncCounter);
     this.onEvent({
@@ -183,9 +185,20 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     });
     this.broadcast({
       type: 'nodes',
-      nodes: nodes,
+      nodes,
       syncId,
     }).catch(this.handleAsError('internal'));
+
+    if (cursor) {
+      const { userId, cursorId } = this;
+      this.broadcast({
+        type: 'cursor-update',
+        ...cursor,
+        userId,
+        cursorId,
+      }).catch(this.handleAsError('internal'));
+    }
+
     return syncCounter;
   }
 

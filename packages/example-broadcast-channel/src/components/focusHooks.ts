@@ -38,6 +38,9 @@ export function useUpdateFocus(
       if (!ref.current) {
         return;
       }
+      if (ref.current !== document.activeElement) {
+        return updateCursor({});
+      }
       const { selectionStart, selectionEnd } = ref.current;
       return updateCursor({
         focusId,
