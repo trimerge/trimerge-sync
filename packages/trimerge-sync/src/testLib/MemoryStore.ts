@@ -92,28 +92,19 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
           throw new Error('already closed');
         }
         void this.queue.add(async () => {
-          if (nodes.length > 0) {
-            this.nodes.push(...nodes);
-            const syncId = this.syncId;
-            this.broadcast(userCursor, {
-              type: 'nodes',
-              nodes,
-              syncId,
-            });
-            onEvent({
-              type: 'ack',
-              refs: nodes.map(({ ref }) => ref),
-              syncId,
-            });
-          }
-          if (cursor) {
-            this.broadcast(userCursor, {
-              type: 'cursor-update',
-              ...cursor,
-              userId,
-              cursorId,
-            });
-          }
+          this.nodes.push(...nodes);
+          const syncId = this.syncId;
+          this.broadcast(userCursor, {
+            type: 'nodes',
+            nodes,
+            syncId,
+            cursors: cursor ? [{ ...cursor, userId, cursorId }] : [],
+          });
+          onEvent({
+            type: 'ack',
+            refs: nodes.map(({ ref }) => ref),
+            syncId,
+          });
         });
       },
 

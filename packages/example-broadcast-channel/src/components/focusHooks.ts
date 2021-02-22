@@ -2,7 +2,7 @@ import { CSSProperties, useMemo } from 'react';
 import { updateInputValueMovingSelection } from './update-cursor-positions';
 import { CursorInfo } from 'trimerge-sync';
 import { UpdateCursorStateFn } from '../lib/trimergeHooks';
-import { getUserColor } from './focusColor';
+import { getCursorStyle } from './CursorColor';
 import { FocusCursorState } from '../lib/FocusCursorState';
 
 export function useFocusInfo<CursorState extends FocusCursorState>(
@@ -17,7 +17,10 @@ export function useFocusInfo<CursorState extends FocusCursorState>(
       ({ self, state }) => !self && state?.focusId === id,
     );
     const boxShadow = otherCursors
-      .map((info, index) => `0 0 0 ${2 * (1 + index)}px ${getUserColor(info)}`)
+      .map(
+        (info, index) =>
+          `0 0 0 ${2 * (1 + index)}px ${getCursorStyle(info).backgroundColor}`,
+      )
       .join(',');
     otherCursors.reverse();
     return {

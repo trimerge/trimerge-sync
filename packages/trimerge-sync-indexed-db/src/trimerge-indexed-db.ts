@@ -61,10 +61,8 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       onEvent(event);
       if (event.type === 'cursor-join') {
         this.broadcast({
-          type: 'cursor-update',
-          userId,
-          cursorId,
-          ...this.cursor,
+          type: 'cursors',
+          cursors: [{ userId, cursorId, ...this.cursor }],
         });
       }
     });
@@ -183,21 +181,28 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       refs: nodes.map(({ ref }) => ref),
       syncId,
     });
-    this.broadcast({
-      type: 'nodes',
-      nodes,
-      syncId,
-    }).catch(this.handleAsError('internal'));
-
-    if (cursor) {
-      const { userId, cursorId } = this;
-      this.broadcast({
-        type: 'cursor-update',
-        ...cursor,
-        userId,
-        cursorId,
-      }).catch(this.handleAsError('internal'));
-    }
+    const cursors = cursor
+      ? [
+          {
+            ...cursor,
+            userId: this.userId,
+            cursorId: this.cursorId,
+          },
+        ]
+      : [];
+    this.broadcast(
+      nodes.length > 0
+        ? {
+            type: 'nodes',
+            nodes,
+            syncId,
+            cursors,
+          }
+        : {
+            type: 'cursors',
+            cursors,
+          },
+    ).catch(this.handleAsError('internal'));
 
     return syncCounter;
   }
@@ -214,6 +219,7 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       type: 'nodes',
       nodes,
       syncId: toSyncId(syncCounter),
+      cursors: [],
     });
   }
 

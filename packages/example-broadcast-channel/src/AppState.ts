@@ -14,7 +14,6 @@ export type AppState = {
 export const defaultState = {
   title: '',
   text: '',
-  users: {},
 };
 
 export const differ: Differ<AppState, string, Delta> = {

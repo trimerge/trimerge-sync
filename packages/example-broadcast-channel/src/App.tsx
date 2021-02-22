@@ -8,6 +8,7 @@ import { useDemoAppCursors, useDemoAppState } from './AppState';
 import { FocusInput } from './components/FocusInput';
 import { FocusTextarea } from './components/FocusTextarea';
 import { currentTabId } from './lib/currentTabId';
+import { getCursorStyle } from './components/CursorColor';
 
 enableMapSet();
 
@@ -26,15 +27,16 @@ export function App() {
           }
           return 0;
         })
-        .map(({ cursorId }) => (
+        .map((cursor) => (
           <span
-            key={cursorId}
+            key={cursor.cursorId}
             className={classNames(styles.userPill, {
-              [styles.currentUser]: cursorId === currentTabId,
+              [styles.currentUser]: cursor.cursorId === currentTabId,
             })}
+            style={getCursorStyle(cursor)}
           >
-            {currentTabId === cursorId ? '👑' : '🤖'}
-            {cursorId}
+            {currentTabId === cursor.cursorId ? '👑' : '🤖'}
+            {cursor.cursorId}
           </span>
         )),
     [cursors],

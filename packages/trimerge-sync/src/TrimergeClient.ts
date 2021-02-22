@@ -49,6 +49,16 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     this.backend = getSyncBackend(userId, cursorId, undefined, this.onEvent);
   }
 
+  private setCursor(cursor: CursorInfo<CursorState>) {
+    const { userId, cursorId, ref, state } = cursor;
+    this.cursorMap.set(getFullId(userId, cursorId), {
+      userId,
+      cursorId,
+      ref,
+      state,
+      self: userId === this.userId && cursorId === this.cursorId,
+    });
+  }
   private onEvent: OnEventFn<EditMetadata, Delta, CursorState> = (event) => {
     console.log('[TRIMERGE-SYNC] got event', event);
     switch (event.type) {
@@ -67,30 +77,20 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
         break;
 
       case 'cursors':
-        this.cursorMap.clear();
         for (const cursor of event.cursors) {
-          this.cursorMap.set(getFullId(cursor.userId, cursor.cursorId), cursor);
+          this.setCursor(cursor);
         }
         this.emitCursorsChange();
         break;
 
       case 'cursor-leave': {
-        const { userId, cursorId } = event;
-        this.cursorMap.delete(getFullId(userId, cursorId));
+        this.cursorMap.delete(getFullId(event.userId, event.cursorId));
         this.emitCursorsChange();
         break;
       }
 
-      case 'cursor-update':
       case 'cursor-join': {
-        const { userId, cursorId, ref, state } = event;
-        this.cursorMap.set(getFullId(userId, cursorId), {
-          userId,
-          cursorId,
-          ref,
-          state,
-          self: userId === this.userId && cursorId === this.cursorId,
-        });
+        this.setCursor(event);
         this.emitCursorsChange();
         break;
       }
