@@ -71,9 +71,6 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
         type: 'nodes',
         nodes,
         syncId,
-      });
-      onEvent({
-        type: 'cursors',
         cursors: Array.from(this.cursors.values()).map(({ info }) => info),
       });
       const info: CursorInfo<CursorState> = {
