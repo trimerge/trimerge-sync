@@ -4,7 +4,7 @@ import { enableMapSet, produce } from 'immer';
 
 import styles from './App.module.css';
 
-import { useDemoAppState } from './AppState';
+import { useDemoAppCursors, useDemoAppState } from './AppState';
 import { FocusInput } from './components/FocusInput';
 import { FocusTextarea } from './components/FocusTextarea';
 import { currentTabId } from './lib/currentTabId';
@@ -12,9 +12,8 @@ import { currentTabId } from './lib/currentTabId';
 enableMapSet();
 
 export function App() {
-  const currentLeaderId = undefined; //useCurrentLeader();
-  // const currentUsers = useCurrentUsers();
-  const [state, updateState, cursors] = useDemoAppState();
+  const [state, updateState] = useDemoAppState();
+  const [cursors, updateCursor] = useDemoAppCursors();
   const users = useMemo(
     () =>
       Array.from(cursors)
@@ -34,11 +33,11 @@ export function App() {
               [styles.currentUser]: cursorId === currentTabId,
             })}
           >
-            {currentLeaderId === cursorId ? '👑' : '🤖'}
+            {currentTabId === cursorId ? '👑' : '🤖'}
             {cursorId}
           </span>
         )),
-    [currentLeaderId, cursors],
+    [cursors],
   );
 
   const onChangeTitle = useCallback(
@@ -76,10 +75,8 @@ export function App() {
             id="title"
             value={state.title}
             onChange={onChangeTitle}
-            currentUser={currentTabId}
-            state={state}
-            updateState={updateState}
-            focusMetadata="focus title"
+            cursors={cursors}
+            updateCursor={updateCursor}
           />
         </div>
         <FocusTextarea
@@ -87,10 +84,8 @@ export function App() {
           value={state.text}
           onChange={onChangeText}
           rows={10}
-          currentUser={currentTabId}
-          state={state}
-          updateState={updateState}
-          focusMetadata="focus text"
+          cursors={cursors}
+          updateCursor={updateCursor}
         />
         Raw State: <pre>{JSON.stringify(state, undefined, 2)}</pre>
       </div>

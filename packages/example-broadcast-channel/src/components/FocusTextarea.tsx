@@ -2,47 +2,30 @@ import React, { useRef } from 'react';
 
 import styles from './Focus.module.css';
 import { FocusCarets } from './FocusCarets';
-import { UpdateStateFn } from '../lib/trimergeHooks';
+import { UpdateCursorStateFn } from '../lib/trimergeHooks';
 import { useFocusInfo, useUpdateFocus } from './focusHooks';
-import { StateWithUsers } from 'trimerge-sync-user-state';
+import { CursorInfo } from 'trimerge-sync';
+import { FocusCursorState } from '../lib/FocusCursorState';
 
-export function FocusTextarea<State extends StateWithUsers, EditMetadata>({
+export function FocusTextarea({
   id,
   value = '',
-  currentUser,
-  state,
-  updateState,
-  focusMetadata,
+  cursors,
+  updateCursor,
   ...rest
 }: {
   id: string;
   value: string;
-  state: State;
-  updateState?: UpdateStateFn<State, EditMetadata>;
-  focusMetadata: EditMetadata;
-  currentUser: string;
+  cursors: readonly CursorInfo<FocusCursorState>[];
+  updateCursor: UpdateCursorStateFn<FocusCursorState>;
 } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  const { users } = state;
-  const { style, otherFocusedUserIds } = useFocusInfo(id, currentUser, state);
+  const { style, otherCursors } = useFocusInfo(id, cursors);
   const ref = useRef<HTMLTextAreaElement>(null);
-  const updateFocus = useUpdateFocus(
-    id,
-    ref,
-    currentUser,
-    state,
-    focusMetadata,
-    value,
-    updateState,
-  );
+  const updateFocus = useUpdateFocus(id, ref, updateCursor, value);
 
   return (
     <span className={styles.root} style={style}>
-      <FocusCarets
-        dom={ref.current}
-        users={users}
-        otherFocusedUserIds={otherFocusedUserIds}
-        includeNames
-      />
+      <FocusCarets dom={ref.current} cursors={otherCursors} includeNames />
       <textarea
         ref={ref}
         {...rest}

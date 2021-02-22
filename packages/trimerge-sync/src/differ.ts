@@ -15,10 +15,6 @@ export type PatchFn<State, Delta> = (
   delta: Delta | undefined,
 ) => State;
 
-export type NormalizeFn<State, EditMetadata> = (
-  state: NodeStateRef<State, EditMetadata>,
-) => NodeStateRef<State, EditMetadata>;
-
 export type NodeState<State, EditMetadata> = {
   value: State;
   editMetadata: EditMetadata;

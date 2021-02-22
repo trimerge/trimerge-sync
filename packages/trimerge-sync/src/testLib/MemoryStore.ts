@@ -76,35 +76,44 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
         type: 'cursors',
         cursors: Array.from(this.cursors.values()).map(({ info }) => info),
       });
-      this.cursors.set(userCursor, {
-        info: { userId, cursorId },
-        onEvent,
-      });
-      this.broadcast(userCursor, {
-        type: 'cursor-join',
+      const info: CursorInfo<CursorState> = {
         userId,
         cursorId,
-      });
+        ref: undefined,
+        state: undefined,
+      };
+      this.cursors.set(userCursor, { info, onEvent });
+      this.broadcast(userCursor, { type: 'cursor-join', ...info });
     });
 
     return {
-      sendNodes: (nodes): void => {
+      update: (nodes, cursor) => {
         if (closed) {
           throw new Error('already closed');
         }
         void this.queue.add(async () => {
-          this.nodes.push(...nodes);
-          const syncId = this.syncId;
-          this.broadcast(userCursor, {
-            type: 'nodes',
-            nodes,
-            syncId,
-          });
-          onEvent({
-            type: 'ack',
-            refs: nodes.map(({ ref }) => ref),
-            syncId,
-          });
+          if (nodes.length > 0) {
+            this.nodes.push(...nodes);
+            const syncId = this.syncId;
+            this.broadcast(userCursor, {
+              type: 'nodes',
+              nodes,
+              syncId,
+            });
+            onEvent({
+              type: 'ack',
+              refs: nodes.map(({ ref }) => ref),
+              syncId,
+            });
+          }
+          if (cursor) {
+            this.broadcast(userCursor, {
+              type: 'cursor-update',
+              ...cursor,
+              userId,
+              cursorId,
+            });
+          }
         });
       },
 

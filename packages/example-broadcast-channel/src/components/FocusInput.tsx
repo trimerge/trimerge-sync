@@ -1,50 +1,34 @@
 import React, { useRef } from 'react';
-import { StateWithUsers } from 'trimerge-sync-user-state';
 
 import styles from './Focus.module.css';
 
-import { UpdateStateFn } from '../lib/trimergeHooks';
+import { UpdateCursorStateFn } from '../lib/trimergeHooks';
 import { useFocusInfo, useUpdateFocus } from './focusHooks';
 import { FocusBorders } from './FocusBorders';
 import { FocusCarets } from './FocusCarets';
+import { CursorInfo } from 'trimerge-sync';
+import { FocusCursorState } from '../lib/FocusCursorState';
 
-export function FocusInput<State extends StateWithUsers, EditMetadata>({
+export function FocusInput({
   id,
   value = '',
-  currentUser,
-  state,
-  updateState,
-  focusMetadata,
+  cursors,
+  updateCursor,
   ...rest
 }: {
   id: string;
   value: string;
-  state: State;
-  updateState?: UpdateStateFn<State, EditMetadata>;
-  focusMetadata: EditMetadata;
-  currentUser: string;
+  cursors: readonly CursorInfo<FocusCursorState>[];
+  updateCursor: UpdateCursorStateFn<FocusCursorState>;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
-  const { users } = state;
-  const { style, otherFocusedUserIds } = useFocusInfo(id, currentUser, state);
+  const { style, otherCursors } = useFocusInfo(id, cursors);
   const ref = useRef<HTMLInputElement>(null);
-  const updateFocus = useUpdateFocus(
-    id,
-    ref,
-    currentUser,
-    state,
-    focusMetadata,
-    value,
-    updateState,
-  );
+  const updateFocus = useUpdateFocus(id, ref, updateCursor, value);
 
   return (
     <span className={styles.root} style={style}>
-      <FocusBorders users={users} otherFocusedUserIds={otherFocusedUserIds} />
-      <FocusCarets
-        dom={ref.current}
-        users={users}
-        otherFocusedUserIds={otherFocusedUserIds}
-      />
+      <FocusBorders cursors={otherCursors} />
+      <FocusCarets dom={ref.current} cursors={otherCursors} />
       <input
         ref={ref}
         {...rest}
@@ -53,7 +37,7 @@ export function FocusInput<State extends StateWithUsers, EditMetadata>({
         onInput={updateFocus}
         onFocus={updateFocus}
         onBlur={updateFocus}
-        disabled={rest.disabled || !updateState}
+        disabled={rest.disabled}
       />
     </span>
   );

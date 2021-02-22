@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  CursorInfo,
-  Differ,
-  GetSyncBackendFn,
-  TrimergeClient,
-} from 'trimerge-sync';
+import { CursorInfo, Differ, TrimergeClient } from 'trimerge-sync';
 import { createIndexedDbBackendFactory } from 'trimerge-sync-indexed-db';
 
 export type UpdateStateFn<State, EditMetadata> = (
   newState: State,
   editMetadata: EditMetadata,
+) => void;
+export type UpdateCursorStateFn<CursorState> = (
+  newCursorState: CursorState,
 ) => void;
 
 const TRIMERGE_CLIENT_CACHE: Record<
@@ -35,32 +33,56 @@ function getCachedTrimergeClient<State, EditMetadata, Delta, CursorState>(
   return TRIMERGE_CLIENT_CACHE[key];
 }
 
+export function useTrimergeStateShutdown<
+  State,
+  EditMetadata,
+  Delta,
+  CursorState
+>(
+  docId: string,
+  userId: string,
+  cursorId: string,
+  differ: Differ<State, EditMetadata, Delta>,
+): void {
+  const client = getCachedTrimergeClient(docId, userId, cursorId, differ);
+
+  // Setup client
+  useEffect(() => {
+    return () => {
+      client.shutdown();
+    };
+  }, [client]);
+}
 export function useTrimergeState<State, EditMetadata, Delta, CursorState>(
   docId: string,
   userId: string,
   cursorId: string,
   differ: Differ<State, EditMetadata, Delta>,
-): [
-  State,
-  UpdateStateFn<State, EditMetadata>,
-  readonly CursorInfo<CursorState>[],
-] {
+): [State, UpdateStateFn<State, EditMetadata>] {
   const client = getCachedTrimergeClient(docId, userId, cursorId, differ);
   const [state, setState] = useState(client.state);
+
+  const updateState = useMemo(() => client.updateState.bind(client), [client]);
+
+  useEffect(() => client.subscribeState(setState), [client]);
+
+  return [state, updateState];
+}
+
+export function useTrimergeCursors<State, EditMetadata, Delta, CursorState>(
+  docId: string,
+  userId: string,
+  cursorId: string,
+  differ: Differ<State, EditMetadata, Delta>,
+): [readonly CursorInfo<CursorState>[], UpdateCursorStateFn<CursorState>] {
+  const client = getCachedTrimergeClient(docId, userId, cursorId, differ);
   const [cursors, setCursors] = useState(client.cursors);
 
-  const updateState = useMemo(() => client.addEdit.bind(client), [client]);
+  const updateCursorState = useMemo(() => client.updateCursor.bind(client), [
+    client,
+  ]);
 
-  // Setup client
-  useEffect(() => {
-    const unsubState = client.subscribeState(setState);
-    const unsubCursors = client.subscribeCursors(setCursors);
-    return () => {
-      unsubState();
-      unsubCursors();
-      client.shutdown();
-    };
-  }, [client]);
+  useEffect(() => client.subscribeCursors(setCursors), [client]);
 
-  return [state, updateState, cursors];
+  return [cursors, updateCursorState];
 }

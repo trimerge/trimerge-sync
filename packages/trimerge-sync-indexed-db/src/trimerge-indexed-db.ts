@@ -1,5 +1,6 @@
 import {
   BackendEvent,
+  CursorRef,
   DiffNode,
   ErrorCode,
   GetSyncBackendFn,
@@ -42,6 +43,7 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
   private readonly channel: BroadcastChannel<
     BackendEvent<EditMetadata, Delta, CursorState>
   >;
+  private cursor: CursorRef<CursorState> = { ref: undefined, state: undefined };
 
   public constructor(
     private readonly docId: string,
@@ -62,6 +64,7 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
           type: 'cursor-update',
           userId,
           cursorId,
+          ...this.cursor,
         });
       }
     });
@@ -91,12 +94,13 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     const { userId, cursorId } = this;
     this.onEvent({
       type: 'cursors',
-      cursors: [{ userId, cursorId }],
+      cursors: [{ userId, cursorId, ...this.cursor }],
     });
     await this.broadcast({
       type: 'cursor-join',
       userId,
       cursorId,
+      ...this.cursor,
     });
   }
 
@@ -116,24 +120,32 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     return db;
   }
 
-  sendNodes(newNodes: DiffNode<EditMetadata, Delta>[]) {
-    this.addNodes(newNodes).catch(this.handleAsError('invalid-nodes'));
+  update(
+    newNodes: DiffNode<EditMetadata, Delta>[],
+    cursor: CursorRef<CursorState> | undefined,
+  ) {
+    this.doUpdate(newNodes, cursor).catch(this.handleAsError('invalid-nodes'));
   }
 
-  private async addNodes(
+  private async doUpdate(
     nodes: DiffNode<EditMetadata, Delta>[],
+    cursor: CursorRef<CursorState> | undefined,
   ): Promise<number> {
+    if (cursor) {
+      this.cursor = cursor;
+    }
     const db = await this.db;
     const tx = db.transaction(['heads', 'nodes'], 'readwrite');
 
     const headsDb = tx.objectStore('heads');
     const nodesDb = tx.objectStore('nodes');
 
-    const [currentHeads, cursor] = await Promise.all([
+    const [currentHeads, syncIdCursor] = await Promise.all([
       headsDb.getAllKeys(),
+      // Gets the last item in the nodes db based on the syncId index
       nodesDb.index('syncId').openCursor(undefined, 'prev'),
     ]);
-    let syncCounter = cursor?.value.syncId ?? 0;
+    let syncCounter = syncIdCursor?.value.syncId ?? 0;
 
     const priorHeads = new Set(currentHeads);
     const headsToDelete = new Set<string>();

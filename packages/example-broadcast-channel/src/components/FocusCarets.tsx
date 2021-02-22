@@ -1,33 +1,34 @@
 import getCaretCoordinates from 'textarea-caret';
 import materialColorHash from 'material-color-hash';
 import React, { useMemo } from 'react';
-import { BaseUserState } from 'trimerge-sync-user-state';
+import { CursorInfo } from 'trimerge-sync';
+import { FocusCursorState } from '../lib/FocusCursorState';
 
-export function FocusCarets({
+export function FocusCarets<CursorState extends FocusCursorState>({
   dom,
-  users,
-  otherFocusedUserIds,
+  cursors,
   includeNames = false,
 }: {
   dom: HTMLInputElement | HTMLTextAreaElement | null;
-  users: Record<string, BaseUserState>;
-  otherFocusedUserIds: readonly string[];
+  cursors: readonly CursorInfo<CursorState>[];
   includeNames?: boolean;
 }) {
   return (
     <>
       {dom &&
-        otherFocusedUserIds.map((userId) => {
-          const { name, selectionStart, selectionEnd } = users[userId];
+        cursors.map(({ userId, cursorId, state }) => {
+          const selectionStart = state?.selectionStart;
+          const selectionEnd = state?.selectionEnd;
           if (selectionStart === undefined || selectionEnd === undefined) {
             return null;
           }
+          const fullId = userId + ':' + cursorId;
           return (
             <FocusCaret
-              key={userId}
+              key={fullId}
               dom={dom}
-              name={includeNames ? name : undefined}
-              userId={userId}
+              name={includeNames ? cursorId : undefined}
+              id={fullId}
               selectionStart={selectionStart}
               selectionEnd={selectionEnd}
             />
@@ -39,13 +40,13 @@ export function FocusCarets({
 
 function FocusCaret({
   dom,
-  userId,
+  id,
   name,
   selectionStart,
   selectionEnd,
 }: {
   dom: HTMLInputElement | HTMLTextAreaElement;
-  userId: string;
+  id: string;
   name?: string;
   selectionStart: number;
   selectionEnd: number;
@@ -58,7 +59,7 @@ function FocusCaret({
   );
   const { left: endCaretLeft } = getCaretCoordinates(dom, selectionEnd);
   return useMemo(() => {
-    const { backgroundColor } = materialColorHash(userId, 500);
+    const { backgroundColor } = materialColorHash(id, 500);
     return (
       <>
         {name && (
@@ -88,5 +89,5 @@ function FocusCaret({
         />
       </>
     );
-  }, [startCaretLeft, startCaretTop, endCaretLeft, name, userId]);
+  }, [startCaretLeft, startCaretTop, endCaretLeft, name, id]);
 }
