@@ -67,9 +67,16 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
           this.addNode(node, false);
         }
         this.lastSyncId = event.syncId;
-
         this.mergeHeads();
+        this.emitStateChange();
         this.sync();
+        if (event.cursors.length > 0) {
+          for (const cursor of event.cursors) {
+            this.setCursor(cursor);
+          }
+          this.emitCursorsChange();
+        }
+
         break;
 
       case 'ack':
