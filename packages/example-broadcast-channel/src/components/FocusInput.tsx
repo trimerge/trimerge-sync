@@ -3,7 +3,7 @@ import React, { useRef } from 'react';
 import styles from './Focus.module.css';
 
 import { UpdateCursorStateFn } from '../lib/trimergeHooks';
-import { useFocusInfo, useUpdateFocus } from './focusHooks';
+import { useFocusInfo, useSelectionListen } from './focusHooks';
 import { FocusBorders } from './FocusBorders';
 import { FocusCarets } from './FocusCarets';
 import { CursorInfo } from 'trimerge-sync';
@@ -23,22 +23,13 @@ export function FocusInput({
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   const { style, otherCursors } = useFocusInfo(id, cursors);
   const ref = useRef<HTMLInputElement>(null);
-  const updateFocus = useUpdateFocus(id, ref, updateCursor, value);
+  useSelectionListen(id, ref, updateCursor);
 
   return (
     <span className={styles.root} style={style}>
       <FocusBorders cursors={otherCursors} />
       <FocusCarets dom={ref.current} cursors={otherCursors} />
-      <input
-        ref={ref}
-        {...rest}
-        value={value}
-        onSelect={updateFocus}
-        onInput={updateFocus}
-        onFocus={updateFocus}
-        onBlur={updateFocus}
-        disabled={rest.disabled}
-      />
+      <input ref={ref} {...rest} value={value} disabled={rest.disabled} />
     </span>
   );
 }

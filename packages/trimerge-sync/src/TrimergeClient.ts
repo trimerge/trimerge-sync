@@ -42,7 +42,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
       CursorState
     >,
     private readonly differ: Differ<State, EditMetadata, Delta>,
-    private readonly bufferMs: number = 100,
+    private readonly bufferMs: number = 0,
   ) {
     console.log('[TRIMERGE-SYNC] new TrimergeClient');
     this.selfFullId = getFullId(userId, cursorId);

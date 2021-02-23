@@ -3,7 +3,7 @@ import React, { useRef } from 'react';
 import styles from './Focus.module.css';
 import { FocusCarets } from './FocusCarets';
 import { UpdateCursorStateFn } from '../lib/trimergeHooks';
-import { useFocusInfo, useUpdateFocus } from './focusHooks';
+import { useFocusInfo, useSelectionListen } from './focusHooks';
 import { CursorInfo } from 'trimerge-sync';
 import { FocusCursorState } from '../lib/FocusCursorState';
 
@@ -21,20 +21,12 @@ export function FocusTextarea({
 } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const { style, otherCursors } = useFocusInfo(id, cursors);
   const ref = useRef<HTMLTextAreaElement>(null);
-  const updateFocus = useUpdateFocus(id, ref, updateCursor, value);
+  useSelectionListen(id, ref, updateCursor);
 
   return (
     <span className={styles.root} style={style}>
       <FocusCarets dom={ref.current} cursors={otherCursors} includeNames />
-      <textarea
-        ref={ref}
-        {...rest}
-        value={value}
-        onSelect={updateFocus}
-        onInput={updateFocus}
-        onFocus={updateFocus}
-        onBlur={updateFocus}
-      />
+      <textarea ref={ref} {...rest} value={value} />
     </span>
   );
 }

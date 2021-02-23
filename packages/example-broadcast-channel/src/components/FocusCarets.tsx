@@ -1,8 +1,9 @@
 import getCaretCoordinates from 'textarea-caret';
 import materialColorHash from 'material-color-hash';
-import React, { useMemo } from 'react';
+import React, { useLayoutEffect, useMemo } from 'react';
 import { CursorInfo } from 'trimerge-sync';
 import { FocusCursorState } from '../lib/FocusCursorState';
+import styles from './Focus.module.css';
 
 export function FocusCarets<CursorState extends FocusCursorState>({
   dom,
@@ -59,34 +60,24 @@ function FocusCaret({
   );
   const { left: endCaretLeft } = getCaretCoordinates(dom, selectionEnd);
   return useMemo(() => {
-    const { backgroundColor } = materialColorHash(id, 500);
+    const style = materialColorHash(id, 500);
     return (
       <>
-        {name && (
-          <div
-            style={{
-              position: 'absolute',
-              backgroundColor,
-              opacity: 0.5,
-              left: `${startCaretLeft}px`,
-              bottom: `${startCaretTop - 3}px`,
-            }}
-          >
-            {name}
-          </div>
-        )}
         <div
+          className={styles.caret}
           style={{
-            position: 'absolute',
-            backgroundColor,
-            opacity: 0.5,
+            ...style,
             left: `${startCaretLeft}px`,
             width: `${Math.max(endCaretLeft - startCaretLeft, 2)}px`,
             top: `${startCaretTop - 3}px`,
-            height: `1em`,
-            zIndex: -1,
           }}
-        />
+        >
+          {name && (
+            <div className={styles.caretName} style={style}>
+              {name}
+            </div>
+          )}
+        </div>
       </>
     );
   }, [startCaretLeft, startCaretTop, endCaretLeft, name, id]);

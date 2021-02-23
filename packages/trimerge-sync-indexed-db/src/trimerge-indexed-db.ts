@@ -279,7 +279,7 @@ interface TrimergeSyncDbSchema extends DBSchema {
 function createIndexedDb(
   dbName: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
-  return openDB<TrimergeSyncDbSchema>(dbName, 2, {
+  return openDB<TrimergeSyncDbSchema>(dbName, 1, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore('heads', { keyPath: 'ref' });
@@ -287,9 +287,6 @@ function createIndexedDb(
           keyPath: 'ref',
         });
         nodes.createIndex('syncId', 'syncId');
-      }
-      if (oldVersion < 2) {
-        db.createObjectStore('cursors', { keyPath: ['userId', 'cursorId'] });
       }
     },
   });
