@@ -1,20 +1,19 @@
 import { Delta } from 'jsondiffpatch';
 
-import { useTrimergeState } from './lib/trimergeHooks';
+import { useTrimergeCursors, useTrimergeState } from './lib/trimergeHooks';
 import { diff, merge, patch } from './lib/trimergeDiffer';
-import { StateWithUsers } from 'trimerge-sync-user-state';
 import { Differ } from 'trimerge-sync';
 import { computeRef } from 'trimerge-sync-hash';
 import { currentTabId } from './lib/currentTabId';
+import { FocusCursorState } from './lib/FocusCursorState';
 
-export type AppState = StateWithUsers & {
+export type AppState = {
   title: string;
   text: string;
 };
 export const defaultState = {
   title: '',
   text: '',
-  users: {},
 };
 
 export const differ: Differ<AppState, string, Delta> = {
@@ -25,10 +24,21 @@ export const differ: Differ<AppState, string, Delta> = {
   merge,
 };
 
+const DEMO_DOC_ID = 'demo';
+const DEMO_USER_ID = 'local';
 export function useDemoAppState() {
-  return useTrimergeState<AppState, string, Delta, unknown>(
-    'demo',
-    'local',
+  return useTrimergeState<AppState, string, Delta, FocusCursorState>(
+    DEMO_DOC_ID,
+    DEMO_USER_ID,
+    currentTabId,
+    differ,
+  );
+}
+
+export function useDemoAppCursors() {
+  return useTrimergeCursors<AppState, string, Delta, FocusCursorState>(
+    DEMO_DOC_ID,
+    DEMO_USER_ID,
     currentTabId,
     differ,
   );

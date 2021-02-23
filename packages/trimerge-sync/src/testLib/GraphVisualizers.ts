@@ -24,15 +24,15 @@ export function getBasicGraph<EditMetadata>(
 }
 export function getDotGraph<EditMetadata>(
   store: MemoryStore<EditMetadata, any, any>,
-  getNodeLabel: (node: DiffNode<EditMetadata, any>) => string,
   getEditLabel: (node: DiffNode<EditMetadata, any>) => string,
+  getValue: (node: DiffNode<EditMetadata, any>) => string,
 ): string {
   const lines: string[] = ['digraph {'];
   for (const node of store.getNodes()) {
     lines.push(
       `"${node.ref}" [shape=${
         node.mergeRef ? 'rectangle' : 'ellipse'
-      }, label=${JSON.stringify(getNodeLabel(node))}]`,
+      }, label=${JSON.stringify(getValue(node))}]`,
     );
     if (node.baseRef) {
       if (node.mergeRef) {

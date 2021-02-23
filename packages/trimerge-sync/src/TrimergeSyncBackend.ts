@@ -15,18 +15,25 @@ export type DiffNode<EditMetadata, Delta> = {
   editMetadata: EditMetadata;
 };
 
-export type CursorInfo<CursorState> = {
+export type CursorRef<CursorState> = {
+  ref: string | undefined;
+  state: CursorState | undefined;
+  self?: boolean;
+};
+
+export type CursorInfo<CursorState> = CursorRef<CursorState> & {
   userId: string;
   cursorId: string;
-  state?: CursorState;
 };
+
 export type CursorsEvent<CursorState> = {
   type: 'cursors';
   cursors: readonly CursorInfo<CursorState>[];
 };
-export type NodesEvent<EditMetadata, Delta> = {
+export type NodesEvent<EditMetadata, Delta, CursorState> = {
   type: 'nodes';
   nodes: readonly DiffNode<EditMetadata, Delta>[];
+  cursors: readonly CursorInfo<CursorState>[];
   syncId: string;
 };
 export type AckNodesEvent = {
@@ -34,17 +41,8 @@ export type AckNodesEvent = {
   refs: readonly string[];
   syncId: string;
 };
-export type CursorJoinEvent<CursorState> = {
+export type CursorJoinEvent<CursorState> = CursorInfo<CursorState> & {
   type: 'cursor-join';
-  userId: string;
-  cursorId: string;
-  state?: CursorState;
-};
-export type CursorUpdateEvent<CursorState> = {
-  type: 'cursor-update';
-  userId: string;
-  cursorId: string;
-  state?: CursorState;
 };
 export type CursorLeaveEvent = {
   type: 'cursor-leave';
@@ -59,11 +57,10 @@ export type ErrorEvent = {
 };
 
 export type BackendEvent<EditMetadata, Delta, CursorState> = Readonly<
-  | NodesEvent<EditMetadata, Delta>
+  | NodesEvent<EditMetadata, Delta, CursorState>
   | AckNodesEvent
   | CursorsEvent<CursorState>
   | CursorJoinEvent<CursorState>
-  | CursorUpdateEvent<CursorState>
   | CursorLeaveEvent
   | ErrorEvent
 >;
@@ -80,6 +77,9 @@ export type GetSyncBackendFn<EditMetadata, Delta, CursorState> = (
 ) => TrimergeSyncBackend<EditMetadata, Delta, CursorState>;
 
 export interface TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
-  sendNodes(nodes: DiffNode<EditMetadata, Delta>[]): void;
+  update(
+    nodes: DiffNode<EditMetadata, Delta>[],
+    cursor: CursorRef<CursorState> | undefined,
+  ): void;
   close(): void | Promise<void>;
 }

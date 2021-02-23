@@ -71,24 +71,20 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
         type: 'nodes',
         nodes,
         syncId,
-      });
-      onEvent({
-        type: 'cursors',
         cursors: Array.from(this.cursors.values()).map(({ info }) => info),
       });
-      this.cursors.set(userCursor, {
-        info: { userId, cursorId },
-        onEvent,
-      });
-      this.broadcast(userCursor, {
-        type: 'cursor-join',
+      const info: CursorInfo<CursorState> = {
         userId,
         cursorId,
-      });
+        ref: undefined,
+        state: undefined,
+      };
+      this.cursors.set(userCursor, { info, onEvent });
+      this.broadcast(userCursor, { type: 'cursor-join', ...info });
     });
 
     return {
-      sendNodes: (nodes): void => {
+      update: (nodes, cursor) => {
         if (closed) {
           throw new Error('already closed');
         }
@@ -99,6 +95,7 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
             type: 'nodes',
             nodes,
             syncId,
+            cursors: cursor ? [{ ...cursor, userId, cursorId }] : [],
           });
           onEvent({
             type: 'ack',

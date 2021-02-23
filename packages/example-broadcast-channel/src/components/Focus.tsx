@@ -1,40 +1,27 @@
-import React, { useMemo } from 'react';
+import React, { useCallback } from 'react';
 
 import styles from './Focus.module.css';
-import { StateWithUsers, updateUser } from 'trimerge-sync-user-state';
-import { UpdateStateFn } from '../lib/trimergeHooks';
+import { UpdateCursorStateFn } from '../lib/trimergeHooks';
 import { useFocusInfo } from './focusHooks';
 import { FocusBorders } from './FocusBorders';
+import { CursorInfo } from 'trimerge-sync';
+import { FocusCursorState } from '../lib/FocusCursorState';
 
-export function Focus<State extends StateWithUsers, EditMetadata>({
+export function Focus({
   id,
-  state,
-  updateState,
-  currentUser,
-  focusMetadata,
+  cursors,
+  updateCursor,
   children,
 }: {
   id: string;
-  state: State;
-  updateState?: UpdateStateFn<State, EditMetadata>;
-  focusMetadata: EditMetadata;
-  currentUser: string;
+  cursors: readonly CursorInfo<FocusCursorState>[];
+  updateCursor: UpdateCursorStateFn<FocusCursorState>;
   children: React.ReactNode;
 }) {
-  const { users } = state;
-  const onFocus = useMemo(
-    () =>
-      updateState &&
-      (() =>
-        updateState(
-          updateUser(state, currentUser, (draft) => {
-            draft.focusId = id;
-          }),
-          focusMetadata,
-        )),
-    [currentUser, focusMetadata, id, state, updateState],
-  );
-  const { style, otherFocusedUserIds } = useFocusInfo(id, currentUser, state);
+  const onFocus = useCallback(() => {
+    updateCursor({ focusId: id });
+  }, [id, updateCursor]);
+  const { style, otherCursors } = useFocusInfo(id, cursors);
   return (
     <span
       onClick={onFocus}
@@ -42,7 +29,7 @@ export function Focus<State extends StateWithUsers, EditMetadata>({
       className={styles.root}
       style={style}
     >
-      <FocusBorders users={users} otherFocusedUserIds={otherFocusedUserIds} />
+      <FocusBorders cursors={otherCursors} />
       {children}
     </span>
   );

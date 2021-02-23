@@ -1,5 +1,6 @@
 import {
   BackendEvent,
+  CursorRef,
   DiffNode,
   ErrorCode,
   GetSyncBackendFn,
@@ -42,6 +43,7 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
   private readonly channel: BroadcastChannel<
     BackendEvent<EditMetadata, Delta, CursorState>
   >;
+  private cursor: CursorRef<CursorState> = { ref: undefined, state: undefined };
 
   public constructor(
     private readonly docId: string,
@@ -59,9 +61,8 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       onEvent(event);
       if (event.type === 'cursor-join') {
         this.broadcast({
-          type: 'cursor-update',
-          userId,
-          cursorId,
+          type: 'cursors',
+          cursors: [{ userId, cursorId, ...this.cursor }],
         });
       }
     });
@@ -91,12 +92,13 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     const { userId, cursorId } = this;
     this.onEvent({
       type: 'cursors',
-      cursors: [{ userId, cursorId }],
+      cursors: [{ userId, cursorId, ...this.cursor }],
     });
     await this.broadcast({
       type: 'cursor-join',
       userId,
       cursorId,
+      ...this.cursor,
     });
   }
 
@@ -116,24 +118,32 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     return db;
   }
 
-  sendNodes(newNodes: DiffNode<EditMetadata, Delta>[]) {
-    this.addNodes(newNodes).catch(this.handleAsError('invalid-nodes'));
+  update(
+    newNodes: DiffNode<EditMetadata, Delta>[],
+    cursor: CursorRef<CursorState> | undefined,
+  ) {
+    this.doUpdate(newNodes, cursor).catch(this.handleAsError('invalid-nodes'));
   }
 
-  private async addNodes(
+  private async doUpdate(
     nodes: DiffNode<EditMetadata, Delta>[],
+    cursor: CursorRef<CursorState> | undefined,
   ): Promise<number> {
+    if (cursor) {
+      this.cursor = cursor;
+    }
     const db = await this.db;
     const tx = db.transaction(['heads', 'nodes'], 'readwrite');
 
     const headsDb = tx.objectStore('heads');
     const nodesDb = tx.objectStore('nodes');
 
-    const [currentHeads, cursor] = await Promise.all([
+    const [currentHeads, syncIdCursor] = await Promise.all([
       headsDb.getAllKeys(),
+      // Gets the last item in the nodes db based on the syncId index
       nodesDb.index('syncId').openCursor(undefined, 'prev'),
     ]);
-    let syncCounter = cursor?.value.syncId ?? 0;
+    let syncCounter = syncIdCursor?.value.syncId ?? 0;
 
     const priorHeads = new Set(currentHeads);
     const headsToDelete = new Set<string>();
@@ -160,8 +170,10 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     for (const ref of headsToAdd) {
       promises.push(headsDb.add({ ref }));
     }
-    await Promise.all(promises);
-    await tx.done;
+    if (promises.length > 0) {
+      await Promise.all(promises);
+      await tx.done;
+    }
 
     const syncId = toSyncId(syncCounter);
     this.onEvent({
@@ -169,11 +181,29 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       refs: nodes.map(({ ref }) => ref),
       syncId,
     });
-    this.broadcast({
-      type: 'nodes',
-      nodes: nodes,
-      syncId,
-    }).catch(this.handleAsError('internal'));
+    const cursors = cursor
+      ? [
+          {
+            ...cursor,
+            userId: this.userId,
+            cursorId: this.cursorId,
+          },
+        ]
+      : [];
+    this.broadcast(
+      nodes.length > 0
+        ? {
+            type: 'nodes',
+            nodes,
+            syncId,
+            cursors,
+          }
+        : {
+            type: 'cursors',
+            cursors,
+          },
+    ).catch(this.handleAsError('internal'));
+
     return syncCounter;
   }
 
@@ -189,6 +219,7 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       type: 'nodes',
       nodes,
       syncId: toSyncId(syncCounter),
+      cursors: [],
     });
   }
 
@@ -248,7 +279,7 @@ interface TrimergeSyncDbSchema extends DBSchema {
 function createIndexedDb(
   dbName: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
-  return openDB<TrimergeSyncDbSchema>(dbName, 2, {
+  return openDB<TrimergeSyncDbSchema>(dbName, 1, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore('heads', { keyPath: 'ref' });
@@ -256,9 +287,6 @@ function createIndexedDb(
           keyPath: 'ref',
         });
         nodes.createIndex('syncId', 'syncId');
-      }
-      if (oldVersion < 2) {
-        db.createObjectStore('cursors', { keyPath: ['userId', 'cursorId'] });
       }
     },
   });

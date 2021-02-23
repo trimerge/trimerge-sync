@@ -52,7 +52,7 @@ describe('TrimergeClient: 3 users', () => {
     const clientB = makeClient('b', store);
     const clientC = makeClient('c', store);
 
-    clientA.addEdit({ text: '' }, { ref: 'ROOT', message: 'init' });
+    clientA.updateState({ text: '' }, { ref: 'ROOT', message: 'init' });
 
     await clientA.sync();
 
@@ -61,9 +61,9 @@ describe('TrimergeClient: 3 users', () => {
     expect(clientB.state).toEqual({ text: '' });
     expect(clientC.state).toEqual({ text: '' });
 
-    clientA.addEdit({ text: 'a' }, { ref: 'a1', message: 'set text' });
-    clientB.addEdit({ text: 'b' }, { ref: 'b1', message: 'set text' });
-    clientC.addEdit({ text: 'c' }, { ref: 'c1', message: 'set text' });
+    clientA.updateState({ text: 'a' }, { ref: 'a1', message: 'set text' });
+    clientB.updateState({ text: 'b' }, { ref: 'b1', message: 'set text' });
+    clientC.updateState({ text: 'c' }, { ref: 'c1', message: 'set text' });
 
     // Now client 1 and client 2 have different changes
     expect(clientA.state).toEqual({ text: 'a' });
@@ -141,10 +141,22 @@ describe('TrimergeClient: 3 users', () => {
     const clientA = makeClient('a', store);
     const clientB = makeClient('b', store);
 
-    clientA.addEdit({ hello: 'world' }, { ref: 'a1', message: 'add hello' });
-    clientA.addEdit({ hello: 'vorld' }, { ref: 'a2', message: 'change hello' });
-    clientB.addEdit({ world: 'world' }, { ref: 'b1', message: 'add world' });
-    clientB.addEdit({ world: 'vorld' }, { ref: 'b2', message: 'change world' });
+    clientA.updateState(
+      { hello: 'world' },
+      { ref: 'a1', message: 'add hello' },
+    );
+    clientA.updateState(
+      { hello: 'vorld' },
+      { ref: 'a2', message: 'change hello' },
+    );
+    clientB.updateState(
+      { world: 'world' },
+      { ref: 'b1', message: 'add world' },
+    );
+    clientB.updateState(
+      { world: 'vorld' },
+      { ref: 'b2', message: 'change world' },
+    );
 
     // Now client 1 and client 2 have different changes
     expect(clientA.state).toEqual({ hello: 'vorld' });
@@ -160,7 +172,7 @@ describe('TrimergeClient: 3 users', () => {
     expect(clientB.state).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(clientC.state).toEqual({ hello: 'vorld', world: 'vorld' });
 
-    clientC.addEdit(
+    clientC.updateState(
       { hello: 'world', world: 'vorld' },
       { ref: 'c1', message: 'change hello' },
     );

@@ -30,3 +30,19 @@
 .root:hover .tagWrapper {
   visibility: visible;
 }
+.caret {
+  position: absolute;
+  height: 1em;
+  z-index: -1;
+  opacity: 0.5;
+}
+.caretName {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: -1em;
+  white-space: nowrap;
+}
+.caret:hover .caretName {
+  display: block;
+}

@@ -1,5 +1,6 @@
 import {
   CursorInfo,
+  CursorRef,
   DiffNode,
   GetSyncBackendFn,
   OnEventFn,
@@ -29,6 +30,9 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
   private backend: TrimergeSyncBackend<EditMetadata, Delta, CursorState>;
   private unsyncedNodes: DiffNode<EditMetadata, Delta>[] = [];
 
+  private selfFullId: string;
+  private newCursorState: CursorInfo<CursorState> | undefined;
+
   constructor(
     readonly userId: string,
     readonly cursorId: string,
@@ -38,23 +42,40 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
       CursorState
     >,
     private readonly differ: Differ<State, EditMetadata, Delta>,
-    private readonly bufferMs: number = 100,
+    private readonly bufferMs: number = 0,
   ) {
-    console.log('[TRIMERGE-SYNC] new TrimergeClient');
+    this.selfFullId = getFullId(userId, cursorId);
     this.backend = getSyncBackend(userId, cursorId, undefined, this.onEvent);
+    this.setCursor({ userId, cursorId, ref: undefined, state: undefined });
   }
 
+  private setCursor(cursor: CursorInfo<CursorState>) {
+    const { userId, cursorId, ref, state } = cursor;
+    this.cursorMap.set(getFullId(userId, cursorId), {
+      userId,
+      cursorId,
+      ref,
+      state,
+      self: userId === this.userId && cursorId === this.cursorId,
+    });
+  }
   private onEvent: OnEventFn<EditMetadata, Delta, CursorState> = (event) => {
-    console.log('[TRIMERGE-SYNC] got event', event);
     switch (event.type) {
       case 'nodes':
         for (const node of event.nodes) {
           this.addNode(node, false);
         }
         this.lastSyncId = event.syncId;
-
         this.mergeHeads();
+        this.emitStateChange();
         this.sync();
+        if (event.cursors.length > 0) {
+          for (const cursor of event.cursors) {
+            this.setCursor(cursor);
+          }
+          this.emitCursorsChange();
+        }
+
         break;
 
       case 'ack':
@@ -62,26 +83,20 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
         break;
 
       case 'cursors':
-        this.cursorMap.clear();
         for (const cursor of event.cursors) {
-          this.cursorMap.set(getFullId(cursor.userId, cursor.cursorId), cursor);
+          this.setCursor(cursor);
         }
         this.emitCursorsChange();
         break;
 
-      case 'cursor-leave':
+      case 'cursor-leave': {
         this.cursorMap.delete(getFullId(event.userId, event.cursorId));
         this.emitCursorsChange();
         break;
+      }
 
-      case 'cursor-update':
       case 'cursor-join': {
-        const { userId, cursorId, state } = event;
-        this.cursorMap.set(getFullId(userId, cursorId), {
-          userId,
-          cursorId,
-          state,
-        });
+        this.setCursor(event);
         this.emitCursorsChange();
         break;
       }
@@ -109,6 +124,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
       this.stateSubscribers.delete(onStateChange);
     };
   }
+
   subscribeCursors(
     onCursorsChange: (state: readonly CursorInfo<CursorState>[]) => void,
   ) {
@@ -119,12 +135,31 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     };
   }
 
-  addEdit(value: State, editMetadata: EditMetadata, sync: boolean = true) {
-    this.addNewNode(value, editMetadata);
+  updateState(
+    value: State,
+    editMetadata: EditMetadata,
+    cursorState?: CursorState,
+  ) {
+    const ref = this.addNewNode(value, editMetadata);
+    this.setCursorState(cursorState, ref);
     this.mergeHeads();
-    if (sync) {
-      this.sync();
-    }
+    this.emitStateChange();
+    this.sync();
+  }
+
+  updateCursor(state: CursorState) {
+    this.setCursorState(state);
+    this.sync();
+  }
+
+  private setCursorState(
+    state: CursorState | undefined,
+    ref = this.current?.ref,
+  ) {
+    const { userId, cursorId } = this;
+    this.newCursorState = { userId, cursorId, ref, state };
+    this.setCursor(this.newCursorState);
+    this.emitCursorsChange();
   }
 
   getNodeState(ref: string): NodeStateRef<State, EditMetadata> {
@@ -170,18 +205,11 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
         return this.addNewNode(value, editMetadata, left, rightRef, baseRef);
       },
     );
+    // TODO: update CursorState(s) based on this merge
     // TODO: can we clear out nodes we don't need anymore?
   }
 
   private syncPromise: Promise<boolean> | undefined;
-
-  sync(): Promise<boolean> | undefined {
-    this.emitStateChange();
-    if (!this.syncPromise && this.unsyncedNodes.length > 0) {
-      this.syncPromise = this.doSync();
-    }
-    return this.syncPromise;
-  }
 
   private emitStateChange() {
     const state = this.state;
@@ -204,12 +232,22 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     }
   }
 
+  private get needsSync(): boolean {
+    return this.unsyncedNodes.length > 0 || this.newCursorState !== undefined;
+  }
+  sync(): Promise<boolean> | undefined {
+    if (!this.syncPromise && this.needsSync) {
+      this.syncPromise = this.doSync();
+    }
+    return this.syncPromise;
+  }
   private async doSync() {
-    while (this.unsyncedNodes.length > 0) {
+    while (this.needsSync) {
       await waitMs(this.bufferMs);
       const nodes = this.unsyncedNodes;
       this.unsyncedNodes = [];
-      this.backend.sendNodes(nodes);
+      this.backend.update(nodes, this.newCursorState);
+      this.newCursorState = undefined;
     }
     this.syncPromise = undefined;
     return true;
@@ -260,7 +298,6 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
   }
 
   public shutdown(): Promise<void> | void {
-    console.log(`[TRIMERGE-SYNC] TrimergeClient: shutdown`);
     return this.backend.close();
   }
 }
