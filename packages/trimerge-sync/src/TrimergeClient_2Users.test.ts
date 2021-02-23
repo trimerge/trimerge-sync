@@ -4,6 +4,7 @@ import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
 import { computeRef, diff, merge, patch, timeout } from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
+import { CursorInfo } from './TrimergeSyncBackend';
 
 type TestEditMetadata = string;
 type TestState = any;
@@ -39,6 +40,24 @@ function basicGraph(
   );
 }
 
+function sortedCursors(
+  client: TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState>,
+) {
+  return Array.from(client.cursors).sort(cursorSort);
+}
+function cursorSort(
+  a: CursorInfo<TestCursorState>,
+  b: CursorInfo<TestCursorState>,
+): -1 | 1 | 0 {
+  if (a.userId !== b.userId) {
+    return a.userId < b.userId ? -1 : 1;
+  }
+  if (a.cursorId !== b.cursorId) {
+    return a.cursorId < b.cursorId ? -1 : 1;
+  }
+  return 0;
+}
+
 describe('TrimergeClient: 2 users', () => {
   it('tracks edits', async () => {
     const store = newStore();
@@ -71,6 +90,126 @@ describe('TrimergeClient: 2 users', () => {
     // Client2 is updated now
     expect(client1.state).toEqual({});
     expect(client2.state).toEqual({});
+  });
+
+  it('sends cursor information correctly', async () => {
+    const store = newStore();
+    const client1 = makeClient('a', store);
+    const client2 = makeClient('b', store);
+    const client1Sub = jest.fn();
+
+    const client1Unsub = client1.subscribeCursors(client1Sub);
+
+    // No values
+    expect(client1.cursors).toEqual([]);
+    expect(client2.cursors).toEqual([]);
+
+    expect(client1Sub.mock.calls).toEqual([[[]]]);
+
+    await timeout();
+
+    // Client2 is updated now
+    expect(sortedCursors(client1)).toEqual([
+      {
+        cursorId: 'test',
+        ref: undefined,
+        self: true,
+        state: undefined,
+        userId: 'a',
+      },
+      {
+        cursorId: 'test',
+        ref: undefined,
+        self: false,
+        state: undefined,
+        userId: 'b',
+      },
+    ]);
+    expect(sortedCursors(client2)).toEqual([
+      {
+        cursorId: 'test',
+        ref: undefined,
+        self: false,
+        state: undefined,
+        userId: 'a',
+      },
+      {
+        cursorId: 'test',
+        ref: undefined,
+        self: true,
+        state: undefined,
+        userId: 'b',
+      },
+    ]);
+
+    expect(client1Sub.mock.calls).toEqual([
+      [[]],
+      [
+        [
+          {
+            cursorId: 'test',
+            ref: undefined,
+            self: true,
+            state: undefined,
+            userId: 'a',
+          },
+          {
+            cursorId: 'test',
+            ref: undefined,
+            self: false,
+            state: undefined,
+            userId: 'b',
+          },
+        ],
+      ],
+    ]);
+    client1Unsub();
+  });
+
+  it('updates cursor information', async () => {
+    const store = newStore();
+    const client1 = makeClient('a', store);
+    const client2 = makeClient('b', store);
+    // No values
+    expect(client1.cursors).toEqual([]);
+    expect(client2.cursors).toEqual([]);
+
+    client1.updateCursor('hello');
+
+    await timeout();
+
+    expect(sortedCursors(client1)).toEqual([
+      {
+        cursorId: 'test',
+        ref: undefined,
+        self: true,
+        state: 'hello',
+        userId: 'a',
+      },
+      {
+        cursorId: 'test',
+        ref: undefined,
+        self: false,
+        state: undefined,
+        userId: 'b',
+      },
+    ]);
+    expect(sortedCursors(client2)).toEqual([
+      {
+        cursorId: 'test',
+        ref: undefined,
+        self: false,
+        state: 'hello',
+        userId: 'a',
+      },
+      {
+        cursorId: 'test',
+        ref: undefined,
+        self: true,
+        state: undefined,
+        userId: 'b',
+      },
+    ]);
   });
 
   it('two edits sync across two clients', async () => {
