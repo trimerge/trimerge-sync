@@ -10,6 +10,7 @@ jobs:
       matrix:
         package:
           - trimerge-sync
+          - trimerge-sync-hash
           - trimerge-sync-indexed-db
     runs-on: ubuntu-latest
     steps:
@@ -19,8 +20,8 @@ jobs:
           node-version: 12
       - run: yarn --focus --frozen-lockfile
         working-directory: packages/${{ matrix.package }}
-      - run: yarn lint
-      - run: yarn test-ci
+      - run: yarn workspace ${{ matrix.package }} run lint
+      - run: yarn workspace ${{ matrix.package }} run test-ci
       - run: yarn workspace ${{ matrix.package }} run build
       - run: yarn workspace ${{ matrix.package }} publish --access public
         env:
