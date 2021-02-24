@@ -53,7 +53,8 @@ export function useTrimergeStateShutdown<
     };
   }, [client]);
 }
-export function useTrimergeState<State, EditMetadata, Delta, CursorState>(
+
+export function useTrimergeState<State, EditMetadata, Delta>(
   docId: string,
   userId: string,
   cursorId: string,

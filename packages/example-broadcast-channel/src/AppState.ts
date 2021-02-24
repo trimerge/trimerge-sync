@@ -27,7 +27,7 @@ export const differ: Differ<AppState, string, Delta> = {
 const DEMO_DOC_ID = 'demo';
 const DEMO_USER_ID = 'local';
 export function useDemoAppState() {
-  return useTrimergeState<AppState, string, Delta, FocusCursorState>(
+  return useTrimergeState<AppState, string, Delta>(
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,
