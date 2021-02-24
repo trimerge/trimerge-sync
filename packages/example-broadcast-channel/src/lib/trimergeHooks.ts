@@ -33,12 +33,7 @@ function getCachedTrimergeClient<State, EditMetadata, Delta, CursorState>(
   return TRIMERGE_CLIENT_CACHE[key];
 }
 
-export function useTrimergeStateShutdown<
-  State,
-  EditMetadata,
-  Delta,
-  CursorState
->(
+export function useTrimergeStateShutdown<State, EditMetadata, Delta>(
   docId: string,
   userId: string,
   cursorId: string,
