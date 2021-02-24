@@ -4,7 +4,11 @@ import { enableMapSet, produce } from 'immer';
 
 import styles from './App.module.css';
 
-import { useDemoAppCursors, useDemoAppState } from './AppState';
+import {
+  useDemoAppCursors,
+  useDemoAppShutdown,
+  useDemoAppState,
+} from './AppState';
 import { FocusInput } from './components/FocusInput';
 import { FocusTextarea } from './components/FocusTextarea';
 import { currentTabId } from './lib/currentTabId';
@@ -15,6 +19,8 @@ enableMapSet();
 export function App() {
   const [state, updateState] = useDemoAppState();
   const [cursors, updateCursor] = useDemoAppCursors();
+  useDemoAppShutdown();
+
   const users = useMemo(
     () =>
       Array.from(cursors)

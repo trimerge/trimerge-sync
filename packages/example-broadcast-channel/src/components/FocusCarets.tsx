@@ -1,6 +1,6 @@
 import getCaretCoordinates from 'textarea-caret';
 import materialColorHash from 'material-color-hash';
-import React, { useLayoutEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { CursorInfo } from 'trimerge-sync';
 import { FocusCursorState } from '../lib/FocusCursorState';
 import styles from './Focus.module.css';

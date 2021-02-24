@@ -85,7 +85,6 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     };
   }
   private broadcast(event: BackendEvent<EditMetadata, Delta, CursorState>) {
-    console.log('[TRIMERGE-SYNC] broadcasting event', event);
     return this.channel.postMessage(event);
   }
   private async sendUserList() {
@@ -244,7 +243,6 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     await this.channel.close();
   }
   close = async (): Promise<void> => {
-    console.log(`[TRIMERGE-SYNC] IndexedDbBackend(${this.dbName}): close`);
     window.removeEventListener('beforeunload', this.close);
     await Promise.all([this.closeChannel(), this.closeDb()]).catch((error) => {
       console.warn(`error closing IndexedDbBackend`, error);
