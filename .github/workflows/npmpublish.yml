@@ -17,7 +17,11 @@ jobs:
       - run: yarn build-all
       - run: yarn test-ci
       - run: yarn workspace trimerge-sync publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
       - run: yarn workspace trimerge-sync-hash publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
       - run: yarn workspace trimerge-sync-indexed-db publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
