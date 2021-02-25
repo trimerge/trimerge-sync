@@ -17,9 +17,8 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2-beta
         with:
-          node-version: 12
-      - run: yarn --focus --frozen-lockfile
-        working-directory: packages/${{ matrix.package }}
+          node-version: 14
+      - run: yarn --frozen-lockfile
       - run: yarn workspace ${{ matrix.package }} run lint
       - run: yarn workspace ${{ matrix.package }} run test-ci
       - run: yarn workspace ${{ matrix.package }} run build
