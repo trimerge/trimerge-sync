@@ -8,7 +8,7 @@ jobs:
   publish-npm:
     runs-on: ubuntu-latest
     env:
-      NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
+      NPM_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2-beta
@@ -20,7 +20,10 @@ jobs:
       - run: yarn test-ci
       - run: npm publish --access public
         working-directory: packages/trimerge-sync
+        continue-on-error: true
       - run: npm publish --access public
         working-directory: packages/trimerge-sync-hash
+        continue-on-error: true
       - run: npm publish --access public
         working-directory: packages/trimerge-sync-indexed-db
+        continue-on-error: true
