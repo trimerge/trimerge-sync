@@ -39,15 +39,21 @@ export function useFocusInfo<CursorState extends FocusCursorState>(
     const otherCursors = cursors.filter(
       ({ self, state }) => !self && state?.focusId === id,
     );
-    const boxShadow = otherCursors
-      .map(
-        (info, index) =>
-          `0 0 0 ${2 * (1 + index)}px ${getCursorStyle(info).backgroundColor}`,
-      )
-      .join(',');
     otherCursors.reverse();
+    const dashWidth = 10;
     return {
-      style: { boxShadow },
+      style: {
+        borderImage: `repeating-linear-gradient(-45deg, ${otherCursors
+          .map((info, index) => {
+            const color = getCursorStyle(info).backgroundColor;
+            return `${color} ${dashWidth * index}px, ${color} ${
+              dashWidth * (index + 1)
+            }px`;
+          })
+          .join(',')}) ${dashWidth}/2px`,
+        borderWidth: '3px',
+        borderRadius: '10px',
+      },
       otherCursors,
     };
   }, [cursors, id]);
