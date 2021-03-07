@@ -10,7 +10,6 @@ type TestState = any;
 type TestCursorState = any;
 
 const differ: Differ<TestState, TestEditMetadata, TestCursorState> = {
-  initialState: undefined,
   diff,
   patch,
   computeRef,

@@ -32,7 +32,7 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
   }
 
   private broadcast(
-    fromUserCursor: string,
+    fromUserCursor: string | undefined,
     event: BackendEvent<EditMetadata, Delta, CursorState>,
   ) {
     for (const [userCursor, { onEvent }] of this.cursors.entries()) {
@@ -84,6 +84,9 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
     });
 
     return {
+      broadcast: (event) => {
+        this.broadcast(undefined, event);
+      },
       update: (nodes, cursor) => {
         if (closed) {
           throw new Error('already closed');

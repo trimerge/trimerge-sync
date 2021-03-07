@@ -36,6 +36,9 @@ export type NodesEvent<EditMetadata, Delta, CursorState> = {
   cursors: readonly CursorInfo<CursorState>[];
   syncId: string;
 };
+export type ReadyEvent = {
+  type: 'ready';
+};
 export type AckNodesEvent = {
   type: 'ack';
   refs: readonly string[];
@@ -58,6 +61,7 @@ export type ErrorEvent = {
 
 export type BackendEvent<EditMetadata, Delta, CursorState> = Readonly<
   | NodesEvent<EditMetadata, Delta, CursorState>
+  | ReadyEvent
   | AckNodesEvent
   | CursorsEvent<CursorState>
   | CursorJoinEvent<CursorState>
@@ -77,6 +81,7 @@ export type GetSyncBackendFn<EditMetadata, Delta, CursorState> = (
 ) => TrimergeSyncBackend<EditMetadata, Delta, CursorState>;
 
 export interface TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
+  broadcast(event: BackendEvent<EditMetadata, Delta, CursorState>): void;
   update(
     nodes: DiffNode<EditMetadata, Delta>[],
     cursor: CursorRef<CursorState> | undefined,

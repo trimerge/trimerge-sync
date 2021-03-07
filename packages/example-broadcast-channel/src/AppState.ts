@@ -21,7 +21,6 @@ export const defaultState = {
 };
 
 export const differ: Differ<AppState, string, Delta> = {
-  initialState: defaultState,
   diff,
   patch: (priorOrNext, delta) => patch(priorOrNext, delta) ?? defaultState,
   computeRef,

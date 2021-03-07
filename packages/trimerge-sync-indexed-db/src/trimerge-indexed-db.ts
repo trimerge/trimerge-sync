@@ -84,7 +84,7 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       void this.close();
     };
   }
-  private broadcast(event: BackendEvent<EditMetadata, Delta, CursorState>) {
+  broadcast(event: BackendEvent<EditMetadata, Delta, CursorState>) {
     return this.channel.postMessage(event);
   }
   private async sendUserList() {

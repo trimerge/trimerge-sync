@@ -5,6 +5,7 @@ import { enableMapSet, produce } from 'immer';
 import styles from './App.module.css';
 
 import {
+  defaultState,
   useDemoAppCursors,
   useDemoAppShutdown,
   useDemoAppState,
@@ -17,7 +18,7 @@ import { getCursorStyle } from './components/CursorColor';
 enableMapSet();
 
 export function App() {
-  const [state, updateState] = useDemoAppState();
+  const [state = defaultState, updateState] = useDemoAppState();
   const [cursors, updateCursor] = useDemoAppCursors();
   useDemoAppShutdown();
 

@@ -10,13 +10,19 @@ import { mergeHeadNodes } from './merge-nodes';
 import { Differ, NodeStateRef } from './differ';
 import { getFullId, waitMs } from './util';
 
+export type StateChangeFn<State> = (state: State | undefined) => void;
+
+export type CursorsChangedFn<CursorState> = (
+  cursors: readonly CursorInfo<CursorState>[],
+) => void;
+
 export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
   private current?: NodeStateRef<State, EditMetadata>;
   private lastSyncId: string | undefined;
 
-  private stateSubscribers = new Map<(state: State) => void, State>();
+  private stateSubscribers = new Map<StateChangeFn<State>, State | undefined>();
   private cursorsSubscribers = new Map<
-    (cursors: readonly CursorInfo<CursorState>[]) => void,
+    CursorsChangedFn<CursorState>,
     readonly CursorInfo<CursorState>[]
   >();
 
@@ -110,14 +116,14 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     }
   };
 
-  get state(): State {
-    return this.current ? this.current.value : this.differ.initialState;
+  get state(): State | undefined {
+    return this.current?.value;
   }
   get cursors(): readonly CursorInfo<CursorState>[] {
     return this.cursorArray;
   }
 
-  subscribeState(onStateChange: (state: State) => void) {
+  subscribeState(onStateChange: StateChangeFn<State>) {
     this.stateSubscribers.set(onStateChange, this.state);
     onStateChange(this.state);
     return () => {
@@ -125,9 +131,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     };
   }
 
-  subscribeCursors(
-    onCursorsChange: (state: readonly CursorInfo<CursorState>[]) => void,
-  ) {
+  subscribeCursors(onCursorsChange: CursorsChangedFn<CursorState>) {
     this.cursorsSubscribers.set(onCursorsChange, this.cursors);
     onCursorsChange(this.cursors);
     return () => {
