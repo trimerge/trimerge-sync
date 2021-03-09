@@ -1,13 +1,10 @@
 import {
+  AbstractSyncBackend,
   BackendEvent,
-  CursorInfo,
-  CursorJoinEvent,
-  CursorRef,
   DiffNode,
-  ErrorCode,
   GetSyncBackendFn,
+  NodesEvent,
   OnEventFn,
-  TrimergeSyncBackend,
 } from 'trimerge-sync';
 import { DBSchema, IDBPDatabase, openDB, StoreValue } from 'idb';
 import {
@@ -50,119 +47,50 @@ export function createIndexedDbBackendFactory<EditMetadata, Delta, CursorState>(
     );
 }
 
-class IndexedDbBackend<EditMetadata, Delta, CursorState>
-  implements TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
+class IndexedDbBackend<
+  EditMetadata,
+  Delta,
+  CursorState
+> extends AbstractSyncBackend<EditMetadata, Delta, CursorState> {
   private readonly dbName: string;
   private db: Promise<IDBPDatabase<TrimergeSyncDbSchema>>;
   private readonly channel: BroadcastChannel<
     BackendEvent<EditMetadata, Delta, CursorState>
   >;
-  private cursor: CursorRef<CursorState> = { ref: undefined, state: undefined };
   private readonly leaderElector: LeaderElector | undefined;
-  private remote:
-    | TrimergeSyncBackend<EditMetadata, Delta, CursorState>
-    | undefined;
 
   public constructor(
     private readonly docId: string,
-    private readonly userId: string,
-    private readonly cursorId: string,
+    userId: string,
+    cursorId: string,
     lastSyncId: string | undefined,
-    private readonly onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
+    onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
     getRemoteBackend?: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
   ) {
+    super(userId, cursorId, onEvent);
     const dbName = `trimerge-sync:${docId}`;
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.db = this.connect();
     this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
-    this.channel.addEventListener('message', (event) => {
-      onEvent(event);
-      if (event.type === 'cursor-join') {
-        this.broadcast({
-          type: 'cursor-join',
-          userId,
-          cursorId,
-          ...this.cursor,
-          origin: 'local',
-        });
-      }
-    });
+    this.channel.addEventListener('message', (event) =>
+      this.onBroadcastReceive(event),
+    );
     if (getRemoteBackend) {
       this.leaderElector = createLeaderElection(this.channel);
       this.leaderElector
         .awaitLeadership()
-        .then(() => {
-          this.connectRemote(getRemoteBackend);
-        })
+        .then(() => this.connectRemote(getRemoteBackend))
         .catch(this.handleAsError('internal'));
     }
-    this.sendUserList().catch(this.handleAsError('internal'));
-    this.sendNodesSince(toSyncNumber(lastSyncId)).catch(
-      this.handleAsError('internal'),
-    );
+    this.sendInitialEvents().catch(this.handleAsError('internal'));
     window.addEventListener('beforeunload', this.close);
   }
 
-  private connectRemote(
-    getRemoteBackend: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
-  ) {
-    this.remote = getRemoteBackend(
-      this.userId,
-      this.cursorId + '-remote-sync',
-      undefined,
-      (event) => {
-        switch (event.type) {
-          case 'nodes':
-            // add to local nodes
-            break;
-          case 'ready':
-            break;
-          case 'ack':
-            break;
-          case 'remote-connect':
-          case 'remote-disconnect':
-            // shouldn't happen from remote
-            break;
-          case 'error':
-            if (event.fatal) {
-              // reconnect?
-
-              this.broadcast({ type: 'remote-disconnect' });
-            }
-            break;
-        }
-        this.broadcast(event).catch(this.handleAsError('internal'));
-      },
-    );
-    this.broadcast({ type: 'remote-connect' });
-  }
-  private handleAsError(code: ErrorCode) {
-    return (error: Error) => {
-      this.onEvent({
-        type: 'error',
-        code,
-        message: error.message,
-        fatal: true,
-      });
-      void this.close();
-    };
-  }
-  broadcast(event: BackendEvent<EditMetadata, Delta, CursorState>) {
-    return this.channel.postMessage(event);
-  }
-  private async sendUserList() {
-    const { userId, cursorId } = this;
-    const event: CursorJoinEvent<CursorState> = {
-      type: 'cursor-join',
-      userId,
-      cursorId,
-      ...this.cursor,
-      origin: 'self',
-    };
-    this.onEvent(event);
-    await this.broadcast({ ...event, origin: 'local' });
-    await this.remote?.broadcast({ ...event, origin: 'remote' });
+  broadcast(
+    event: BackendEvent<EditMetadata, Delta, CursorState>,
+  ): Promise<void> {
+    return this.channel.postMessage(event).catch(this.handleAsError('network'));
   }
 
   private async connect(
@@ -181,20 +109,9 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     return db;
   }
 
-  update(
-    newNodes: DiffNode<EditMetadata, Delta>[],
-    cursor: CursorRef<CursorState> | undefined,
-  ) {
-    this.doUpdate(newNodes, cursor).catch(this.handleAsError('invalid-nodes'));
-  }
-
-  private async doUpdate(
+  protected async addNodes(
     nodes: DiffNode<EditMetadata, Delta>[],
-    cursor: CursorRef<CursorState> | undefined,
-  ): Promise<number> {
-    if (cursor) {
-      this.cursor = cursor;
-    }
+  ): Promise<string> {
     const db = await this.db;
     const tx = db.transaction(['heads', 'nodes'], 'readwrite');
 
@@ -238,40 +155,13 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       await tx.done;
     }
 
-    const syncId = toSyncId(syncCounter);
-    this.onEvent({
-      type: 'ack',
-      refs: nodes.map(({ ref }) => ref),
-      syncId,
-    });
-    const cursors: CursorInfo<CursorState>[] = cursor
-      ? [
-          {
-            ...cursor,
-            userId: this.userId,
-            cursorId: this.cursorId,
-            origin: 'local',
-          },
-        ]
-      : [];
-    this.broadcast(
-      nodes.length > 0
-        ? {
-            type: 'nodes',
-            nodes,
-            syncId,
-            cursors,
-          }
-        : {
-            type: 'cursors',
-            cursors,
-          },
-    ).catch(this.handleAsError('internal'));
-
-    return syncCounter;
+    return toSyncId(syncCounter);
   }
 
-  private async sendNodesSince(lastSyncCounter: number) {
+  protected async *getInitialNodes(): AsyncIterableIterator<
+    NodesEvent<EditMetadata, Delta, CursorState>
+  > {
+    const lastSyncCounter = toSyncNumber(undefined);
     const db = await this.db;
     const nodes = await db.getAllFromIndex(
       'nodes',
@@ -279,40 +169,22 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       IDBKeyRange.lowerBound(lastSyncCounter, true),
     );
     const syncCounter = getSyncCounter(nodes);
-    this.onEvent({
+    yield {
       type: 'nodes',
       nodes,
       syncId: toSyncId(syncCounter),
-      cursors: [],
-    });
+    };
   }
+  close = async (): Promise<void> => {
+    await super.close();
+    window.removeEventListener('beforeunload', this.close);
+    await this.leaderElector?.die();
+    await this.channel.close();
 
-  private async closeDb() {
     const db = await this.db;
-    const tx = db.transaction(['cursors'], 'readwrite');
-    const cursors = tx.objectStore('cursors');
-    await cursors.delete([this.userId, this.cursorId]);
-    await tx.done;
-
     // To prevent reconnect
     db.onclose = null;
     db.close();
-  }
-  private async closeChannel() {
-    const { userId, cursorId } = this;
-    await this.broadcast({
-      type: 'cursor-leave',
-      userId,
-      cursorId,
-    });
-    await this.leaderElector?.die();
-    await this.channel.close();
-  }
-  close = async (): Promise<void> => {
-    window.removeEventListener('beforeunload', this.close);
-    await Promise.all([this.closeChannel(), this.closeDb()]).catch((error) => {
-      console.warn(`error closing IndexedDbBackend`, error);
-    });
   };
 }
 
@@ -328,14 +200,6 @@ interface TrimergeSyncDbSchema extends DBSchema {
     value: { syncId: number } & DiffNode<any, any>;
     indexes: {
       syncId: number;
-    };
-  };
-  cursors: {
-    key: [string, string];
-    value: {
-      userId: string;
-      cursorId: string;
-      state?: any;
     };
   };
 }

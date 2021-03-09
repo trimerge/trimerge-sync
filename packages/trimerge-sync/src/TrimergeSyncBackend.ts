@@ -2,7 +2,8 @@ export type ErrorCode =
   | 'invalid-sync-id'
   | 'invalid-nodes'
   | 'internal'
-  | 'disconnected';
+  | 'disconnected'
+  | 'network';
 
 export type DiffNode<EditMetadata, Delta> = {
   userId: string;
@@ -26,14 +27,10 @@ export type CursorInfo<CursorState> = CursorRef<CursorState> & {
   origin: 'self' | 'local' | 'remote';
 };
 
-export type CursorsEvent<CursorState> = {
-  type: 'cursors';
-  cursors: readonly CursorInfo<CursorState>[];
-};
 export type NodesEvent<EditMetadata, Delta, CursorState> = {
   type: 'nodes';
   nodes: readonly DiffNode<EditMetadata, Delta>[];
-  cursors: readonly CursorInfo<CursorState>[];
+  cursor?: CursorInfo<CursorState>;
   syncId: string;
 };
 export type ReadyEvent = {
@@ -46,6 +43,9 @@ export type AckNodesEvent = {
 };
 export type CursorJoinEvent<CursorState> = CursorInfo<CursorState> & {
   type: 'cursor-join';
+};
+export type CursorUpdateEvent<CursorState> = CursorInfo<CursorState> & {
+  type: 'cursor-update';
 };
 export type CursorLeaveEvent = {
   type: 'cursor-leave';
@@ -69,7 +69,7 @@ export type BackendEvent<EditMetadata, Delta, CursorState> = Readonly<
   | NodesEvent<EditMetadata, Delta, CursorState>
   | ReadyEvent
   | AckNodesEvent
-  | CursorsEvent<CursorState>
+  | CursorUpdateEvent<CursorState>
   | CursorJoinEvent<CursorState>
   | CursorLeaveEvent
   | RemoteConnect

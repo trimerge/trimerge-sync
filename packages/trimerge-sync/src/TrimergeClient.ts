@@ -67,33 +67,27 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
   }
   private onEvent: OnEventFn<EditMetadata, Delta, CursorState> = (event) => {
     switch (event.type) {
-      case 'nodes':
-        for (const node of event.nodes) {
+      case 'nodes': {
+        const { nodes, syncId, cursor } = event;
+        for (const node of nodes) {
           this.addNode(node, false);
         }
-        this.lastSyncId = event.syncId;
+        this.lastSyncId = syncId;
         this.mergeHeads();
         this.emitStateChange();
         this.sync();
-        if (event.cursors.length > 0) {
-          for (const cursor of event.cursors) {
-            this.setCursor(cursor);
-          }
+        if (cursor) {
+          this.setCursor(cursor);
           this.emitCursorsChange();
         }
 
         break;
+      }
 
-      case 'ack':
+      case 'ack': {
         this.lastSyncId = event.syncId;
         break;
-
-      case 'cursors':
-        for (const cursor of event.cursors) {
-          this.setCursor(cursor);
-        }
-        this.emitCursorsChange();
-        break;
+      }
 
       case 'cursor-leave': {
         this.cursorMap.delete(getFullId(event.userId, event.cursorId));
@@ -101,11 +95,13 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
         break;
       }
 
+      case 'cursor-update':
       case 'cursor-join': {
         this.setCursor(event);
         this.emitCursorsChange();
         break;
       }
+
       case 'remote-connect': {
         break;
       }
