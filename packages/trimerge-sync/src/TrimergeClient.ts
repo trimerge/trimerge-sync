@@ -64,6 +64,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
   private setCursor(cursor: CursorInfo<CursorState>) {
     const { userId, cursorId } = cursor;
     this.cursorMap.set(getFullId(userId, cursorId), cursor);
+    this.emitCursorsChange();
   }
   private onEvent: OnEventFn<EditMetadata, Delta, CursorState> = (event) => {
     switch (event.type) {
@@ -78,7 +79,6 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
         this.sync();
         if (cursor) {
           this.setCursor(cursor);
-          this.emitCursorsChange();
         }
 
         break;
@@ -98,7 +98,6 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
       case 'cursor-update':
       case 'cursor-join': {
         this.setCursor(event);
-        this.emitCursorsChange();
         break;
       }
 

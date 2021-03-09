@@ -99,11 +99,33 @@ describe('TrimergeClient: 2 users', () => {
 
     const client1Unsub = client1.subscribeCursors(client1Sub);
 
-    // No values
-    expect(client1.cursors).toEqual([]);
-    expect(client2.cursors).toEqual([]);
+    // Initial values
+    expect(client1.cursors).toEqual([
+      {
+        userId: 'a',
+        cursorId: 'test',
+        origin: 'self',
+      },
+    ]);
+    expect(client2.cursors).toEqual([
+      {
+        userId: 'b',
+        cursorId: 'test',
+        origin: 'self',
+      },
+    ]);
 
-    expect(client1Sub.mock.calls).toEqual([[[]]]);
+    expect(client1Sub.mock.calls).toEqual([
+      [
+        [
+          {
+            userId: 'a',
+            cursorId: 'test',
+            origin: 'self',
+          },
+        ],
+      ],
+    ]);
 
     await timeout();
 
@@ -169,9 +191,21 @@ describe('TrimergeClient: 2 users', () => {
     const store = newStore();
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
-    // No values
-    expect(client1.cursors).toEqual([]);
-    expect(client2.cursors).toEqual([]);
+    // Initial values
+    expect(client1.cursors).toEqual([
+      {
+        userId: 'a',
+        cursorId: 'test',
+        origin: 'self',
+      },
+    ]);
+    expect(client2.cursors).toEqual([
+      {
+        userId: 'b',
+        cursorId: 'test',
+        origin: 'self',
+      },
+    ]);
 
     client1.updateCursor('hello');
 
