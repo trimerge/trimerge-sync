@@ -3,6 +3,8 @@ import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
+import { StoreSync } from './StoreSync';
+import { getBasicGraph } from './testLib/GraphVisualizers';
 
 type TestEditMetadata = string;
 type TestState = any;
@@ -26,15 +28,44 @@ function makeClient(
   return new TrimergeClient(userId, 'test', store.getSyncBackend, differ, 0);
 }
 
+function basicGraph(
+  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
+  client1: TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState>,
+) {
+  return getBasicGraph(
+    store,
+    (node) => node.editMetadata,
+    (node) => client1.getNodeState(node.ref).value,
+  );
+}
+
 describe('StoreSync', () => {
-  it('syncs across the network', async () => {
-    const store = newStore();
-    const client1 = makeClient('a', store);
-    const client2 = makeClient('b', store);
+  it('syncs two clients to a store', async () => {
+    const remoteStore = newStore();
+    const store1 = newStore();
+    const store2 = newStore();
+    const client1 = makeClient('a', store1);
+    const client2 = makeClient('b', store2);
+
+    const sync1 = new StoreSync(
+      client1.userId,
+      'a-sync',
+      store1.getSyncBackend,
+      remoteStore.getSyncBackend,
+    );
+    const sync2 = new StoreSync(
+      client2.userId,
+      'b-sync',
+      store2.getSyncBackend,
+      remoteStore.getSyncBackend,
+    );
 
     client1.updateState({}, 'initialize');
     client1.updateState({ hello: 'world' }, 'add hello');
     client1.updateState({ hello: 'vorld' }, 'change hello');
+
+    expect(client1.state).toEqual({ hello: 'vorld' });
+    expect(client2.state).toEqual(undefined);
 
     await timeout();
 
@@ -52,5 +83,52 @@ describe('StoreSync', () => {
 
     expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+
+    await sync1.close();
+    await sync2.close();
+
+    expect(basicGraph(store1, client1)).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "graph": "undefined -> DuQe--Vh",
+          "step": "User a: initialize",
+          "value": Object {},
+        },
+        Object {
+          "graph": "DuQe--Vh -> u0wBto6f",
+          "step": "User a: add hello",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        Object {
+          "graph": "u0wBto6f -> YYUSBDXS",
+          "step": "User a: change hello",
+          "value": Object {
+            "hello": "vorld",
+          },
+        },
+      ]
+    `);
+    expect(basicGraph(store2, client1)).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "graph": "YYUSBDXS -> YFIigfVr",
+          "step": "User b: add world",
+          "value": Object {
+            "hello": "vorld",
+            "world": "world",
+          },
+        },
+        Object {
+          "graph": "YFIigfVr -> 3duBmH5E",
+          "step": "User b: change world",
+          "value": Object {
+            "hello": "vorld",
+            "world": "vorld",
+          },
+        },
+      ]
+    `);
   });
 });

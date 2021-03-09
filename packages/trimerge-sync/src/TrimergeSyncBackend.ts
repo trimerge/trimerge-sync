@@ -18,12 +18,12 @@ export type DiffNode<EditMetadata, Delta> = {
 export type CursorRef<CursorState> = {
   ref: string | undefined;
   state: CursorState | undefined;
-  self?: boolean;
 };
 
 export type CursorInfo<CursorState> = CursorRef<CursorState> & {
   userId: string;
   cursorId: string;
+  origin: 'self' | 'local' | 'remote';
 };
 
 export type CursorsEvent<CursorState> = {
@@ -58,6 +58,12 @@ export type ErrorEvent = {
   message?: string;
   fatal?: boolean;
 };
+export type RemoteConnect = {
+  type: 'remote-connect';
+};
+export type RemoteDisconnect = {
+  type: 'remote-disconnect';
+};
 
 export type BackendEvent<EditMetadata, Delta, CursorState> = Readonly<
   | NodesEvent<EditMetadata, Delta, CursorState>
@@ -66,6 +72,8 @@ export type BackendEvent<EditMetadata, Delta, CursorState> = Readonly<
   | CursorsEvent<CursorState>
   | CursorJoinEvent<CursorState>
   | CursorLeaveEvent
+  | RemoteConnect
+  | RemoteDisconnect
   | ErrorEvent
 >;
 
@@ -87,4 +95,12 @@ export interface TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
     cursor: CursorRef<CursorState> | undefined,
   ): void;
   close(): void | Promise<void>;
+}
+
+export type UnsubscribeFn = () => void;
+export interface TrimergeSyncBackend2<EditMetadata, Delta, CursorState> {
+  send(event: BackendEvent<EditMetadata, Delta, CursorState>): void;
+  subscribe(
+    onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
+  ): UnsubscribeFn;
 }

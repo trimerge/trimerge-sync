@@ -160,7 +160,7 @@ describe('TrimergeClient: 3 users', () => {
     expect(clientB.state).toEqual({ world: 'vorld' });
 
     const clientC = makeClient('c', store);
-    expect(clientC.state).toEqual({});
+    expect(clientC.state).toEqual(undefined);
 
     await timeout();
 

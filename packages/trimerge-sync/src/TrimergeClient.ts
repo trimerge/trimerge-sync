@@ -52,18 +52,18 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
   ) {
     this.selfFullId = getFullId(userId, cursorId);
     this.backend = getSyncBackend(userId, cursorId, undefined, this.onEvent);
-    this.setCursor({ userId, cursorId, ref: undefined, state: undefined });
+    this.setCursor({
+      userId,
+      cursorId,
+      ref: undefined,
+      state: undefined,
+      origin: 'self',
+    });
   }
 
   private setCursor(cursor: CursorInfo<CursorState>) {
-    const { userId, cursorId, ref, state } = cursor;
-    this.cursorMap.set(getFullId(userId, cursorId), {
-      userId,
-      cursorId,
-      ref,
-      state,
-      self: userId === this.userId && cursorId === this.cursorId,
-    });
+    const { userId, cursorId } = cursor;
+    this.cursorMap.set(getFullId(userId, cursorId), cursor);
   }
   private onEvent: OnEventFn<EditMetadata, Delta, CursorState> = (event) => {
     switch (event.type) {
@@ -103,6 +103,18 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
 
       case 'cursor-join': {
         this.setCursor(event);
+        this.emitCursorsChange();
+        break;
+      }
+      case 'remote-connect': {
+        break;
+      }
+      case 'remote-disconnect': {
+        for (const [key, { origin }] of this.cursorMap.entries()) {
+          if (origin === 'remote') {
+            this.cursorMap.delete(key);
+          }
+        }
         this.emitCursorsChange();
         break;
       }
@@ -161,7 +173,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     ref = this.current?.ref,
   ) {
     const { userId, cursorId } = this;
-    this.newCursorState = { userId, cursorId, ref, state };
+    this.newCursorState = { userId, cursorId, ref, state, origin: 'self' };
     this.setCursor(this.newCursorState);
     this.emitCursorsChange();
   }

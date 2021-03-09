@@ -37,7 +37,7 @@ export function useFocusInfo<CursorState extends FocusCursorState>(
 } {
   return useMemo(() => {
     const otherCursors = cursors.filter(
-      ({ self, state }) => !self && state?.focusId === id,
+      ({ state, origin }) => origin !== 'self' && state?.focusId === id,
     );
     const boxShadow = otherCursors
       .map(

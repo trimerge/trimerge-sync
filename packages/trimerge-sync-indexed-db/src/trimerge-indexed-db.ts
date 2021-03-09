@@ -1,5 +1,7 @@
 import {
   BackendEvent,
+  CursorInfo,
+  CursorJoinEvent,
   CursorRef,
   DiffNode,
   ErrorCode,
@@ -8,7 +10,11 @@ import {
   TrimergeSyncBackend,
 } from 'trimerge-sync';
 import { DBSchema, IDBPDatabase, openDB, StoreValue } from 'idb';
-import { BroadcastChannel } from 'broadcast-channel';
+import {
+  BroadcastChannel,
+  createLeaderElection,
+  LeaderElector,
+} from 'broadcast-channel';
 
 function getSyncCounter(
   nodes: StoreValue<TrimergeSyncDbSchema, 'nodes'>[],
@@ -31,9 +37,17 @@ function toSyncNumber(syncId: string | undefined): number {
 
 export function createIndexedDbBackendFactory<EditMetadata, Delta, CursorState>(
   docId: string,
+  getRemoteBackend?: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
 ): GetSyncBackendFn<EditMetadata, Delta, CursorState> {
   return (userId, cursorId, lastSyncId, onEvent) =>
-    new IndexedDbBackend(docId, userId, cursorId, lastSyncId, onEvent);
+    new IndexedDbBackend(
+      docId,
+      userId,
+      cursorId,
+      lastSyncId,
+      onEvent,
+      getRemoteBackend,
+    );
 }
 
 class IndexedDbBackend<EditMetadata, Delta, CursorState>
@@ -44,6 +58,10 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     BackendEvent<EditMetadata, Delta, CursorState>
   >;
   private cursor: CursorRef<CursorState> = { ref: undefined, state: undefined };
+  private readonly leaderElector: LeaderElector | undefined;
+  private remote:
+    | TrimergeSyncBackend<EditMetadata, Delta, CursorState>
+    | undefined;
 
   public constructor(
     private readonly docId: string,
@@ -51,6 +69,7 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     private readonly cursorId: string,
     lastSyncId: string | undefined,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
+    getRemoteBackend?: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
   ) {
     const dbName = `trimerge-sync:${docId}`;
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
@@ -61,11 +80,23 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       onEvent(event);
       if (event.type === 'cursor-join') {
         this.broadcast({
-          type: 'cursors',
-          cursors: [{ userId, cursorId, ...this.cursor }],
+          type: 'cursor-join',
+          userId,
+          cursorId,
+          ...this.cursor,
+          origin: 'local',
         });
       }
     });
+    if (getRemoteBackend) {
+      this.leaderElector = createLeaderElection(this.channel);
+      this.leaderElector
+        .awaitLeadership()
+        .then(() => {
+          this.connectRemote(getRemoteBackend);
+        })
+        .catch(this.handleAsError('internal'));
+    }
     this.sendUserList().catch(this.handleAsError('internal'));
     this.sendNodesSince(toSyncNumber(lastSyncId)).catch(
       this.handleAsError('internal'),
@@ -73,6 +104,39 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     window.addEventListener('beforeunload', this.close);
   }
 
+  private connectRemote(
+    getRemoteBackend: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
+  ) {
+    this.remote = getRemoteBackend(
+      this.userId,
+      this.cursorId + '-remote-sync',
+      undefined,
+      (event) => {
+        switch (event.type) {
+          case 'nodes':
+            // add to local nodes
+            break;
+          case 'ready':
+            break;
+          case 'ack':
+            break;
+          case 'remote-connect':
+          case 'remote-disconnect':
+            // shouldn't happen from remote
+            break;
+          case 'error':
+            if (event.fatal) {
+              // reconnect?
+
+              this.broadcast({ type: 'remote-disconnect' });
+            }
+            break;
+        }
+        this.broadcast(event).catch(this.handleAsError('internal'));
+      },
+    );
+    this.broadcast({ type: 'remote-connect' });
+  }
   private handleAsError(code: ErrorCode) {
     return (error: Error) => {
       this.onEvent({
@@ -89,16 +153,16 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
   }
   private async sendUserList() {
     const { userId, cursorId } = this;
-    this.onEvent({
-      type: 'cursors',
-      cursors: [{ userId, cursorId, ...this.cursor }],
-    });
-    await this.broadcast({
+    const event: CursorJoinEvent<CursorState> = {
       type: 'cursor-join',
       userId,
       cursorId,
       ...this.cursor,
-    });
+      origin: 'self',
+    };
+    this.onEvent(event);
+    await this.broadcast({ ...event, origin: 'local' });
+    await this.remote?.broadcast({ ...event, origin: 'remote' });
   }
 
   private async connect(
@@ -180,12 +244,13 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       refs: nodes.map(({ ref }) => ref),
       syncId,
     });
-    const cursors = cursor
+    const cursors: CursorInfo<CursorState>[] = cursor
       ? [
           {
             ...cursor,
             userId: this.userId,
             cursorId: this.cursorId,
+            origin: 'local',
           },
         ]
       : [];
@@ -240,6 +305,7 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       userId,
       cursorId,
     });
+    await this.leaderElector?.die();
     await this.channel.close();
   }
   close = async (): Promise<void> => {
