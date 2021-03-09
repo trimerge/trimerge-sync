@@ -7,6 +7,7 @@ import {
 } from '../TrimergeSyncBackend';
 import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
 import { AbstractSyncBackend } from '../AbstractSyncBackend';
+import generate from 'project-name-generator';
 
 // function getSyncCounter(syncId: string): number {
 //   return parseInt(syncId, 36);
@@ -15,7 +16,10 @@ import { AbstractSyncBackend } from '../AbstractSyncBackend';
 export class MemoryStore<EditMetadata, Delta, CursorState> {
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
 
-  constructor(public readonly docId: string) {}
+  constructor(
+    public readonly docId: string = generate({ words: 3, alliterative: true })
+      .dashed,
+  ) {}
 
   public getNodes(): readonly DiffNode<EditMetadata, Delta>[] {
     return this.nodes;
