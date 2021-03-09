@@ -73,9 +73,7 @@ class IndexedDbBackend<
     this.dbName = dbName;
     this.db = this.connect();
     this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
-    this.channel.addEventListener('message', (event) =>
-      this.onBroadcastReceive(event),
-    );
+    this.channel.addEventListener('message', this.onBroadcastReceive);
     if (getRemoteBackend) {
       this.leaderElector = createLeaderElection(this.channel);
       this.leaderElector

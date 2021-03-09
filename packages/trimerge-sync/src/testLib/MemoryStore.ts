@@ -1,45 +1,28 @@
 import {
   BackendEvent,
-  CursorInfo,
   DiffNode,
   GetSyncBackendFn,
+  NodesEvent,
   OnEventFn,
 } from '../TrimergeSyncBackend';
-import { PromiseQueue } from '../lib/PromiseQueue';
-import { getFullId } from '../util';
+import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
+import { AbstractSyncBackend } from '../AbstractSyncBackend';
 
-function getSyncCounter(syncId: string): number {
-  return parseInt(syncId, 36);
-}
+// function getSyncCounter(syncId: string): number {
+//   return parseInt(syncId, 36);
+// }
 
 export class MemoryStore<EditMetadata, Delta, CursorState> {
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
-  private cursors = new Map<
-    string,
-    {
-      info: CursorInfo<CursorState>;
-      onEvent: OnEventFn<EditMetadata, Delta, CursorState>;
-    }
-  >();
-  private queue = new PromiseQueue();
+
+  constructor(public readonly docId: string) {}
 
   public getNodes(): readonly DiffNode<EditMetadata, Delta>[] {
     return this.nodes;
   }
 
-  private get syncId(): string {
+  public get syncId(): string {
     return this.nodes.length.toString(36);
-  }
-
-  private broadcast(
-    fromUserCursor: string,
-    event: BackendEvent<EditMetadata, Delta, CursorState>,
-  ) {
-    for (const [userCursor, { onEvent }] of this.cursors.entries()) {
-      if (userCursor !== fromUserCursor) {
-        onEvent(event);
-      }
-    }
   }
 
   getSyncBackend: GetSyncBackendFn<EditMetadata, Delta, CursorState> = (
@@ -48,80 +31,61 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
     lastSyncId,
     onEvent,
   ) => {
-    let closed = false;
-
-    const userCursor = getFullId(userId, cursorId);
-    if (this.cursors.has(userCursor)) {
-      throw new Error('userId/cursorId already connected');
-    }
-    this.queue.add(async () => {
-      const syncId = this.syncId;
-      const lastSyncCounter = lastSyncId ? getSyncCounter(lastSyncId) : 0;
-      if (lastSyncCounter > this.nodes.length) {
-        onEvent({
-          type: 'error',
-          code: 'invalid-sync-id',
-          fatal: true,
-        });
-        closed = true;
-        return;
-      }
-      const nodes = this.nodes.slice(lastSyncCounter);
-      onEvent({
-        type: 'nodes',
-        nodes,
-        syncId,
-        cursors: Array.from(this.cursors.values()).map(({ info }) => info),
-      });
-      const info: CursorInfo<CursorState> = {
-        userId,
-        cursorId,
-        ref: undefined,
-        state: undefined,
-      };
-      this.cursors.set(userCursor, { info, onEvent });
-      this.broadcast(userCursor, { type: 'cursor-join', ...info });
-    });
-
-    return {
-      broadcast: (event) => {
-        this.broadcast(userCursor, event);
-      },
-      update: (nodes, cursor) => {
-        if (closed) {
-          throw new Error('already closed');
-        }
-        void this.queue.add(async () => {
-          this.nodes.push(...nodes);
-          const syncId = this.syncId;
-          this.broadcast(userCursor, {
-            type: 'nodes',
-            nodes,
-            syncId,
-            cursors: cursor ? [{ ...cursor, userId, cursorId }] : [],
-          });
-          onEvent({
-            type: 'ack',
-            refs: nodes.map(({ ref }) => ref),
-            syncId,
-          });
-        });
-      },
-
-      close: async () => {
-        if (closed) {
-          throw new Error('already closed');
-        }
-        await this.queue.add(async () => {
-          this.cursors.delete(userCursor);
-          closed = true;
-          this.broadcast(userCursor, {
-            type: 'cursor-leave',
-            userId,
-            cursorId,
-          });
-        });
-      },
-    };
+    return new MemoryBackendSync(this, userId, cursorId, lastSyncId, onEvent);
   };
+
+  async addNodes(nodes: DiffNode<EditMetadata, Delta>[]): Promise<void> {
+    this.nodes.push(...nodes);
+  }
+}
+
+class MemoryBackendSync<
+  EditMetadata,
+  Delta,
+  CursorState
+> extends AbstractSyncBackend<EditMetadata, Delta, CursorState> {
+  private readonly channel: MemoryBroadcastChannel<
+    BackendEvent<EditMetadata, Delta, CursorState>
+  >;
+
+  constructor(
+    private readonly store: MemoryStore<EditMetadata, Delta, CursorState>,
+    userId: string,
+    cursorId: string,
+    lastSyncId: string | undefined,
+    onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
+  ) {
+    super(userId, cursorId, onEvent);
+    this.channel = new MemoryBroadcastChannel<
+      BackendEvent<EditMetadata, Delta, CursorState>
+    >(this.store.docId, this.onBroadcastReceive);
+  }
+
+  protected async addNodes(
+    nodes: DiffNode<EditMetadata, Delta>[],
+  ): Promise<string> {
+    await this.store.addNodes(nodes);
+    return this.store.syncId;
+  }
+
+  async broadcast(
+    event: BackendEvent<EditMetadata, Delta, CursorState>,
+  ): Promise<void> {
+    await this.channel.postMessage(event);
+  }
+
+  protected async *getInitialNodes(): AsyncIterableIterator<
+    NodesEvent<EditMetadata, Delta, CursorState>
+  > {
+    yield {
+      type: 'nodes',
+      nodes: this.store.getNodes(),
+      syncId: this.store.syncId,
+    };
+  }
+
+  async close(): Promise<void> {
+    await super.close();
+    this.channel.close();
+  }
 }

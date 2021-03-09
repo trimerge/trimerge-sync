@@ -14,6 +14,7 @@ import {
 
 export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
   implements TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
+  private closed = false;
   private cursor: CursorRef<CursorState> = { ref: undefined, state: undefined };
   private remote:
     | TrimergeSyncBackend<EditMetadata, Delta, CursorState>
@@ -39,17 +40,21 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     };
   }
 
-  protected onBroadcastReceive(
+  protected onBroadcastReceive = (
     event: BackendEvent<EditMetadata, Delta, CursorState>,
-  ): void {
+  ): void => {
     this.onEvent(event);
     if (event.type === 'cursor-join' || event.type === 'remote-connect') {
       this.broadcast(this.getCursorEvent('cursor-update', 'local'));
       this.remote?.broadcast(this.getCursorEvent('cursor-update', 'remote'));
     }
-  }
+  };
 
   async close(): Promise<void> {
+    if (this.closed) {
+      throw new Error('double close');
+    }
+    this.closed = true;
     const { userId, cursorId } = this;
     if (this.remote) {
       await this.remote.close();
