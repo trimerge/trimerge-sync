@@ -1,6 +1,5 @@
 import {
   CursorInfo,
-  CursorRef,
   DiffNode,
   GetSyncBackendFn,
   OnEventFn,
@@ -97,7 +96,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
 
       case 'cursor-update':
       case 'cursor-join': {
-        this.setCursor(event);
+        this.setCursor(event.cursor);
         break;
       }
 
@@ -114,6 +113,8 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
         break;
       }
 
+      case 'ready':
+        break;
       case 'error':
         break;
 

@@ -164,7 +164,35 @@ describe('TrimergeClient: 2 users', () => {
     ]);
 
     expect(client1Sub.mock.calls).toEqual([
-      [[]],
+      [
+        [
+          {
+            cursorId: 'test',
+            ref: undefined,
+            origin: 'self',
+            state: undefined,
+            userId: 'a',
+          },
+        ],
+      ],
+      [
+        [
+          {
+            cursorId: 'test',
+            ref: undefined,
+            origin: 'self',
+            state: undefined,
+            userId: 'a',
+          },
+          {
+            cursorId: 'test',
+            ref: undefined,
+            origin: 'local',
+            state: undefined,
+            userId: 'b',
+          },
+        ],
+      ],
       [
         [
           {
@@ -296,10 +324,12 @@ describe('TrimergeClient: 2 users', () => {
 
     client1.updateState({}, 'initialize');
 
-    await client1.sync();
-
     // Synchronized
     expect(client1.state).toEqual({});
+    expect(client2.state).toEqual(undefined);
+
+    await timeout();
+
     expect(client2.state).toEqual({});
 
     client1.updateState({ hello: 'world' }, 'add hello');

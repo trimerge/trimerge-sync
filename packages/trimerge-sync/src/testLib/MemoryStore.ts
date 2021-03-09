@@ -13,13 +13,14 @@ import generate from 'project-name-generator';
 //   return parseInt(syncId, 36);
 // }
 
+function randomId() {
+  return generate({ words: 3, alliterative: true }).dashed;
+}
+
 export class MemoryStore<EditMetadata, Delta, CursorState> {
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
 
-  constructor(
-    public readonly docId: string = generate({ words: 3, alliterative: true })
-      .dashed,
-  ) {}
+  constructor(public readonly docId: string = randomId()) {}
 
   public getNodes(): readonly DiffNode<EditMetadata, Delta>[] {
     return this.nodes;
@@ -63,6 +64,7 @@ class MemoryBackendSync<
     this.channel = new MemoryBroadcastChannel<
       BackendEvent<EditMetadata, Delta, CursorState>
     >(this.store.docId, this.onBroadcastReceive);
+    this.sendInitialEvents().catch(this.handleAsError('internal'));
   }
 
   protected async addNodes(

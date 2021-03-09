@@ -51,7 +51,7 @@ describe('TrimergeClient: 3 users', () => {
 
     clientA.updateState({ text: '' }, { ref: 'ROOT', message: 'init' });
 
-    await clientA.sync();
+    await timeout();
 
     // Synchronized
     expect(clientA.state).toEqual({ text: '' });

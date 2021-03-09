@@ -25,19 +25,15 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     protected readonly cursorId: string,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
   ) {}
-
-  private getCursorEvent(
-    type: 'cursor-join' | 'cursor-update',
-    origin: 'local' | 'remote' | 'self',
-  ): CursorUpdateEvent<CursorState> | CursorJoinEvent<CursorState> {
+  private getCursor(origin: 'local' | 'remote' | 'self') {
     const { userId, cursorId } = this;
-    return {
-      type,
+    const cursor: CursorInfo<CursorState> = {
       userId,
       cursorId,
       ...this.cursor,
       origin,
     };
+    return cursor;
   }
 
   protected onBroadcastReceive = (
@@ -45,8 +41,14 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
   ): void => {
     this.onEvent(event);
     if (event.type === 'cursor-join' || event.type === 'remote-connect') {
-      this.broadcast(this.getCursorEvent('cursor-update', 'local'));
-      this.remote?.broadcast(this.getCursorEvent('cursor-update', 'remote'));
+      this.broadcast({
+        type: 'cursor-update',
+        cursor: this.getCursor('local'),
+      });
+      this.remote?.broadcast({
+        type: 'cursor-update',
+        cursor: this.getCursor('remote'),
+      });
     }
   };
 
@@ -100,7 +102,10 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
       },
     );
     this.broadcast({ type: 'remote-connect' });
-    this.remote.broadcast(this.getCursorEvent('cursor-join', 'remote'));
+    this.remote.broadcast({
+      type: 'cursor-join',
+      cursor: this.getCursor('remote'),
+    });
   }
   protected handleAsError(code: ErrorCode) {
     return (error: Error) => {
@@ -118,7 +123,10 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
   ): Promise<void>;
 
   protected async sendInitialEvents() {
-    await this.broadcast(this.getCursorEvent('cursor-join', 'local'));
+    await this.broadcast({
+      type: 'cursor-join',
+      cursor: this.getCursor('local'),
+    });
     for await (const event of this.getInitialNodes()) {
       this.onEvent(event);
     }
@@ -170,7 +178,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     } else if (cursor) {
       await this.broadcast({
         type: 'cursor-update',
-        ...cursor,
+        cursor,
       });
     }
   }

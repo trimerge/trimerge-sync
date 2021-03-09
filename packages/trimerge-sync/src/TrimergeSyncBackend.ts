@@ -41,11 +41,13 @@ export type AckNodesEvent = {
   refs: readonly string[];
   syncId: string;
 };
-export type CursorJoinEvent<CursorState> = CursorInfo<CursorState> & {
+export type CursorJoinEvent<CursorState> = {
   type: 'cursor-join';
+  cursor: CursorInfo<CursorState>;
 };
-export type CursorUpdateEvent<CursorState> = CursorInfo<CursorState> & {
+export type CursorUpdateEvent<CursorState> = {
   type: 'cursor-update';
+  cursor: CursorInfo<CursorState>;
 };
 export type CursorLeaveEvent = {
   type: 'cursor-leave';
