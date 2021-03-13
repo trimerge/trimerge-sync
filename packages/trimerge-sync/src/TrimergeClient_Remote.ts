@@ -3,7 +3,6 @@ import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
-import { StoreSync } from './StoreSync';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 
 type TestEditMetadata = string;
@@ -17,8 +16,13 @@ const differ: Differ<TestState, TestEditMetadata, TestCursorState> = {
   merge,
 };
 
-function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestCursorState>();
+function newStore(
+  remote?: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
+) {
+  return new MemoryStore<TestEditMetadata, Delta, TestCursorState>(
+    undefined,
+    remote?.getSyncBackend,
+  );
 }
 
 function makeClient(
@@ -39,26 +43,13 @@ function basicGraph(
   );
 }
 
-describe('StoreSync', () => {
+describe('Remote sync', () => {
   it('syncs two clients to a store', async () => {
     const remoteStore = newStore();
-    const store1 = newStore();
-    const store2 = newStore();
+    const store1 = newStore(remoteStore);
+    const store2 = newStore(remoteStore);
     const client1 = makeClient('a', store1);
     const client2 = makeClient('b', store2);
-
-    const sync1 = new StoreSync(
-      client1.userId,
-      'a-sync',
-      store1.getSyncBackend,
-      remoteStore.getSyncBackend,
-    );
-    const sync2 = new StoreSync(
-      client2.userId,
-      'b-sync',
-      store2.getSyncBackend,
-      remoteStore.getSyncBackend,
-    );
 
     client1.updateState({}, 'initialize');
     client1.updateState({ hello: 'world' }, 'add hello');
@@ -83,9 +74,6 @@ describe('StoreSync', () => {
 
     expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
-
-    await sync1.close();
-    await sync2.close();
 
     expect(basicGraph(store1, client1)).toMatchInlineSnapshot(`
       Array [

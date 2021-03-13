@@ -85,7 +85,7 @@ class IndexedDbBackend<
     window.addEventListener('beforeunload', this.close);
   }
 
-  broadcast(
+  protected broadcastLocal(
     event: BackendEvent<EditMetadata, Delta, CursorState>,
   ): Promise<void> {
     return this.channel.postMessage(event).catch(this.handleAsError('network'));

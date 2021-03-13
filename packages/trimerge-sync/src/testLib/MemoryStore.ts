@@ -20,7 +20,14 @@ function randomId() {
 export class MemoryStore<EditMetadata, Delta, CursorState> {
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
 
-  constructor(public readonly docId: string = randomId()) {}
+  constructor(
+    public readonly docId: string = randomId(),
+    private readonly getRemoteBackend?: GetSyncBackendFn<
+      EditMetadata,
+      Delta,
+      CursorState
+    >,
+  ) {}
 
   public getNodes(): readonly DiffNode<EditMetadata, Delta>[] {
     return this.nodes;
@@ -36,7 +43,14 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
     lastSyncId,
     onEvent,
   ) => {
-    return new MemoryBackendSync(this, userId, cursorId, lastSyncId, onEvent);
+    return new MemoryBackendSync(
+      this,
+      userId,
+      cursorId,
+      lastSyncId,
+      onEvent,
+      this.getRemoteBackend,
+    );
   };
 
   async addNodes(nodes: DiffNode<EditMetadata, Delta>[]): Promise<void> {
@@ -59,11 +73,20 @@ class MemoryBackendSync<
     cursorId: string,
     lastSyncId: string | undefined,
     onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
+    getRemoteBackend?: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
   ) {
     super(userId, cursorId, onEvent);
     this.channel = new MemoryBroadcastChannel<
       BackendEvent<EditMetadata, Delta, CursorState>
     >(this.store.docId, this.onBroadcastReceive);
+    if (getRemoteBackend) {
+      this.channel
+        .awaitLeadership()
+        .then(() => this.connectRemote(getRemoteBackend))
+        .catch(() => {
+          // this  happens if we close before becoming leader
+        });
+    }
     this.sendInitialEvents().catch(this.handleAsError('internal'));
   }
 
@@ -74,7 +97,7 @@ class MemoryBackendSync<
     return this.store.syncId;
   }
 
-  async broadcast(
+  protected async broadcastLocal(
     event: BackendEvent<EditMetadata, Delta, CursorState>,
   ): Promise<void> {
     await this.channel.postMessage(event);

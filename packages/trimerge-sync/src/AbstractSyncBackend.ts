@@ -1,9 +1,7 @@
 import {
   BackendEvent,
   CursorInfo,
-  CursorJoinEvent,
   CursorRef,
-  CursorUpdateEvent,
   DiffNode,
   ErrorCode,
   GetSyncBackendFn,
@@ -25,6 +23,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     protected readonly cursorId: string,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
   ) {}
+
   private getCursor(origin: 'local' | 'remote' | 'self') {
     const { userId, cursorId } = this;
     const cursor: CursorInfo<CursorState> = {
@@ -73,11 +72,14 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
   protected connectRemote(
     getRemoteBackend: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
   ): void {
+    console.log('connecting to remote');
     this.remote = getRemoteBackend(
       this.userId,
       this.cursorId + '-remote-sync',
       undefined,
       (event) => {
+        console.log('got remote event', event);
+
         switch (event.type) {
           case 'nodes':
             // add to local nodes
@@ -106,6 +108,13 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
       type: 'cursor-join',
       cursor: this.getCursor('remote'),
     });
+
+    // FIXME: broadcast the right nodes
+    this.remote.broadcast({
+      type: 'nodes',
+      nodes: [],
+      syncId: '',
+    });
   }
   protected handleAsError(code: ErrorCode) {
     return (error: Error) => {
@@ -118,7 +127,16 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
       void this.close();
     };
   }
-  abstract broadcast(
+  async broadcast(
+    event: BackendEvent<EditMetadata, Delta, CursorState>,
+  ): Promise<void> {
+    await Promise.all([
+      this.broadcastLocal(event),
+      // this.remote?.broadcast(event) || Promise.resolve(),
+    ]);
+  }
+
+  protected abstract broadcastLocal(
     event: BackendEvent<EditMetadata, Delta, CursorState>,
   ): Promise<void>;
 
