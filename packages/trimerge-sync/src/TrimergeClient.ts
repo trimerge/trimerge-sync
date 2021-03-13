@@ -83,27 +83,25 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
         break;
       }
 
-      case 'ack': {
+      case 'ack':
         this.lastSyncId = event.syncId;
         break;
-      }
 
-      case 'cursor-leave': {
+      case 'cursor-leave':
         this.cursorMap.delete(getFullId(event.userId, event.cursorId));
         this.emitCursorsChange();
         break;
-      }
 
+      case 'cursor-join':
       case 'cursor-update':
-      case 'cursor-join': {
+      case 'cursor-here':
         this.setCursor(event.cursor);
         break;
-      }
 
-      case 'remote-connect': {
+      case 'remote-connect':
         break;
-      }
-      case 'remote-disconnect': {
+
+      case 'remote-disconnect':
         for (const [key, { origin }] of this.cursorMap.entries()) {
           if (origin === 'remote') {
             this.cursorMap.delete(key);
@@ -111,7 +109,6 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
         }
         this.emitCursorsChange();
         break;
-      }
 
       case 'ready':
         break;

@@ -41,12 +41,8 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     this.onEvent(event);
     if (event.type === 'cursor-join' || event.type === 'remote-connect') {
       this.broadcast({
-        type: 'cursor-update',
+        type: 'cursor-here',
         cursor: this.getCursor('local'),
-      });
-      this.remote?.broadcast({
-        type: 'cursor-update',
-        cursor: this.getCursor('remote'),
       });
     }
   };
@@ -94,9 +90,12 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
             break;
           case 'error':
             if (event.fatal) {
-              // reconnect?
-
               this.broadcast({ type: 'remote-disconnect' });
+              this.remote?.close();
+              this.remote = undefined;
+            }
+            if (event.reconnectAfter !== undefined) {
+              // TODO: reconnect after reconnectAfter seconds
             }
             break;
         }

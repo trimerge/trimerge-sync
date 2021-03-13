@@ -49,6 +49,10 @@ export type CursorUpdateEvent<CursorState> = {
   type: 'cursor-update';
   cursor: CursorInfo<CursorState>;
 };
+export type CursorHereEvent<CursorState> = {
+  type: 'cursor-here';
+  cursor: CursorInfo<CursorState>;
+};
 export type CursorLeaveEvent = {
   type: 'cursor-leave';
   userId: string;
@@ -59,6 +63,7 @@ export type ErrorEvent = {
   code: ErrorCode;
   message?: string;
   fatal?: boolean;
+  reconnectAfter?: number;
 };
 export type RemoteConnect = {
   type: 'remote-connect';
@@ -71,8 +76,9 @@ export type BackendEvent<EditMetadata, Delta, CursorState> = Readonly<
   | NodesEvent<EditMetadata, Delta, CursorState>
   | ReadyEvent
   | AckNodesEvent
-  | CursorUpdateEvent<CursorState>
   | CursorJoinEvent<CursorState>
+  | CursorHereEvent<CursorState>
+  | CursorUpdateEvent<CursorState>
   | CursorLeaveEvent
   | RemoteConnect
   | RemoteDisconnect
