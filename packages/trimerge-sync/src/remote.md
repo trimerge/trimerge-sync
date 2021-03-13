@@ -1,4 +1,24 @@
-Events:
+# Remote Sync
+
+
+The main idea is there is a single set of events used both for local sync (between browser windows/tabs) and remote. There are three layers (let's call them Client, Device, and Remote):
+
+- **Client:** In-memory TrimergeClient, it connects to a local store
+- **Device:** A local store is in charge of communicating between all clients (browser tabs), and persisting data. I'm using a BroadcastChannel to communicate between tabs and IndexedDb to save to disk (in unit tests this is just stored in memory) (Device)
+- **Remote:** Additionally a local store can connect to a "remote" store to sync itself to other (this has the same interface as a local store, but the usage is different)
+
+**Remote**s are setup by maintaining leader among all the **Client** instances (on a **Device**) that connects to a single **Remote**.
+
+## Operations:
+
+A user directly interacts with a single **Client**, there are 4 main operations:
+
+- **connect**: e.g. start editing the document
+- **edit**: change the document state
+- **cursor update**: change the cursor state (e.g. selection or focus)
+- **disconnect**: stop editing the document
+
+## Events:
 
 - `nodes`: new nodes (and possibly a cursor)
 - `ack`: `nodes` were received and saved to store
@@ -11,7 +31,7 @@ Events:
 - `remote-disconnect`: disconnected from remote store
 - `error`: error with store/message sent
 
-Client can:
+## Event handling: 
 
 | event                     | on local store                                   | on leader instance                                     |
 | ------------------------- | ------------------------------------------------ | ------------------------------------------------------ |
