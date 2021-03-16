@@ -16,6 +16,32 @@ export type DiffNode<EditMetadata, Delta> = {
   editMetadata: EditMetadata;
 };
 
+export type LocalReadState =
+  | 'loading' /** reading state from disk */
+  | 'ready'; /** have latest state from disk, receiving local changes */
+
+export type LocalSaveState =
+  | 'ready' /** no changes in local memory */
+  | 'pending' /** changes in local memory, not sent to store yet */
+  | 'saving'; /** sent changes to local store, no `ack` yet */
+
+export type RemoteConnectState = 'offline' | 'connecting' | 'online';
+
+export type RemoteReadState = 'offline' | 'loading' | 'ready';
+
+export type RemoteSaveState =
+  | 'ready' /**  all local state has been synced to remote (though maybe local changes in memory) */
+  | 'pending' /**  we have local state that hasn't been sent to remote yet (maybe offline) */
+  | 'saving'; /**  we sent local state to remote, but haven't got `ack` yet */
+
+export type SyncState = {
+  localRead: LocalReadState;
+  localSave: LocalSaveState;
+  remoteConnect: RemoteConnectStateEvent;
+  remoteRead: RemoteReadState;
+  remoteSave: RemoteSaveState;
+};
+
 export type CursorRef<CursorState> = {
   ref: string | undefined;
   state: CursorState | undefined;
@@ -65,11 +91,11 @@ export type ErrorEvent = {
   fatal?: boolean;
   reconnectAfter?: number;
 };
-export type RemoteConnect = {
-  type: 'remote-connect';
-};
-export type RemoteDisconnect = {
-  type: 'remote-disconnect';
+export type RemoteStateEvent = {
+  type: 'remote-state';
+  connect?: RemoteConnectState;
+  read?: RemoteReadState;
+  save?: RemoteSaveState;
 };
 
 export type BackendEvent<EditMetadata, Delta, CursorState> = Readonly<
@@ -80,8 +106,7 @@ export type BackendEvent<EditMetadata, Delta, CursorState> = Readonly<
   | CursorHereEvent<CursorState>
   | CursorUpdateEvent<CursorState>
   | CursorLeaveEvent
-  | RemoteConnect
-  | RemoteDisconnect
+  | RemoteStateEvent
   | ErrorEvent
 >;
 

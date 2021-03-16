@@ -9,6 +9,7 @@ import {
   OnEventFn,
   TrimergeSyncBackend,
 } from './TrimergeSyncBackend';
+import { PromiseQueue } from './lib/PromiseQueue';
 
 export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
   implements TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
@@ -17,6 +18,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
   private remote:
     | TrimergeSyncBackend<EditMetadata, Delta, CursorState>
     | undefined;
+  private readonly remoteQueue = new PromiseQueue();
 
   public constructor(
     protected readonly userId: string,
@@ -39,7 +41,10 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     event: BackendEvent<EditMetadata, Delta, CursorState>,
   ): void => {
     this.onEvent(event);
-    if (event.type === 'cursor-join' || event.type === 'remote-connect') {
+    if (
+      event.type === 'cursor-join' ||
+      (event.type === 'remote-state' && event.connect === 'online')
+    ) {
       this.broadcast({
         type: 'cursor-here',
         cursor: this.getCursor('local'),
@@ -53,11 +58,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     }
     this.closed = true;
     const { userId, cursorId } = this;
-    if (this.remote) {
-      await this.remote.close();
-      await this.broadcast({ type: 'remote-disconnect' });
-      this.remote = undefined;
-    }
+    await this.closeRemote();
     await this.broadcast({
       type: 'cursor-leave',
       userId,
@@ -65,54 +66,84 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     });
   }
 
-  protected connectRemote(
-    getRemoteBackend: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
-  ): void {
-    console.log('connecting to remote');
-    this.remote = getRemoteBackend(
-      this.userId,
-      this.cursorId + '-remote-sync',
-      undefined,
-      (event) => {
-        console.log('got remote event', event);
-
-        switch (event.type) {
-          case 'nodes':
-            // add to local nodes
-            break;
-          case 'ready':
-            break;
-          case 'ack':
-            break;
-          case 'remote-connect':
-          case 'remote-disconnect':
-            // shouldn't happen from remote
-            break;
-          case 'error':
-            if (event.fatal) {
-              this.broadcast({ type: 'remote-disconnect' });
-              this.remote?.close();
-              this.remote = undefined;
-            }
-            if (event.reconnectAfter !== undefined) {
-              // TODO: reconnect after reconnectAfter seconds
-            }
-            break;
-        }
-        this.broadcast(event);
-      },
-    );
-    this.broadcast({ type: 'remote-connect' });
-    this.remote.broadcast({
-      type: 'cursor-join',
-      cursor: this.getCursor('remote'),
+  private async closeRemote() {
+    if (!this.remote) {
+      return;
+    }
+    await this.remote.close();
+    await this.broadcast({
+      type: 'remote-state',
+      connect: 'offline',
+      read: 'offline',
     });
+    this.remote = undefined;
+  }
 
-    // FIXME: broadcast the right nodes
-    this.remote.broadcast({
-      type: 'nodes',
-      nodes: [],
-      syncId: '',
+  protected async connectRemote(
+    getRemoteBackend: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
+  ): Promise<void> {
+    await this.remoteQueue.add(async () => {
+      console.log('connecting to remote');
+      await this.broadcast({
+        type: 'remote-state',
+        connect: 'connecting',
+        read: 'loading',
+      });
+      let connected = false;
+      this.remote = getRemoteBackend(
+        this.userId,
+        this.cursorId + '-remote-sync',
+        undefined,
+        (event) => {
+          this.remoteQueue
+            .add(async () => {
+              console.log('got remote event', event);
+              if (!connected) {
+                connected = true;
+                await this.broadcast({
+                  type: 'remote-state',
+                  connect: 'online',
+                });
+              }
+              switch (event.type) {
+                case 'nodes':
+                  // FIXME: add to local nodes
+                  break;
+                case 'ready':
+                  await this.broadcast({
+                    type: 'remote-state',
+                    read: 'ready',
+                  });
+                  break;
+                case 'ack':
+                  break;
+                case 'remote-state':
+                  throw new Error('unexpected remote state event');
+                case 'error':
+                  if (event.fatal) {
+                    await this.closeRemote();
+                  }
+                  if (event.reconnectAfter !== undefined) {
+                    // TODO: reconnect after reconnectAfter seconds
+                  }
+                  break;
+              }
+              await this.broadcast(event);
+            })
+            .catch(this.handleAsError('internal'));
+        },
+      );
+      await this.remote.broadcast({
+        type: 'cursor-join',
+        cursor: this.getCursor('remote'),
+      });
+
+      // FIXME: broadcast the right nodes
+      await this.remote.broadcast({
+        type: 'nodes',
+        nodes: [],
+        syncId: '',
+      });
     });
   }
   protected handleAsError(code: ErrorCode) {
@@ -131,7 +162,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
   ): Promise<void> {
     await Promise.all([
       this.broadcastLocal(event),
-      // this.remote?.broadcast(event) || Promise.resolve(),
+      this.remote?.broadcast(event) || Promise.resolve(),
     ]);
   }
 

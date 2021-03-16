@@ -3,6 +3,7 @@ import {
   DiffNode,
   GetSyncBackendFn,
   OnEventFn,
+  SyncState,
   TrimergeSyncBackend,
 } from './TrimergeSyncBackend';
 import { mergeHeadNodes } from './merge-nodes';
@@ -10,6 +11,7 @@ import { Differ, NodeStateRef } from './differ';
 import { getFullId, waitMs } from './util';
 
 export type StateChangeFn<State> = (state: State | undefined) => void;
+export type SyncStateChangeFn = (state: SyncState) => void;
 
 export type CursorsChangedFn<CursorState> = (
   cursors: readonly CursorInfo<CursorState>[],
@@ -20,6 +22,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
   private lastSyncId: string | undefined;
 
   private stateSubscribers = new Map<StateChangeFn<State>, State | undefined>();
+  private syncStateSubscribers = new Map<SyncStateChangeFn, SyncState>();
   private cursorsSubscribers = new Map<
     CursorsChangedFn<CursorState>,
     readonly CursorInfo<CursorState>[]
@@ -37,6 +40,14 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
 
   private selfFullId: string;
   private newCursorState: CursorInfo<CursorState> | undefined;
+
+  private syncState: SyncState = {
+    localRead: 'loading',
+    localSave: 'ready',
+    remoteConnect: 'offline',
+    remoteRead: 'offline',
+    remoteSave: 'ready',
+  };
 
   constructor(
     readonly userId: string,
@@ -98,10 +109,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
         this.setCursor(event.cursor);
         break;
 
-      case 'remote-connect':
-        break;
-
-      case 'remote-disconnect':
+      case 'remote-state':
         for (const [key, { origin }] of this.cursorMap.entries()) {
           if (origin === 'remote') {
             this.cursorMap.delete(key);
