@@ -8,6 +8,7 @@ import {
 import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
 import { AbstractSyncBackend } from '../AbstractSyncBackend';
 import generate from 'project-name-generator';
+import { PromiseQueue } from '../lib/PromiseQueue';
 
 // function getSyncCounter(syncId: string): number {
 //   return parseInt(syncId, 36);
@@ -19,6 +20,9 @@ function randomId() {
 
 export class MemoryStore<EditMetadata, Delta, CursorState> {
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
+  private syncedNodes = new Set<string>();
+  private lastRemoteSyncId: string | undefined;
+  private queue = new PromiseQueue();
 
   constructor(
     public readonly docId: string = randomId(),
@@ -33,7 +37,7 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
     return this.nodes;
   }
 
-  public get syncId(): string {
+  private get syncId(): string {
     return this.nodes.length.toString(36);
   }
 
@@ -53,8 +57,59 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
     );
   };
 
-  async addNodes(nodes: DiffNode<EditMetadata, Delta>[]): Promise<void> {
-    this.nodes.push(...nodes);
+  addNodes(
+    nodes: readonly DiffNode<EditMetadata, Delta>[],
+    remoteSyncId?: string,
+  ): Promise<string> {
+    return this.queue.add(async () => {
+      this.nodes.push(...nodes);
+      if (remoteSyncId !== undefined) {
+        for (const { ref } of nodes) {
+          this.syncedNodes.add(ref);
+        }
+        this.lastRemoteSyncId = remoteSyncId;
+      }
+      return this.syncId;
+    });
+  }
+  async acknowledgeNodes(
+    refs: readonly string[],
+    remoteSyncId: string,
+  ): Promise<void> {
+    return this.queue.add(async () => {
+      for (const ref of refs) {
+        this.syncedNodes.add(ref);
+      }
+      this.lastRemoteSyncId = remoteSyncId;
+    });
+  }
+
+  getInitialNodesEvent(): Promise<
+    NodesEvent<EditMetadata, Delta, CursorState>
+  > {
+    return this.queue.add(async () => ({
+      type: 'nodes',
+      nodes: this.nodes,
+      syncId: this.syncId,
+    }));
+  }
+  getLastRemoteSyncId(): Promise<string | undefined> {
+    return this.queue.add(async () => this.lastRemoteSyncId);
+  }
+
+  getUnsyncedNodesEvent(): Promise<
+    NodesEvent<EditMetadata, Delta, CursorState>
+  > {
+    return this.queue.add(async () => {
+      const nodes = await this.nodes.filter(
+        ({ ref }) => !this.syncedNodes.has(ref),
+      );
+      return {
+        type: 'nodes',
+        nodes,
+        syncId: this.syncId,
+      };
+    });
   }
 }
 
@@ -84,17 +139,24 @@ class MemoryBackendSync<
         .awaitLeadership()
         .then(() => this.connectRemote(getRemoteBackend))
         .catch(() => {
-          // this  happens if we close before becoming leader
+          // this happens if we close before becoming leader
         });
     }
     this.sendInitialEvents().catch(this.handleAsError('internal'));
   }
 
-  protected async addNodes(
+  protected addNodes(
     nodes: DiffNode<EditMetadata, Delta>[],
+    remoteSyncId?: string,
   ): Promise<string> {
-    await this.store.addNodes(nodes);
-    return this.store.syncId;
+    return this.store.addNodes(nodes, remoteSyncId);
+  }
+
+  protected async acknowledgeRemoteNodes(
+    refs: readonly string[],
+    remoteSyncId: string,
+  ): Promise<void> {
+    await this.store.acknowledgeNodes(refs, remoteSyncId);
   }
 
   protected async broadcastLocal(
@@ -106,11 +168,17 @@ class MemoryBackendSync<
   protected async *getInitialNodes(): AsyncIterableIterator<
     NodesEvent<EditMetadata, Delta, CursorState>
   > {
-    yield {
-      type: 'nodes',
-      nodes: this.store.getNodes(),
-      syncId: this.store.syncId,
-    };
+    yield await this.store.getInitialNodesEvent();
+  }
+
+  protected async *getUnsyncedNodes(): AsyncIterableIterator<
+    NodesEvent<EditMetadata, Delta, CursorState>
+  > {
+    yield await this.store.getUnsyncedNodesEvent();
+  }
+
+  protected getLastRemoteSyncId(): Promise<string | undefined> {
+    return this.store.getLastRemoteSyncId();
   }
 
   async close(): Promise<void> {

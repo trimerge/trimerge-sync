@@ -122,7 +122,7 @@ export type GetSyncBackendFn<EditMetadata, Delta, CursorState> = (
 ) => TrimergeSyncBackend<EditMetadata, Delta, CursorState>;
 
 export interface TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
-  broadcast(event: BackendEvent<EditMetadata, Delta, CursorState>): void;
+  send(event: BackendEvent<EditMetadata, Delta, CursorState>): void;
   update(
     nodes: DiffNode<EditMetadata, Delta>[],
     cursor: CursorRef<CursorState> | undefined,
@@ -131,9 +131,3 @@ export interface TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
 }
 
 export type UnsubscribeFn = () => void;
-export interface TrimergeSyncBackend2<EditMetadata, Delta, CursorState> {
-  send(event: BackendEvent<EditMetadata, Delta, CursorState>): void;
-  subscribe(
-    onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
-  ): UnsubscribeFn;
-}

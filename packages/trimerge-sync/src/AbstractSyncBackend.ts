@@ -1,4 +1,5 @@
 import {
+  AckNodesEvent,
   BackendEvent,
   CursorInfo,
   CursorRef,
@@ -25,6 +26,33 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     protected readonly cursorId: string,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
   ) {}
+
+  /**
+   * Send to all *other* local nodes
+   */
+  protected abstract broadcastLocal(
+    event: BackendEvent<EditMetadata, Delta, CursorState>,
+  ): Promise<void>;
+
+  protected abstract getInitialNodes(): AsyncIterableIterator<
+    NodesEvent<EditMetadata, Delta, CursorState>
+  >;
+
+  protected abstract getUnsyncedNodes(): AsyncIterableIterator<
+    NodesEvent<EditMetadata, Delta, CursorState>
+  >;
+
+  protected abstract addNodes(
+    nodes: readonly DiffNode<EditMetadata, Delta>[],
+    remoteSyncId?: string,
+  ): Promise<string>;
+
+  protected abstract acknowledgeRemoteNodes(
+    refs: readonly string[],
+    remoteSyncId: string,
+  ): Promise<void>;
+
+  protected abstract getLastRemoteSyncId(): Promise<string | undefined>;
 
   private getCursor(origin: 'local' | 'remote' | 'self') {
     const { userId, cursorId } = this;
@@ -107,19 +135,27 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
       this.remote = getRemoteBackend(
         this.userId,
         this.cursorId + '-remote-sync',
-        undefined,
+        await this.getLastRemoteSyncId(),
         (event) => {
           this.remoteQueue
             .add(async () => {
               console.log('got remote event', event);
               switch (event.type) {
                 case 'nodes':
-                  // FIXME: add to local nodes
-                  await this.sendEvent(event, { self: true, local: true });
+                  const syncId = await this.addNodes(event.nodes, event.syncId);
+                  await this.sendEvent(
+                    {
+                      type: 'nodes',
+                      nodes: event.nodes,
+                      cursor: event.cursor,
+                      syncId,
+                    },
+                    { self: true, local: true },
+                  );
                   break;
 
                 case 'ack':
-                  // FIXME: update local nodes with syncId
+                  await this.acknowledgeRemoteNodes(event.refs, event.syncId);
                   await this.sendEvent(event, { self: true, local: true });
                   break;
 
@@ -165,19 +201,18 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
             .catch(this.handleAsError('internal'));
         },
       );
-      await this.remote.broadcast({
+      await this.remote.send({
         type: 'cursor-join',
         cursor: this.getCursor('remote'),
       });
 
-      // FIXME: broadcast the right nodes
-      await this.remote.broadcast({
-        type: 'nodes',
-        nodes: [],
-        syncId: '',
-      });
+      for await (const event of this.getUnsyncedNodes()) {
+        await this.remote.send(event);
+      }
+      await this.remote.send({ type: 'ready' });
     });
   }
+
   protected handleAsError(code: ErrorCode) {
     return (error: Error) => {
       console.warn(`[${this.userId}:${this.cursorId}] Error:`, error);
@@ -205,46 +240,36 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
       await this.broadcastLocal(event);
     }
     if (remote && this.remote) {
-      await this.remote.broadcast(event);
+      await this.remote.send(event);
     }
   }
 
-  broadcast(
-    event: BackendEvent<EditMetadata, Delta, CursorState>,
-  ): Promise<void> {
+  /**
+   * Send to all remote and *other* local nodes
+   */
+  send(event: BackendEvent<EditMetadata, Delta, CursorState>): Promise<void> {
     return this.sendEvent(event, { remote: true, local: true });
   }
-  /**
-   * Send to all *other* local nodes
-   */
-  protected abstract broadcastLocal(
-    event: BackendEvent<EditMetadata, Delta, CursorState>,
-  ): Promise<void>;
 
   protected async sendInitialEvents() {
-    await this.broadcast({
-      type: 'cursor-join',
-      cursor: this.getCursor('local'),
-    });
+    await this.sendEvent(
+      {
+        type: 'cursor-join',
+        cursor: this.getCursor('local'),
+      },
+      { local: true },
+    );
     for await (const event of this.getInitialNodes()) {
       this.onEvent(event);
     }
     this.onEvent({ type: 'ready' });
   }
-  protected abstract getInitialNodes(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, CursorState>
-  >;
-
   update(
     newNodes: DiffNode<EditMetadata, Delta>[],
     cursor: CursorRef<CursorState> | undefined,
   ): void {
     this.doUpdate(newNodes, cursor).catch(this.handleAsError('invalid-nodes'));
   }
-
-  protected abstract addNodes(
-    nodes: DiffNode<EditMetadata, Delta>[],
-  ): Promise<string>;
 
   private async doUpdate(
     nodes: DiffNode<EditMetadata, Delta>[],

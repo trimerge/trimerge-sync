@@ -75,7 +75,9 @@ describe('Remote sync', () => {
     expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
 
-    expect(basicGraph(store1, client1)).toMatchInlineSnapshot(`
+    const graph1 = basicGraph(store1, client1);
+    const graph2 = basicGraph(store2, client1);
+    expect(graph1).toMatchInlineSnapshot(`
       Array [
         Object {
           "graph": "undefined -> DuQe--Vh",
@@ -96,10 +98,6 @@ describe('Remote sync', () => {
             "hello": "vorld",
           },
         },
-      ]
-    `);
-    expect(basicGraph(store2, client1)).toMatchInlineSnapshot(`
-      Array [
         Object {
           "graph": "YYUSBDXS -> YFIigfVr",
           "step": "User b: add world",
@@ -118,5 +116,6 @@ describe('Remote sync', () => {
         },
       ]
     `);
+    expect(graph2).toEqual(graph1);
   });
 });
