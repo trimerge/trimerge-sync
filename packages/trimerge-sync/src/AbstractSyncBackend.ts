@@ -123,7 +123,6 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
       if (this.closed) {
         return;
       }
-      console.log(`[${this.userId}:${this.cursorId}] connecting to remote`);
       await this.sendEvent(
         {
           type: 'remote-state',
@@ -139,7 +138,6 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
         (event) => {
           this.remoteQueue
             .add(async () => {
-              console.log('got remote event', event);
               switch (event.type) {
                 case 'nodes':
                   const syncId = await this.addNodes(event.nodes, event.syncId);
