@@ -37,7 +37,7 @@ export type RemoteSaveState =
 export type SyncState = {
   localRead: LocalReadState;
   localSave: LocalSaveState;
-  remoteConnect: RemoteConnectStateEvent;
+  remoteConnect: RemoteConnectState;
   remoteRead: RemoteReadState;
   remoteSave: RemoteSaveState;
 };

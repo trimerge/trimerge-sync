@@ -37,7 +37,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     return cursor;
   }
 
-  protected onBroadcastReceive = (
+  protected onLocalBroadcastEvent = (
     event: BackendEvent<EditMetadata, Delta, CursorState>,
   ): void => {
     this.onEvent(event);
@@ -45,25 +45,31 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
       event.type === 'cursor-join' ||
       (event.type === 'remote-state' && event.connect === 'online')
     ) {
-      this.broadcast({
-        type: 'cursor-here',
-        cursor: this.getCursor('local'),
-      });
+      this.sendEvent(
+        {
+          type: 'cursor-here',
+          cursor: this.getCursor('local'),
+        },
+        { local: true, remote: true },
+      );
     }
   };
 
   async close(): Promise<void> {
     if (this.closed) {
-      throw new Error('double close');
+      return;
     }
     this.closed = true;
     const { userId, cursorId } = this;
     await this.closeRemote();
-    await this.broadcast({
-      type: 'cursor-leave',
-      userId,
-      cursorId,
-    });
+    await this.sendEvent(
+      {
+        type: 'cursor-leave',
+        userId,
+        cursorId,
+      },
+      { local: true },
+    );
   }
 
   private async closeRemote() {
@@ -71,11 +77,14 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
       return;
     }
     await this.remote.close();
-    await this.broadcast({
-      type: 'remote-state',
-      connect: 'offline',
-      read: 'offline',
-    });
+    await this.sendEvent(
+      {
+        type: 'remote-state',
+        connect: 'offline',
+        read: 'offline',
+      },
+      { local: true, self: true },
+    );
     this.remote = undefined;
   }
 
@@ -83,12 +92,18 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     getRemoteBackend: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
   ): Promise<void> {
     await this.remoteQueue.add(async () => {
-      console.log('connecting to remote');
-      await this.broadcast({
-        type: 'remote-state',
-        connect: 'connecting',
-        read: 'loading',
-      });
+      if (this.closed) {
+        return;
+      }
+      console.log(`[${this.userId}:${this.cursorId}] connecting to remote`);
+      await this.sendEvent(
+        {
+          type: 'remote-state',
+          connect: 'connecting',
+          read: 'loading',
+        },
+        { self: true, local: true },
+      );
       let connected = false;
       this.remote = getRemoteBackend(
         this.userId,
@@ -100,25 +115,41 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
               console.log('got remote event', event);
               if (!connected) {
                 connected = true;
-                await this.broadcast({
-                  type: 'remote-state',
-                  connect: 'online',
-                });
+                await this.sendEvent(
+                  {
+                    type: 'remote-state',
+                    connect: 'online',
+                  },
+                  { self: true, local: true },
+                );
               }
               switch (event.type) {
                 case 'nodes':
                   // FIXME: add to local nodes
+                  await this.sendEvent(event, { self: true, local: true });
                   break;
-                case 'ready':
-                  await this.broadcast({
-                    type: 'remote-state',
-                    read: 'ready',
-                  });
-                  break;
+
                 case 'ack':
+                  // FIXME: update local nodes with syncId
+                  await this.sendEvent(event, { self: true, local: true });
                   break;
-                case 'remote-state':
-                  throw new Error('unexpected remote state event');
+
+                case 'cursor-here':
+                case 'cursor-join':
+                case 'cursor-update':
+                case 'cursor-leave':
+                  await this.sendEvent(event, { self: true, local: true });
+                  break;
+
+                case 'ready':
+                  await this.sendEvent(
+                    {
+                      type: 'remote-state',
+                      read: 'ready',
+                    },
+                    { self: true, local: true },
+                  );
+                  break;
                 case 'error':
                   if (event.fatal) {
                     await this.closeRemote();
@@ -127,8 +158,10 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
                     // TODO: reconnect after reconnectAfter seconds
                   }
                   break;
+
+                default:
+                  throw new Error(`unexpected remote event: ${event.type}`);
               }
-              await this.broadcast(event);
             })
             .catch(this.handleAsError('internal'));
         },
@@ -148,6 +181,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
   }
   protected handleAsError(code: ErrorCode) {
     return (error: Error) => {
+      console.warn(`[${this.userId}:${this.cursorId}] Error:`, error);
       this.onEvent({
         type: 'error',
         code,
@@ -157,15 +191,33 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
       void this.close();
     };
   }
-  async broadcast(
+  protected async sendEvent(
     event: BackendEvent<EditMetadata, Delta, CursorState>,
+    {
+      remote = false,
+      local = false,
+      self = false,
+    }: { remote?: boolean; local?: boolean; self?: boolean },
   ): Promise<void> {
-    await Promise.all([
-      this.broadcastLocal(event),
-      this.remote?.broadcast(event) || Promise.resolve(),
-    ]);
+    if (self) {
+      this.onEvent(event);
+    }
+    if (local) {
+      await this.broadcastLocal(event);
+    }
+    if (remote && this.remote) {
+      await this.remote.broadcast(event);
+    }
   }
 
+  broadcast(
+    event: BackendEvent<EditMetadata, Delta, CursorState>,
+  ): Promise<void> {
+    return this.sendEvent(event, { remote: true, local: true });
+  }
+  /**
+   * Send to all *other* local nodes
+   */
   protected abstract broadcastLocal(
     event: BackendEvent<EditMetadata, Delta, CursorState>,
   ): Promise<void>;
@@ -217,17 +269,23 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
       origin: 'local',
     };
     if (nodes.length > 0) {
-      await this.broadcast({
-        type: 'nodes',
-        nodes,
-        syncId,
-        cursor,
-      });
+      await this.sendEvent(
+        {
+          type: 'nodes',
+          nodes,
+          syncId,
+          cursor,
+        },
+        { local: true, remote: true },
+      );
     } else if (cursor) {
-      await this.broadcast({
-        type: 'cursor-update',
-        cursor,
-      });
+      await this.sendEvent(
+        {
+          type: 'cursor-update',
+          cursor,
+        },
+        { local: true, remote: true },
+      );
     }
   }
 }

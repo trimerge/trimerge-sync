@@ -78,7 +78,7 @@ class MemoryBackendSync<
     super(userId, cursorId, onEvent);
     this.channel = new MemoryBroadcastChannel<
       BackendEvent<EditMetadata, Delta, CursorState>
-    >(this.store.docId, this.onBroadcastReceive);
+    >(this.store.docId, this.onLocalBroadcastEvent);
     if (getRemoteBackend) {
       this.channel
         .awaitLeadership()
