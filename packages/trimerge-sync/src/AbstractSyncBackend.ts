@@ -104,7 +104,6 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
         },
         { self: true, local: true },
       );
-      let connected = false;
       this.remote = getRemoteBackend(
         this.userId,
         this.cursorId + '-remote-sync',
@@ -113,16 +112,6 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
           this.remoteQueue
             .add(async () => {
               console.log('got remote event', event);
-              if (!connected) {
-                connected = true;
-                await this.sendEvent(
-                  {
-                    type: 'remote-state',
-                    connect: 'online',
-                  },
-                  { self: true, local: true },
-                );
-              }
               switch (event.type) {
                 case 'nodes':
                   // FIXME: add to local nodes
@@ -143,13 +132,22 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
 
                 case 'ready':
                   await this.sendEvent(
-                    {
-                      type: 'remote-state',
-                      read: 'ready',
-                    },
+                    { type: 'remote-state', read: 'ready' },
                     { self: true, local: true },
                   );
                   break;
+
+                case 'remote-state':
+                  if (event.connect) {
+                    await this.sendEvent(
+                      { type: 'remote-state', connect: event.connect },
+                      { self: true, local: true },
+                    );
+                  } else {
+                    throw new Error(`unexpected non-connect remote-state`);
+                  }
+                  break;
+
                 case 'error':
                   if (event.fatal) {
                     await this.closeRemote();
@@ -160,7 +158,8 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
                   break;
 
                 default:
-                  throw new Error(`unexpected remote event: ${event.type}`);
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  throw new Error(`unexpected remote event: ${event!.type}`);
               }
             })
             .catch(this.handleAsError('internal'));
