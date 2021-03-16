@@ -73,7 +73,7 @@ class IndexedDbBackend<
     this.dbName = dbName;
     this.db = this.connect();
     this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
-    this.channel.addEventListener('message', this.onBroadcastReceive);
+    this.channel.addEventListener('message', this.onLocalBroadcastEvent);
     if (getRemoteBackend) {
       this.leaderElector = createLeaderElection(this.channel);
       this.leaderElector
@@ -173,6 +173,24 @@ class IndexedDbBackend<
       syncId: toSyncId(syncCounter),
     };
   }
+
+  protected async acknowledgeRemoteNodes(
+    refs: readonly string[],
+    remoteSyncId: string,
+  ): Promise<void> {
+    throw new Error('unimplemented');
+  }
+
+  protected async getLastRemoteSyncId(): Promise<string | undefined> {
+    throw new Error('unimplemented');
+  }
+
+  protected async *getUnsyncedNodes(): AsyncIterableIterator<
+    NodesEvent<EditMetadata, Delta, CursorState>
+  > {
+    throw new Error('unimplemented');
+  }
+
   close = async (): Promise<void> => {
     await super.close();
     window.removeEventListener('beforeunload', this.close);
