@@ -1,8 +1,9 @@
 import {
-  AbstractSyncBackend,
+  AbstractLocalBackend,
   BackendEvent,
   DiffNode,
-  GetSyncBackendFn,
+  GetLocalBackendFn,
+  GetRemoteBackendFn,
   NodesEvent,
   OnEventFn,
 } from 'trimerge-sync';
@@ -34,24 +35,17 @@ function toSyncNumber(syncId: string | undefined): number {
 
 export function createIndexedDbBackendFactory<EditMetadata, Delta, CursorState>(
   docId: string,
-  getRemoteBackend?: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
-): GetSyncBackendFn<EditMetadata, Delta, CursorState> {
-  return (userId, cursorId, lastSyncId, onEvent) =>
-    new IndexedDbBackend(
-      docId,
-      userId,
-      cursorId,
-      lastSyncId,
-      onEvent,
-      getRemoteBackend,
-    );
+  getRemoteBackend?: GetRemoteBackendFn<EditMetadata, Delta, CursorState>,
+): GetLocalBackendFn<EditMetadata, Delta, CursorState> {
+  return (userId, cursorId, onEvent) =>
+    new IndexedDbBackend(docId, userId, cursorId, onEvent, getRemoteBackend);
 }
 
 class IndexedDbBackend<
   EditMetadata,
   Delta,
   CursorState
-> extends AbstractSyncBackend<EditMetadata, Delta, CursorState> {
+> extends AbstractLocalBackend<EditMetadata, Delta, CursorState> {
   private readonly dbName: string;
   private db: Promise<IDBPDatabase<TrimergeSyncDbSchema>>;
   private readonly channel: BroadcastChannel<
@@ -63,9 +57,8 @@ class IndexedDbBackend<
     private readonly docId: string,
     userId: string,
     cursorId: string,
-    lastSyncId: string | undefined,
     onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
-    getRemoteBackend?: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
+    getRemoteBackend?: GetRemoteBackendFn<EditMetadata, Delta, CursorState>,
   ) {
     super(userId, cursorId, onEvent);
     const dbName = `trimerge-sync:${docId}`;
@@ -82,13 +75,33 @@ class IndexedDbBackend<
         .catch(this.handleAsError('internal'));
     }
     this.sendInitialEvents().catch(this.handleAsError('internal'));
-    window.addEventListener('beforeunload', this.close);
+    window.addEventListener('beforeunload', this.shutdown);
   }
 
   protected broadcastLocal(
     event: BackendEvent<EditMetadata, Delta, CursorState>,
   ): Promise<void> {
     return this.channel.postMessage(event).catch(this.handleAsError('network'));
+  }
+
+  protected getNodesForRemote(): AsyncIterableIterator<
+    NodesEvent<EditMetadata, Delta, CursorState>
+  > {
+    // FIXME: getNodesForRemote on IndexedDbBackend
+    throw new Error('unimplemented');
+  }
+
+  protected async acknowledgeRemoteNodes(
+    refs: readonly string[],
+    remoteSyncId: string,
+  ): Promise<void> {
+    // FIXME: acknowledgeRemoteNodes on IndexedDbBackend
+    throw new Error('unimplemented');
+  }
+
+  protected async getLastRemoteSyncId(): Promise<string | undefined> {
+    // FIXME: getLastRemoteSyncId on IndexedDbBackend
+    throw new Error('unimplemented');
   }
 
   private async connect(
@@ -156,7 +169,7 @@ class IndexedDbBackend<
     return toSyncId(syncCounter);
   }
 
-  protected async *getInitialNodes(): AsyncIterableIterator<
+  protected async *getLocalNodes(): AsyncIterableIterator<
     NodesEvent<EditMetadata, Delta, CursorState>
   > {
     const lastSyncCounter = toSyncNumber(undefined);
@@ -174,26 +187,9 @@ class IndexedDbBackend<
     };
   }
 
-  protected async acknowledgeRemoteNodes(
-    refs: readonly string[],
-    remoteSyncId: string,
-  ): Promise<void> {
-    throw new Error('unimplemented');
-  }
-
-  protected async getLastRemoteSyncId(): Promise<string | undefined> {
-    throw new Error('unimplemented');
-  }
-
-  protected async *getUnsyncedNodes(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, CursorState>
-  > {
-    throw new Error('unimplemented');
-  }
-
-  close = async (): Promise<void> => {
-    await super.close();
-    window.removeEventListener('beforeunload', this.close);
+  shutdown = async (): Promise<void> => {
+    await super.shutdown();
+    window.removeEventListener('beforeunload', this.shutdown);
     await this.leaderElector?.die();
     await this.channel.close();
 
