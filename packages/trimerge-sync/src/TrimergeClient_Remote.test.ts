@@ -22,7 +22,7 @@ function newStore(
 ) {
   return new MemoryStore<TestEditMetadata, Delta, TestPresenceState>(
     undefined,
-    remote?.getRemoteFn,
+    remote?.getRemote,
   );
 }
 
