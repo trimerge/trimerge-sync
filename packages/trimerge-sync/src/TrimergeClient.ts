@@ -108,6 +108,17 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
           }
         }
         this.emitCursorsChange();
+        const changes: Partial<SyncState> = {};
+        if (event.connect) {
+          changes.remoteConnect = event.connect;
+        }
+        if (event.read) {
+          changes.remoteRead = event.read;
+        }
+        if (event.save) {
+          changes.remoteSave = event.save;
+        }
+        this.updateSyncState(changes);
         break;
 
       case 'ready':
@@ -230,14 +241,23 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     }
     return this.syncPromise;
   }
+
+  private updateSyncState(update: Partial<SyncState>) {
+    this.syncState = { ...this.syncState, ...update };
+    this.syncStateSubs.emitChange();
+  }
+
   private async doSync() {
     while (this.needsSync) {
+      this.updateSyncState({ localSave: 'pending' });
       await waitMs(this.bufferMs);
       const nodes = this.unsyncedNodes;
       this.unsyncedNodes = [];
+      this.updateSyncState({ localSave: 'saving' });
       this.backend.update(nodes, this.newCursorState);
       this.newCursorState = undefined;
     }
+    this.updateSyncState({ localSave: 'ready' });
     this.syncPromise = undefined;
     return true;
   }

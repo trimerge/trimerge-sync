@@ -96,7 +96,7 @@ export abstract class AbstractRemoteBackend<EditMetadata, Delta, CursorState>
       return;
     }
     this.closed = true;
-    this.onEvent({ type: 'remote-state', connect: 'offline' });
+    this.onEvent({ type: 'remote-state', connect: 'offline', read: 'offline' });
   }
 
   protected fail(
