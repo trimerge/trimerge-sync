@@ -4,7 +4,7 @@ import { MemoryStore } from './testLib/MemoryStore';
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { getBasicGraph } from './testLib/GraphVisualizers';
-import { SyncState } from './types';
+import { SyncStatus } from './types';
 
 type TestEditMetadata = string;
 type TestState = any;
@@ -50,7 +50,7 @@ describe('Remote sync', () => {
     const localStore = newStore(remoteStore);
     const client = makeClient('a', localStore);
 
-    const syncUpdates: SyncState[] = [];
+    const syncUpdates: SyncStatus[] = [];
     client.subscribeSyncState((state) => syncUpdates.push(state));
 
     client.updateState({}, 'initialize');
@@ -186,7 +186,7 @@ describe('Remote sync', () => {
     const localStore = newStore(remoteStore);
     const client = makeClient('a', localStore);
 
-    const syncUpdates: SyncState[] = [];
+    const syncUpdates: SyncStatus[] = [];
     client.subscribeSyncState((state) => syncUpdates.push(state));
 
     client.updateState({}, 'initialize');
@@ -419,8 +419,8 @@ describe('Remote sync', () => {
     const client1 = makeClient('a', store1);
     const client2 = makeClient('b', store2);
 
-    const syncUpdates1: SyncState[] = [];
-    const syncUpdates2: SyncState[] = [];
+    const syncUpdates1: SyncStatus[] = [];
+    const syncUpdates2: SyncStatus[] = [];
     client1.subscribeSyncState((state) => syncUpdates1.push(state));
     client2.subscribeSyncState((state) => syncUpdates2.push(state));
 

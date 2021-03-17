@@ -5,7 +5,7 @@ import {
   GetLocalBackendFn,
   LocalBackend,
   OnEventFn,
-  SyncState,
+  SyncStatus,
 } from './types';
 import { mergeHeadNodes } from './merge-nodes';
 import { Differ, NodeStateRef } from './differ';
@@ -33,7 +33,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
   private selfFullId: string;
   private newCursorState: CursorInfo<CursorState> | undefined;
 
-  private syncState: SyncState = {
+  private syncState: SyncStatus = {
     localRead: 'loading',
     localSave: 'ready',
     remoteConnect: 'offline',
@@ -108,7 +108,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
           }
         }
         this.emitCursorsChange();
-        const changes: Partial<SyncState> = {};
+        const changes: Partial<SyncStatus> = {};
         if (event.connect) {
           changes.remoteConnect = event.connect;
         }
@@ -144,7 +144,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     return this.stateSubs.subscribe(onChange);
   }
 
-  subscribeSyncState(onChange: OnChangeFn<SyncState>) {
+  subscribeSyncState(onChange: OnChangeFn<SyncStatus>) {
     return this.syncStateSubs.subscribe(onChange);
   }
 
@@ -243,7 +243,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     return this.syncPromise;
   }
 
-  private updateSyncState(update: Partial<SyncState>) {
+  private updateSyncState(update: Partial<SyncStatus>) {
     this.syncState = { ...this.syncState, ...update };
     this.syncStateSubs.emitChange();
   }

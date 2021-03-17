@@ -31,19 +31,19 @@ A user directly interacts with a single **Client**, there are 4 main operations:
 
 ## Sync Status:
 
-- `localReadState`:
+- `localReadStatus`:
   - `loading`: reading state from disk
   - `ready`: have latest state from disk, receiving local changes
-- `localSaveState`:
+- `localSaveStatus`:
   - `ready`: no changes in local memory
   - `pending`: changes in local memory, not sent to store yet
   - `saving`: sent changes to local store, no `ack` yet
-- `remoteReadState`:
+- `remoteReadStatus`:
   - `offline`: no connection to server
   - `connecting`: connecting to server
   - `loading`: connected and downloading initial nodes to get in sync
   - `ready`: all state synced from remote, receiving live updates
-- `remoteSaveState`:
+- `remoteSaveStatus`:
   - `ready`: all local state has been synced to remote (though maybe local changes in memory)
   - `pending`: we have local state that hasn't been sent to remote yet (maybe offline)
   - `saving`: we sent local state to remote, but haven't got `ack` yet

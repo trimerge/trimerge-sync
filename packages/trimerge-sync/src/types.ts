@@ -16,30 +16,30 @@ export type DiffNode<EditMetadata, Delta> = {
   editMetadata: EditMetadata;
 };
 
-export type LocalReadState =
+export type LocalReadStatus =
   | 'loading' /** reading state from disk */
   | 'ready'; /** have latest state from disk, receiving local changes */
 
-export type LocalSaveState =
+export type LocalSaveStatus =
   | 'ready' /** no changes in local memory */
   | 'pending' /** changes in local memory, not sent to store yet */
   | 'saving'; /** sent changes to local store, no `ack` yet */
 
-export type RemoteConnectState = 'offline' | 'connecting' | 'online';
+export type RemoteConnectStatus = 'offline' | 'connecting' | 'online';
 
-export type RemoteReadState = 'offline' | 'loading' | 'ready';
+export type RemoteReadStatus = 'offline' | 'loading' | 'ready';
 
-export type RemoteSaveState =
+export type RemoteSaveStatus =
   | 'ready' /**  all local state has been synced to remote (though maybe local changes in memory) */
   | 'pending' /**  we have local state that hasn't been sent to remote yet (maybe offline) */
   | 'saving'; /**  we sent local state to remote, but haven't got `ack` yet */
 
-export type SyncState = {
-  localRead: LocalReadState;
-  localSave: LocalSaveState;
-  remoteConnect: RemoteConnectState;
-  remoteRead: RemoteReadState;
-  remoteSave: RemoteSaveState;
+export type SyncStatus = {
+  localRead: LocalReadStatus;
+  localSave: LocalSaveStatus;
+  remoteConnect: RemoteConnectStatus;
+  remoteRead: RemoteReadStatus;
+  remoteSave: RemoteSaveStatus;
 };
 
 export type CursorRef<CursorState> = {
@@ -95,9 +95,9 @@ export type ErrorEvent = {
 };
 export type RemoteStateEvent = {
   type: 'remote-state';
-  connect?: RemoteConnectState;
-  read?: RemoteReadState;
-  save?: RemoteSaveState;
+  connect?: RemoteConnectStatus;
+  read?: RemoteReadStatus;
+  save?: RemoteSaveStatus;
 };
 
 // FIXME: split into local and remote events?
