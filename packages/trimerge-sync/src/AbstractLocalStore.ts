@@ -1,43 +1,46 @@
 import {
-  BackendEvent,
-  CursorInfo,
-  CursorRef,
+  SyncEvent,
+  ClientInfo,
+  ClientPresenceRef,
   DiffNode,
   ErrorCode,
-  GetRemoteBackendFn,
-  LocalBackend,
+  GetRemoteFn,
+  LocalStore,
   NodesEvent,
   OnEventFn,
-  RemoteBackend,
+  Remote,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
 
-export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
-  implements LocalBackend<EditMetadata, Delta, CursorState> {
+export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
+  implements LocalStore<EditMetadata, Delta, PresenceState> {
   private closed = false;
-  private cursor: CursorRef<CursorState> = { ref: undefined, state: undefined };
-  private remote: RemoteBackend<EditMetadata, Delta, CursorState> | undefined;
+  private presence: ClientPresenceRef<PresenceState> = {
+    ref: undefined,
+    state: undefined,
+  };
+  private remote: Remote<EditMetadata, Delta, PresenceState> | undefined;
   private readonly remoteQueue = new PromiseQueue();
 
   public constructor(
     protected readonly userId: string,
-    protected readonly cursorId: string,
-    private readonly onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
+    protected readonly clientId: string,
+    private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
   ) {}
 
   /**
    * Send to all *other* local nodes
    */
   protected abstract broadcastLocal(
-    event: BackendEvent<EditMetadata, Delta, CursorState>,
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void>;
 
   protected abstract getLocalNodes(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, CursorState>
+    NodesEvent<EditMetadata, Delta, PresenceState>
   >;
 
   protected abstract getNodesForRemote(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, CursorState>
+    NodesEvent<EditMetadata, Delta, PresenceState>
   >;
 
   protected abstract addNodes(
@@ -52,29 +55,30 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
 
   protected abstract getLastRemoteSyncId(): Promise<string | undefined>;
 
-  private getCursor(origin: 'local' | 'remote' | 'self') {
-    const { userId, cursorId } = this;
-    const cursor: CursorInfo<CursorState> = {
+  private getClientInfo(
+    origin: 'local' | 'remote' | 'self',
+  ): ClientInfo<PresenceState> {
+    const { userId, clientId } = this;
+    return {
       userId,
-      cursorId,
-      ...this.cursor,
+      clientId,
+      ...this.presence,
       origin,
     };
-    return cursor;
   }
 
   protected onLocalBroadcastEvent = (
-    event: BackendEvent<EditMetadata, Delta, CursorState>,
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
   ): void => {
     this.onEvent(event);
     if (
-      event.type === 'cursor-join' ||
+      event.type === 'client-join' ||
       (event.type === 'remote-state' && event.connect === 'online')
     ) {
       this.sendEvent(
         {
-          type: 'cursor-here',
-          cursor: this.getCursor('local'),
+          type: 'client-presence',
+          info: this.getClientInfo('local'),
         },
         { local: true, remote: true },
       );
@@ -86,13 +90,13 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
       return;
     }
     this.closed = true;
-    const { userId, cursorId } = this;
+    const { userId, clientId } = this;
     await this.closeRemote();
     await this.sendEvent(
       {
-        type: 'cursor-leave',
+        type: 'client-leave',
         userId,
-        cursorId,
+        clientId,
       },
       { local: true },
     );
@@ -115,7 +119,7 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
   }
 
   protected async connectRemote(
-    getRemoteBackend: GetRemoteBackendFn<EditMetadata, Delta, CursorState>,
+    getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
     await this.remoteQueue.add(async () => {
       if (this.closed) {
@@ -129,7 +133,7 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
         },
         { self: true, local: true },
       );
-      this.remote = getRemoteBackend(
+      this.remote = getRemote(
         this.userId,
         await this.getLastRemoteSyncId(),
         (event) => {
@@ -142,7 +146,7 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
                     {
                       type: 'nodes',
                       nodes: event.nodes,
-                      cursor: event.cursor,
+                      clientInfo: event.clientInfo,
                       syncId,
                     },
                     { self: true, local: true },
@@ -158,10 +162,9 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
                   );
                   break;
 
-                case 'cursor-here':
-                case 'cursor-join':
-                case 'cursor-update':
-                case 'cursor-leave':
+                case 'client-join':
+                case 'client-presence':
+                case 'client-leave':
                   await this.sendEvent(event, { self: true, local: true });
                   break;
 
@@ -189,7 +192,7 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
                   }
                   if (event.reconnect !== false) {
                     // FIXME: handle error here
-                    this.connectRemote(getRemoteBackend);
+                    this.connectRemote(getRemote);
                   }
                   break;
 
@@ -202,8 +205,8 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
         },
       );
       await this.remote.send({
-        type: 'cursor-join',
-        cursor: this.getCursor('remote'),
+        type: 'client-join',
+        info: this.getClientInfo('remote'),
       });
 
       let saving = false;
@@ -223,7 +226,7 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
 
   protected handleAsError(code: ErrorCode) {
     return (error: Error) => {
-      console.warn(`[${this.userId}:${this.cursorId}] Error:`, error);
+      console.warn(`[${this.userId}:${this.clientId}] Error:`, error);
       this.onEvent({
         type: 'error',
         code,
@@ -234,7 +237,7 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
     };
   }
   protected async sendEvent(
-    event: BackendEvent<EditMetadata, Delta, CursorState>,
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
     {
       remote = false,
       local = false,
@@ -255,8 +258,8 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
   protected async sendInitialEvents() {
     await this.sendEvent(
       {
-        type: 'cursor-join',
-        cursor: this.getCursor('local'),
+        type: 'client-join',
+        info: this.getClientInfo('local'),
       },
       { local: true },
     );
@@ -267,17 +270,19 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
   }
   update(
     newNodes: DiffNode<EditMetadata, Delta>[],
-    cursor: CursorRef<CursorState> | undefined,
+    presence: ClientPresenceRef<PresenceState> | undefined,
   ): void {
-    this.doUpdate(newNodes, cursor).catch(this.handleAsError('invalid-nodes'));
+    this.doUpdate(newNodes, presence).catch(
+      this.handleAsError('invalid-nodes'),
+    );
   }
 
   private async doUpdate(
     nodes: DiffNode<EditMetadata, Delta>[],
-    cursorRef: CursorRef<CursorState> | undefined,
+    presenceRef: ClientPresenceRef<PresenceState> | undefined,
   ): Promise<void> {
-    if (cursorRef) {
-      this.cursor = cursorRef;
+    if (presenceRef) {
+      this.presence = presenceRef;
     }
     if (nodes.length > 0) {
       await this.sendEvent(
@@ -292,10 +297,10 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
       refs: nodes.map(({ ref }) => ref),
       syncId,
     });
-    const cursor: CursorInfo<CursorState> | undefined = cursorRef && {
-      ...cursorRef,
+    const clientInfo: ClientInfo<PresenceState> | undefined = presenceRef && {
+      ...presenceRef,
       userId: this.userId,
-      cursorId: this.cursorId,
+      clientId: this.clientId,
       origin: 'local',
     };
     if (nodes.length > 0) {
@@ -308,16 +313,13 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
           type: 'nodes',
           nodes,
           syncId,
-          cursor,
+          clientInfo,
         },
         { local: true, remote: true },
       );
-    } else if (cursor) {
+    } else if (clientInfo) {
       await this.sendEvent(
-        {
-          type: 'cursor-update',
-          cursor,
-        },
+        { type: 'client-presence', info: clientInfo },
         { local: true, remote: true },
       );
     }

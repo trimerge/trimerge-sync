@@ -1,25 +1,25 @@
 import styles from './Focus.module.css';
 import materialColorHash from 'material-color-hash';
 import React, { useMemo } from 'react';
-import { CursorInfos } from 'trimerge-sync';
-import { FocusCursorState } from '../lib/FocusCursorState';
+import { ClientList } from 'trimerge-sync';
+import { FocusPresenceState } from '../lib/FocusPresenceState';
 
-export function FocusBorders<CursorState extends FocusCursorState>({
-  cursors,
+export function FocusBorders<PresenceState extends FocusPresenceState>({
+  clients,
 }: {
-  cursors: CursorInfos<CursorState>;
+  clients: ClientList<PresenceState>;
 }) {
-  const style = useMemo(() => ({ left: `${-2 * cursors.length}px` }), [
-    cursors.length,
+  const style = useMemo(() => ({ left: `${-2 * clients.length}px` }), [
+    clients.length,
   ]);
-  if (cursors.length === 0) {
+  if (clients.length === 0) {
     return <></>;
   }
 
   return (
     <span className={styles.tagWrapper} style={style}>
-      {cursors.map(({ userId, cursorId }) => {
-        const key = userId + ':' + cursorId;
+      {clients.map(({ userId, clientId }) => {
+        const key = userId + ':' + clientId;
         const { color, backgroundColor } = materialColorHash(key, 500);
         return (
           <span
@@ -27,7 +27,7 @@ export function FocusBorders<CursorState extends FocusCursorState>({
             className={styles.tag}
             style={{ color, backgroundColor }}
           >
-            {cursorId}
+            {clientId}
           </span>
         );
       })}

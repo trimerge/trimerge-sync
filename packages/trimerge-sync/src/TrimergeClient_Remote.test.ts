@@ -8,9 +8,9 @@ import { SyncStatus } from './types';
 
 type TestEditMetadata = string;
 type TestState = any;
-type TestCursorState = any;
+type TestPresenceState = any;
 
-const differ: Differ<TestState, TestEditMetadata, TestCursorState> = {
+const differ: Differ<TestState, TestEditMetadata, TestPresenceState> = {
   diff,
   patch,
   computeRef,
@@ -18,24 +18,29 @@ const differ: Differ<TestState, TestEditMetadata, TestCursorState> = {
 };
 
 function newStore(
-  remote?: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
+  remote?: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
 ) {
-  return new MemoryStore<TestEditMetadata, Delta, TestCursorState>(
+  return new MemoryStore<TestEditMetadata, Delta, TestPresenceState>(
     undefined,
-    remote?.getRemoteBackendFn,
+    remote?.getRemoteFn,
   );
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
-): TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState> {
-  return new TrimergeClient(userId, 'test', store.getLocalBackend, differ, 0);
+  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+): TrimergeClient<TestState, TestEditMetadata, Delta, TestPresenceState> {
+  return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
-  client1: TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  client1: TrimergeClient<
+    TestState,
+    TestEditMetadata,
+    Delta,
+    TestPresenceState
+  >,
 ) {
   return getBasicGraph(
     store,
@@ -195,7 +200,7 @@ describe('Remote sync', () => {
     await timeout();
 
     // Kill the "connection"
-    remoteStore.remoteBackends[0].fail('testing', 'network');
+    remoteStore.remotes[0].fail('testing', 'network');
 
     client.updateState({ hello: 'vorld' }, 'change hello');
     client.updateState({ hello: 'borld' }, 'change hello');

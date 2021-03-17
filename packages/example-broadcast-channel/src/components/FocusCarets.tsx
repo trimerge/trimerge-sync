@@ -1,34 +1,34 @@
 import getCaretCoordinates from 'textarea-caret';
 import materialColorHash from 'material-color-hash';
 import React, { useMemo } from 'react';
-import { CursorInfos } from 'trimerge-sync';
-import { FocusCursorState } from '../lib/FocusCursorState';
+import { ClientList } from 'trimerge-sync';
+import { FocusPresenceState } from '../lib/FocusPresenceState';
 import styles from './Focus.module.css';
 
-export function FocusCarets<CursorState extends FocusCursorState>({
+export function FocusCarets<PresenceState extends FocusPresenceState>({
   dom,
-  cursors,
+  clients,
   includeNames = false,
 }: {
   dom: HTMLInputElement | HTMLTextAreaElement | null;
-  cursors: CursorInfos<CursorState>;
+  clients: ClientList<PresenceState>;
   includeNames?: boolean;
 }) {
   return (
     <>
       {dom &&
-        cursors.map(({ userId, cursorId, state }) => {
+        clients.map(({ userId, clientId, state }) => {
           const selectionStart = state?.selectionStart;
           const selectionEnd = state?.selectionEnd;
           if (selectionStart === undefined || selectionEnd === undefined) {
             return null;
           }
-          const fullId = userId + ':' + cursorId;
+          const fullId = userId + ':' + clientId;
           return (
             <FocusCaret
               key={fullId}
               dom={dom}
-              name={includeNames ? cursorId : undefined}
+              name={includeNames ? clientId : undefined}
               id={fullId}
               selectionStart={selectionStart}
               selectionEnd={selectionEnd}

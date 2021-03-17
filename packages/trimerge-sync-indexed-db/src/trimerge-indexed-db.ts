@@ -1,9 +1,9 @@
 import {
-  AbstractLocalBackend,
-  BackendEvent,
+  AbstractLocalStore,
+  SyncEvent,
   DiffNode,
-  GetLocalBackendFn,
-  GetRemoteBackendFn,
+  GetLocalStoreFn,
+  GetRemoteFn,
   NodesEvent,
   OnEventFn,
 } from 'trimerge-sync';
@@ -33,45 +33,49 @@ function toSyncNumber(syncId: string | undefined): number {
   return syncId === undefined ? 0 : parseInt(syncId, 36);
 }
 
-export function createIndexedDbBackendFactory<EditMetadata, Delta, CursorState>(
+export function createIndexedDbBackendFactory<
+  EditMetadata,
+  Delta,
+  PresenceState
+>(
   docId: string,
-  getRemoteBackend?: GetRemoteBackendFn<EditMetadata, Delta, CursorState>,
-): GetLocalBackendFn<EditMetadata, Delta, CursorState> {
-  return (userId, cursorId, onEvent) =>
-    new IndexedDbBackend(docId, userId, cursorId, onEvent, getRemoteBackend);
+  getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
+): GetLocalStoreFn<EditMetadata, Delta, PresenceState> {
+  return (userId, clientId, onEvent) =>
+    new IndexedDbBackend(docId, userId, clientId, onEvent, getRemote);
 }
 
 class IndexedDbBackend<
   EditMetadata,
   Delta,
-  CursorState
-> extends AbstractLocalBackend<EditMetadata, Delta, CursorState> {
+  PresenceState
+> extends AbstractLocalStore<EditMetadata, Delta, PresenceState> {
   private readonly dbName: string;
   private db: Promise<IDBPDatabase<TrimergeSyncDbSchema>>;
   private readonly channel: BroadcastChannel<
-    BackendEvent<EditMetadata, Delta, CursorState>
+    SyncEvent<EditMetadata, Delta, PresenceState>
   >;
   private readonly leaderElector: LeaderElector | undefined;
 
   public constructor(
     private readonly docId: string,
     userId: string,
-    cursorId: string,
-    onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
-    getRemoteBackend?: GetRemoteBackendFn<EditMetadata, Delta, CursorState>,
+    clientId: string,
+    onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
+    getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
   ) {
-    super(userId, cursorId, onEvent);
+    super(userId, clientId, onEvent);
     const dbName = `trimerge-sync:${docId}`;
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.db = this.connect();
     this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
     this.channel.addEventListener('message', this.onLocalBroadcastEvent);
-    if (getRemoteBackend) {
+    if (getRemote) {
       this.leaderElector = createLeaderElection(this.channel);
       this.leaderElector
         .awaitLeadership()
-        .then(() => this.connectRemote(getRemoteBackend))
+        .then(() => this.connectRemote(getRemote))
         .catch(this.handleAsError('internal'));
     }
     this.sendInitialEvents().catch(this.handleAsError('internal'));
@@ -79,13 +83,13 @@ class IndexedDbBackend<
   }
 
   protected broadcastLocal(
-    event: BackendEvent<EditMetadata, Delta, CursorState>,
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
     return this.channel.postMessage(event).catch(this.handleAsError('network'));
   }
 
   protected getNodesForRemote(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, CursorState>
+    NodesEvent<EditMetadata, Delta, PresenceState>
   > {
     // FIXME: getNodesForRemote on IndexedDbBackend
     throw new Error('unimplemented');
@@ -170,7 +174,7 @@ class IndexedDbBackend<
   }
 
   protected async *getLocalNodes(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, CursorState>
+    NodesEvent<EditMetadata, Delta, PresenceState>
   > {
     const lastSyncCounter = toSyncNumber(undefined);
     const db = await this.db;

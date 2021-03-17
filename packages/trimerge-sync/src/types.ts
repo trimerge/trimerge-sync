@@ -7,7 +7,7 @@ export type ErrorCode =
 
 export type DiffNode<EditMetadata, Delta> = {
   userId: string;
-  cursorId: string;
+  clientId: string;
   ref: string;
   baseRef?: string;
   mergeRef?: string;
@@ -42,23 +42,23 @@ export type SyncStatus = {
   remoteSave: RemoteSaveStatus;
 };
 
-export type CursorRef<CursorState> = {
+export type ClientPresenceRef<PresenceState> = {
   ref: string | undefined;
-  state: CursorState | undefined;
+  state: PresenceState | undefined;
 };
 
-export type CursorInfo<CursorState> = CursorRef<CursorState> & {
+export type ClientInfo<PresenceState> = ClientPresenceRef<PresenceState> & {
   userId: string;
-  cursorId: string;
+  clientId: string;
   origin: 'self' | 'local' | 'remote';
 };
 
-export type CursorInfos<CursorState> = readonly CursorInfo<CursorState>[];
+export type ClientList<PresenceState> = readonly ClientInfo<PresenceState>[];
 
-export type NodesEvent<EditMetadata, Delta, CursorState> = {
+export type NodesEvent<EditMetadata, Delta, PresenceState> = {
   type: 'nodes';
   nodes: readonly DiffNode<EditMetadata, Delta>[];
-  cursor?: CursorInfo<CursorState>;
+  clientInfo?: ClientInfo<PresenceState>;
   syncId: string;
 };
 export type ReadyEvent = {
@@ -69,22 +69,18 @@ export type AckNodesEvent = {
   refs: readonly string[];
   syncId: string;
 };
-export type CursorJoinEvent<CursorState> = {
-  type: 'cursor-join';
-  cursor: CursorInfo<CursorState>;
+export type ClientJoinEvent<PresenceState> = {
+  type: 'client-join';
+  info: ClientInfo<PresenceState>;
 };
-export type CursorUpdateEvent<CursorState> = {
-  type: 'cursor-update';
-  cursor: CursorInfo<CursorState>;
+export type ClientPresenceEvent<PresenceState> = {
+  type: 'client-presence';
+  info: ClientInfo<PresenceState>;
 };
-export type CursorHereEvent<CursorState> = {
-  type: 'cursor-here';
-  cursor: CursorInfo<CursorState>;
-};
-export type CursorLeaveEvent = {
-  type: 'cursor-leave';
+export type ClientLeaveEvent = {
+  type: 'client-leave';
   userId: string;
-  cursorId: string;
+  clientId: string;
 };
 export type ErrorEvent = {
   type: 'error';
@@ -100,45 +96,43 @@ export type RemoteStateEvent = {
   save?: RemoteSaveStatus;
 };
 
-// FIXME: split into local and remote events?
-export type BackendEvent<EditMetadata, Delta, CursorState> = Readonly<
-  | NodesEvent<EditMetadata, Delta, CursorState>
+export type SyncEvent<EditMetadata, Delta, PresenceState> = Readonly<
+  | NodesEvent<EditMetadata, Delta, PresenceState>
   | ReadyEvent
   | AckNodesEvent
-  | CursorJoinEvent<CursorState>
-  | CursorHereEvent<CursorState>
-  | CursorUpdateEvent<CursorState>
-  | CursorLeaveEvent
+  | ClientJoinEvent<PresenceState>
+  | ClientPresenceEvent<PresenceState>
+  | ClientLeaveEvent
   | RemoteStateEvent
   | ErrorEvent
 >;
 
-export type OnEventFn<EditMetadata, Delta, CursorState> = (
-  event: BackendEvent<EditMetadata, Delta, CursorState>,
+export type OnEventFn<EditMetadata, Delta, PresenceState> = (
+  event: SyncEvent<EditMetadata, Delta, PresenceState>,
 ) => void;
 
-export type GetLocalBackendFn<EditMetadata, Delta, CursorState> = (
+export type GetLocalStoreFn<EditMetadata, Delta, PresenceState> = (
   userId: string,
-  cursorId: string,
-  onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
-) => LocalBackend<EditMetadata, Delta, CursorState>;
+  clientId: string,
+  onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
+) => LocalStore<EditMetadata, Delta, PresenceState>;
 
-export type GetRemoteBackendFn<EditMetadata, Delta, CursorState> = (
+export type GetRemoteFn<EditMetadata, Delta, PresenceState> = (
   userId: string,
   lastSyncId: string | undefined,
-  onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
-) => RemoteBackend<EditMetadata, Delta, CursorState>;
+  onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
+) => Remote<EditMetadata, Delta, PresenceState>;
 
-export interface LocalBackend<EditMetadata, Delta, CursorState> {
+export interface LocalStore<EditMetadata, Delta, PresenceState> {
   update(
     nodes: DiffNode<EditMetadata, Delta>[],
-    cursor: CursorRef<CursorState> | undefined,
+    presence: ClientPresenceRef<PresenceState> | undefined,
   ): void;
   shutdown(): void | Promise<void>;
 }
 
-export interface RemoteBackend<EditMetadata, Delta, CursorState> {
-  send(event: BackendEvent<EditMetadata, Delta, CursorState>): void;
+export interface Remote<EditMetadata, Delta, PresenceState> {
+  send(event: SyncEvent<EditMetadata, Delta, PresenceState>): void;
   shutdown(): void | Promise<void>;
 }
 

@@ -1,17 +1,17 @@
 import {
-  BackendEvent,
   DiffNode,
   ErrorCode,
-  GetLocalBackendFn,
-  GetRemoteBackendFn,
+  GetLocalStoreFn,
+  GetRemoteFn,
   NodesEvent,
   OnEventFn,
+  SyncEvent,
 } from '../types';
 import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
-import { AbstractLocalBackend } from '../AbstractLocalBackend';
+import { AbstractLocalStore } from '../AbstractLocalStore';
 import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
-import { AbstractRemoteBackend } from '../AbstractRemoteBackend';
+import { AbstractRemote } from '../AbstractRemote';
 
 function getSyncCounter(syncId: string): number {
   return parseInt(syncId, 36);
@@ -21,16 +21,11 @@ function randomId() {
   return generate({ words: 3, alliterative: true }).dashed;
 }
 
-export class MemoryStore<EditMetadata, Delta, CursorState> {
-  public readonly localBackends: MemoryLocalBackend<
+export class MemoryStore<EditMetadata, Delta, PresenceState> {
+  public readonly remotes: MemoryRemote<
     EditMetadata,
     Delta,
-    CursorState
-  >[] = [];
-  public readonly remoteBackends: MemoryRemoteBackend<
-    EditMetadata,
-    Delta,
-    CursorState
+    PresenceState
   >[] = [];
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
   private syncedNodes = new Set<string>();
@@ -39,10 +34,10 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
 
   constructor(
     public readonly docId: string = randomId(),
-    private readonly getRemoteBackend?: GetRemoteBackendFn<
+    private readonly getRemoteFn?: GetRemoteFn<
       EditMetadata,
       Delta,
-      CursorState
+      PresenceState
     >,
   ) {}
 
@@ -54,28 +49,26 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
     return this.nodes.length.toString(36);
   }
 
-  getLocalBackend: GetLocalBackendFn<EditMetadata, Delta, CursorState> = (
+  getLocalStore: GetLocalStoreFn<EditMetadata, Delta, PresenceState> = (
     userId,
-    cursorId,
+    clientId,
     onEvent,
   ) => {
-    const be = new MemoryLocalBackend(
+    return new MemoryLocalStore(
       this,
       userId,
-      cursorId,
+      clientId,
       onEvent,
-      this.getRemoteBackend,
+      this.getRemoteFn,
     );
-    this.localBackends.push(be);
-    return be;
   };
-  getRemoteBackendFn: GetRemoteBackendFn<EditMetadata, Delta, CursorState> = (
+  getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState> = (
     userId: string,
     lastSyncId,
     onEvent,
   ) => {
-    const be = new MemoryRemoteBackend(this, userId, lastSyncId, onEvent);
-    this.remoteBackends.push(be);
+    const be = new MemoryRemote(this, userId, lastSyncId, onEvent);
+    this.remotes.push(be);
     return be;
   };
 
@@ -108,7 +101,7 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
 
   getLocalNodesEvent(
     startSyncId?: string,
-  ): Promise<NodesEvent<EditMetadata, Delta, CursorState>> {
+  ): Promise<NodesEvent<EditMetadata, Delta, PresenceState>> {
     return this.queue.add(async () => ({
       type: 'nodes',
       nodes:
@@ -123,7 +116,7 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
   }
 
   getNodesEventForRemote(): Promise<
-    NodesEvent<EditMetadata, Delta, CursorState>
+    NodesEvent<EditMetadata, Delta, PresenceState>
   > {
     return this.queue.add(async () => {
       const nodes = await this.nodes.filter(
@@ -138,31 +131,31 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
   }
 }
 
-class MemoryLocalBackend<
+class MemoryLocalStore<
   EditMetadata,
   Delta,
-  CursorState
-> extends AbstractLocalBackend<EditMetadata, Delta, CursorState> {
+  PresenceState
+> extends AbstractLocalStore<EditMetadata, Delta, PresenceState> {
   private readonly channel: MemoryBroadcastChannel<
-    BackendEvent<EditMetadata, Delta, CursorState>
+    SyncEvent<EditMetadata, Delta, PresenceState>
   >;
 
   constructor(
-    private readonly store: MemoryStore<EditMetadata, Delta, CursorState>,
+    private readonly store: MemoryStore<EditMetadata, Delta, PresenceState>,
     userId: string,
-    cursorId: string,
-    onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
-    getRemoteBackend?: GetRemoteBackendFn<EditMetadata, Delta, CursorState>,
+    clientId: string,
+    onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
+    getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
   ) {
-    super(userId, cursorId, onEvent);
+    super(userId, clientId, onEvent);
     this.channel = new MemoryBroadcastChannel(
       this.store.docId,
       this.onLocalBroadcastEvent,
     );
-    if (getRemoteBackend) {
+    if (getRemote) {
       this.channel
         .awaitLeadership()
-        .then(() => this.connectRemote(getRemoteBackend))
+        .then(() => this.connectRemote(getRemote))
         .catch(() => {
           // this happens if we close before becoming leader
         });
@@ -185,19 +178,19 @@ class MemoryLocalBackend<
   }
 
   protected async broadcastLocal(
-    event: BackendEvent<EditMetadata, Delta, CursorState>,
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
     await this.channel.postMessage(event);
   }
 
   protected async *getLocalNodes(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, CursorState>
+    NodesEvent<EditMetadata, Delta, PresenceState>
   > {
     yield await this.store.getLocalNodesEvent();
   }
 
   protected async *getNodesForRemote(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, CursorState>
+    NodesEvent<EditMetadata, Delta, PresenceState>
   > {
     yield await this.store.getNodesEventForRemote();
   }
@@ -212,20 +205,20 @@ class MemoryLocalBackend<
   }
 }
 
-class MemoryRemoteBackend<
+class MemoryRemote<EditMetadata, Delta, PresenceState> extends AbstractRemote<
   EditMetadata,
   Delta,
-  CursorState
-> extends AbstractRemoteBackend<EditMetadata, Delta, CursorState> {
+  PresenceState
+> {
   private readonly channel: MemoryBroadcastChannel<
-    BackendEvent<EditMetadata, Delta, CursorState>
+    SyncEvent<EditMetadata, Delta, PresenceState>
   >;
 
   constructor(
-    private readonly store: MemoryStore<EditMetadata, Delta, CursorState>,
+    private readonly store: MemoryStore<EditMetadata, Delta, PresenceState>,
     userId: string,
     lastSyncId: string | undefined,
-    onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
+    onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
   ) {
     super(userId, onEvent);
     this.channel = new MemoryBroadcastChannel(this.store.docId, onEvent);
@@ -237,14 +230,14 @@ class MemoryRemoteBackend<
   }
 
   protected broadcast(
-    event: BackendEvent<EditMetadata, Delta, CursorState>,
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
     return this.channel.postMessage(event);
   }
 
   protected async *getNodes(
     lastSyncId: string | undefined,
-  ): AsyncIterableIterator<NodesEvent<EditMetadata, Delta, CursorState>> {
+  ): AsyncIterableIterator<NodesEvent<EditMetadata, Delta, PresenceState>> {
     yield await this.store.getLocalNodesEvent(lastSyncId);
   }
 

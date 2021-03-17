@@ -6,47 +6,47 @@ import styles from './App.module.css';
 
 import {
   defaultState,
-  useDemoAppCursors,
+  useDemoAppClientList,
   useDemoAppShutdown,
   useDemoAppState,
 } from './AppState';
 import { FocusInput } from './components/FocusInput';
 import { FocusTextarea } from './components/FocusTextarea';
 import { currentTabId } from './lib/currentTabId';
-import { getCursorStyle } from './components/CursorColor';
+import { getPresenceStyle } from './components/ClientColor';
 
 enableMapSet();
 
 export function App() {
   const [state = defaultState, updateState] = useDemoAppState();
-  const [cursors, updateCursor] = useDemoAppCursors();
+  const [clients, updatePresence] = useDemoAppClientList();
   useDemoAppShutdown();
 
   const users = useMemo(
     () =>
-      Array.from(cursors)
+      Array.from(clients)
         .sort((a, b) => {
-          if (a.cursorId < b.cursorId) {
+          if (a.clientId < b.clientId) {
             return -1;
           }
-          if (a.cursorId > b.cursorId) {
+          if (a.clientId > b.clientId) {
             return 1;
           }
           return 0;
         })
         .map((cursor) => (
           <span
-            key={cursor.cursorId}
+            key={cursor.clientId}
             className={classNames(styles.userPill, {
-              [styles.currentUser]: cursor.cursorId === currentTabId,
+              [styles.currentUser]: cursor.clientId === currentTabId,
             })}
-            style={getCursorStyle(cursor)}
+            style={getPresenceStyle(cursor)}
           >
-            {currentTabId === cursor.cursorId ? '👑' : '🤖'}
-            {cursor.cursorId}
+            {currentTabId === cursor.clientId ? '👑' : '🤖'}
+            {cursor.clientId}
           </span>
         )),
-    [cursors],
+    [clients],
   );
 
   const onChangeTitle = useCallback(
@@ -84,8 +84,8 @@ export function App() {
             id="title"
             value={state.title}
             onChange={onChangeTitle}
-            cursors={cursors}
-            updateCursor={updateCursor}
+            clients={clients}
+            updatePresence={updatePresence}
           />
         </div>
         <FocusTextarea
@@ -93,11 +93,11 @@ export function App() {
           value={state.text}
           onChange={onChangeText}
           rows={10}
-          cursors={cursors}
-          updateCursor={updateCursor}
+          clients={clients}
+          updatePresence={updatePresence}
         />
         Raw State: <pre>{JSON.stringify(state, undefined, 2)}</pre>
-        Raw Cursor State: <pre>{JSON.stringify(cursors, undefined, 2)}</pre>
+        Raw Clients: <pre>{JSON.stringify(clients, undefined, 2)}</pre>
       </div>
     </div>
   );

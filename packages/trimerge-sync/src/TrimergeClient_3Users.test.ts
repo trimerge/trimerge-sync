@@ -7,9 +7,9 @@ import { getBasicGraph } from './testLib/GraphVisualizers';
 
 type TestEditMetadata = { ref: string; message: string };
 type TestState = any;
-type TestCursorState = any;
+type TestPresenceState = any;
 
-const differ: Differ<TestState, TestEditMetadata, TestCursorState> = {
+const differ: Differ<TestState, TestEditMetadata, TestPresenceState> = {
   diff,
   patch,
   computeRef: (baseRef, mergeRef, delta, editMetadata) => editMetadata.ref,
@@ -17,14 +17,14 @@ const differ: Differ<TestState, TestEditMetadata, TestCursorState> = {
 };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestCursorState>();
+  return new MemoryStore<TestEditMetadata, Delta, TestPresenceState>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
-): TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState> {
-  return new TrimergeClient(userId, 'test', store.getLocalBackend, differ, 0);
+  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+): TrimergeClient<TestState, TestEditMetadata, Delta, TestPresenceState> {
+  return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
 }
 
 function timeout() {
@@ -32,8 +32,13 @@ function timeout() {
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
-  clientA: TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  clientA: TrimergeClient<
+    TestState,
+    TestEditMetadata,
+    Delta,
+    TestPresenceState
+  >,
 ) {
   return getBasicGraph(
     store,

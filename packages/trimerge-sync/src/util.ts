@@ -1,5 +1,5 @@
-export function getFullId(userId: string, cursorId: string) {
-  return `${userId}:${cursorId}`;
+export function getFullId(userId: string, clientId: string) {
+  return `${userId}:${clientId}`;
 }
 
 export function waitMs(ms: number) {

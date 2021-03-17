@@ -14,18 +14,17 @@ A user directly interacts with a single **Client**, there are 4 main operations:
 
 - **connect**: e.g. start editing the document
 - **edit**: change the document state
-- **cursor update**: change the cursor state (e.g. selection or focus)
+- **presence update**: change the presence state (e.g. selection or focus)
 - **disconnect**: stop editing the document
 
 ## Events:
 
-- `nodes`: new nodes (and possibly a cursor)
+- `nodes`: new nodes (and possibly a client state)
 - `ack`: `nodes` were received and saved to store
 - `ready`: sent once on connect after `nodes`
-- `cursor-join`: client connects
-- `cursor-here`: response to a `cursor-join`
-- `cursor-update`: update to cursor (e.g. changing focus/selection)
-- `cursor-leave`: user leaves
+- `client-join`: client connects
+- `client-presence`: response to a `client-join` / update to presence state (e.g. changing focus/selection)
+- `client-leave`: user leaves
 - `remote-state`: remote state change
 - `error`: error with store/message sent
 
@@ -52,35 +51,33 @@ A user directly interacts with a single **Client**, there are 4 main operations:
 
 ### Local events
 
-| event                   | on **Client**                                                                      | on **leader**                         |
-| ----------------------- | ---------------------------------------------------------------------------------- | ------------------------------------- |
-| local open              | broadcast `cursor-join` to `local`                                                 | broadcast `cursor-join` to `remote`   |
-| doc edit                | set `localSaveState` to `pending`, queue in save buffer                            | do nothing                            |
-| save buffer timeout     | set `localSaveState` to `saving`, add to local store, broadcast `nodes` to `local` | broadcast `nodes` to `remote`         |
-| cursor update           | broadcast `cursor-update` to `local`                                               | broadcast `cursor-update` to `remote` |
-| local close             | broadcast `cursor-leave` to `local`                                                | broadcast `cursor-leave` to `remote`  |
-| receive `nodes`         | add nodes to state                                                                 | broadcast `nodes` to `remote`         |
-| receive `cursor-join`   | add cursor to list, broadcast `cursor-here` to local                               | broadcast `cursor-join` `remote`      |
-| receive `cursor-update` | update cursor on list                                                              | broadcast to `remote`                 |
-| receive `cursor-here`   | update cursor on list                                                              | broadcast to `remote`                 |
-| receive `cursor-leave`  | remote cursor from list                                                            | broadcast to `remote`                 |
-| receive `ack`           | do nothing                                                                         | Error                                 |
-| receive `ready`         | set `localSaveState` to `ready`                                                    | do nothing                            |
-| receive `remote-state`  | set remote state, if offline, remove remote cursors                                | do nothing                            |
-| receive `error`         | ???                                                                                | do nothing                            |
+| event                     | on **Client**                                                                      | on **leader**                           |
+| ------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------- |
+| local open                | broadcast `client-join` to `local`                                                 | broadcast `client-join` to `remote`     |
+| doc edit                  | set `localSaveState` to `pending`, queue in save buffer                            | do nothing                              |
+| save buffer timeout       | set `localSaveState` to `saving`, add to local store, broadcast `nodes` to `local` | broadcast `nodes` to `remote`           |
+| presence update           | broadcast `client-presence` to `local`                                             | broadcast `client-presence` to `remote` |
+| local close               | broadcast `client-leave` to `local`                                                | broadcast `client-leave` to `remote`    |
+| receive `nodes`           | add nodes to state                                                                 | broadcast `nodes` to `remote`           |
+| receive `client-join`     | add client to list, broadcast `client-presence` to local                           | broadcast `client-join` `remote`        |
+| receive `client-presence` | update client on list                                                              | broadcast to `remote`                   |
+| receive `client-leave`    | remote client from list                                                            | broadcast to `remote`                   |
+| receive `ack`             | do nothing                                                                         | Error                                   |
+| receive `ready`           | set `localSaveState` to `ready`                                                    | do nothing                              |
+| receive `remote-state`    | set remote state, if offline, remove remote cursors                                | do nothing                              |
+| receive `error`           | ???                                                                                | do nothing                              |
 
 ### Remote events
 
-| event                          | on **leader Client** (connected to **Remote**)                                      |
-| ------------------------------ | ----------------------------------------------------------------------------------- |
-| connect to remote              | set `remoteReadState` to `connecting`, broadcast to `local`                         |
-| disconnect to remote           | set `remoteReadState` to `offline`, broadcast to `local`                            |
-| receive remote `nodes`         | add to local store with `syncId`, broadcast to `local`                              |
-| receive remote `ready`         | set `remoteReadState` to `ready`, broadcast to `local`, update local store `syncId` |
-| receive remote `cursor-join`   | broadcast to `local`, add `remote` cursor origin                                    |
-| receive remote `cursor-update` | broadcast to `local`, add `remote` cursor origin                                    |
-| receive remote `cursor-here`   | broadcast to `local`, add `remote` cursor origin                                    |
-| receive remote `cursor-leave`  | broadcast to `local`                                                                |
-| receive remote `ack`           | update local store with `syncId`                                                    |
-| receive remote `remote-state`  | Error                                                                               |
-| receive remote `error`         | disconnect/reconnect if fatal error                                                 |
+| event                            | on **leader Client** (connected to **Remote**)                                      |
+| -------------------------------- | ----------------------------------------------------------------------------------- |
+| connect to remote                | set `remoteReadState` to `connecting`, broadcast to `local`                         |
+| disconnect to remote             | set `remoteReadState` to `offline`, broadcast to `local`                            |
+| receive remote `nodes`           | add to local store with `syncId`, broadcast to `local`                              |
+| receive remote `ready`           | set `remoteReadState` to `ready`, broadcast to `local`, update local store `syncId` |
+| receive remote `client-join`     | broadcast to `local`, add `remote` cursor origin                                    |
+| receive remote `client-presence` | broadcast to `local`, add `remote` cursor origin                                    |
+| receive remote `client-leave`    | broadcast to `local`                                                                |
+| receive remote `ack`             | update local store with `syncId`                                                    |
+| receive remote `remote-state`    | Error                                                                               |
+| receive remote `error`           | disconnect/reconnect if fatal error                                                 |

@@ -1,31 +1,31 @@
 import {
   AckNodesEvent,
-  BackendEvent,
-  CursorInfo,
-  CursorRef,
+  SyncEvent,
+  ClientInfo,
+  ClientPresenceRef,
   DiffNode,
   ErrorCode,
-  GetLocalBackendFn,
+  GetLocalStoreFn,
   NodesEvent,
   OnEventFn,
-  LocalBackend,
-  GetRemoteBackendFn,
-  RemoteBackend,
+  LocalStore,
+  GetRemoteFn,
+  Remote,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
 
-export abstract class AbstractRemoteBackend<EditMetadata, Delta, CursorState>
-  implements RemoteBackend<EditMetadata, Delta, CursorState> {
+export abstract class AbstractRemote<EditMetadata, Delta, PresenceState>
+  implements Remote<EditMetadata, Delta, PresenceState> {
   private readonly remoteQueue = new PromiseQueue();
   private closed = false;
 
   public constructor(
     private readonly userId: string,
-    private readonly onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
+    private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
   ) {}
 
   protected abstract broadcast(
-    event: BackendEvent<EditMetadata, Delta, CursorState>,
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void>;
 
   protected abstract addNodes(
@@ -34,10 +34,10 @@ export abstract class AbstractRemoteBackend<EditMetadata, Delta, CursorState>
 
   protected abstract getNodes(
     lastSyncId: string | undefined,
-  ): AsyncIterableIterator<NodesEvent<EditMetadata, Delta, CursorState>>;
+  ): AsyncIterableIterator<NodesEvent<EditMetadata, Delta, PresenceState>>;
 
   private async handle(
-    event: BackendEvent<EditMetadata, Delta, CursorState>,
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
     if (this.closed) {
       return;
@@ -58,10 +58,14 @@ export abstract class AbstractRemoteBackend<EditMetadata, Delta, CursorState>
         // do nothing (for now)
         break;
 
-      case 'cursor-join':
-      case 'cursor-here':
-      case 'cursor-update':
-      case 'cursor-leave':
+      case 'client-join':
+      case 'client-presence':
+        await this.broadcast({
+          ...event,
+          info: { ...event.info, origin: 'remote' },
+        });
+        break;
+      case 'client-leave':
         await this.broadcast(event);
         break;
 
@@ -73,7 +77,7 @@ export abstract class AbstractRemoteBackend<EditMetadata, Delta, CursorState>
     }
   }
 
-  send(event: BackendEvent<EditMetadata, Delta, CursorState>): void {
+  send(event: SyncEvent<EditMetadata, Delta, PresenceState>): void {
     this.remoteQueue
       .add(() => this.handle(event))
       .catch(this.handleAsError('internal'));

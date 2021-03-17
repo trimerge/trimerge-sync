@@ -2,30 +2,30 @@ import React, { useRef } from 'react';
 
 import styles from './Focus.module.css';
 import { FocusCarets } from './FocusCarets';
-import { UpdateCursorStateFn } from '../lib/trimergeHooks';
+import { UpdatePresenceFn } from '../lib/trimergeHooks';
 import { useFocusInfo, useSelectionListen } from './focusHooks';
-import { CursorInfo } from 'trimerge-sync';
-import { FocusCursorState } from '../lib/FocusCursorState';
+import { ClientList } from 'trimerge-sync';
+import { FocusPresenceState } from '../lib/FocusPresenceState';
 
 export function FocusTextarea({
   id,
   value = '',
-  cursors,
-  updateCursor,
+  clients,
+  updatePresence,
   ...rest
 }: {
   id: string;
   value: string;
-  cursors: readonly CursorInfo<FocusCursorState>[];
-  updateCursor: UpdateCursorStateFn<FocusCursorState>;
+  clients: ClientList<FocusPresenceState>;
+  updatePresence: UpdatePresenceFn<FocusPresenceState>;
 } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  const { style, otherCursors } = useFocusInfo(id, cursors);
+  const { style, otherClients } = useFocusInfo(id, clients);
   const ref = useRef<HTMLTextAreaElement>(null);
-  useSelectionListen(id, ref, updateCursor);
+  useSelectionListen(id, ref, updatePresence);
 
   return (
     <span className={styles.root} style={style}>
-      <FocusCarets dom={ref.current} cursors={otherCursors} includeNames />
+      <FocusCarets dom={ref.current} clients={otherClients} includeNames />
       <textarea ref={ref} {...rest} value={value} />
     </span>
   );
