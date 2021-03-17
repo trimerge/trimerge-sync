@@ -4,7 +4,7 @@ The main idea is there is a single set of events used both for local sync (betwe
 
 - **Client:** In-memory TrimergeClient, it connects to a local store
 - **Device:** A local store is in charge of communicating between all clients (browser tabs), and persisting data. I'm using a BroadcastChannel to communicate between tabs and IndexedDb to save to disk (in unit tests this is just stored in memory) (Device)
-- **Remote:** Additionally a local store can connect to a "remote" store to sync itself to other (this has the same interface as a local store, but the usage is different)
+- **Remote:** Additionally a local store can connect to a "remote" store to sync itself to other
 
 **Remote**s are setup by maintaining leader among all the **Client** instances (on a **Device**) that connects to a single **Remote**.
 
