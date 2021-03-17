@@ -1,5 +1,5 @@
 import { MemoryStore } from './MemoryStore';
-import { DiffNode } from '../TrimergeSyncBackend';
+import { DiffNode } from '../types';
 
 export function getBasicGraph<EditMetadata>(
   store: MemoryStore<EditMetadata, any, any>,

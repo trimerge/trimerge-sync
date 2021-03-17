@@ -53,6 +53,8 @@ export type CursorInfo<CursorState> = CursorRef<CursorState> & {
   origin: 'self' | 'local' | 'remote';
 };
 
+export type CursorInfos<CursorState> = readonly CursorInfo<CursorState>[];
+
 export type NodesEvent<EditMetadata, Delta, CursorState> = {
   type: 'nodes';
   nodes: readonly DiffNode<EditMetadata, Delta>[];
@@ -89,7 +91,7 @@ export type ErrorEvent = {
   code: ErrorCode;
   message?: string;
   fatal?: boolean;
-  reconnectAfter?: number;
+  reconnect?: boolean;
 };
 export type RemoteStateEvent = {
   type: 'remote-state';
@@ -98,6 +100,7 @@ export type RemoteStateEvent = {
   save?: RemoteSaveState;
 };
 
+// FIXME: split into local and remote events?
 export type BackendEvent<EditMetadata, Delta, CursorState> = Readonly<
   | NodesEvent<EditMetadata, Delta, CursorState>
   | ReadyEvent
@@ -114,20 +117,29 @@ export type OnEventFn<EditMetadata, Delta, CursorState> = (
   event: BackendEvent<EditMetadata, Delta, CursorState>,
 ) => void;
 
-export type GetSyncBackendFn<EditMetadata, Delta, CursorState> = (
+export type GetLocalBackendFn<EditMetadata, Delta, CursorState> = (
   userId: string,
   cursorId: string,
+  onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
+) => LocalBackend<EditMetadata, Delta, CursorState>;
+
+export type GetRemoteBackendFn<EditMetadata, Delta, CursorState> = (
+  userId: string,
   lastSyncId: string | undefined,
   onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
-) => TrimergeSyncBackend<EditMetadata, Delta, CursorState>;
+) => RemoteBackend<EditMetadata, Delta, CursorState>;
 
-export interface TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
-  send(event: BackendEvent<EditMetadata, Delta, CursorState>): void;
+export interface LocalBackend<EditMetadata, Delta, CursorState> {
   update(
     nodes: DiffNode<EditMetadata, Delta>[],
     cursor: CursorRef<CursorState> | undefined,
   ): void;
-  close(): void | Promise<void>;
+  shutdown(): void | Promise<void>;
+}
+
+export interface RemoteBackend<EditMetadata, Delta, CursorState> {
+  send(event: BackendEvent<EditMetadata, Delta, CursorState>): void;
+  shutdown(): void | Promise<void>;
 }
 
 export type UnsubscribeFn = () => void;

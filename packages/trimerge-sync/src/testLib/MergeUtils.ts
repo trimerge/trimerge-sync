@@ -8,8 +8,6 @@ import {
 import { create, Delta } from 'jsondiffpatch';
 import { MergeStateFn } from '../differ';
 import { produce } from 'immer';
-import { TrimergeClient } from '../TrimergeClient';
-import { DiffNode } from '../TrimergeSyncBackend';
 import { computeRef as computeShaRef } from 'trimerge-sync-hash';
 
 const trimergeObjects = combineMergers(
@@ -39,12 +37,6 @@ export function diff<T>(left: T, right: T) {
 
 export function timeout() {
   return new Promise((resolve) => setTimeout(resolve, 0));
-}
-
-export function getNodeLabel(client: TrimergeClient<any, any, any, any>) {
-  return (node: DiffNode<any, any>) =>
-    `${node.ref}
-${JSON.stringify(client.getNodeState(node.ref).value)}`;
 }
 
 export function computeRef(

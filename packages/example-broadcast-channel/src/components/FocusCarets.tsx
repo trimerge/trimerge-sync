@@ -1,7 +1,7 @@
 import getCaretCoordinates from 'textarea-caret';
 import materialColorHash from 'material-color-hash';
 import React, { useMemo } from 'react';
-import { CursorInfo } from 'trimerge-sync';
+import { CursorInfos } from 'trimerge-sync';
 import { FocusCursorState } from '../lib/FocusCursorState';
 import styles from './Focus.module.css';
 
@@ -11,7 +11,7 @@ export function FocusCarets<CursorState extends FocusCursorState>({
   includeNames = false,
 }: {
   dom: HTMLInputElement | HTMLTextAreaElement | null;
-  cursors: readonly CursorInfo<CursorState>[];
+  cursors: CursorInfos<CursorState>;
   includeNames?: boolean;
 }) {
   return (

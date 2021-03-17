@@ -1,24 +1,22 @@
 import {
-  AckNodesEvent,
   BackendEvent,
   CursorInfo,
   CursorRef,
   DiffNode,
   ErrorCode,
-  GetSyncBackendFn,
+  GetRemoteBackendFn,
+  LocalBackend,
   NodesEvent,
   OnEventFn,
-  TrimergeSyncBackend,
-} from './TrimergeSyncBackend';
+  RemoteBackend,
+} from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
 
-export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
-  implements TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
+export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
+  implements LocalBackend<EditMetadata, Delta, CursorState> {
   private closed = false;
   private cursor: CursorRef<CursorState> = { ref: undefined, state: undefined };
-  private remote:
-    | TrimergeSyncBackend<EditMetadata, Delta, CursorState>
-    | undefined;
+  private remote: RemoteBackend<EditMetadata, Delta, CursorState> | undefined;
   private readonly remoteQueue = new PromiseQueue();
 
   public constructor(
@@ -34,11 +32,11 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     event: BackendEvent<EditMetadata, Delta, CursorState>,
   ): Promise<void>;
 
-  protected abstract getInitialNodes(): AsyncIterableIterator<
+  protected abstract getLocalNodes(): AsyncIterableIterator<
     NodesEvent<EditMetadata, Delta, CursorState>
   >;
 
-  protected abstract getUnsyncedNodes(): AsyncIterableIterator<
+  protected abstract getNodesForRemote(): AsyncIterableIterator<
     NodesEvent<EditMetadata, Delta, CursorState>
   >;
 
@@ -83,7 +81,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     }
   };
 
-  async close(): Promise<void> {
+  async shutdown(): Promise<void> {
     if (this.closed) {
       return;
     }
@@ -104,7 +102,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     if (!this.remote) {
       return;
     }
-    await this.remote.close();
+    await this.remote.shutdown();
     await this.sendEvent(
       {
         type: 'remote-state',
@@ -117,7 +115,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
   }
 
   protected async connectRemote(
-    getRemoteBackend: GetSyncBackendFn<EditMetadata, Delta, CursorState>,
+    getRemoteBackend: GetRemoteBackendFn<EditMetadata, Delta, CursorState>,
   ): Promise<void> {
     await this.remoteQueue.add(async () => {
       if (this.closed) {
@@ -133,7 +131,6 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
       );
       this.remote = getRemoteBackend(
         this.userId,
-        this.cursorId + '-remote-sync',
         await this.getLastRemoteSyncId(),
         (event) => {
           this.remoteQueue
@@ -186,8 +183,9 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
                   if (event.fatal) {
                     await this.closeRemote();
                   }
-                  if (event.reconnectAfter !== undefined) {
-                    // TODO: reconnect after reconnectAfter seconds
+                  if (event.reconnect !== false) {
+                    // FIXME: handle error here
+                    this.connectRemote(getRemoteBackend);
                   }
                   break;
 
@@ -204,7 +202,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
         cursor: this.getCursor('remote'),
       });
 
-      for await (const event of this.getUnsyncedNodes()) {
+      for await (const event of this.getNodesForRemote()) {
         await this.remote.send(event);
       }
       await this.remote.send({ type: 'ready' });
@@ -220,7 +218,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
         message: error.message,
         fatal: true,
       });
-      void this.close();
+      void this.shutdown();
     };
   }
   protected async sendEvent(
@@ -242,13 +240,6 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     }
   }
 
-  /**
-   * Send to all remote and *other* local nodes
-   */
-  send(event: BackendEvent<EditMetadata, Delta, CursorState>): Promise<void> {
-    return this.sendEvent(event, { remote: true, local: true });
-  }
-
   protected async sendInitialEvents() {
     await this.sendEvent(
       {
@@ -257,7 +248,7 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
       },
       { local: true },
     );
-    for await (const event of this.getInitialNodes()) {
+    for await (const event of this.getLocalNodes()) {
       this.onEvent(event);
     }
     this.onEvent({ type: 'ready' });
@@ -278,7 +269,6 @@ export abstract class AbstractSyncBackend<EditMetadata, Delta, CursorState>
     }
 
     const syncId = await this.addNodes(nodes);
-
     this.onEvent({
       type: 'ack',
       refs: nodes.map(({ ref }) => ref),

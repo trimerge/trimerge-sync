@@ -4,7 +4,7 @@ import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
 import { computeRef, diff, merge, patch, timeout } from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
-import { CursorInfo } from './TrimergeSyncBackend';
+import { CursorInfo } from './types';
 
 type TestEditMetadata = string;
 type TestState = any;
@@ -25,7 +25,7 @@ function makeClient(
   userId: string,
   store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
 ): TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState> {
-  return new TrimergeClient(userId, 'test', store.getSyncBackend, differ, 0);
+  return new TrimergeClient(userId, 'test', store.getLocalBackend, differ, 0);
 }
 
 function basicGraph(

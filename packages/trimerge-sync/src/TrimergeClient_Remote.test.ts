@@ -4,6 +4,7 @@ import { MemoryStore } from './testLib/MemoryStore';
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { getBasicGraph } from './testLib/GraphVisualizers';
+import { SyncState } from './types';
 
 type TestEditMetadata = string;
 type TestState = any;
@@ -21,7 +22,7 @@ function newStore(
 ) {
   return new MemoryStore<TestEditMetadata, Delta, TestCursorState>(
     undefined,
-    remote?.getSyncBackend,
+    remote?.getRemoteBackendFn,
   );
 }
 
@@ -29,7 +30,7 @@ function makeClient(
   userId: string,
   store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
 ): TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState> {
-  return new TrimergeClient(userId, 'test', store.getSyncBackend, differ, 0);
+  return new TrimergeClient(userId, 'test', store.getLocalBackend, differ, 0);
 }
 
 function basicGraph(
@@ -44,12 +45,104 @@ function basicGraph(
 }
 
 describe('Remote sync', () => {
+  it('syncs one clients to a remote', async () => {
+    const remoteStore = newStore();
+    const localStore = newStore(remoteStore);
+    const client = makeClient('a', localStore);
+
+    const syncUpdates: SyncState[] = [];
+    client.subscribeSyncState((state) => syncUpdates.push(state));
+
+    client.updateState({}, 'initialize');
+    client.updateState({ hello: 'world' }, 'add hello');
+
+    await timeout();
+
+    const localGraph1 = basicGraph(localStore, client);
+    const remoteGraph1 = basicGraph(remoteStore, client);
+    expect(remoteGraph1).toEqual(localGraph1);
+    expect(localGraph1).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "graph": "undefined -> DuQe--Vh",
+          "step": "User a: initialize",
+          "value": Object {},
+        },
+        Object {
+          "graph": "DuQe--Vh -> u0wBto6f",
+          "step": "User a: add hello",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+      ]
+    `);
+    expect(syncUpdates).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+      ]
+    `);
+  });
+
+  it('syncs one clients to a store multiple times', async () => {
+    const remoteStore = newStore();
+    const localStore = newStore(remoteStore);
+    const client = makeClient('a', localStore);
+
+    const syncUpdates: SyncState[] = [];
+    client.subscribeSyncState((state) => syncUpdates.push(state));
+
+    client.updateState({}, 'initialize');
+    client.updateState({ hello: 'world' }, 'add hello');
+
+    await timeout();
+
+    // Kill the "connection"
+    remoteStore.remoteBackends[0].fail('testing', 'network');
+
+    client.updateState({ hello: 'vorld' }, 'change hello');
+    client.updateState({ hello: 'borld' }, 'change hello');
+
+    const localGraph2 = basicGraph(localStore, client);
+    const remoteGraph2 = basicGraph(remoteStore, client);
+    expect(remoteGraph2).toEqual(localGraph2);
+
+    await timeout();
+
+    const localGraph3 = basicGraph(localStore, client);
+    const remoteGraph3 = basicGraph(remoteStore, client);
+    expect(remoteGraph3).toEqual(localGraph3);
+
+    expect(syncUpdates).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+      ]
+    `);
+  });
+
   it('syncs two clients to a store', async () => {
     const remoteStore = newStore();
     const store1 = newStore(remoteStore);
     const store2 = newStore(remoteStore);
     const client1 = makeClient('a', store1);
     const client2 = makeClient('b', store2);
+
+    const syncUpdates1: SyncState[] = [];
+    const syncUpdates2: SyncState[] = [];
+    client1.subscribeSyncState((state) => syncUpdates1.push(state));
+    client2.subscribeSyncState((state) => syncUpdates2.push(state));
 
     client1.updateState({}, 'initialize');
     client1.updateState({ hello: 'world' }, 'add hello');
@@ -117,5 +210,31 @@ describe('Remote sync', () => {
       ]
     `);
     expect(graph2).toEqual(graph1);
+
+    await client1.shutdown();
+    await client2.shutdown();
+
+    expect(syncUpdates1).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+      ]
+    `);
+    expect(syncUpdates2).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+      ]
+    `);
   });
 });

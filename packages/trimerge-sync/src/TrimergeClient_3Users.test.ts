@@ -24,7 +24,7 @@ function makeClient(
   userId: string,
   store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
 ): TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState> {
-  return new TrimergeClient(userId, 'test', store.getSyncBackend, differ, 0);
+  return new TrimergeClient(userId, 'test', store.getLocalBackend, differ, 0);
 }
 
 function timeout() {

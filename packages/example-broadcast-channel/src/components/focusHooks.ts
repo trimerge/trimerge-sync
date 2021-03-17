@@ -1,5 +1,5 @@
 import { CSSProperties, useEffect, useMemo } from 'react';
-import { CursorInfo } from 'trimerge-sync';
+import { CursorInfos } from 'trimerge-sync';
 import { UpdateCursorStateFn } from '../lib/trimergeHooks';
 import { getCursorStyle } from './CursorColor';
 import { FocusCursorState } from '../lib/FocusCursorState';
@@ -30,10 +30,10 @@ export function useSelectionListen(
 
 export function useFocusInfo<CursorState extends FocusCursorState>(
   id: string,
-  cursors: readonly CursorInfo<CursorState>[],
+  cursors: CursorInfos<CursorState>,
 ): {
   style: CSSProperties;
-  otherCursors: readonly CursorInfo<CursorState>[];
+  otherCursors: CursorInfos<CursorState>;
 } {
   return useMemo(() => {
     const otherCursors = cursors.filter(

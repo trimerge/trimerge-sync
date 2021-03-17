@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CursorInfo, Differ, TrimergeClient } from 'trimerge-sync';
+import { CursorInfos, Differ, TrimergeClient } from 'trimerge-sync';
 import { createIndexedDbBackendFactory } from 'trimerge-sync-indexed-db';
 
 export type UpdateStateFn<State, EditMetadata> = (
@@ -70,7 +70,7 @@ export function useTrimergeCursors<State, EditMetadata, Delta, CursorState>(
   userId: string,
   cursorId: string,
   differ: Differ<State, EditMetadata, Delta>,
-): [readonly CursorInfo<CursorState>[], UpdateCursorStateFn<CursorState>] {
+): [CursorInfos<CursorState>, UpdateCursorStateFn<CursorState>] {
   const client = getCachedTrimergeClient(docId, userId, cursorId, differ);
   const [cursors, setCursors] = useState(client.cursors);
 

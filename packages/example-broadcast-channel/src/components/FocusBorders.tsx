@@ -1,13 +1,13 @@
 import styles from './Focus.module.css';
 import materialColorHash from 'material-color-hash';
 import React, { useMemo } from 'react';
-import { CursorInfo } from 'trimerge-sync';
+import { CursorInfos } from 'trimerge-sync';
 import { FocusCursorState } from '../lib/FocusCursorState';
 
 export function FocusBorders<CursorState extends FocusCursorState>({
   cursors,
 }: {
-  cursors: readonly CursorInfo<CursorState>[];
+  cursors: CursorInfos<CursorState>;
 }) {
   const style = useMemo(() => ({ left: `${-2 * cursors.length}px` }), [
     cursors.length,
