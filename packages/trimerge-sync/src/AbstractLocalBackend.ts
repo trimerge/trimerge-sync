@@ -151,7 +151,11 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
 
                 case 'ack':
                   await this.acknowledgeRemoteNodes(event.refs, event.syncId);
-                  await this.sendEvent(event, { self: true, local: true });
+                  // FIXME: we might have sent more stuff since this acknowledgement
+                  await this.sendEvent(
+                    { type: 'remote-state', save: 'ready' },
+                    { self: true, local: true },
+                  );
                   break;
 
                 case 'cursor-here':
@@ -202,7 +206,15 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
         cursor: this.getCursor('remote'),
       });
 
+      let saving = false;
       for await (const event of this.getNodesForRemote()) {
+        if (!saving) {
+          await this.sendEvent(
+            { type: 'remote-state', save: 'saving' },
+            { self: true, local: true },
+          );
+          saving = true;
+        }
         await this.remote.send(event);
       }
       await this.remote.send({ type: 'ready' });
@@ -267,6 +279,12 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
     if (cursorRef) {
       this.cursor = cursorRef;
     }
+    if (nodes.length > 0) {
+      await this.sendEvent(
+        { type: 'remote-state', save: 'pending' },
+        { self: true, local: true },
+      );
+    }
 
     const syncId = await this.addNodes(nodes);
     this.onEvent({
@@ -281,6 +299,10 @@ export abstract class AbstractLocalBackend<EditMetadata, Delta, CursorState>
       origin: 'local',
     };
     if (nodes.length > 0) {
+      await this.sendEvent(
+        { type: 'remote-state', save: 'saving' },
+        { self: true, local: true },
+      );
       await this.sendEvent(
         {
           type: 'nodes',

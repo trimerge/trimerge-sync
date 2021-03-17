@@ -99,11 +99,7 @@ export abstract class AbstractRemoteBackend<EditMetadata, Delta, CursorState>
     this.onEvent({ type: 'remote-state', connect: 'offline', read: 'offline' });
   }
 
-  protected fail(
-    message: string,
-    code: ErrorCode = 'internal',
-    reconnect = true,
-  ) {
+  protected fail(message: string, code: ErrorCode, reconnect = true) {
     this.onEvent({
       type: 'error',
       code,

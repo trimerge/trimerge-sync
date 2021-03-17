@@ -122,6 +122,7 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
         break;
 
       case 'ready':
+        this.updateSyncState({ localRead: 'ready' });
         break;
       case 'error':
         break;

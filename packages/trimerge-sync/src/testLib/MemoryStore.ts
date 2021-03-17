@@ -248,7 +248,7 @@ class MemoryRemoteBackend<
     yield await this.store.getLocalNodesEvent(lastSyncId);
   }
 
-  public fail(message: string, code?: ErrorCode, reconnect?: boolean) {
+  public fail(message: string, code: ErrorCode, reconnect?: boolean) {
     super.fail(message, code, reconnect);
   }
 
