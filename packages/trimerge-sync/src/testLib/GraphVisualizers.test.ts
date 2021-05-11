@@ -7,10 +7,9 @@ import { getBasicGraph, getDotGraph } from './GraphVisualizers';
 
 type TestEditMetadata = string;
 type TestState = any;
-type TestCursorState = any;
+type TestPresenceState = any;
 
-const differ: Differ<TestState, TestEditMetadata, TestCursorState> = {
-  initialState: undefined,
+const differ: Differ<TestState, TestEditMetadata, TestPresenceState> = {
   diff,
   patch,
   computeRef,
@@ -18,19 +17,24 @@ const differ: Differ<TestState, TestEditMetadata, TestCursorState> = {
 };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestCursorState>();
+  return new MemoryStore<TestEditMetadata, Delta, TestPresenceState>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
-): TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState> {
-  return new TrimergeClient(userId, 'test', store.getSyncBackend, differ, 0);
+  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+): TrimergeClient<TestState, TestEditMetadata, Delta, TestPresenceState> {
+  return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
-  client1: TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  client1: TrimergeClient<
+    TestState,
+    TestEditMetadata,
+    Delta,
+    TestPresenceState
+  >,
 ) {
   return getBasicGraph(
     store,
@@ -40,8 +44,13 @@ function basicGraph(
 }
 
 function dotGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
-  client1: TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  client1: TrimergeClient<
+    TestState,
+    TestEditMetadata,
+    Delta,
+    TestPresenceState
+  >,
 ) {
   return getDotGraph(
     store,

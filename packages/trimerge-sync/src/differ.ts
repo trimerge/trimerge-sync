@@ -30,8 +30,6 @@ export type MergeStateFn<State, EditMetadata> = (
 ) => NodeState<State, EditMetadata>;
 
 export interface Differ<State, EditMetadata, Delta> {
-  readonly initialState: State;
-
   /** Calculate the ref string for a given edit */
   readonly computeRef: ComputeRefFn<Delta, EditMetadata>;
 

@@ -7,27 +7,24 @@ import { getBasicGraph } from './testLib/GraphVisualizers';
 
 type TestEditMetadata = { ref: string; message: string };
 type TestState = any;
-type TestCursorState = any;
+type TestPresenceState = any;
 
-const differ: Differ<TestState, TestEditMetadata, TestCursorState> = {
-  initialState: {},
+const differ: Differ<TestState, TestEditMetadata, TestPresenceState> = {
   diff,
   patch,
-  computeRef: (baseRef, mergeRef, delta, editMetadata) => {
-    return editMetadata.ref;
-  },
+  computeRef: (baseRef, mergeRef, delta, editMetadata) => editMetadata.ref,
   merge,
 };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestCursorState>();
+  return new MemoryStore<TestEditMetadata, Delta, TestPresenceState>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
-): TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState> {
-  return new TrimergeClient(userId, 'test', store.getSyncBackend, differ, 0);
+  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+): TrimergeClient<TestState, TestEditMetadata, Delta, TestPresenceState> {
+  return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
 }
 
 function timeout() {
@@ -35,8 +32,13 @@ function timeout() {
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestCursorState>,
-  clientA: TrimergeClient<TestState, TestEditMetadata, Delta, TestCursorState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  clientA: TrimergeClient<
+    TestState,
+    TestEditMetadata,
+    Delta,
+    TestPresenceState
+  >,
 ) {
   return getBasicGraph(
     store,
@@ -54,7 +56,7 @@ describe('TrimergeClient: 3 users', () => {
 
     clientA.updateState({ text: '' }, { ref: 'ROOT', message: 'init' });
 
-    await clientA.sync();
+    await timeout();
 
     // Synchronized
     expect(clientA.state).toEqual({ text: '' });
@@ -163,7 +165,7 @@ describe('TrimergeClient: 3 users', () => {
     expect(clientB.state).toEqual({ world: 'vorld' });
 
     const clientC = makeClient('c', store);
-    expect(clientC.state).toEqual({});
+    expect(clientC.state).toEqual(undefined);
 
     await timeout();
 

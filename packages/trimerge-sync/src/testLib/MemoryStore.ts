@@ -1,27 +1,45 @@
 import {
-  BackendEvent,
-  CursorInfo,
   DiffNode,
-  GetSyncBackendFn,
+  ErrorCode,
+  GetLocalStoreFn,
+  GetRemoteFn,
+  NodesEvent,
   OnEventFn,
-} from '../TrimergeSyncBackend';
+  SyncEvent,
+} from '../types';
+import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
+import { AbstractLocalStore } from '../AbstractLocalStore';
+import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
-import { getFullId } from '../util';
+import { AbstractRemote } from '../AbstractRemote';
 
 function getSyncCounter(syncId: string): number {
   return parseInt(syncId, 36);
 }
 
-export class MemoryStore<EditMetadata, Delta, CursorState> {
+function randomId() {
+  return generate({ words: 3, alliterative: true }).dashed;
+}
+
+export class MemoryStore<EditMetadata, Delta, PresenceState> {
+  public readonly remotes: MemoryRemote<
+    EditMetadata,
+    Delta,
+    PresenceState
+  >[] = [];
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
-  private cursors = new Map<
-    string,
-    {
-      info: CursorInfo<CursorState>;
-      onEvent: OnEventFn<EditMetadata, Delta, CursorState>;
-    }
-  >();
+  private syncedNodes = new Set<string>();
+  private lastRemoteSyncId: string | undefined;
   private queue = new PromiseQueue();
+
+  constructor(
+    public readonly docId: string = randomId(),
+    private readonly getRemoteFn?: GetRemoteFn<
+      EditMetadata,
+      Delta,
+      PresenceState
+    >,
+  ) {}
 
   public getNodes(): readonly DiffNode<EditMetadata, Delta>[] {
     return this.nodes;
@@ -31,94 +49,204 @@ export class MemoryStore<EditMetadata, Delta, CursorState> {
     return this.nodes.length.toString(36);
   }
 
-  private broadcast(
-    fromUserCursor: string,
-    event: BackendEvent<EditMetadata, Delta, CursorState>,
-  ) {
-    for (const [userCursor, { onEvent }] of this.cursors.entries()) {
-      if (userCursor !== fromUserCursor) {
-        onEvent(event);
-      }
-    }
-  }
-
-  getSyncBackend: GetSyncBackendFn<EditMetadata, Delta, CursorState> = (
+  getLocalStore: GetLocalStoreFn<EditMetadata, Delta, PresenceState> = (
     userId,
-    cursorId,
+    clientId,
+    onEvent,
+  ) => {
+    return new MemoryLocalStore(
+      this,
+      userId,
+      clientId,
+      onEvent,
+      this.getRemoteFn,
+    );
+  };
+  getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState> = (
+    userId: string,
     lastSyncId,
     onEvent,
   ) => {
-    let closed = false;
+    const be = new MemoryRemote(this, userId, lastSyncId, onEvent);
+    this.remotes.push(be);
+    return be;
+  };
 
-    const userCursor = getFullId(userId, cursorId);
-    if (this.cursors.has(userCursor)) {
-      throw new Error('userId/cursorId already connected');
-    }
-    this.queue.add(async () => {
-      const syncId = this.syncId;
-      const lastSyncCounter = lastSyncId ? getSyncCounter(lastSyncId) : 0;
-      if (lastSyncCounter > this.nodes.length) {
-        onEvent({
-          type: 'error',
-          code: 'invalid-sync-id',
-          fatal: true,
-        });
-        closed = true;
-        return;
+  addNodes(
+    nodes: readonly DiffNode<EditMetadata, Delta>[],
+    remoteSyncId?: string,
+  ): Promise<string> {
+    return this.queue.add(async () => {
+      this.nodes.push(...nodes);
+      if (remoteSyncId !== undefined) {
+        for (const { ref } of nodes) {
+          this.syncedNodes.add(ref);
+        }
+        this.lastRemoteSyncId = remoteSyncId;
       }
-      const nodes = this.nodes.slice(lastSyncCounter);
-      onEvent({
+      return this.syncId;
+    });
+  }
+  async acknowledgeNodes(
+    refs: readonly string[],
+    remoteSyncId: string,
+  ): Promise<void> {
+    return this.queue.add(async () => {
+      for (const ref of refs) {
+        this.syncedNodes.add(ref);
+      }
+      this.lastRemoteSyncId = remoteSyncId;
+    });
+  }
+
+  getLocalNodesEvent(
+    startSyncId?: string,
+  ): Promise<NodesEvent<EditMetadata, Delta, PresenceState>> {
+    return this.queue.add(async () => ({
+      type: 'nodes',
+      nodes:
+        startSyncId !== undefined
+          ? this.nodes.slice(getSyncCounter(startSyncId))
+          : this.nodes,
+      syncId: this.syncId,
+    }));
+  }
+  getLastRemoteSyncId(): Promise<string | undefined> {
+    return this.queue.add(async () => this.lastRemoteSyncId);
+  }
+
+  getNodesEventForRemote(): Promise<
+    NodesEvent<EditMetadata, Delta, PresenceState>
+  > {
+    return this.queue.add(async () => {
+      const nodes = await this.nodes.filter(
+        ({ ref }) => !this.syncedNodes.has(ref),
+      );
+      return {
         type: 'nodes',
         nodes,
-        syncId,
-        cursors: Array.from(this.cursors.values()).map(({ info }) => info),
-      });
-      const info: CursorInfo<CursorState> = {
-        userId,
-        cursorId,
-        ref: undefined,
-        state: undefined,
+        syncId: this.syncId,
       };
-      this.cursors.set(userCursor, { info, onEvent });
-      this.broadcast(userCursor, { type: 'cursor-join', ...info });
     });
+  }
+}
 
-    return {
-      update: (nodes, cursor) => {
-        if (closed) {
-          throw new Error('already closed');
-        }
-        void this.queue.add(async () => {
-          this.nodes.push(...nodes);
-          const syncId = this.syncId;
-          this.broadcast(userCursor, {
-            type: 'nodes',
-            nodes,
-            syncId,
-            cursors: cursor ? [{ ...cursor, userId, cursorId }] : [],
-          });
-          onEvent({
-            type: 'ack',
-            refs: nodes.map(({ ref }) => ref),
-            syncId,
-          });
-        });
-      },
+class MemoryLocalStore<
+  EditMetadata,
+  Delta,
+  PresenceState
+> extends AbstractLocalStore<EditMetadata, Delta, PresenceState> {
+  private readonly channel: MemoryBroadcastChannel<
+    SyncEvent<EditMetadata, Delta, PresenceState>
+  >;
 
-      close: async () => {
-        if (closed) {
-          throw new Error('already closed');
-        }
-        await this.queue.add(async () => {
-          this.cursors.delete(userCursor);
-          closed = true;
-          this.broadcast(userCursor, {
-            type: 'cursor-leave',
-            userId,
-            cursorId,
-          });
+  constructor(
+    private readonly store: MemoryStore<EditMetadata, Delta, PresenceState>,
+    userId: string,
+    clientId: string,
+    onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
+    getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
+  ) {
+    super(userId, clientId, onEvent);
+    this.channel = new MemoryBroadcastChannel(
+      this.store.docId,
+      this.onLocalBroadcastEvent,
+    );
+    if (getRemote) {
+      this.channel
+        .awaitLeadership()
+        .then(() => this.connectRemote(getRemote))
+        .catch(() => {
+          // this happens if we close before becoming leader
         });
-      },
-    };
-  };
+    }
+    this.sendInitialEvents().catch(this.handleAsError('internal'));
+  }
+
+  protected addNodes(
+    nodes: DiffNode<EditMetadata, Delta>[],
+    remoteSyncId?: string,
+  ): Promise<string> {
+    return this.store.addNodes(nodes, remoteSyncId);
+  }
+
+  protected async acknowledgeRemoteNodes(
+    refs: readonly string[],
+    remoteSyncId: string,
+  ): Promise<void> {
+    await this.store.acknowledgeNodes(refs, remoteSyncId);
+  }
+
+  protected async broadcastLocal(
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
+  ): Promise<void> {
+    await this.channel.postMessage(event);
+  }
+
+  protected async *getLocalNodes(): AsyncIterableIterator<
+    NodesEvent<EditMetadata, Delta, PresenceState>
+  > {
+    yield await this.store.getLocalNodesEvent();
+  }
+
+  protected async *getNodesForRemote(): AsyncIterableIterator<
+    NodesEvent<EditMetadata, Delta, PresenceState>
+  > {
+    yield await this.store.getNodesEventForRemote();
+  }
+
+  protected getLastRemoteSyncId(): Promise<string | undefined> {
+    return this.store.getLastRemoteSyncId();
+  }
+
+  async shutdown(): Promise<void> {
+    await super.shutdown();
+    this.channel.close();
+  }
+}
+
+class MemoryRemote<EditMetadata, Delta, PresenceState> extends AbstractRemote<
+  EditMetadata,
+  Delta,
+  PresenceState
+> {
+  private readonly channel: MemoryBroadcastChannel<
+    SyncEvent<EditMetadata, Delta, PresenceState>
+  >;
+
+  constructor(
+    private readonly store: MemoryStore<EditMetadata, Delta, PresenceState>,
+    userId: string,
+    lastSyncId: string | undefined,
+    onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
+  ) {
+    super(userId, onEvent);
+    this.channel = new MemoryBroadcastChannel(this.store.docId, onEvent);
+    this.sendInitialEvents(lastSyncId).catch(this.handleAsError('internal'));
+  }
+
+  protected addNodes(nodes: DiffNode<EditMetadata, Delta>[]): Promise<string> {
+    return this.store.addNodes(nodes);
+  }
+
+  protected broadcast(
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
+  ): Promise<void> {
+    return this.channel.postMessage(event);
+  }
+
+  protected async *getNodes(
+    lastSyncId: string | undefined,
+  ): AsyncIterableIterator<NodesEvent<EditMetadata, Delta, PresenceState>> {
+    yield await this.store.getLocalNodesEvent(lastSyncId);
+  }
+
+  public fail(message: string, code: ErrorCode, reconnect?: boolean) {
+    super.fail(message, code, reconnect);
+  }
+
+  async shutdown(): Promise<void> {
+    await super.shutdown();
+    this.channel.close();
+  }
 }

@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CursorInfo, Differ, TrimergeClient } from 'trimerge-sync';
+import { ClientList, Differ, TrimergeClient } from 'trimerge-sync';
 import { createIndexedDbBackendFactory } from 'trimerge-sync-indexed-db';
 
 export type UpdateStateFn<State, EditMetadata> = (
   newState: State,
   editMetadata: EditMetadata,
 ) => void;
-export type UpdateCursorStateFn<CursorState> = (
-  newCursorState: CursorState,
+export type UpdatePresenceFn<PresenceState> = (
+  newPresenceState: PresenceState,
 ) => void;
 
 const TRIMERGE_CLIENT_CACHE: Record<
@@ -15,20 +15,20 @@ const TRIMERGE_CLIENT_CACHE: Record<
   TrimergeClient<any, any, any, any>
 > = {};
 
-function getCachedTrimergeClient<State, EditMetadata, Delta, CursorState>(
+function getCachedTrimergeClient<State, EditMetadata, Delta, PresenceState>(
   docId: string,
   userId: string,
-  cursorId: string,
+  clientId: string,
   differ: Differ<State, EditMetadata, Delta>,
 ) {
-  const key = `${docId}:${userId}:${cursorId}`;
+  const key = `${docId}:${userId}:${clientId}`;
   if (!TRIMERGE_CLIENT_CACHE[key]) {
     TRIMERGE_CLIENT_CACHE[key] = new TrimergeClient<
       State,
       EditMetadata,
       Delta,
-      CursorState
-    >(userId, cursorId, createIndexedDbBackendFactory(docId), differ);
+      PresenceState
+    >(userId, clientId, createIndexedDbBackendFactory(docId), differ);
   }
   return TRIMERGE_CLIENT_CACHE[key];
 }
@@ -36,10 +36,10 @@ function getCachedTrimergeClient<State, EditMetadata, Delta, CursorState>(
 export function useTrimergeStateShutdown<State, EditMetadata, Delta>(
   docId: string,
   userId: string,
-  cursorId: string,
+  clientId: string,
   differ: Differ<State, EditMetadata, Delta>,
 ): void {
-  const client = getCachedTrimergeClient(docId, userId, cursorId, differ);
+  const client = getCachedTrimergeClient(docId, userId, clientId, differ);
 
   // Setup client
   useEffect(() => {
@@ -52,10 +52,10 @@ export function useTrimergeStateShutdown<State, EditMetadata, Delta>(
 export function useTrimergeState<State, EditMetadata, Delta>(
   docId: string,
   userId: string,
-  cursorId: string,
+  clientId: string,
   differ: Differ<State, EditMetadata, Delta>,
 ): [State, UpdateStateFn<State, EditMetadata>] {
-  const client = getCachedTrimergeClient(docId, userId, cursorId, differ);
+  const client = getCachedTrimergeClient(docId, userId, clientId, differ);
   const [state, setState] = useState(client.state);
 
   const updateState = useMemo(() => client.updateState.bind(client), [client]);
@@ -65,20 +65,26 @@ export function useTrimergeState<State, EditMetadata, Delta>(
   return [state, updateState];
 }
 
-export function useTrimergeCursors<State, EditMetadata, Delta, CursorState>(
+export function useTrimergeClientList<
+  State,
+  EditMetadata,
+  Delta,
+  PresenceState
+>(
   docId: string,
   userId: string,
-  cursorId: string,
+  clientId: string,
   differ: Differ<State, EditMetadata, Delta>,
-): [readonly CursorInfo<CursorState>[], UpdateCursorStateFn<CursorState>] {
-  const client = getCachedTrimergeClient(docId, userId, cursorId, differ);
-  const [cursors, setCursors] = useState(client.cursors);
+): [ClientList<PresenceState>, UpdatePresenceFn<PresenceState>] {
+  const client = getCachedTrimergeClient(docId, userId, clientId, differ);
+  const [clients, setClients] = useState(client.clients);
 
-  const updateCursorState = useMemo(() => client.updateCursor.bind(client), [
-    client,
-  ]);
+  const updatePresenceState = useMemo(
+    () => client.updatePresence.bind(client),
+    [client],
+  );
 
-  useEffect(() => client.subscribeCursors(setCursors), [client]);
+  useEffect(() => client.subscribeClientList(setClients), [client]);
 
-  return [cursors, updateCursorState];
+  return [clients, updatePresenceState];
 }

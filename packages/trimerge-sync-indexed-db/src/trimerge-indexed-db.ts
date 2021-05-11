@@ -1,14 +1,18 @@
 import {
-  BackendEvent,
-  CursorRef,
+  AbstractLocalStore,
+  SyncEvent,
   DiffNode,
-  ErrorCode,
-  GetSyncBackendFn,
+  GetLocalStoreFn,
+  GetRemoteFn,
+  NodesEvent,
   OnEventFn,
-  TrimergeSyncBackend,
 } from 'trimerge-sync';
 import { DBSchema, IDBPDatabase, openDB, StoreValue } from 'idb';
-import { BroadcastChannel } from 'broadcast-channel';
+import {
+  BroadcastChannel,
+  createLeaderElection,
+  LeaderElector,
+} from 'broadcast-channel';
 
 function getSyncCounter(
   nodes: StoreValue<TrimergeSyncDbSchema, 'nodes'>[],
@@ -29,76 +33,79 @@ function toSyncNumber(syncId: string | undefined): number {
   return syncId === undefined ? 0 : parseInt(syncId, 36);
 }
 
-export function createIndexedDbBackendFactory<EditMetadata, Delta, CursorState>(
+export function createIndexedDbBackendFactory<
+  EditMetadata,
+  Delta,
+  PresenceState
+>(
   docId: string,
-): GetSyncBackendFn<EditMetadata, Delta, CursorState> {
-  return (userId, cursorId, lastSyncId, onEvent) =>
-    new IndexedDbBackend(docId, userId, cursorId, lastSyncId, onEvent);
+  getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
+): GetLocalStoreFn<EditMetadata, Delta, PresenceState> {
+  return (userId, clientId, onEvent) =>
+    new IndexedDbBackend(docId, userId, clientId, onEvent, getRemote);
 }
 
-class IndexedDbBackend<EditMetadata, Delta, CursorState>
-  implements TrimergeSyncBackend<EditMetadata, Delta, CursorState> {
+class IndexedDbBackend<
+  EditMetadata,
+  Delta,
+  PresenceState
+> extends AbstractLocalStore<EditMetadata, Delta, PresenceState> {
   private readonly dbName: string;
   private db: Promise<IDBPDatabase<TrimergeSyncDbSchema>>;
   private readonly channel: BroadcastChannel<
-    BackendEvent<EditMetadata, Delta, CursorState>
+    SyncEvent<EditMetadata, Delta, PresenceState>
   >;
-  private cursor: CursorRef<CursorState> = { ref: undefined, state: undefined };
+  private readonly leaderElector: LeaderElector | undefined;
 
   public constructor(
     private readonly docId: string,
-    private readonly userId: string,
-    private readonly cursorId: string,
-    lastSyncId: string | undefined,
-    private readonly onEvent: OnEventFn<EditMetadata, Delta, CursorState>,
+    userId: string,
+    clientId: string,
+    onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
+    getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
   ) {
+    super(userId, clientId, onEvent);
     const dbName = `trimerge-sync:${docId}`;
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.db = this.connect();
     this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
-    this.channel.addEventListener('message', (event) => {
-      onEvent(event);
-      if (event.type === 'cursor-join') {
-        this.broadcast({
-          type: 'cursors',
-          cursors: [{ userId, cursorId, ...this.cursor }],
-        });
-      }
-    });
-    this.sendUserList().catch(this.handleAsError('internal'));
-    this.sendNodesSince(toSyncNumber(lastSyncId)).catch(
-      this.handleAsError('internal'),
-    );
-    window.addEventListener('beforeunload', this.close);
+    this.channel.addEventListener('message', this.onLocalBroadcastEvent);
+    if (getRemote) {
+      this.leaderElector = createLeaderElection(this.channel);
+      this.leaderElector
+        .awaitLeadership()
+        .then(() => this.connectRemote(getRemote))
+        .catch(this.handleAsError('internal'));
+    }
+    this.sendInitialEvents().catch(this.handleAsError('internal'));
+    window.addEventListener('beforeunload', this.shutdown);
   }
 
-  private handleAsError(code: ErrorCode) {
-    return (error: Error) => {
-      this.onEvent({
-        type: 'error',
-        code,
-        message: error.message,
-        fatal: true,
-      });
-      void this.close();
-    };
+  protected broadcastLocal(
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
+  ): Promise<void> {
+    return this.channel.postMessage(event).catch(this.handleAsError('network'));
   }
-  private broadcast(event: BackendEvent<EditMetadata, Delta, CursorState>) {
-    return this.channel.postMessage(event);
+
+  protected getNodesForRemote(): AsyncIterableIterator<
+    NodesEvent<EditMetadata, Delta, PresenceState>
+  > {
+    // FIXME: getNodesForRemote on IndexedDbBackend
+    throw new Error('unimplemented');
   }
-  private async sendUserList() {
-    const { userId, cursorId } = this;
-    this.onEvent({
-      type: 'cursors',
-      cursors: [{ userId, cursorId, ...this.cursor }],
-    });
-    await this.broadcast({
-      type: 'cursor-join',
-      userId,
-      cursorId,
-      ...this.cursor,
-    });
+
+  protected async acknowledgeRemoteNodes(
+    refs: readonly string[],
+    remoteSyncId: string,
+  ): Promise<void> {
+    // FIXME: acknowledgeRemoteNodes on IndexedDbBackend
+    throw new Error('unimplemented');
+  }
+
+  protected async getLastRemoteSyncId(): Promise<string | undefined> {
+    // FIXME: getLastRemoteSyncId on IndexedDbBackend
+    throw new Error('unimplemented');
   }
 
   private async connect(
@@ -117,20 +124,9 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
     return db;
   }
 
-  update(
-    newNodes: DiffNode<EditMetadata, Delta>[],
-    cursor: CursorRef<CursorState> | undefined,
-  ) {
-    this.doUpdate(newNodes, cursor).catch(this.handleAsError('invalid-nodes'));
-  }
-
-  private async doUpdate(
+  protected async addNodes(
     nodes: DiffNode<EditMetadata, Delta>[],
-    cursor: CursorRef<CursorState> | undefined,
-  ): Promise<number> {
-    if (cursor) {
-      this.cursor = cursor;
-    }
+  ): Promise<string> {
     const db = await this.db;
     const tx = db.transaction(['heads', 'nodes'], 'readwrite');
 
@@ -174,39 +170,13 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       await tx.done;
     }
 
-    const syncId = toSyncId(syncCounter);
-    this.onEvent({
-      type: 'ack',
-      refs: nodes.map(({ ref }) => ref),
-      syncId,
-    });
-    const cursors = cursor
-      ? [
-          {
-            ...cursor,
-            userId: this.userId,
-            cursorId: this.cursorId,
-          },
-        ]
-      : [];
-    this.broadcast(
-      nodes.length > 0
-        ? {
-            type: 'nodes',
-            nodes,
-            syncId,
-            cursors,
-          }
-        : {
-            type: 'cursors',
-            cursors,
-          },
-    ).catch(this.handleAsError('internal'));
-
-    return syncCounter;
+    return toSyncId(syncCounter);
   }
 
-  private async sendNodesSince(lastSyncCounter: number) {
+  protected async *getLocalNodes(): AsyncIterableIterator<
+    NodesEvent<EditMetadata, Delta, PresenceState>
+  > {
+    const lastSyncCounter = toSyncNumber(undefined);
     const db = await this.db;
     const nodes = await db.getAllFromIndex(
       'nodes',
@@ -214,39 +184,23 @@ class IndexedDbBackend<EditMetadata, Delta, CursorState>
       IDBKeyRange.lowerBound(lastSyncCounter, true),
     );
     const syncCounter = getSyncCounter(nodes);
-    this.onEvent({
+    yield {
       type: 'nodes',
       nodes,
       syncId: toSyncId(syncCounter),
-      cursors: [],
-    });
+    };
   }
 
-  private async closeDb() {
-    const db = await this.db;
-    const tx = db.transaction(['cursors'], 'readwrite');
-    const cursors = tx.objectStore('cursors');
-    await cursors.delete([this.userId, this.cursorId]);
-    await tx.done;
+  shutdown = async (): Promise<void> => {
+    await super.shutdown();
+    window.removeEventListener('beforeunload', this.shutdown);
+    await this.leaderElector?.die();
+    await this.channel.close();
 
+    const db = await this.db;
     // To prevent reconnect
     db.onclose = null;
     db.close();
-  }
-  private async closeChannel() {
-    const { userId, cursorId } = this;
-    await this.broadcast({
-      type: 'cursor-leave',
-      userId,
-      cursorId,
-    });
-    await this.channel.close();
-  }
-  close = async (): Promise<void> => {
-    window.removeEventListener('beforeunload', this.close);
-    await Promise.all([this.closeChannel(), this.closeDb()]).catch((error) => {
-      console.warn(`error closing IndexedDbBackend`, error);
-    });
   };
 }
 
@@ -262,14 +216,6 @@ interface TrimergeSyncDbSchema extends DBSchema {
     value: { syncId: number } & DiffNode<any, any>;
     indexes: {
       syncId: number;
-    };
-  };
-  cursors: {
-    key: [string, string];
-    value: {
-      userId: string;
-      cursorId: string;
-      state?: any;
     };
   };
 }

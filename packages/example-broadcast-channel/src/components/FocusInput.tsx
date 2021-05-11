@@ -2,33 +2,33 @@ import React, { useRef } from 'react';
 
 import styles from './Focus.module.css';
 
-import { UpdateCursorStateFn } from '../lib/trimergeHooks';
+import { UpdatePresenceFn } from '../lib/trimergeHooks';
 import { useFocusInfo, useSelectionListen } from './focusHooks';
 import { FocusBorders } from './FocusBorders';
 import { FocusCarets } from './FocusCarets';
-import { CursorInfo } from 'trimerge-sync';
-import { FocusCursorState } from '../lib/FocusCursorState';
+import { FocusPresenceState } from '../lib/FocusPresenceState';
+import { ClientList } from 'trimerge-sync';
 
 export function FocusInput({
   id,
   value = '',
-  cursors,
-  updateCursor,
+  clients,
+  updatePresence,
   ...rest
 }: {
   id: string;
   value: string;
-  cursors: readonly CursorInfo<FocusCursorState>[];
-  updateCursor: UpdateCursorStateFn<FocusCursorState>;
+  clients: ClientList<FocusPresenceState>;
+  updatePresence: UpdatePresenceFn<FocusPresenceState>;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
-  const { style, otherCursors } = useFocusInfo(id, cursors);
+  const { style, otherClients } = useFocusInfo(id, clients);
   const ref = useRef<HTMLInputElement>(null);
-  useSelectionListen(id, ref, updateCursor);
+  useSelectionListen(id, ref, updatePresence);
 
   return (
     <span className={styles.root} style={style}>
-      <FocusBorders cursors={otherCursors} />
-      <FocusCarets dom={ref.current} cursors={otherCursors} />
+      <FocusBorders clients={otherClients} />
+      <FocusCarets dom={ref.current} clients={otherClients} />
       <input ref={ref} {...rest} value={value} disabled={rest.disabled} />
     </span>
   );

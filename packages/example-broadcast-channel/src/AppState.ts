@@ -1,7 +1,7 @@
 import { Delta } from 'jsondiffpatch';
 
 import {
-  useTrimergeCursors,
+  useTrimergeClientList,
   useTrimergeState,
   useTrimergeStateShutdown,
 } from './lib/trimergeHooks';
@@ -9,7 +9,7 @@ import { diff, merge, patch } from './lib/trimergeDiffer';
 import { Differ } from 'trimerge-sync';
 import { computeRef } from 'trimerge-sync-hash';
 import { currentTabId } from './lib/currentTabId';
-import { FocusCursorState } from './lib/FocusCursorState';
+import { FocusPresenceState } from './lib/FocusPresenceState';
 
 export type AppState = {
   title: string;
@@ -21,7 +21,6 @@ export const defaultState = {
 };
 
 export const differ: Differ<AppState, string, Delta> = {
-  initialState: defaultState,
   diff,
   patch: (priorOrNext, delta) => patch(priorOrNext, delta) ?? defaultState,
   computeRef,
@@ -39,8 +38,8 @@ export function useDemoAppState() {
   );
 }
 
-export function useDemoAppCursors() {
-  return useTrimergeCursors<AppState, string, Delta, FocusCursorState>(
+export function useDemoAppClientList() {
+  return useTrimergeClientList<AppState, string, Delta, FocusPresenceState>(
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,

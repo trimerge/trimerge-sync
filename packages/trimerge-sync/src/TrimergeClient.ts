@@ -1,106 +1,128 @@
 import {
-  CursorInfo,
-  CursorRef,
+  ClientInfo,
+  ClientList,
   DiffNode,
-  GetSyncBackendFn,
+  GetLocalStoreFn,
+  LocalStore,
   OnEventFn,
-  TrimergeSyncBackend,
-} from './TrimergeSyncBackend';
+  SyncStatus,
+} from './types';
 import { mergeHeadNodes } from './merge-nodes';
 import { Differ, NodeStateRef } from './differ';
 import { getFullId, waitMs } from './util';
+import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 
-export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
+export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private current?: NodeStateRef<State, EditMetadata>;
   private lastSyncId: string | undefined;
 
-  private stateSubscribers = new Map<(state: State) => void, State>();
-  private cursorsSubscribers = new Map<
-    (cursors: readonly CursorInfo<CursorState>[]) => void,
-    readonly CursorInfo<CursorState>[]
-  >();
+  private stateSubs = new SubscriberList(() => this.state);
+  private syncStateSubs = new SubscriberList(() => this.syncState);
+  private clientListSubs = new SubscriberList(() => this.clientList);
 
-  private cursorMap = new Map<string, CursorInfo<CursorState>>();
-  private cursorArray: readonly CursorInfo<CursorState>[] = [];
+  private clientMap = new Map<string, ClientInfo<PresenceState>>();
+  private clientList: ClientList<PresenceState> = [];
 
   private nodes = new Map<string, DiffNode<EditMetadata, Delta>>();
   private values = new Map<string, NodeStateRef<State, EditMetadata>>();
   private headRefs = new Set<string>();
 
-  private backend: TrimergeSyncBackend<EditMetadata, Delta, CursorState>;
+  private store: LocalStore<EditMetadata, Delta, PresenceState>;
   private unsyncedNodes: DiffNode<EditMetadata, Delta>[] = [];
 
   private selfFullId: string;
-  private newCursorState: CursorInfo<CursorState> | undefined;
+  private newPresenceState: ClientInfo<PresenceState> | undefined;
+
+  private syncState: SyncStatus = {
+    localRead: 'loading',
+    localSave: 'ready',
+    remoteConnect: 'offline',
+    remoteRead: 'offline',
+    remoteSave: 'ready',
+  };
 
   constructor(
     readonly userId: string,
-    readonly cursorId: string,
-    private readonly getSyncBackend: GetSyncBackendFn<
+    readonly clientId: string,
+    private readonly getLocalStore: GetLocalStoreFn<
       EditMetadata,
       Delta,
-      CursorState
+      PresenceState
     >,
     private readonly differ: Differ<State, EditMetadata, Delta>,
     private readonly bufferMs: number = 0,
   ) {
-    this.selfFullId = getFullId(userId, cursorId);
-    this.backend = getSyncBackend(userId, cursorId, undefined, this.onEvent);
-    this.setCursor({ userId, cursorId, ref: undefined, state: undefined });
-  }
-
-  private setCursor(cursor: CursorInfo<CursorState>) {
-    const { userId, cursorId, ref, state } = cursor;
-    this.cursorMap.set(getFullId(userId, cursorId), {
+    this.selfFullId = getFullId(userId, clientId);
+    this.store = getLocalStore(userId, clientId, this.onEvent);
+    this.setCursor({
       userId,
-      cursorId,
-      ref,
-      state,
-      self: userId === this.userId && cursorId === this.cursorId,
+      clientId,
+      ref: undefined,
+      state: undefined,
+      origin: 'self',
     });
   }
-  private onEvent: OnEventFn<EditMetadata, Delta, CursorState> = (event) => {
+
+  private setCursor(cursor: ClientInfo<PresenceState>) {
+    const { userId, clientId } = cursor;
+    this.clientMap.set(getFullId(userId, clientId), cursor);
+    this.emitClientListChange();
+  }
+  private onEvent: OnEventFn<EditMetadata, Delta, PresenceState> = (event) => {
     switch (event.type) {
-      case 'nodes':
-        for (const node of event.nodes) {
+      case 'nodes': {
+        const { nodes, syncId, clientInfo } = event;
+        for (const node of nodes) {
           this.addNode(node, false);
         }
-        this.lastSyncId = event.syncId;
+        this.lastSyncId = syncId;
         this.mergeHeads();
-        this.emitStateChange();
+        this.stateSubs.emitChange();
         this.sync();
-        if (event.cursors.length > 0) {
-          for (const cursor of event.cursors) {
-            this.setCursor(cursor);
-          }
-          this.emitCursorsChange();
+        if (clientInfo) {
+          this.setCursor(clientInfo);
         }
 
         break;
+      }
 
       case 'ack':
         this.lastSyncId = event.syncId;
         break;
 
-      case 'cursors':
-        for (const cursor of event.cursors) {
-          this.setCursor(cursor);
+      case 'client-leave':
+        this.clientMap.delete(getFullId(event.userId, event.clientId));
+        this.emitClientListChange();
+        break;
+
+      case 'client-join':
+      case 'client-presence':
+        this.setCursor(event.info);
+        break;
+
+      case 'remote-state':
+        for (const [key, { origin }] of this.clientMap.entries()) {
+          if (origin === 'remote') {
+            this.clientMap.delete(key);
+          }
         }
-        this.emitCursorsChange();
+        this.emitClientListChange();
+        const changes: Partial<SyncStatus> = {};
+        if (event.connect) {
+          changes.remoteConnect = event.connect;
+        }
+        if (event.read) {
+          changes.remoteRead = event.read;
+        }
+        if (event.save) {
+          changes.remoteSave = event.save;
+        }
+        this.updateSyncState(changes);
         break;
 
-      case 'cursor-leave': {
-        this.cursorMap.delete(getFullId(event.userId, event.cursorId));
-        this.emitCursorsChange();
+      case 'ready':
+        this.updateSyncState({ localRead: 'ready' });
         break;
-      }
-
-      case 'cursor-join': {
-        this.setCursor(event);
-        this.emitCursorsChange();
-        break;
-      }
-
       case 'error':
         break;
 
@@ -110,56 +132,50 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     }
   };
 
-  get state(): State {
-    return this.current ? this.current.value : this.differ.initialState;
+  get state(): State | undefined {
+    return this.current?.value;
   }
-  get cursors(): readonly CursorInfo<CursorState>[] {
-    return this.cursorArray;
-  }
-
-  subscribeState(onStateChange: (state: State) => void) {
-    this.stateSubscribers.set(onStateChange, this.state);
-    onStateChange(this.state);
-    return () => {
-      this.stateSubscribers.delete(onStateChange);
-    };
+  get clients(): ClientList<PresenceState> {
+    return this.clientList;
   }
 
-  subscribeCursors(
-    onCursorsChange: (state: readonly CursorInfo<CursorState>[]) => void,
-  ) {
-    this.cursorsSubscribers.set(onCursorsChange, this.cursors);
-    onCursorsChange(this.cursors);
-    return () => {
-      this.cursorsSubscribers.delete(onCursorsChange);
-    };
+  subscribeState(onChange: OnChangeFn<State | undefined>) {
+    return this.stateSubs.subscribe(onChange);
+  }
+
+  subscribeSyncState(onChange: OnChangeFn<SyncStatus>) {
+    return this.syncStateSubs.subscribe(onChange);
+  }
+
+  subscribeClientList(onChange: OnChangeFn<ClientList<PresenceState>>) {
+    return this.clientListSubs.subscribe(onChange);
   }
 
   updateState(
     value: State,
     editMetadata: EditMetadata,
-    cursorState?: CursorState,
+    presenceState?: PresenceState,
   ) {
     const ref = this.addNewNode(value, editMetadata);
-    this.setCursorState(cursorState, ref);
+    this.setPresenceState(presenceState, ref);
     this.mergeHeads();
-    this.emitStateChange();
+    this.stateSubs.emitChange();
     this.sync();
   }
 
-  updateCursor(state: CursorState) {
-    this.setCursorState(state);
+  updatePresence(state: PresenceState) {
+    this.setPresenceState(state);
     this.sync();
   }
 
-  private setCursorState(
-    state: CursorState | undefined,
+  private setPresenceState(
+    state: PresenceState | undefined,
     ref = this.current?.ref,
   ) {
-    const { userId, cursorId } = this;
-    this.newCursorState = { userId, cursorId, ref, state };
-    this.setCursor(this.newCursorState);
-    this.emitCursorsChange();
+    const { userId, clientId } = this;
+    this.newPresenceState = { userId, clientId, ref, state, origin: 'self' };
+    this.setCursor(this.newPresenceState);
+    this.emitClientListChange();
   }
 
   getNodeState(ref: string): NodeStateRef<State, EditMetadata> {
@@ -205,35 +221,19 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
         return this.addNewNode(value, editMetadata, left, rightRef, baseRef);
       },
     );
-    // TODO: update CursorState(s) based on this merge
+    // TODO: update PresenceState(s) based on this merge
     // TODO: can we clear out nodes we don't need anymore?
   }
 
   private syncPromise: Promise<boolean> | undefined;
 
-  private emitStateChange() {
-    const state = this.state;
-    for (const [subscriber, lastState] of this.stateSubscribers.entries()) {
-      if (lastState !== state) {
-        subscriber(state);
-        this.stateSubscribers.set(subscriber, state);
-      }
-    }
-  }
-
-  private emitCursorsChange() {
-    this.cursorArray = Array.from(this.cursorMap.values());
-    const cursors = this.cursorArray;
-    for (const [subscriber, lastCursors] of this.cursorsSubscribers.entries()) {
-      if (lastCursors !== cursors) {
-        subscriber(cursors);
-        this.cursorsSubscribers.set(subscriber, cursors);
-      }
-    }
+  private emitClientListChange() {
+    this.clientList = Array.from(this.clientMap.values());
+    this.clientListSubs.emitChange();
   }
 
   private get needsSync(): boolean {
-    return this.unsyncedNodes.length > 0 || this.newCursorState !== undefined;
+    return this.unsyncedNodes.length > 0 || this.newPresenceState !== undefined;
   }
   sync(): Promise<boolean> | undefined {
     if (!this.syncPromise && this.needsSync) {
@@ -241,14 +241,23 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     }
     return this.syncPromise;
   }
+
+  private updateSyncState(update: Partial<SyncStatus>) {
+    this.syncState = { ...this.syncState, ...update };
+    this.syncStateSubs.emitChange();
+  }
+
   private async doSync() {
     while (this.needsSync) {
+      this.updateSyncState({ localSave: 'pending' });
       await waitMs(this.bufferMs);
       const nodes = this.unsyncedNodes;
       this.unsyncedNodes = [];
-      this.backend.update(nodes, this.newCursorState);
-      this.newCursorState = undefined;
+      this.updateSyncState({ localSave: 'saving' });
+      this.store.update(nodes, this.newPresenceState);
+      this.newPresenceState = undefined;
     }
+    this.updateSyncState({ localSave: 'ready' });
     this.syncPromise = undefined;
     return true;
   }
@@ -279,13 +288,13 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
     mergeRef?: string,
     mergeBaseRef?: string,
   ): string {
-    const { userId, cursorId } = this;
+    const { userId, clientId } = this;
     const delta = this.differ.diff(base?.value, value);
     const baseRef = base?.ref;
     const ref = this.differ.computeRef(baseRef, mergeRef, delta, editMetadata);
     const diffNode: DiffNode<EditMetadata, Delta> = {
       userId,
-      cursorId,
+      clientId,
       ref,
       baseRef,
       mergeRef,
@@ -298,6 +307,6 @@ export class TrimergeClient<State, EditMetadata, Delta, CursorState> {
   }
 
   public shutdown(): Promise<void> | void {
-    return this.backend.close();
+    return this.store.shutdown();
   }
 }

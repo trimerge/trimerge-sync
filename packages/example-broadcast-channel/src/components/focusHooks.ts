@@ -1,13 +1,13 @@
 import { CSSProperties, useEffect, useMemo } from 'react';
-import { CursorInfo } from 'trimerge-sync';
-import { UpdateCursorStateFn } from '../lib/trimergeHooks';
-import { getCursorStyle } from './CursorColor';
-import { FocusCursorState } from '../lib/FocusCursorState';
+import { ClientList } from 'trimerge-sync';
+import { UpdatePresenceFn } from '../lib/trimergeHooks';
+import { getPresenceStyle } from './ClientColor';
+import { FocusPresenceState } from '../lib/FocusPresenceState';
 
 export function useSelectionListen(
   focusId: string,
   ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>,
-  updateCursor: UpdateCursorStateFn<FocusCursorState>,
+  updatePresence: UpdatePresenceFn<FocusPresenceState>,
 ) {
   useEffect(() => {
     const listener = () => {
@@ -15,7 +15,7 @@ export function useSelectionListen(
         return;
       }
       const { selectionStart, selectionEnd } = ref.current;
-      updateCursor({
+      updatePresence({
         focusId,
         selectionStart: selectionStart === null ? undefined : selectionStart,
         selectionEnd: selectionEnd === null ? undefined : selectionEnd,
@@ -25,30 +25,32 @@ export function useSelectionListen(
     return () => {
       document.removeEventListener('selectionchange', listener);
     };
-  }, [focusId, ref, updateCursor]);
+  }, [focusId, ref, updatePresence]);
 }
 
-export function useFocusInfo<CursorState extends FocusCursorState>(
+export function useFocusInfo<PresenceState extends FocusPresenceState>(
   id: string,
-  cursors: readonly CursorInfo<CursorState>[],
+  cursors: ClientList<PresenceState>,
 ): {
   style: CSSProperties;
-  otherCursors: readonly CursorInfo<CursorState>[];
+  otherClients: ClientList<PresenceState>;
 } {
   return useMemo(() => {
-    const otherCursors = cursors.filter(
-      ({ self, state }) => !self && state?.focusId === id,
+    const otherClients = cursors.filter(
+      ({ state, origin }) => origin !== 'self' && state?.focusId === id,
     );
-    const boxShadow = otherCursors
+    const boxShadow = otherClients
       .map(
         (info, index) =>
-          `0 0 0 ${2 * (1 + index)}px ${getCursorStyle(info).backgroundColor}`,
+          `0 0 0 ${2 * (1 + index)}px ${
+            getPresenceStyle(info).backgroundColor
+          }`,
       )
       .join(',');
-    otherCursors.reverse();
+    otherClients.reverse();
     return {
       style: { boxShadow },
-      otherCursors,
+      otherClients,
     };
   }, [cursors, id]);
 }
