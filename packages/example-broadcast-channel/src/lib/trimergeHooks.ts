@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ClientList, Differ, TrimergeClient } from 'trimerge-sync';
 import { createIndexedDbBackendFactory } from 'trimerge-sync-indexed-db';
+import { WebsocketRemote } from './WebsocketRemote';
 
 export type UpdateStateFn<State, EditMetadata> = (
   newState: State,
@@ -28,7 +29,20 @@ function getCachedTrimergeClient<State, EditMetadata, Delta, PresenceState>(
       EditMetadata,
       Delta,
       PresenceState
-    >(userId, clientId, createIndexedDbBackendFactory(docId), differ);
+    >(
+      userId,
+      clientId,
+      createIndexedDbBackendFactory(
+        docId,
+        (userId, lastSyncId, onEvent) =>
+          new WebsocketRemote(
+            userId,
+            onEvent,
+            `ws://localhost:4444/${encodeURIComponent(docId)}?userId=${userId}`,
+          ),
+      ),
+      differ,
+    );
   }
   return TRIMERGE_CLIENT_CACHE[key];
 }

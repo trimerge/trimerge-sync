@@ -71,6 +71,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
   ): void => {
     this.onEvent(event);
+    this.remote?.send(event);
     if (
       event.type === 'client-join' ||
       (event.type === 'remote-state' && event.connect === 'online')

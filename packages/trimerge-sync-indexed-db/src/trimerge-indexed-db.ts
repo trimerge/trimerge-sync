@@ -88,11 +88,19 @@ class IndexedDbBackend<
     return this.channel.postMessage(event).catch(this.handleAsError('network'));
   }
 
-  protected getNodesForRemote(): AsyncIterableIterator<
+  protected async *getNodesForRemote(): AsyncIterableIterator<
     NodesEvent<EditMetadata, Delta, PresenceState>
   > {
-    // FIXME: getNodesForRemote on IndexedDbBackend
-    throw new Error('unimplemented');
+    const db = await this.db;
+    const tx = db.transaction(['nodes'], 'readonly');
+    const nodes = tx.objectStore('nodes');
+    const unsentNodes = await nodes.index('remoteSyncId').getAll();
+    console.log('unsentNodes', unsentNodes);
+    for (const node of unsentNodes) {
+      if (!node.remoteSyncId) {
+        yield { type: 'nodes', nodes: [node], syncId: String(node.syncId) };
+      }
+    }
   }
 
   protected async acknowledgeRemoteNodes(
@@ -104,8 +112,16 @@ class IndexedDbBackend<
   }
 
   protected async getLastRemoteSyncId(): Promise<string | undefined> {
-    // FIXME: getLastRemoteSyncId on IndexedDbBackend
-    throw new Error('unimplemented');
+    const db = await this.db;
+    const tx = db.transaction(['remotes'], 'readonly');
+    const remotes = tx.objectStore('remotes');
+    const remote = await remotes.get('origin');
+    console.log('remote', remote);
+    const lastSyncId = remote?.lastSyncId;
+    if (lastSyncId) {
+      return String(lastSyncId);
+    }
+    return undefined;
   }
 
   private async connect(
@@ -213,9 +229,19 @@ interface TrimergeSyncDbSchema extends DBSchema {
   };
   nodes: {
     key: string;
-    value: { syncId: number } & DiffNode<any, any>;
+    value: DiffNode<any, any> & {
+      syncId: number;
+      remoteSyncId?: number;
+    };
     indexes: {
       syncId: number;
+      remoteSyncId?: number;
+    };
+  };
+  remotes: {
+    key: string;
+    value: {
+      lastSyncId?: number;
     };
   };
 }
@@ -223,14 +249,19 @@ interface TrimergeSyncDbSchema extends DBSchema {
 function createIndexedDb(
   dbName: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
-  return openDB<TrimergeSyncDbSchema>(dbName, 1, {
-    upgrade(db, oldVersion) {
+  return openDB<TrimergeSyncDbSchema>(dbName, 2, {
+    upgrade(db, oldVersion, newVersion, tx) {
+      let nodes;
       if (oldVersion < 1) {
         db.createObjectStore('heads', { keyPath: 'ref' });
-        const nodes = db.createObjectStore('nodes', {
-          keyPath: 'ref',
-        });
+        nodes = db.createObjectStore('nodes', { keyPath: 'ref' });
         nodes.createIndex('syncId', 'syncId');
+      } else {
+        nodes = tx.objectStore('nodes');
+      }
+      if (oldVersion < 2) {
+        db.createObjectStore('remotes');
+        nodes.createIndex('remoteSyncId', 'remoteSyncId');
       }
     },
   });
