@@ -70,8 +70,8 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   protected onLocalBroadcastEvent = (
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
   ): void => {
-    this.onEvent(event);
-    this.remote?.send(event);
+    console.log(`onLocalBroadcastEvent ${JSON.stringify(event)}`);
+    this.sendEvent(event, { self: true, remote: true });
     if (
       event.type === 'client-join' ||
       (event.type === 'remote-state' && event.connect === 'online')
@@ -79,7 +79,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       this.sendEvent(
         {
           type: 'client-presence',
-          info: this.getClientInfo('local'),
+          info: this.getClientInfo(
+            event.type === 'client-join' ? event.info.origin : 'remote',
+          ),
         },
         { local: true, remote: true },
       );
@@ -140,6 +142,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         (event) => {
           this.remoteQueue
             .add(async () => {
+              console.log(`got remote event`, event);
               switch (event.type) {
                 case 'nodes':
                   const syncId = await this.addNodes(event.nodes, event.syncId);
@@ -182,6 +185,20 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
                       { type: 'remote-state', connect: event.connect },
                       { self: true, local: true },
                     );
+                    await this.sendEvent(
+                      {
+                        type: 'client-join',
+                        info: this.getClientInfo('remote'),
+                      },
+                      { remote: true },
+                    );
+                    await this.sendEvent(
+                      {
+                        type: 'client-join',
+                        info: this.getClientInfo('local'),
+                      },
+                      { local: true },
+                    );
                   } else {
                     throw new Error(`unexpected non-connect remote-state`);
                   }
@@ -205,11 +222,6 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
             .catch(this.handleAsError('internal'));
         },
       );
-      await this.remote.send({
-        type: 'client-join',
-        info: this.getClientInfo('remote'),
-      });
-
       let saving = false;
       for await (const event of this.getNodesForRemote()) {
         if (!saving) {
@@ -246,12 +258,15 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }: { remote?: boolean; local?: boolean; self?: boolean },
   ): Promise<void> {
     if (self) {
+      console.log(`send self event: ${JSON.stringify(event)}`);
       this.onEvent(event);
     }
     if (local) {
+      console.log(`send local event: ${JSON.stringify(event)}`);
       await this.broadcastLocal(event);
     }
     if (remote && this.remote) {
+      console.log(`send remote event: ${JSON.stringify(event)}`);
       await this.remote.send(event);
     }
   }

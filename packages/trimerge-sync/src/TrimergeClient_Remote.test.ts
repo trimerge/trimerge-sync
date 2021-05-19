@@ -28,9 +28,10 @@ function newStore(
 
 function makeClient(
   userId: string,
+  clientId: string,
   store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
 ): TrimergeClient<TestState, TestEditMetadata, Delta, TestPresenceState> {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
+  return new TrimergeClient(userId, clientId, store.getLocalStore, differ, 0);
 }
 
 function basicGraph(
@@ -49,11 +50,26 @@ function basicGraph(
   );
 }
 
+function basicClients(
+  client1: TrimergeClient<
+    TestState,
+    TestEditMetadata,
+    Delta,
+    TestPresenceState
+  >,
+): Record<string, TestPresenceState> {
+  const obj: Record<string, TestPresenceState> = {};
+  for (const client of client1.clients) {
+    obj[`${client.userId}:${client.clientId}`] = client.state;
+  }
+  return obj;
+}
+
 describe('Remote sync', () => {
   it('syncs one clients to a remote', async () => {
     const remoteStore = newStore();
     const localStore = newStore(remoteStore);
-    const client = makeClient('a', localStore);
+    const client = makeClient('a', 'test', localStore);
 
     const syncUpdates: SyncStatus[] = [];
     client.subscribeSyncState((state) => syncUpdates.push(state));
@@ -189,7 +205,7 @@ describe('Remote sync', () => {
   it('syncs one clients to a store multiple times', async () => {
     const remoteStore = newStore();
     const localStore = newStore(remoteStore);
-    const client = makeClient('a', localStore);
+    const client = makeClient('a', 'test', localStore);
 
     const syncUpdates: SyncStatus[] = [];
     client.subscribeSyncState((state) => syncUpdates.push(state));
@@ -421,8 +437,8 @@ describe('Remote sync', () => {
     const remoteStore = newStore();
     const store1 = newStore(remoteStore);
     const store2 = newStore(remoteStore);
-    const client1 = makeClient('a', store1);
-    const client2 = makeClient('b', store2);
+    const client1 = makeClient('a', 'test', store1);
+    const client2 = makeClient('b', 'test', store2);
 
     const syncUpdates1: SyncStatus[] = [];
     const syncUpdates2: SyncStatus[] = [];
@@ -730,6 +746,83 @@ describe('Remote sync', () => {
           "remoteSave": "ready",
         },
       ]
+    `);
+  });
+
+  it('syncs three clients with two local stores', async () => {
+    const remoteStore = newStore();
+    const localStore1 = newStore(remoteStore);
+    const localStore2 = newStore(remoteStore);
+    const client1 = makeClient('a', 'client1', localStore1);
+    const client2 = makeClient('b', 'client2', localStore2);
+    const client3 = makeClient('b', 'client3', localStore2);
+
+    expect(basicClients(client1)).toMatchInlineSnapshot(`
+      Object {
+        "a:client1": undefined,
+      }
+    `);
+    expect(basicClients(client2)).toMatchInlineSnapshot(`
+      Object {
+        "b:client2": undefined,
+      }
+    `);
+    expect(basicClients(client3)).toMatchInlineSnapshot(`
+      Object {
+        "b:client3": undefined,
+      }
+    `);
+
+    await timeout();
+
+    expect(basicClients(client1)).toMatchInlineSnapshot(`
+      Object {
+        "a:client1": undefined,
+        "b:client2": undefined,
+        "b:client3": undefined,
+      }
+    `);
+    expect(basicClients(client2)).toMatchInlineSnapshot(`
+      Object {
+        "a:client1": undefined,
+        "b:client2": undefined,
+        "b:client3": undefined,
+      }
+    `);
+    expect(basicClients(client3)).toMatchInlineSnapshot(`
+      Object {
+        "a:client1": undefined,
+        "b:client2": undefined,
+        "b:client3": undefined,
+      }
+    `);
+
+    client1.updatePresence('presence 1');
+    client2.updatePresence('presence 2');
+    client3.updatePresence('presence 3');
+
+    await timeout();
+
+    expect(basicClients(client1)).toMatchInlineSnapshot(`
+      Object {
+        "a:client1": "presence 1",
+        "b:client2": "presence 2",
+        "b:client3": "presence 3",
+      }
+    `);
+    expect(basicClients(client2)).toMatchInlineSnapshot(`
+      Object {
+        "a:client1": "presence 1",
+        "b:client2": "presence 2",
+        "b:client3": "presence 3",
+      }
+    `);
+    expect(basicClients(client3)).toMatchInlineSnapshot(`
+      Object {
+        "a:client1": "presence 1",
+        "b:client2": "presence 2",
+        "b:client3": "presence 3",
+      }
     `);
   });
 });
