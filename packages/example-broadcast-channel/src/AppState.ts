@@ -4,6 +4,7 @@ import {
   useTrimergeClientList,
   useTrimergeState,
   useTrimergeStateShutdown,
+  useTrimergeSyncStatus,
 } from './lib/trimergeHooks';
 import { diff, merge, patch } from './lib/trimergeDiffer';
 import { Differ } from 'trimerge-sync';
@@ -40,6 +41,14 @@ export function useDemoAppState() {
 
 export function useDemoAppClientList() {
   return useTrimergeClientList<AppState, string, Delta, FocusPresenceState>(
+    DEMO_DOC_ID,
+    DEMO_USER_ID,
+    currentTabId,
+    differ,
+  );
+}
+export function useDemoAppSyncStatus() {
+  return useTrimergeSyncStatus<AppState, string, Delta>(
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,

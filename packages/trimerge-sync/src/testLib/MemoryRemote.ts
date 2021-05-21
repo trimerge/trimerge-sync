@@ -52,11 +52,6 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
 
       case 'client-join':
       case 'client-presence':
-        await this.broadcast({
-          ...event,
-          info: { ...event.info, origin: 'remote' },
-        });
-        break;
       case 'client-leave':
         await this.broadcast(event);
         break;
@@ -84,7 +79,7 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
     for await (const event of this.getNodes(lastSyncId)) {
       this.onEvent(event);
     }
-    this.onEvent({ type: 'ready' });
+    // this.onEvent({ type: 'ready' });
   }
 
   async shutdown(): Promise<void> {

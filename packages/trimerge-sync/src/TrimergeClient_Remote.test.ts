@@ -72,7 +72,7 @@ describe('Remote sync', () => {
     const client = makeClient('a', 'test', localStore);
 
     const syncUpdates: SyncStatus[] = [];
-    client.subscribeSyncState((state) => syncUpdates.push(state));
+    client.subscribeSyncStatus((state) => syncUpdates.push(state));
 
     client.updateState({}, 'initialize');
     client.updateState({ hello: 'world' }, 'add hello');
@@ -208,7 +208,7 @@ describe('Remote sync', () => {
     const client = makeClient('a', 'test', localStore);
 
     const syncUpdates: SyncStatus[] = [];
-    client.subscribeSyncState((state) => syncUpdates.push(state));
+    client.subscribeSyncStatus((state) => syncUpdates.push(state));
 
     client.updateState({}, 'initialize');
     client.updateState({ hello: 'world' }, 'add hello');
@@ -442,8 +442,8 @@ describe('Remote sync', () => {
 
     const syncUpdates1: SyncStatus[] = [];
     const syncUpdates2: SyncStatus[] = [];
-    client1.subscribeSyncState((state) => syncUpdates1.push(state));
-    client2.subscribeSyncState((state) => syncUpdates2.push(state));
+    client1.subscribeSyncStatus((state) => syncUpdates1.push(state));
+    client2.subscribeSyncStatus((state) => syncUpdates2.push(state));
 
     client1.updateState({}, 'initialize');
     client1.updateState({ hello: 'world' }, 'add hello');

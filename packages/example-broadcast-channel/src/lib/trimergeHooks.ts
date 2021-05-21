@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ClientList, Differ, TrimergeClient } from 'trimerge-sync';
+import { ClientList, Differ, SyncStatus, TrimergeClient } from 'trimerge-sync';
 import { createIndexedDbBackendFactory } from 'trimerge-sync-indexed-db';
 import { WebsocketRemote } from './WebsocketRemote';
 
@@ -101,4 +101,18 @@ export function useTrimergeClientList<
   useEffect(() => client.subscribeClientList(setClients), [client]);
 
   return [clients, updatePresenceState];
+}
+
+export function useTrimergeSyncStatus<State, EditMetadata, Delta>(
+  docId: string,
+  userId: string,
+  clientId: string,
+  differ: Differ<State, EditMetadata, Delta>,
+): SyncStatus {
+  const client = getCachedTrimergeClient(docId, userId, clientId, differ);
+  const [status, setStatus] = useState(client.syncStatus);
+
+  useEffect(() => client.subscribeSyncStatus(setStatus), [client]);
+
+  return status;
 }

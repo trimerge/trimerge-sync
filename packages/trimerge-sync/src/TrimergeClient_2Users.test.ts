@@ -109,14 +109,12 @@ describe('TrimergeClient: 2 users', () => {
       {
         userId: 'a',
         clientId: 'test',
-        origin: 'self',
       },
     ]);
     expect(client2.clients).toEqual([
       {
         userId: 'b',
         clientId: 'test',
-        origin: 'self',
       },
     ]);
 
@@ -126,7 +124,6 @@ describe('TrimergeClient: 2 users', () => {
           {
             userId: 'a',
             clientId: 'test',
-            origin: 'self',
           },
         ],
       ],
@@ -139,14 +136,12 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'self',
         state: undefined,
         userId: 'a',
       },
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'local',
         state: undefined,
         userId: 'b',
       },
@@ -155,14 +150,12 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'local',
         state: undefined,
         userId: 'a',
       },
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'self',
         state: undefined,
         userId: 'b',
       },
@@ -174,7 +167,7 @@ describe('TrimergeClient: 2 users', () => {
           {
             clientId: 'test',
             ref: undefined,
-            origin: 'self',
+
             state: undefined,
             userId: 'a',
           },
@@ -185,14 +178,12 @@ describe('TrimergeClient: 2 users', () => {
           {
             clientId: 'test',
             ref: undefined,
-            origin: 'self',
             state: undefined,
             userId: 'a',
           },
           {
             clientId: 'test',
             ref: undefined,
-            origin: 'local',
             state: undefined,
             userId: 'b',
           },
@@ -203,14 +194,12 @@ describe('TrimergeClient: 2 users', () => {
           {
             clientId: 'test',
             ref: undefined,
-            origin: 'self',
             state: undefined,
             userId: 'a',
           },
           {
             clientId: 'test',
             ref: undefined,
-            origin: 'local',
             state: undefined,
             userId: 'b',
           },
@@ -229,14 +218,12 @@ describe('TrimergeClient: 2 users', () => {
       {
         userId: 'a',
         clientId: 'test',
-        origin: 'self',
       },
     ]);
     expect(client2.clients).toEqual([
       {
         userId: 'b',
         clientId: 'test',
-        origin: 'self',
       },
     ]);
 
@@ -248,14 +235,12 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'self',
         state: 'hello',
         userId: 'a',
       },
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'local',
         state: undefined,
         userId: 'b',
       },
@@ -264,14 +249,12 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'local',
         state: 'hello',
         userId: 'a',
       },
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'self',
         state: undefined,
         userId: 'b',
       },

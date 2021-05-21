@@ -9,6 +9,7 @@ import {
   useDemoAppClientList,
   useDemoAppShutdown,
   useDemoAppState,
+  useDemoAppSyncStatus,
 } from './AppState';
 import { FocusInput } from './components/FocusInput';
 import { FocusTextarea } from './components/FocusTextarea';
@@ -20,6 +21,7 @@ enableMapSet();
 export function App() {
   const [state = defaultState, updateState] = useDemoAppState();
   const [clients, updatePresence] = useDemoAppClientList();
+  const syncStatus = useDemoAppSyncStatus();
   useDemoAppShutdown();
 
   const users = useMemo(
@@ -96,6 +98,7 @@ export function App() {
           clients={clients}
           updatePresence={updatePresence}
         />
+        Sync Status: <pre>{JSON.stringify(syncStatus, undefined, 2)}</pre>
         Raw State: <pre>{JSON.stringify(state, undefined, 2)}</pre>
         Raw Clients: <pre>{JSON.stringify(clients, undefined, 2)}</pre>
       </div>

@@ -1,5 +1,4 @@
 import {
-  SyncEvent,
   ClientInfo,
   ClientPresenceRef,
   DiffNode,
@@ -9,6 +8,7 @@ import {
   NodesEvent,
   OnEventFn,
   Remote,
+  SyncEvent,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
 
@@ -55,38 +55,127 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
 
   protected abstract getLastRemoteSyncId(): Promise<string | undefined>;
 
-  private getClientInfo(
-    origin: 'local' | 'remote' | 'self',
-  ): ClientInfo<PresenceState> {
+  private get clientInfo(): ClientInfo<PresenceState> {
     const { userId, clientId } = this;
-    return {
-      userId,
-      clientId,
-      ...this.presence,
-      origin,
-    };
+    return { userId, clientId, ...this.presence };
   }
+
+  // Three sources of events: self, local broadcast, and remote broadcast
+
+  protected processEvent = async (
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
+    origin: 'self' | 'local' | 'remote',
+  ): Promise<void> => {
+    console.log(
+      `processing "${event.type}" from ${origin}: ${JSON.stringify(event)}`,
+    );
+
+    await this.sendEvent(event, {
+      self: origin !== 'self',
+      local: origin !== 'local',
+      remote: origin !== 'remote',
+    });
+
+    switch (event.type) {
+      case 'ready':
+        break;
+      case 'nodes':
+        if (origin === 'remote') {
+          const syncId = await this.addNodes(event.nodes, event.syncId);
+          await this.sendEvent(
+            {
+              type: 'nodes',
+              nodes: event.nodes,
+              clientInfo: event.clientInfo,
+              syncId,
+            },
+            { self: true, local: true },
+          );
+        }
+        break;
+
+      case 'ack':
+        if (origin === 'remote') {
+          await this.acknowledgeRemoteNodes(event.refs, event.syncId);
+          // FIXME: we might have sent more stuff since this acknowledgement
+          await this.sendEvent(
+            { type: 'remote-state', save: 'ready' },
+            { self: true, local: true },
+          );
+        }
+        break;
+
+      case 'client-join':
+        await this.sendEvent(
+          {
+            type: 'client-presence',
+            info: this.clientInfo,
+          },
+          { local: true, remote: true },
+        );
+        break;
+      case 'client-presence':
+        break;
+      case 'client-leave':
+        break;
+      case 'remote-state':
+        if (event.connect === 'online') {
+          await this.sendEvent(
+            {
+              type: 'client-join',
+              info: this.clientInfo,
+            },
+            { local: true, remote: true },
+          );
+        }
+        break;
+      case 'error':
+        if (origin === 'remote') {
+          if (event.fatal) {
+            await this.closeRemote();
+          }
+          if (event.reconnect !== false) {
+            // FIXME: handle error here
+            // this.connectRemote(getRemote);
+          }
+        }
+        break;
+    }
+  };
 
   protected onLocalBroadcastEvent = (
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
   ): void => {
-    console.log(`onLocalBroadcastEvent ${JSON.stringify(event)}`);
-    this.sendEvent(event, { self: true, remote: true });
-    if (
-      event.type === 'client-join' ||
-      (event.type === 'remote-state' && event.connect === 'online')
-    ) {
-      this.sendEvent(
-        {
-          type: 'client-presence',
-          info: this.getClientInfo(
-            event.type === 'client-join' ? event.info.origin : 'remote',
-          ),
-        },
-        { local: true, remote: true },
-      );
-    }
+    this.processEvent(event, 'local');
   };
+  protected async onRemoteEvent(
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
+    getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState>,
+  ) {
+    switch (event.type) {
+      case 'ready':
+        await this.sendEvent(
+          { type: 'remote-state', read: 'ready' },
+          { self: true, local: true },
+        );
+        break;
+
+      case 'remote-state':
+        if (event.connect) {
+          await this.sendEvent(
+            { type: 'remote-state', connect: event.connect },
+            { self: true, local: true },
+          );
+        } else {
+          throw new Error(`unexpected non-connect remote-state`);
+        }
+        break;
+
+      default:
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        throw new Error(`unexpected remote event: ${event!.type}`);
+    }
+  }
 
   async shutdown(): Promise<void> {
     if (this.closed) {
@@ -143,81 +232,8 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           this.remoteQueue
             .add(async () => {
               console.log(`got remote event`, event);
-              switch (event.type) {
-                case 'nodes':
-                  const syncId = await this.addNodes(event.nodes, event.syncId);
-                  await this.sendEvent(
-                    {
-                      type: 'nodes',
-                      nodes: event.nodes,
-                      clientInfo: event.clientInfo,
-                      syncId,
-                    },
-                    { self: true, local: true },
-                  );
-                  break;
-
-                case 'ack':
-                  await this.acknowledgeRemoteNodes(event.refs, event.syncId);
-                  // FIXME: we might have sent more stuff since this acknowledgement
-                  await this.sendEvent(
-                    { type: 'remote-state', save: 'ready' },
-                    { self: true, local: true },
-                  );
-                  break;
-
-                case 'client-join':
-                case 'client-presence':
-                case 'client-leave':
-                  await this.sendEvent(event, { self: true, local: true });
-                  break;
-
-                case 'ready':
-                  await this.sendEvent(
-                    { type: 'remote-state', read: 'ready' },
-                    { self: true, local: true },
-                  );
-                  break;
-
-                case 'remote-state':
-                  if (event.connect) {
-                    await this.sendEvent(
-                      { type: 'remote-state', connect: event.connect },
-                      { self: true, local: true },
-                    );
-                    await this.sendEvent(
-                      {
-                        type: 'client-join',
-                        info: this.getClientInfo('remote'),
-                      },
-                      { remote: true },
-                    );
-                    await this.sendEvent(
-                      {
-                        type: 'client-join',
-                        info: this.getClientInfo('local'),
-                      },
-                      { local: true },
-                    );
-                  } else {
-                    throw new Error(`unexpected non-connect remote-state`);
-                  }
-                  break;
-
-                case 'error':
-                  if (event.fatal) {
-                    await this.closeRemote();
-                  }
-                  if (event.reconnect !== false) {
-                    // FIXME: handle error here
-                    this.connectRemote(getRemote);
-                  }
-                  break;
-
-                default:
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  throw new Error(`unexpected remote event: ${event!.type}`);
-              }
+              // await this.onRemoteEvent(event, getRemote);
+              await this.processEvent(event, 'remote');
             })
             .catch(this.handleAsError('internal'));
         },
@@ -231,21 +247,24 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           );
           saving = true;
         }
-        await this.remote.send(event);
+        await this.sendEvent(event, { remote: true });
       }
-      await this.remote.send({ type: 'ready' });
+      await this.sendEvent({ type: 'ready' }, { remote: true });
     });
   }
 
   protected handleAsError(code: ErrorCode) {
     return (error: Error) => {
       console.warn(`[${this.userId}:${this.clientId}] Error:`, error);
-      this.onEvent({
-        type: 'error',
-        code,
-        message: error.message,
-        fatal: true,
-      });
+      this.sendEvent(
+        {
+          type: 'error',
+          code,
+          message: error.message,
+          fatal: true,
+        },
+        { self: true },
+      );
       void this.shutdown();
     };
   }
@@ -258,7 +277,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }: { remote?: boolean; local?: boolean; self?: boolean },
   ): Promise<void> {
     if (self) {
-      console.log(`send self event: ${JSON.stringify(event)}`);
+      console.log(`handle event: ${JSON.stringify(event)}`);
       this.onEvent(event);
     }
     if (local) {
@@ -275,14 +294,14 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     await this.sendEvent(
       {
         type: 'client-join',
-        info: this.getClientInfo('local'),
+        info: this.clientInfo,
       },
       { local: true },
     );
     for await (const event of this.getLocalNodes()) {
-      this.onEvent(event);
+      await this.sendEvent(event, { self: true });
     }
-    this.onEvent({ type: 'ready' });
+    await this.sendEvent({ type: 'ready' }, { self: true });
   }
   update(
     newNodes: DiffNode<EditMetadata, Delta>[],
@@ -308,16 +327,18 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
 
     const syncId = await this.addNodes(nodes);
-    this.onEvent({
-      type: 'ack',
-      refs: nodes.map(({ ref }) => ref),
-      syncId,
-    });
+    await this.sendEvent(
+      {
+        type: 'ack',
+        refs: nodes.map(({ ref }) => ref),
+        syncId,
+      },
+      { self: true },
+    );
     const clientInfo: ClientInfo<PresenceState> | undefined = presenceRef && {
       ...presenceRef,
       userId: this.userId,
       clientId: this.clientId,
-      origin: 'local',
     };
     if (nodes.length > 0) {
       await this.sendEvent(

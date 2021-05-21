@@ -50,10 +50,14 @@ export type ClientPresenceRef<PresenceState> = {
 export type ClientInfo<PresenceState> = ClientPresenceRef<PresenceState> & {
   userId: string;
   clientId: string;
-  origin: 'self' | 'local' | 'remote';
 };
 
-export type ClientList<PresenceState> = readonly ClientInfo<PresenceState>[];
+export type LocalClientInfo<PresenceState> = ClientInfo<PresenceState> & {
+  self?: true;
+};
+export type ClientList<
+  PresenceState
+> = readonly LocalClientInfo<PresenceState>[];
 
 export type NodesEvent<EditMetadata, Delta, PresenceState> = {
   type: 'nodes';
