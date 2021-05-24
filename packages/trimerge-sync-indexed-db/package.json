@@ -39,7 +39,7 @@
     "idb": "6.0.0"
   },
   "peerDependencies": {
-    "trimerge-sync": "^0.2.0"
+    "trimerge-sync": "^0.3.0"
   },
   "files": [
     "dist/**/*",

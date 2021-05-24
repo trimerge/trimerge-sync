@@ -1,6 +1,6 @@
 import WebSocket from 'ws';
 import generate from 'project-name-generator';
-import { ClientLeaveEvent, SyncEvent } from 'trimerge-sync';
+import type { ClientLeaveEvent, SyncEvent } from 'trimerge-sync';
 
 export class Connection {
   private readonly id = generate({ words: 3 }).dashed;
