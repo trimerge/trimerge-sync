@@ -130,5 +130,28 @@ describe('store', () => {
         "type": "nodes",
       }
     `);
+
+    expect(store.getNodesEvent('1970-01-01T00:00:00.000Z'))
+      .toMatchInlineSnapshot(`
+      Object {
+        "nodes": Array [
+          Object {
+            "baseRef": undefined,
+            "clientId": "client-1",
+            "delta": undefined,
+            "editMetadata": Object {
+              "hello": "world",
+            },
+            "mergeBaseRef": undefined,
+            "mergeRef": undefined,
+            "ref": "hello3",
+            "remoteSyncId": "1970-01-01T00:00:00.001Z",
+            "userId": "client-2",
+          },
+        ],
+        "syncId": "1970-01-01T00:00:00.001Z",
+        "type": "nodes",
+      }
+    `);
   });
 });
