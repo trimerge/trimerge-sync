@@ -14,6 +14,7 @@ export type DiffNode<EditMetadata, Delta> = {
   mergeBaseRef?: string;
   delta?: Delta;
   editMetadata: EditMetadata;
+  remoteSyncId?: string;
 };
 
 export type LocalReadStatus =

@@ -1,10 +1,14 @@
 import WebSocket from 'ws';
 import generate from 'project-name-generator';
 import type { ClientLeaveEvent, SyncEvent } from 'trimerge-sync';
+import { PromiseQueue } from 'trimerge-sync';
+import { InternalError, MessageTooBig, UnsupportedData } from './codes';
 
 export class Connection {
   private readonly id = generate({ words: 3 }).dashed;
   private readonly clients = new Set<string>();
+  private readonly queue = new PromiseQueue();
+
   constructor(
     private readonly ws: WebSocket,
     private readonly userId: string,
@@ -14,29 +18,33 @@ export class Connection {
   ) {
     ws.on('close', () => {
       this.log('socket closed');
-      this.onClosed();
+      this.queue
+        .add(async () => this.onClosed())
+        .catch((error) => {
+          this.closeWithCode(InternalError, `internal error: ${error}`);
+        });
     });
     ws.on('message', (message) => {
       if (typeof message !== 'string') {
-        this.closeWithCode(1003, 'unsupported data');
+        this.closeWithCode(UnsupportedData, 'unsupported data');
         return;
       }
       if (message.length > 1_000_000) {
-        this.closeWithCode(1009, 'payload too big');
+        this.closeWithCode(MessageTooBig, 'payload too big');
         return;
       }
       this.log('--> received', message);
-      this.onMessage(message);
+      this.queue.add(() => this.onMessage(message));
     });
     this.log(`added docId: ${docId}, userId: ${userId}`);
   }
 
-  private onMessage(message: string) {
+  private async onMessage(message: string): Promise<void> {
     let data: SyncEvent<unknown, unknown, unknown>;
     try {
       data = JSON.parse(message);
     } catch (e) {
-      this.closeWithCode(1003, 'invalid json');
+      this.closeWithCode(UnsupportedData, 'invalid json');
       return;
     }
     switch (data.type) {
@@ -48,7 +56,7 @@ export class Connection {
       case 'client-presence': {
         const { userId, clientId } = data.info;
         if (userId !== this.userId) {
-          this.closeWithCode(1003, 'userId does not match');
+          this.closeWithCode(UnsupportedData, 'userId does not match');
           return;
         }
         this.broadcast(message);
@@ -62,11 +70,14 @@ export class Connection {
       case 'client-leave':
         const { userId, clientId } = data;
         if (userId !== this.userId) {
-          this.closeWithCode(1003, 'userId does not match');
+          this.closeWithCode(UnsupportedData, 'userId does not match');
           return;
         }
         if (!this.clients.has(clientId)) {
-          this.closeWithCode(1003, 'client-leave for unknown clientId');
+          this.closeWithCode(
+            UnsupportedData,
+            'client-leave for unknown clientId',
+          );
           return;
         }
         this.broadcast(message);
@@ -79,7 +90,7 @@ export class Connection {
       case 'ack':
       case 'error':
         this.log('ignoring command');
-        // this.closeWithCode(1003, 'unexpected event');
+        // this.closeWithCode(UnsupportedData, 'unexpected event');
         return;
     }
   }
