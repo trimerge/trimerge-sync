@@ -92,14 +92,18 @@ class IndexedDbBackend<
     NodesEvent<EditMetadata, Delta, PresenceState>
   > {
     const db = await this.db;
-    const tx = db.transaction(['nodes'], 'readonly');
-    const nodes = tx.objectStore('nodes');
-    const unsentNodes = await nodes.index('remoteSyncId').getAll();
+    const unsentNodes = await db.getAllFromIndex(
+      'nodes',
+      'remoteSyncId',
+      IDBKeyRange.only(''),
+    );
     console.log('unsentNodes', unsentNodes);
-    for (const node of unsentNodes) {
-      if (!node.remoteSyncId) {
-        yield { type: 'nodes', nodes: [node], syncId: String(node.syncId) };
-      }
+    if (unsentNodes.length > 0) {
+      yield {
+        type: 'nodes',
+        nodes: unsentNodes,
+        syncId: '',
+      };
     }
   }
 
@@ -107,8 +111,14 @@ class IndexedDbBackend<
     refs: readonly string[],
     remoteSyncId: string,
   ): Promise<void> {
-    // FIXME: acknowledgeRemoteNodes on IndexedDbBackend
-    throw new Error('unimplemented');
+    const db = await this.db;
+    for (const ref of refs) {
+      const node = await db.get('nodes', IDBKeyRange.only(ref));
+      if (node && !node.remoteSyncId) {
+        node.remoteSyncId = remoteSyncId;
+        await db.put('nodes', node);
+      }
+    }
   }
 
   protected async getLastRemoteSyncId(): Promise<string | undefined> {
@@ -116,7 +126,6 @@ class IndexedDbBackend<
     const tx = db.transaction(['remotes'], 'readonly');
     const remotes = tx.objectStore('remotes');
     const remote = await remotes.get('origin');
-    console.log('remote', remote);
     const lastSyncId = remote?.lastSyncId;
     if (lastSyncId) {
       return String(lastSyncId);
@@ -162,7 +171,13 @@ class IndexedDbBackend<
     const promises: Promise<unknown>[] = [];
     for (const node of nodes) {
       syncCounter++;
-      promises.push(nodesDb.add({ syncId: syncCounter, ...node }));
+      promises.push(
+        nodesDb.add({
+          syncId: syncCounter,
+          remoteSyncId: '',
+          ...node,
+        }),
+      );
       const { ref, baseRef, mergeRef } = node;
       if (baseRef !== undefined) {
         headsToDelete.add(baseRef);
@@ -231,11 +246,11 @@ interface TrimergeSyncDbSchema extends DBSchema {
     key: string;
     value: DiffNode<any, any> & {
       syncId: number;
-      remoteSyncId?: number;
+      remoteSyncId: string;
     };
     indexes: {
       syncId: number;
-      remoteSyncId?: number;
+      remoteSyncId: string;
     };
   };
   remotes: {

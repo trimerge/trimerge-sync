@@ -2,7 +2,7 @@ import type { Database } from 'better-sqlite3';
 import SqliteDatabase from 'better-sqlite3';
 
 import { join } from 'path';
-import { unlink } from 'fs-extra';
+import { mkdirp, unlink } from 'fs-extra';
 import { AckNodesEvent, DiffNode, NodesEvent } from 'trimerge-sync';
 
 type SqliteNodeType = {
@@ -17,11 +17,11 @@ type SqliteNodeType = {
   editMetadata?: string;
 };
 
-export class DocStore<EditMetadata, Delta> {
+export class DocStore {
   private readonly db: Database;
   constructor(
     docId: string,
-    baseDir: string = join(__dirname, '..', '_data'),
+    baseDir: string,
     private readonly syncIdCreator = () => new Date().toISOString(),
   ) {
     this.db = new SqliteDatabase(join(baseDir, docId + '.sqlite'));
@@ -40,7 +40,7 @@ export class DocStore<EditMetadata, Delta> {
 `);
   }
 
-  getNodesEvent(lastSyncId?: string): NodesEvent<EditMetadata, Delta, unknown> {
+  getNodesEvent(lastSyncId?: string): NodesEvent<unknown, unknown, unknown> {
     const stmt =
       lastSyncId === undefined
         ? this.db.prepare(`SELECT * FROM nodes ORDER BY remoteSyncId`)
@@ -61,7 +61,7 @@ export class DocStore<EditMetadata, Delta> {
         mergeBaseRef,
         delta,
         editMetadata,
-      }): DiffNode<EditMetadata, Delta> => {
+      }): DiffNode<unknown, unknown> => {
         if (remoteSyncId > syncId) {
           syncId = remoteSyncId;
         }
@@ -85,12 +85,13 @@ export class DocStore<EditMetadata, Delta> {
     };
   }
 
-  add(nodes: DiffNode<EditMetadata, Delta>[]): AckNodesEvent {
+  add(nodes: readonly DiffNode<unknown, unknown>[]): AckNodesEvent {
     const remoteSyncId = this.syncIdCreator();
     const insert = this.db.prepare(
       `
         INSERT INTO nodes (ref, remoteSyncId, userId, clientId, baseRef, mergeRef, mergeBaseRef, delta, editMetadata) 
-        VALUES (@ref, @remoteSyncId, @userId, @clientId, @baseRef, @mergeRef, @mergeBaseRef, @delta, @editMetadata)`,
+        VALUES (@ref, @remoteSyncId, @userId, @clientId, @baseRef, @mergeRef, @mergeBaseRef, @delta, @editMetadata)
+        ON CONFLICT DO NOTHING`,
     );
     const refs: string[] = [];
     this.db.transaction(() => {
@@ -126,7 +127,11 @@ export class DocStore<EditMetadata, Delta> {
   }
 
   async delete() {
-    this.db.close();
+    this.close();
     await unlink(this.db.name);
+  }
+
+  close() {
+    this.db.close();
   }
 }

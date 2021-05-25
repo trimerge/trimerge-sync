@@ -3,17 +3,19 @@ import generate from 'project-name-generator';
 import type { ClientLeaveEvent, SyncEvent } from 'trimerge-sync';
 import { PromiseQueue } from 'trimerge-sync';
 import { InternalError, MessageTooBig, UnsupportedData } from './codes';
+import { LiveDoc } from './docs';
 
 export class Connection {
-  private readonly id = generate({ words: 3 }).dashed;
   private readonly clients = new Set<string>();
   private readonly queue = new PromiseQueue();
 
   constructor(
+    private readonly id: string,
     private readonly ws: WebSocket,
     private readonly userId: string,
     private readonly docId: string,
-    private readonly connections: ReadonlySet<Connection>,
+    private readonly lastSyncId: string | undefined,
+    private readonly liveDoc: LiveDoc,
     private readonly onClose: () => void,
   ) {
     ws.on('close', () => {
@@ -36,7 +38,14 @@ export class Connection {
       this.log('--> received', message);
       this.queue.add(() => this.onMessage(message));
     });
+    this.queue.add(() => this.sendInitialEvents(lastSyncId));
     this.log(`added docId: ${docId}, userId: ${userId}`);
+  }
+
+  private async sendInitialEvents(
+    lastSyncId: string | undefined,
+  ): Promise<void> {
+    this.send(JSON.stringify(this.liveDoc.store.getNodesEvent(lastSyncId)));
   }
 
   private async onMessage(message: string): Promise<void> {
@@ -49,6 +58,8 @@ export class Connection {
     }
     switch (data.type) {
       case 'nodes':
+        const response = await this.liveDoc.addNodes(data);
+        this.send(JSON.stringify(response));
         this.broadcast(message);
         break;
 
@@ -96,13 +107,9 @@ export class Connection {
   }
 
   private broadcast(message: string) {
-    for (const connection of this.connections) {
-      if (connection !== this) {
-        connection.send(message);
-      }
-    }
+    this.liveDoc.broadcast(this, message);
   }
-  private send(message: string) {
+  public send(message: string) {
     this.log('<-- sending', message);
     this.ws.send(message);
   }
