@@ -7,7 +7,7 @@ import {
   NodesEvent,
   OnEventFn,
 } from 'trimerge-sync';
-import { DBSchema, IDBPDatabase, openDB, StoreValue } from 'idb';
+import { DBSchema, deleteDB, IDBPDatabase, openDB, StoreValue } from 'idb';
 import {
   BroadcastChannel,
   createLeaderElection,
@@ -45,6 +45,14 @@ export function createIndexedDbBackendFactory<
     new IndexedDbBackend(docId, userId, clientId, onEvent, getRemote);
 }
 
+function getDatabaseName(docId: string): string {
+  return `trimerge-sync:${docId}`;
+}
+
+export function deleteDocDatabase(docId: string): Promise<void> {
+  return deleteDB(getDatabaseName(docId));
+}
+
 class IndexedDbBackend<
   EditMetadata,
   Delta,
@@ -66,7 +74,7 @@ class IndexedDbBackend<
     private readonly remoteId: string = 'origin',
   ) {
     super(userId, clientId, onEvent);
-    const dbName = `trimerge-sync:${docId}`;
+    const dbName = getDatabaseName(docId);
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.db = this.connect();
@@ -237,6 +245,11 @@ class IndexedDbBackend<
       nodes,
       syncId: toSyncId(syncCounter),
     };
+  }
+
+  async deleteDatabase() {
+    await this.shutdown();
+    await deleteDB(this.dbName);
   }
 
   shutdown = async (): Promise<void> => {

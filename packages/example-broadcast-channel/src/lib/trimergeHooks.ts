@@ -69,6 +69,8 @@ export function useTrimergeStateShutdown<State, EditMetadata, Delta>(
   }, [client]);
 }
 
+export function useTrimergeDeleteDatabase(docId: string) {}
+
 export function useTrimergeState<State, EditMetadata, Delta>(
   docId: string,
   userId: string,

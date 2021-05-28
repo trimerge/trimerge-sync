@@ -8,6 +8,7 @@ import { AckNodesEvent, DiffNode, NodesEvent } from 'trimerge-sync';
 type SqliteNodeType = {
   ref: string;
   remoteSyncId: string;
+  remoteSyncIndex: number;
   userId: string;
   clientId: string;
   baseRef?: string;
@@ -29,6 +30,7 @@ export class DocStore {
       CREATE TABLE IF NOT EXISTS nodes (
         ref TEXT PRIMARY KEY NOT NULL,
         remoteSyncId INTEGER NOT NULL,
+        remoteSyncIndex INTEGER NOT NULL,
         userId TEXT NOT NULL,
         clientId TEXT NOT NULL,
         baseRef TEXT,
@@ -37,15 +39,18 @@ export class DocStore {
         delta TEXT,
         editMetadata TEXT
       );
+      CREATE INDEX IF NOT EXISTS remoteSyncIdIndex ON nodes (remoteSyncId, remoteSyncIndex);
 `);
   }
 
   getNodesEvent(lastSyncId?: string): NodesEvent<unknown, unknown, unknown> {
     const stmt =
       lastSyncId === undefined
-        ? this.db.prepare(`SELECT * FROM nodes ORDER BY remoteSyncId`)
+        ? this.db.prepare(
+            `SELECT * FROM nodes ORDER BY remoteSyncId, remoteSyncIndex`,
+          )
         : this.db.prepare(
-            `SELECT * FROM nodes WHERE remoteSyncId > @lastSyncId ORDER BY remoteSyncId`,
+            `SELECT * FROM nodes WHERE remoteSyncId > @lastSyncId ORDER BY remoteSyncId, remoteSyncIndex`,
           );
 
     const sqliteNodes: SqliteNodeType[] = stmt.all({ lastSyncId });
@@ -62,7 +67,7 @@ export class DocStore {
         delta,
         editMetadata,
       }): DiffNode<unknown, unknown> => {
-        if (remoteSyncId > syncId) {
+        if (remoteSyncId) {
           syncId = remoteSyncId;
         }
         return {
@@ -81,7 +86,7 @@ export class DocStore {
     return {
       type: 'nodes',
       nodes,
-      syncId: String(syncId),
+      syncId: syncId,
     };
   }
 
@@ -89,12 +94,13 @@ export class DocStore {
     const remoteSyncId = this.syncIdCreator();
     const insert = this.db.prepare(
       `
-        INSERT INTO nodes (ref, remoteSyncId, userId, clientId, baseRef, mergeRef, mergeBaseRef, delta, editMetadata) 
-        VALUES (@ref, @remoteSyncId, @userId, @clientId, @baseRef, @mergeRef, @mergeBaseRef, @delta, @editMetadata)
+        INSERT INTO nodes (ref, remoteSyncId, remoteSyncIndex, userId, clientId, baseRef, mergeRef, mergeBaseRef, delta, editMetadata) 
+        VALUES (@ref, @remoteSyncId, @remoteSyncIndex, @userId, @clientId, @baseRef, @mergeRef, @mergeBaseRef, @delta, @editMetadata)
         ON CONFLICT DO NOTHING`,
     );
     const refs: string[] = [];
     this.db.transaction(() => {
+      let remoteSyncIndex = 0;
       for (const {
         userId,
         clientId,
@@ -115,14 +121,16 @@ export class DocStore {
           delta: JSON.stringify(delta),
           editMetadata: JSON.stringify(editMetadata),
           remoteSyncId,
+          remoteSyncIndex,
         });
         refs.push(ref);
+        remoteSyncIndex++;
       }
     })();
     return {
       type: 'ack',
       refs,
-      syncId: String(remoteSyncId),
+      syncId: remoteSyncId,
     };
   }
 

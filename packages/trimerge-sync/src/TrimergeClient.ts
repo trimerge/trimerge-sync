@@ -43,8 +43,8 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   };
 
   constructor(
-    readonly userId: string,
-    readonly clientId: string,
+    public readonly userId: string,
+    public readonly clientId: string,
     private readonly getLocalStore: GetLocalStoreFn<
       EditMetadata,
       Delta,
