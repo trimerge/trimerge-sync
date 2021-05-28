@@ -39,13 +39,17 @@ export class Connection {
       this.queue.add(() => this.onMessage(message));
     });
     this.queue.add(() => this.sendInitialEvents(lastSyncId));
-    this.log(`added docId: ${docId}, userId: ${userId}`);
+    this.log(`docId="${docId}" userId="${userId}" lastSyncId="${lastSyncId}"`);
   }
 
   private async sendInitialEvents(
     lastSyncId: string | undefined,
   ): Promise<void> {
-    this.send(JSON.stringify(this.liveDoc.store.getNodesEvent(lastSyncId)));
+    const event = this.liveDoc.store.getNodesEvent(lastSyncId);
+    if (event.nodes.length > 0) {
+      this.send(JSON.stringify(event));
+    }
+    this.send(JSON.stringify({ type: 'ready' }));
   }
 
   private async onMessage(message: string): Promise<void> {
@@ -60,7 +64,7 @@ export class Connection {
       case 'nodes':
         const response = await this.liveDoc.addNodes(data);
         this.send(JSON.stringify(response));
-        this.broadcast(message);
+        this.broadcast(JSON.stringify({ ...data, syncId: response.syncId }));
         break;
 
       case 'client-join':

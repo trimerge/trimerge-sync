@@ -32,7 +32,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private unsyncedNodes: DiffNode<EditMetadata, Delta>[] = [];
 
   private selfFullId: string;
-  private newPresenceState: LocalClientInfo<PresenceState> | undefined;
+  private newPresenceState: ClientInfo<PresenceState> | undefined;
 
   private syncState: SyncStatus = {
     localRead: 'loading',
@@ -173,8 +173,8 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     ref = this.current?.ref,
   ) {
     const { userId, clientId } = this;
-    this.newPresenceState = { userId, clientId, ref, state, self: true };
-    this.setCursor(this.newPresenceState);
+    this.newPresenceState = { userId, clientId, ref, state };
+    this.setCursor({ userId, clientId, ref, state, self: true });
     this.emitClientListChange();
   }
 

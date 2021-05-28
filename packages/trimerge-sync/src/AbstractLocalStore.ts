@@ -78,7 +78,12 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
 
     switch (event.type) {
       case 'ready':
+        await this.sendEvent(
+          { type: 'remote-state', read: 'ready' },
+          { self: true, local: true },
+        );
         break;
+
       case 'nodes':
         if (origin === 'remote') {
           const syncId = await this.addNodes(event.nodes, event.syncId);
@@ -230,11 +235,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         await this.getLastRemoteSyncId(),
         (event) => {
           this.remoteQueue
-            .add(async () => {
-              console.log(`got remote event`, event);
-              // await this.onRemoteEvent(event, getRemote);
-              await this.processEvent(event, 'remote');
-            })
+            .add(() => this.processEvent(event, 'remote'))
             .catch(this.handleAsError('internal'));
         },
       );

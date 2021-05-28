@@ -15,10 +15,12 @@ import { FocusPresenceState } from './lib/FocusPresenceState';
 export type AppState = {
   title: string;
   text: string;
+  slider: number;
 };
 export const defaultState = {
   title: '',
   text: '',
+  slider: 0,
 };
 
 export const differ: Differ<AppState, string, Delta> = {

@@ -8,11 +8,13 @@ import {
 import { MergeStateFn } from 'trimerge-sync';
 import { create, Delta } from 'jsondiffpatch';
 import { produce } from 'immer';
+import { trimergeNumber } from './trimergeNumber';
 
 const trimergeObjects = combineMergers(
   trimergeEquality,
   trimergeString,
   trimergeObject,
+  trimergeNumber,
 );
 
 export const merge: MergeStateFn<any, string> = (base, left, right) => ({

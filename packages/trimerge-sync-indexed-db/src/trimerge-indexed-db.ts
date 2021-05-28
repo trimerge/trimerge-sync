@@ -63,6 +63,7 @@ class IndexedDbBackend<
     clientId: string,
     onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
     getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
+    private readonly remoteId: string = 'origin',
   ) {
     super(userId, clientId, onEvent);
     const dbName = `trimerge-sync:${docId}`;
@@ -92,12 +93,7 @@ class IndexedDbBackend<
     NodesEvent<EditMetadata, Delta, PresenceState>
   > {
     const db = await this.db;
-    const unsentNodes = await db.getAllFromIndex(
-      'nodes',
-      'remoteSyncId',
-      IDBKeyRange.only(''),
-    );
-    console.log('unsentNodes', unsentNodes);
+    const unsentNodes = await db.getAllFromIndex('nodes', 'remoteSyncId', '');
     if (unsentNodes.length > 0) {
       yield {
         type: 'nodes',
@@ -113,24 +109,33 @@ class IndexedDbBackend<
   ): Promise<void> {
     const db = await this.db;
     for (const ref of refs) {
-      const node = await db.get('nodes', IDBKeyRange.only(ref));
+      const node = await db.get('nodes', ref);
       if (node && !node.remoteSyncId) {
         node.remoteSyncId = remoteSyncId;
         await db.put('nodes', node);
       }
     }
+    await this.updateLastRemoteSyncId(remoteSyncId);
   }
 
   protected async getLastRemoteSyncId(): Promise<string | undefined> {
     const db = await this.db;
-    const tx = db.transaction(['remotes'], 'readonly');
-    const remotes = tx.objectStore('remotes');
-    const remote = await remotes.get('origin');
+    const remote = await db.get('remotes', this.remoteId);
     const lastSyncId = remote?.lastSyncId;
     if (lastSyncId) {
       return String(lastSyncId);
     }
     return undefined;
+  }
+
+  protected async updateLastRemoteSyncId(lastSyncId: string): Promise<void> {
+    const db = await this.db;
+    const tx = db.transaction(['remotes'], 'readwrite');
+    const remotes = tx.objectStore('remotes');
+    const remote = (await remotes.get(this.remoteId)) ?? {};
+    remote.lastSyncId = lastSyncId;
+    await remotes.put(remote, this.remoteId);
+    await tx.done;
   }
 
   private async connect(
@@ -150,7 +155,8 @@ class IndexedDbBackend<
   }
 
   protected async addNodes(
-    nodes: DiffNode<EditMetadata, Delta>[],
+    nodes: readonly DiffNode<EditMetadata, Delta>[],
+    lastSyncId: string | undefined,
   ): Promise<string> {
     const db = await this.db;
     const tx = db.transaction(['heads', 'nodes'], 'readwrite');
@@ -172,11 +178,18 @@ class IndexedDbBackend<
     for (const node of nodes) {
       syncCounter++;
       promises.push(
-        nodesDb.add({
-          syncId: syncCounter,
-          remoteSyncId: '',
-          ...node,
-        }),
+        (async () => {
+          const existingNode = await nodesDb.get(node.ref);
+          if (existingNode) {
+            console.warn(`already have node`, { node, existingNode });
+            return;
+          }
+          await nodesDb.add({
+            syncId: syncCounter,
+            remoteSyncId: '',
+            ...node,
+          });
+        })(),
       );
       const { ref, baseRef, mergeRef } = node;
       if (baseRef !== undefined) {
@@ -195,6 +208,10 @@ class IndexedDbBackend<
     }
     for (const ref of headsToAdd) {
       promises.push(headsDb.add({ ref }));
+    }
+
+    if (lastSyncId) {
+      await this.updateLastRemoteSyncId(lastSyncId);
     }
     if (promises.length > 0) {
       await Promise.all(promises);
@@ -256,7 +273,7 @@ interface TrimergeSyncDbSchema extends DBSchema {
   remotes: {
     key: string;
     value: {
-      lastSyncId?: number;
+      lastSyncId?: string;
     };
   };
 }

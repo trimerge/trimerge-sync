@@ -62,6 +62,17 @@ export function App() {
     [state, updateState],
   );
 
+  const onChangeSlider = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) =>
+      updateState?.(
+        produce(state, (draft) => {
+          draft.slider = parseInt(event.target.value, 10);
+        }),
+        'edit slider',
+      ),
+    [state, updateState],
+  );
+
   const onChangeText = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) =>
       updateState?.(
@@ -89,6 +100,20 @@ export function App() {
             clients={clients}
             updatePresence={updatePresence}
           />
+        </div>
+        <div>
+          A slider:{' '}
+          <FocusInput
+            id="slider"
+            type="range"
+            min="0"
+            max="1000"
+            value={String(state.slider)}
+            onChange={onChangeSlider}
+            clients={clients}
+            updatePresence={updatePresence}
+          />{' '}
+          ({state.slider})
         </div>
         <FocusTextarea
           id="text"
