@@ -11,6 +11,11 @@ import {
   SyncEvent,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
+import { timeoutPromise } from './lib/timeoutPromise';
+
+const INITIAL_RECONNECT_DELAY_MS = 1_000;
+const RECONNECT_BACKOFF_MULTIPLIER = 2;
+const MAX_RECONNECT_DELAY_MS = 30_000;
 
 export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   implements LocalStore<EditMetadata, Delta, PresenceState> {
@@ -19,7 +24,11 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     ref: undefined,
     state: undefined,
   };
+  private getRemote:
+    | GetRemoteFn<EditMetadata, Delta, PresenceState>
+    | undefined;
   private remote: Remote<EditMetadata, Delta, PresenceState> | undefined;
+  private reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS;
   private readonly remoteQueue = new PromiseQueue();
 
   public constructor(
@@ -78,6 +87,8 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
 
     switch (event.type) {
       case 'ready':
+        // Reset reconnect timeout
+        this.reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS;
         await this.sendEvent(
           { type: 'remote-state', read: 'ready' },
           { self: true, local: true },
@@ -139,48 +150,27 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           if (event.fatal) {
             await this.closeRemote();
           }
-          if (event.reconnect !== false) {
-            // FIXME: handle error here
-            // this.connectRemote(getRemote);
+          if (event.reconnect !== false && this.getRemote) {
+            const { getRemote } = this;
+            this.getRemote = undefined;
+            await timeoutPromise(this.reconnectDelayMs);
+            this.reconnectDelayMs = Math.min(
+              this.reconnectDelayMs * RECONNECT_BACKOFF_MULTIPLIER,
+              MAX_RECONNECT_DELAY_MS,
+            );
+            // Do not await on this or we'll deadlock
+            this.connectRemote(getRemote).catch(this.handleAsError('network'));
           }
         }
         break;
     }
   };
 
-  protected onLocalBroadcastEvent = (
+  protected readonly onLocalBroadcastEvent = (
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
   ): void => {
-    this.processEvent(event, 'local');
+    this.processEvent(event, 'local').catch(this.handleAsError('network'));
   };
-  protected async onRemoteEvent(
-    event: SyncEvent<EditMetadata, Delta, PresenceState>,
-    getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState>,
-  ) {
-    switch (event.type) {
-      case 'ready':
-        await this.sendEvent(
-          { type: 'remote-state', read: 'ready' },
-          { self: true, local: true },
-        );
-        break;
-
-      case 'remote-state':
-        if (event.connect) {
-          await this.sendEvent(
-            { type: 'remote-state', connect: event.connect },
-            { self: true, local: true },
-          );
-        } else {
-          throw new Error(`unexpected non-connect remote-state`);
-        }
-        break;
-
-      default:
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        throw new Error(`unexpected remote event: ${event!.type}`);
-    }
-  }
 
   async shutdown(): Promise<void> {
     if (this.closed) {
@@ -188,15 +178,19 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
     this.closed = true;
     const { userId, clientId } = this;
-    await this.closeRemote();
-    await this.sendEvent(
-      {
-        type: 'client-leave',
-        userId,
-        clientId,
-      },
-      { local: true },
-    );
+    try {
+      await this.sendEvent(
+        {
+          type: 'client-leave',
+          userId,
+          clientId,
+        },
+        { local: true },
+      );
+      await this.closeRemote();
+    } catch (error) {
+      console.warn('ignoring error while shutting down', error);
+    }
   }
 
   private async closeRemote() {
@@ -218,6 +212,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   protected async connectRemote(
     getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
+    this.getRemote = getRemote;
     await this.remoteQueue.add(async () => {
       if (this.closed) {
         return;
