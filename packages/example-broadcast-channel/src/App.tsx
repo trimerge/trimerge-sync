@@ -7,6 +7,7 @@ import styles from './App.module.css';
 import {
   defaultState,
   useDemoAppClientList,
+  useDemoAppDeleteDatabase,
   useDemoAppShutdown,
   useDemoAppState,
   useDemoAppSyncStatus,
@@ -21,6 +22,7 @@ enableMapSet();
 export function App() {
   const [state = defaultState, updateState] = useDemoAppState();
   const [clients, updatePresence] = useDemoAppClientList();
+  const deleteDatabase = useDemoAppDeleteDatabase();
   const syncStatus = useDemoAppSyncStatus();
   useDemoAppShutdown();
 
@@ -123,6 +125,7 @@ export function App() {
           clients={clients}
           updatePresence={updatePresence}
         />
+        <button onClick={deleteDatabase}>Delete Database…</button>
         Sync Status: <pre>{JSON.stringify(syncStatus, undefined, 2)}</pre>
         Raw State: <pre>{JSON.stringify(state, undefined, 2)}</pre>
         Raw Clients: <pre>{JSON.stringify(clients, undefined, 2)}</pre>

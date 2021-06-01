@@ -2,6 +2,7 @@ import { Delta } from 'jsondiffpatch';
 
 import {
   useTrimergeClientList,
+  useTrimergeDeleteDatabase,
   useTrimergeState,
   useTrimergeStateShutdown,
   useTrimergeSyncStatus,
@@ -34,6 +35,15 @@ const DEMO_DOC_ID = 'demo';
 const DEMO_USER_ID = 'local';
 export function useDemoAppState() {
   return useTrimergeState<AppState, string, Delta>(
+    DEMO_DOC_ID,
+    DEMO_USER_ID,
+    currentTabId,
+    differ,
+  );
+}
+
+export function useDemoAppDeleteDatabase() {
+  return useTrimergeDeleteDatabase(
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,

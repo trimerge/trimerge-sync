@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ClientList, Differ, SyncStatus, TrimergeClient } from 'trimerge-sync';
-import { createIndexedDbBackendFactory } from 'trimerge-sync-indexed-db';
+import {
+  createIndexedDbBackendFactory,
+  deleteDocDatabase,
+} from 'trimerge-sync-indexed-db';
 import { WebsocketRemote } from './WebsocketRemote';
 
 export type UpdateStateFn<State, EditMetadata> = (
@@ -69,7 +72,22 @@ export function useTrimergeStateShutdown<State, EditMetadata, Delta>(
   }, [client]);
 }
 
-export function useTrimergeDeleteDatabase(docId: string) {}
+export function useTrimergeDeleteDatabase<State, EditMetadata, Delta>(
+  docId: string,
+  userId: string,
+  clientId: string,
+  differ: Differ<State, EditMetadata, Delta>,
+): () => Promise<void> {
+  const client = getCachedTrimergeClient(docId, userId, clientId, differ);
+
+  return useCallback(async () => {
+    if (window.confirm('Are you sure you want to clear your local database?')) {
+      client.shutdown();
+      await deleteDocDatabase(docId);
+      window.location.reload();
+    }
+  }, [client, docId]);
+}
 
 export function useTrimergeState<State, EditMetadata, Delta>(
   docId: string,
