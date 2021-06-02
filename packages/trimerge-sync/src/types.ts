@@ -19,10 +19,12 @@ export type DiffNode<EditMetadata, Delta> = {
 
 export type LocalReadStatus =
   | 'loading' /** reading state from disk */
+  | 'error'
   | 'ready'; /** have latest state from disk, receiving local changes */
 
 export type LocalSaveStatus =
   | 'ready' /** no changes in local memory */
+  | 'error'
   | 'pending' /** changes in local memory, not sent to store yet */
   | 'saving'; /** sent changes to local store, no `ack` yet */
 

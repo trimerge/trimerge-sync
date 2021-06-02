@@ -29,7 +29,7 @@ export class DocStore {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS nodes (
         ref TEXT PRIMARY KEY NOT NULL,
-        remoteSyncId INTEGER NOT NULL,
+        remoteSyncId TEXT NOT NULL,
         remoteSyncIndex INTEGER NOT NULL,
         userId TEXT NOT NULL,
         clientId TEXT NOT NULL,

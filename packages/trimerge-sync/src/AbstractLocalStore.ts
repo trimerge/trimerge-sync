@@ -274,7 +274,12 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   ): Promise<void> {
     if (self) {
       console.log(`handle event: ${JSON.stringify(event)}`);
-      this.onEvent(event);
+      try {
+        this.onEvent(event);
+      } catch (e) {
+        console.error(`local error handling event`, e);
+        throw e;
+      }
     }
     if (local) {
       console.log(`send local event: ${JSON.stringify(event)}`);

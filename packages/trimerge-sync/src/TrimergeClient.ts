@@ -51,7 +51,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
       PresenceState
     >,
     private readonly differ: Differ<State, EditMetadata, Delta>,
-    private readonly bufferMs: number = 0,
+    private readonly bufferMs: number = 100,
   ) {
     this.selfFullId = getFullId(userId, clientId);
     this.store = getLocalStore(userId, clientId, this.onEvent);
@@ -121,6 +121,9 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
         this.updateSyncState({ localRead: 'ready' });
         break;
       case 'error':
+        if (event.code === 'internal') {
+          this.updateSyncState({ localRead: 'error' });
+        }
         break;
 
       default:
