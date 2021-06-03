@@ -1,4 +1,6 @@
-import { patch } from 'jsondiffpatch';
+import type { DiffPatcher } from 'jsondiffpatch';
+import { flattenUnidiffs } from './flattenUnidiffs';
+
 type AddDelta = [unknown];
 type ReplaceDelta = [unknown, unknown];
 type DeleteDelta = [unknown, 0, 0];
@@ -38,42 +40,50 @@ export function arrayMove(destinationIndex: number): ArrayMoveDelta {
   return ['', destinationIndex, 3];
 }
 
-function getDeltaType(
-  delta: Delta | ArrayMoveDelta,
-):
-  | {
-      type: 'add';
-      delta: AddDelta;
-      newValue: unknown;
-    }
-  | {
-      type: 'replace';
-      delta: ReplaceDelta;
-      oldValue: unknown;
-      newValue: unknown;
-    }
-  | {
-      type: 'delete';
-      delta: DeleteDelta;
-      oldValue: unknown;
-    }
-  | {
-      type: 'unidiff';
-      delta: UnidiffDelta;
-      unidiff: string;
-    }
-  | {
-      type: 'array-move';
-      delta: ArrayMoveDelta;
-      destinationIndex: number;
-    }
-  | { type: 'array'; delta: ArrayDelta }
-  | { type: 'object'; delta: ObjectDelta } {
+type AddDeltaType = {
+  type: 'add';
+  delta: AddDelta;
+  newValue: unknown;
+};
+type ReplaceDeltaType = {
+  type: 'replace';
+  delta: ReplaceDelta;
+  oldValue: unknown;
+  newValue: unknown;
+};
+type DeleteDeltaType = {
+  type: 'delete';
+  delta: DeleteDelta;
+  oldValue: unknown;
+};
+type UnidiffDeltaType = {
+  type: 'unidiff';
+  delta: UnidiffDelta;
+  unidiff: string;
+};
+type ObjectDeltaType = { type: 'object'; delta: ObjectDelta };
+type ArrayDeltaType = { type: 'array'; delta: ArrayDelta };
+type ArrayMoveDeltaType = {
+  type: 'array-move';
+  delta: ArrayMoveDelta;
+  destinationIndex: number;
+};
+
+type DeltaType =
+  | AddDeltaType
+  | ReplaceDeltaType
+  | DeleteDeltaType
+  | UnidiffDeltaType
+  | ObjectDeltaType
+  | ArrayMoveDeltaType
+  | ArrayDeltaType;
+
+function getDeltaType(delta: Delta | ArrayMoveDelta): DeltaType {
   if (Array.isArray(delta)) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     if (delta.length === 0 || delta.length > 3) {
-      throw new Error('Invalid array length');
+      throw new Error('invalid delta');
     }
     if (delta.length === 1) {
       return {
@@ -110,7 +120,7 @@ function getDeltaType(
           destinationIndex: delta[1],
         };
       default:
-        throw new Error('unknown');
+        throw new Error('invalid delta');
     }
   }
   if (delta._t === 'a') {
@@ -119,9 +129,76 @@ function getDeltaType(
   return { type: 'object', delta: delta as ObjectDelta };
 }
 
+function invalidCombo(t1: DeltaType, t2: DeltaType) {
+  return new Error(`invalid combo: ${t1.type}, ${t2.type}`);
+}
+
+function flattenObjectDeltas(
+  t1: ObjectDeltaType,
+  t2: ObjectDeltaType,
+  jdp: DiffPatcher,
+  verifyEquality: ((a: unknown, b: unknown) => void) | undefined,
+): ObjectDelta | undefined {
+  const obj: ObjectDelta = { ...t1.delta };
+  for (const key of Object.keys(t2.delta)) {
+    const result = flattenDeltas(obj[key], t2.delta[key], jdp, verifyEquality);
+    if (result === undefined) {
+      delete obj[key];
+    } else {
+      obj[key] = result;
+    }
+  }
+  return Object.keys(obj).length > 0 ? obj : undefined;
+}
+
+function flattenArrayDeltas(
+  t1: ArrayDeltaType,
+  t2: ArrayDeltaType,
+  jdp: DiffPatcher,
+  verifyEquality: ((a: unknown, b: unknown) => void) | undefined,
+): ArrayDelta | undefined {
+  const obj: ArrayDelta = { ...t1.delta };
+  console.log(t1.delta, t2.delta);
+  for (const key of Object.keys(t2.delta)) {
+    if (key === '_t') {
+      continue;
+    }
+    // const indexInOrigin = key[0] === '_';
+    // const index = parseInt(indexInOrigin ? key.slice(1) : key, 10);
+    // if (indexInOrigin) {
+    //   throw new Error('unsupported');
+    // } else {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    obj[key] = flattenDeltas(obj[key], t2.delta[key], jdp, verifyEquality);
+    // }
+    // number: refers to the index in the final (right) state of the array, this is used to indicate items inserted.
+    // underscore + number: refers to the index in the original (left) state of the array, this is used to indicate items removed, or moved.
+  }
+  return obj;
+}
+function flattenAnyReplace(
+  t1: DeltaType,
+  t2: ReplaceDeltaType,
+  jdp: DiffPatcher,
+) {
+  const oldValue = jdp.unpatch(jdp.clone(t2.oldValue), t1.delta);
+  return jdp.diff(oldValue, t2.newValue);
+}
+
+function flattenAnyDelete(
+  t1: DeltaType,
+  t2: DeleteDeltaType,
+  jdp: DiffPatcher,
+) {
+  const oldValue = jdp.unpatch(jdp.clone(t2.oldValue), t1.delta);
+  return deleteDelta(oldValue);
+}
+
 export function flattenDeltas(
   d1: Delta | undefined,
   d2: Delta | undefined,
+  jdp: DiffPatcher,
   verifyEquality?: (a: unknown, b: unknown) => void,
 ): Delta | undefined {
   if (!d1) {
@@ -138,63 +215,126 @@ export function flattenDeltas(
     verifyEquality?.(t1.newValue, t2.oldValue);
   }
 
-  if (t1.type === 'add' && t2.type === 'add') {
-    throw new Error(`invalid combo: ${t1.type}, ${t2.type}`);
-  }
-  if (t1.type === 'add' && t2.type === 'replace') {
-    return addDelta(t2.newValue);
-  }
-  if (t1.type === 'add' && t2.type === 'delete') {
-    return undefined;
-  }
-  if (t1.type === 'add') {
-    return addDelta(patch(t1.newValue, t2.delta));
-  }
+  switch (t1.type) {
+    case 'add':
+      switch (t2.type) {
+        case 'add':
+        case 'array-move':
+          throw invalidCombo(t1, t2);
 
-  if (t1.type === 'replace' && t2.type === 'add') {
-    throw new Error(`invalid combo: ${t1.type}, ${t2.type}`);
-  }
-  if (t1.type === 'replace' && t2.type === 'replace') {
-    return replaceDelta(t1.oldValue, t2.newValue);
-  }
-  if (t1.type === 'replace' && t2.type === 'delete') {
-    return deleteDelta(t1.oldValue);
-  }
-  if (t1.type === 'replace') {
-    return replaceDelta(t1.oldValue, patch(t1.newValue, t2.delta));
-  }
+        case 'replace':
+          return addDelta(t2.newValue);
 
-  if (t1.type === 'delete' && t2.type === 'add') {
-    return replaceDelta(t1.oldValue, t2.newValue);
-  }
-  if (t1.type === 'delete') {
-    throw new Error(`invalid combo: ${t1.type}, ${t2.type}`);
-  }
+        case 'delete':
+          return undefined;
 
-  if (t1.type === 'object' && t2.type === 'object') {
-    const obj: ObjectDelta = { ...t1.delta };
-    for (const key of Object.keys(t2.delta)) {
-      const result = flattenDeltas(obj[key], t2.delta[key], verifyEquality);
-      if (result === undefined) {
-        delete obj[key];
-      } else {
-        obj[key] = result;
+        case 'unidiff':
+        case 'array':
+        case 'object':
+          return addDelta(jdp.patch(jdp.clone(t1.newValue), t2.delta));
       }
-    }
-    return obj;
-  }
+      break;
+    case 'replace':
+      switch (t2.type) {
+        case 'add':
+          throw invalidCombo(t1, t2);
 
-  if (t1.type === 'array' && t2.type === 'array') {
-    const obj: ArrayDelta = { ...t1.delta };
-    for (const key of Object.keys(t2.delta)) {
-      if (key === '_t') {
-        continue;
+        case 'replace':
+          return jdp.diff(t1.oldValue, t2.newValue);
+
+        case 'delete':
+          return deleteDelta(t1.oldValue);
+
+        case 'unidiff':
+        case 'array-move':
+        case 'array':
+        case 'object':
+          return jdp.diff(
+            t1.oldValue,
+            jdp.patch(jdp.clone(t1.newValue), t2.delta),
+          );
       }
-      // number: refers to the index in the final (right) state of the array, this is used to indicate items inserted.
-      // underscore + number: refers to the index in the original (left) state of the array, this is used to indicate items removed, or moved.
-      throw new Error('unsupported');
-    }
-    return obj;
+      break;
+    case 'delete':
+      switch (t2.type) {
+        case 'add':
+          return jdp.diff(t1.oldValue, t2.newValue);
+
+        case 'replace':
+        case 'delete':
+        case 'unidiff':
+        case 'array-move':
+        case 'array':
+        case 'object':
+          throw invalidCombo(t1, t2);
+      }
+      break;
+    case 'unidiff':
+      switch (t2.type) {
+        case 'add':
+        case 'array-move':
+        case 'array':
+        case 'object':
+          throw invalidCombo(t1, t2);
+
+        case 'replace':
+          return flattenAnyReplace(t1, t2, jdp);
+
+        case 'delete':
+          return flattenAnyDelete(t1, t2, jdp);
+
+        case 'unidiff':
+          return unidiffDelta(flattenUnidiffs(t1.unidiff, t2.unidiff));
+      }
+      break;
+    case 'array-move':
+      switch (t2.type) {
+        case 'add':
+          break;
+        case 'replace':
+          break;
+        case 'delete':
+          break;
+        case 'unidiff':
+          break;
+        case 'array-move':
+          break;
+        case 'array':
+          break;
+        case 'object':
+          break;
+      }
+      break;
+    case 'array':
+      switch (t2.type) {
+        case 'add':
+        case 'unidiff':
+        case 'object':
+        case 'array-move':
+          throw invalidCombo(t1, t2);
+        case 'replace':
+          return flattenAnyReplace(t1, t2, jdp);
+        case 'delete':
+          return flattenAnyDelete(t1, t2, jdp);
+        case 'array':
+          return flattenArrayDeltas(t1, t2, jdp, verifyEquality);
+      }
+      break;
+    case 'object':
+      switch (t2.type) {
+        case 'add':
+        case 'unidiff':
+        case 'array':
+        case 'array-move':
+          throw invalidCombo(t1, t2);
+        case 'replace':
+          return flattenAnyReplace(t1, t2, jdp);
+        case 'delete':
+          return flattenAnyDelete(t1, t2, jdp);
+        case 'object':
+          return flattenObjectDeltas(t1, t2, jdp, verifyEquality);
+      }
+      break;
   }
 
   throw new Error(`unimplemented combo: ${t1.type}, ${t2.type}`);
