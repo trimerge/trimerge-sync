@@ -91,7 +91,7 @@ describe('merges deltas', () => {
     const flattened = flattenDeltas(diffAB, diffBC, jdp, crashOnNotEqual);
 
     try {
-      expect(flattened ? patch(a, flattened) : a).toEqual(c);
+      expect(flattened ? jdp.patch(jdp.clone(a), flattened) : a).toEqual(c);
     } catch (e) {
       console.warn(diffAB, diffBC, flattened);
       throw e;
@@ -125,6 +125,7 @@ describe('merges deltas', () => {
     [1, 2, 3, 4],
     [1, 2, 3, 4, 5],
     [1, 3, 4, 5],
+    [1, 3, 4],
     undefined,
   ];
 
