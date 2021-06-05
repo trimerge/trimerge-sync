@@ -12,14 +12,15 @@ type ValueDelta = AddDelta | ReplaceDelta | DeleteDelta | UnidiffDelta;
 type NestedDelta = ArrayDelta | ObjectDelta;
 
 type ArrayDelta = {
-  [index: number]: Delta | ArrayMoveDelta;
-  [index: string]: Delta | ArrayMoveDelta | 'a'; // ugh
+  [index: number]: AnyDelta;
+  [index: string]: AnyDelta | 'a'; // ugh
   _t: 'a';
 };
 type ObjectDelta = {
   [key: string]: Delta;
 };
 export type Delta = ValueDelta | NestedDelta;
+export type AnyDelta = ValueDelta | NestedDelta | ArrayMoveDelta;
 
 export function addDelta(newValue: unknown): AddDelta {
   return [newValue];
@@ -38,6 +39,10 @@ export function unidiffDelta(unidiff: string): UnidiffDelta {
 }
 export function arrayMove(destinationIndex: number): ArrayMoveDelta {
   return ['', destinationIndex, 3];
+}
+
+function isArrayMove(delta: AnyDelta): delta is ArrayMoveDelta {
+  return delta[2] === 3;
 }
 
 type AddDeltaType = {
@@ -85,7 +90,7 @@ type DeltaType =
   | MoveDeltaType
   | ArrayDeltaType;
 
-function getDeltaType(delta: Delta | ArrayMoveDelta): DeltaType {
+function getDeltaType(delta: AnyDelta): DeltaType {
   if (Array.isArray(delta)) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
@@ -152,6 +157,9 @@ function flattenObjectDeltas(
     if (result === undefined) {
       delete obj[key];
     } else {
+      if (isArrayMove(result)) {
+        throw new Error('unexpected array move in object diff');
+      }
       obj[key] = result;
     }
   }
@@ -160,15 +168,19 @@ function flattenObjectDeltas(
 
 type ArrayDeleteDeltaType = DeleteDeltaType & {
   oldIndex: number;
+  cancel: boolean;
 };
 type ArrayMoveDeltaType = MoveDeltaType & {
   oldIndex: number;
+  cancel: boolean;
 };
 type ArrayAddDeltaType = AddDeltaType & {
   newIndex: number;
+  cancel: boolean;
 };
 type ArrayModifyDeltaType = ModifyDeltaType & {
   newIndex: number;
+  cancel: boolean;
 };
 
 function parseArrayDelta(
@@ -188,10 +200,10 @@ function parseArrayDelta(
         const oldIndex = parseInt(key.slice(1), 10);
         switch (dt.type) {
           case 'delete':
-            toRemove.push({ ...dt, oldIndex });
+            toRemove.push({ ...dt, oldIndex, cancel: false });
             break;
           case 'array-move':
-            const move = { ...dt, oldIndex };
+            const move = { ...dt, oldIndex, cancel: false };
             toRemove.push(move);
             toInsert.push(move);
             break;
@@ -202,13 +214,13 @@ function parseArrayDelta(
         const newIndex = parseInt(key, 10);
         switch (dt.type) {
           case 'add':
-            toInsert.push({ ...dt, newIndex });
+            toInsert.push({ ...dt, newIndex, cancel: false });
             break;
           case 'replace':
           case 'unidiff':
           case 'object':
           case 'array':
-            toModify.push({ ...dt, newIndex });
+            toModify.push({ ...dt, newIndex, cancel: false });
             break;
           default:
             throw new Error(`unexpected ${dt.type} in array[${key}]`);
@@ -227,7 +239,6 @@ function flattenArrayDeltas(
   jdp: DiffPatcher,
   verifyEquality: ((a: unknown, b: unknown) => void) | undefined,
 ): ArrayDelta | undefined {
-  const obj: ArrayDelta = { ...t1.delta };
   // number: refers to the index in the final (right) state of the array, this is used to indicate items inserted.
   // underscore + number: refers to the index in the original (left) state of the array, this is used to indicate items removed, or moved.
 
@@ -235,7 +246,7 @@ function flattenArrayDeltas(
   // 1. the array fields are split into three lists:
   //    a. `_<num>` (delete/moves) is put into a toRemove list
   //    b. `<num>` with an add delta is put into a toInsert list
-  //    c. `<num>` with a replace delta is put into a toModify list
+  //    c. `<num>` with a modify delta is put into a toModify list
   // 2. the toRemove list is sorted by index
   // 3. items are removed in reverse order from the array
   //    a. any move items are added to the toInsert list
@@ -250,51 +261,170 @@ function flattenArrayDeltas(
 
   // To combine two deltas we need to simulate running this twice
 
-  // if we have { 2: add(A) } + { 2: add(B) } we need: { 2: add(B), 3: add(A) }
-  //   so if delta 1 and delta 2 have an add at same index, increase delta1 index by 1
-  // if we have { 1: add(A) } + { _2: remove(B) } we need: { 1: add(A), _1: remove(B) }
-  //   so if delta 1 has an add, we need to decrease delta2 ≥X removes by 1
-
-  // if we have { 1: add(A) } + { _1: remove(B) } we need: {}
-  //   so if delta 1 has an add and delta 2 has delete at same index, cancel them out (plus other rules below)
-  // if we have { 1: replace(A,B) } + { _1: remove(B) } we need: { remove(A) }
-  //   so if delta 1 has an replace and delta 2 has delete at same index, cancel them out (plus other rules below)
-  // if we have { 1: add(A) } + { 1: replace(B) } we need: { 1: add(B) }
-  //   so if delta 1 has an add and delta 2 has replace at same index, combine
-  // if we have { 1: replace(A) } + { 1: replace(B) } we need: { 1: add(B) }
-  //   so if delta 1 has an replace and delta 2 has replace at same index, combine
-
-  // if we have { _2: remove(A) } + { _2: remove(B) } we need: { _2: remove(A), _3: remove(B) }
-  //   so if delta 1 has an remove, we need to increase delta2 ≥X removes by 1
-  // if we have { _0: remove(A) } + { 0: add(B) } we need: { 0: remove(A), _0: add(B) }
-  //   so if delta 1 has an remove, we don't need to do anything to adds
-
   const array1 = parseArrayDelta(t1.delta);
   const array2 = parseArrayDelta(t2.delta);
 
-  console.log('array1', array1, 'array2', array2);
+  // console.log('BEFORE array1', array1, 'array2', array2);
 
-  for (const key of Object.keys(t2.delta)) {
-    if (key === '_t') {
-      continue;
-    }
-    const indexInOrigin = key[0] === '_';
-    const index = parseInt(indexInOrigin ? key.slice(1) : key, 10);
-    if (indexInOrigin) {
-      const ct1 = getDeltaType(obj[index]);
-      const ct2 = getDeltaType(t2.delta[index]);
-      const result = flattenDeltaTypes(ct1, ct2, jdp, verifyEquality);
-      if (result !== undefined) {
-        obj[index] = result;
-      } else {
-        delete obj[index];
+  // if we have { 2: add(A) } + { 2: add(B) } we need: { 2: add(B), 3: add(A) }
+  //   so if delta 2 has an add, increase delta1 ≥X index by 1
+  // if we have { 2: modify(A) } + { 1: add(B) } we need: { 1: add(B), 3: modify(A) }
+  //   so if delta 2 has an add, increase delta1 ≥X index by 1
+  for (const insert2 of array2.toInsert) {
+    for (const insert1 of array1.toInsert) {
+      if (insert1.newIndex >= insert2.newIndex) {
+        insert1.newIndex++;
       }
-    } else {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      obj[key] = flattenDeltas(obj[key], t2.delta[key], jdp, verifyEquality);
+    }
+    for (const modify1 of array1.toModify) {
+      if (modify1.newIndex >= insert2.newIndex) {
+        modify1.newIndex++;
+      }
     }
   }
+
+  // if we have { 1: add(A) } + { _2: remove(B) } we need: { 1: add(A), _1: remove(B) }
+  //   so if delta 1 has an add, we need to decrease delta2 ≥X removes by 1
+  for (const remove2 of array2.toRemove) {
+    for (const insert1 of array1.toInsert) {
+      // TODO: this loop can be merged down below
+      if (remove2.oldIndex === insert1.newIndex) {
+        // delete both insert and remove
+        insert1.cancel = true;
+        remove2.cancel = true;
+      }
+      if (remove2.oldIndex > insert1.newIndex) {
+        remove2.oldIndex--;
+      }
+    }
+  }
+  // if we have { _2: remove(A) } + { _2: remove(B) } we need: { _2: remove(A), _3: remove(B) }
+  //   so if delta 1 has an remove, we need to increase delta2 ≥X removes by 1
+  // if we have { _0: remove(A) } + { 0: add(B) } we need: { _0: remove(A), 0: add(B) }
+  //   so if delta 1 has an remove, we don't need to do anything to adds
+  for (const remove1 of array1.toRemove) {
+    for (const remove2 of array2.toRemove) {
+      if (remove2.oldIndex >= remove1.oldIndex) {
+        remove2.oldIndex++;
+      }
+    }
+  }
+  // if we have { 2: modify(A) } + { _0: remove(B) } we need: { _0: remove(B), 1: modify(A) }
+  //   so if delta 2 has a remove, decrease delta 1 ≤X modifies by 1
+  // if we have { 2: add(A) } + { _0: remove(B) } we need: { _0: remove(B), 1: add(A) }
+  //   so if delta 2 has a remove, decrease delta 1 ≤X adds by 1
+  for (const remove2 of array2.toRemove) {
+    for (const modify1 of array1.toModify) {
+      if (remove2.oldIndex <= modify1.newIndex) {
+        modify1.newIndex--;
+      }
+    }
+    for (const insert1 of array1.toInsert) {
+      if (remove2.oldIndex <= insert1.newIndex) {
+        insert1.newIndex--;
+      }
+    }
+  }
+
+  // if we have { 1: add(A) } + { _1: remove(B) } we need: {}
+  //   so if delta 1 has an add and delta 2 has delete at same index, cancel them out (plus other rules below)
+  // if we have { 1: modify(A,B) } + { _1: remove(B) } we need: { remove(A) }
+  //   so if delta 1 has an modify and delta 2 has delete at same index, delete wins (plus other rules below)
+  // if we have { 1: add(A) } + { 1: modify(B) } we need: { 1: add(B) }
+  //   so if delta 1 has an add and delta 2 has modify at same index, combine
+  // if we have { 1: modify(A) } + { 1: modify(B) } we need: { 1: add(B) }
+  //   so if delta 1 has an modify and delta 2 has modify at same index, combine
+
+  const obj: ArrayDelta = { _t: 'a' };
+
+  for (const insert1 of array1.toInsert) {
+    if (insert1.type !== 'array-move' && !insert1.cancel) {
+      obj[insert1.newIndex] = insert1.delta;
+    }
+  }
+  for (const modify1 of array1.toModify) {
+    if (!modify1.cancel) {
+      obj[modify1.newIndex] = modify1.delta;
+    }
+  }
+  for (const remove1 of array1.toRemove) {
+    if (!remove1.cancel) {
+      obj['_' + remove1.oldIndex] =
+        remove1.type === 'array-move'
+          ? arrayMove(remove1.newIndex)
+          : remove1.delta;
+    }
+  }
+
+  for (const insert2 of array2.toInsert) {
+    if (insert2.type !== 'array-move' && !insert2.cancel) {
+      if (obj[insert2.newIndex]) {
+        throw new Error('double add');
+      }
+      obj[insert2.newIndex] = insert2.delta;
+    }
+  }
+  for (const modify2 of array2.toModify) {
+    if (!modify2.cancel) {
+      const result = flattenDeltas(
+        obj[modify2.newIndex],
+        modify2.delta,
+        jdp,
+        verifyEquality,
+      );
+      if (result) {
+        obj[modify2.newIndex] = result;
+      } else {
+        delete obj[modify2.newIndex];
+      }
+    }
+  }
+  for (const remove2 of array2.toRemove) {
+    if (!remove2.cancel) {
+      const key = '_' + remove2.oldIndex;
+      const result = flattenDeltas(
+        obj[key] as AnyDelta,
+        remove2.type === 'array-move'
+          ? arrayMove(remove2.newIndex)
+          : remove2.delta,
+        jdp,
+        verifyEquality,
+      );
+      if (result) {
+        obj[key] = result;
+      } else {
+        delete obj[key];
+      }
+    }
+  }
+
+  // const obj: ArrayDelta = { ...t1.delta };
+  // for (const key of Object.keys(t2.delta)) {
+  //   if (key === '_t') {
+  //     continue;
+  //   }
+  //   const indexInOrigin = key[0] === '_';
+  //   const index = parseInt(indexInOrigin ? key.slice(1) : key, 10);
+  //   if (indexInOrigin) {
+  //     const ct1 = getDeltaType(obj[index]);
+  //     const ct2 = getDeltaType(t2.delta[index]);
+  //     const result = flattenDeltaTypes(ct1, ct2, jdp, verifyEquality);
+  //     if (result !== undefined) {
+  //       obj[index] = result;
+  //     } else {
+  //       delete obj[index];
+  //     }
+  //   } else {
+  //     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  //     // @ts-ignore
+  //     obj[key] = flattenDeltas(obj[key], t2.delta[key], jdp, verifyEquality);
+  //   }
+  // }
+  if (Object.keys(obj).length === 1) {
+    console.log('result', undefined);
+    return undefined;
+  }
+  console.log('result', obj);
   return obj;
 }
 function flattenAnyReplace(
@@ -316,11 +446,11 @@ function flattenAnyDelete(
 }
 
 export function flattenDeltas(
-  d1: Delta | undefined,
-  d2: Delta | undefined,
+  d1: AnyDelta | undefined,
+  d2: AnyDelta | undefined,
   jdp: DiffPatcher,
   verifyEquality?: (a: unknown, b: unknown) => void,
-): Delta | undefined {
+): AnyDelta | undefined {
   if (!d1) {
     return d2;
   }
