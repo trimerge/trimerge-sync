@@ -12,9 +12,9 @@ type ValueDelta = AddDelta | ReplaceDelta | DeleteDelta | UnidiffDelta;
 type NestedDelta = ArrayDelta | ObjectDelta;
 
 type ArrayDelta = {
-  _t: 'a';
   [index: number]: Delta | ArrayMoveDelta;
   [index: string]: Delta | ArrayMoveDelta | 'a'; // ugh
+  _t: 'a';
 };
 type ObjectDelta = {
   [key: string]: Delta;
@@ -63,10 +63,17 @@ type UnidiffDeltaType = {
 };
 type ObjectDeltaType = { type: 'object'; delta: ObjectDelta };
 type ArrayDeltaType = { type: 'array'; delta: ArrayDelta };
-type ArrayMoveDeltaType = {
+
+type ModifyDeltaType =
+  | ArrayDeltaType
+  | ObjectDeltaType
+  | ReplaceDeltaType
+  | UnidiffDeltaType;
+
+type MoveDeltaType = {
   type: 'array-move';
   delta: ArrayMoveDelta;
-  destinationIndex: number;
+  newIndex: number;
 };
 
 type DeltaType =
@@ -75,7 +82,7 @@ type DeltaType =
   | DeleteDeltaType
   | UnidiffDeltaType
   | ObjectDeltaType
-  | ArrayMoveDeltaType
+  | MoveDeltaType
   | ArrayDeltaType;
 
 function getDeltaType(delta: Delta | ArrayMoveDelta): DeltaType {
@@ -117,7 +124,7 @@ function getDeltaType(delta: Delta | ArrayMoveDelta): DeltaType {
         return {
           type: 'array-move',
           delta,
-          destinationIndex: delta[1],
+          newIndex: delta[1],
         };
       default:
         throw new Error('invalid delta');
@@ -151,6 +158,69 @@ function flattenObjectDeltas(
   return Object.keys(obj).length > 0 ? obj : undefined;
 }
 
+type ArrayDeleteDeltaType = DeleteDeltaType & {
+  oldIndex: number;
+};
+type ArrayMoveDeltaType = MoveDeltaType & {
+  oldIndex: number;
+};
+type ArrayAddDeltaType = AddDeltaType & {
+  newIndex: number;
+};
+type ArrayModifyDeltaType = ModifyDeltaType & {
+  newIndex: number;
+};
+
+function parseArrayDelta(
+  delta: ArrayDelta,
+): {
+  toRemove: (ArrayDeleteDeltaType | ArrayMoveDeltaType)[];
+  toInsert: (ArrayAddDeltaType | ArrayMoveDeltaType)[];
+  toModify: ArrayModifyDeltaType[];
+} {
+  const toRemove: (ArrayDeleteDeltaType | ArrayMoveDeltaType)[] = [];
+  const toInsert: (ArrayAddDeltaType | ArrayMoveDeltaType)[] = [];
+  const toModify: ArrayModifyDeltaType[] = [];
+  for (const key of Object.keys(delta)) {
+    if (key !== '_t') {
+      const dt = getDeltaType(delta[key] as Delta | ArrayMoveDelta);
+      if (key[0] === '_') {
+        const oldIndex = parseInt(key.slice(1), 10);
+        switch (dt.type) {
+          case 'delete':
+            toRemove.push({ ...dt, oldIndex });
+            break;
+          case 'array-move':
+            const move = { ...dt, oldIndex };
+            toRemove.push(move);
+            toInsert.push(move);
+            break;
+          default:
+            throw new Error(`unexpected ${dt.type} in array[${key}]`);
+        }
+      } else {
+        const newIndex = parseInt(key, 10);
+        switch (dt.type) {
+          case 'add':
+            toInsert.push({ ...dt, newIndex });
+            break;
+          case 'replace':
+          case 'unidiff':
+          case 'object':
+          case 'array':
+            toModify.push({ ...dt, newIndex });
+            break;
+          default:
+            throw new Error(`unexpected ${dt.type} in array[${key}]`);
+        }
+      }
+    }
+  }
+  toRemove.sort((a, b) => a.oldIndex - b.oldIndex);
+  toInsert.sort((a, b) => a.newIndex - b.newIndex);
+  return { toRemove, toInsert, toModify };
+}
+
 function flattenArrayDeltas(
   t1: ArrayDeltaType,
   t2: ArrayDeltaType,
@@ -158,22 +228,72 @@ function flattenArrayDeltas(
   verifyEquality: ((a: unknown, b: unknown) => void) | undefined,
 ): ArrayDelta | undefined {
   const obj: ArrayDelta = { ...t1.delta };
-  console.log(t1.delta, t2.delta);
+  // number: refers to the index in the final (right) state of the array, this is used to indicate items inserted.
+  // underscore + number: refers to the index in the original (left) state of the array, this is used to indicate items removed, or moved.
+
+  // The way array diffs work in jsondiffpatch:
+  // 1. the array fields are split into three lists:
+  //    a. `_<num>` (delete/moves) is put into a toRemove list
+  //    b. `<num>` with an add delta is put into a toInsert list
+  //    c. `<num>` with a replace delta is put into a toModify list
+  // 2. the toRemove list is sorted by index
+  // 3. items are removed in reverse order from the array
+  //    a. any move items are added to the toInsert list
+  // 4. the toInsert list is sorted by index
+  // 5. items are inserted into the array
+  // 6. finally, the toModify list is applied to the final array
+
+  // So in summary:
+  //   1. removes and the removal part of a moves are run first
+  //   2. inserts are applied second
+  //   3. modifies last
+
+  // To combine two deltas we need to simulate running this twice
+
+  // if we have { 2: add(A) } + { 2: add(B) } we need: { 2: add(B), 3: add(A) }
+  //   so if delta 1 and delta 2 have an add at same index, increase delta1 index by 1
+  // if we have { 1: add(A) } + { _2: remove(B) } we need: { 1: add(A), _1: remove(B) }
+  //   so if delta 1 has an add, we need to decrease delta2 ≥X removes by 1
+
+  // if we have { 1: add(A) } + { _1: remove(B) } we need: {}
+  //   so if delta 1 has an add and delta 2 has delete at same index, cancel them out (plus other rules below)
+  // if we have { 1: replace(A,B) } + { _1: remove(B) } we need: { remove(A) }
+  //   so if delta 1 has an replace and delta 2 has delete at same index, cancel them out (plus other rules below)
+  // if we have { 1: add(A) } + { 1: replace(B) } we need: { 1: add(B) }
+  //   so if delta 1 has an add and delta 2 has replace at same index, combine
+  // if we have { 1: replace(A) } + { 1: replace(B) } we need: { 1: add(B) }
+  //   so if delta 1 has an replace and delta 2 has replace at same index, combine
+
+  // if we have { _2: remove(A) } + { _2: remove(B) } we need: { _2: remove(A), _3: remove(B) }
+  //   so if delta 1 has an remove, we need to increase delta2 ≥X removes by 1
+  // if we have { _0: remove(A) } + { 0: add(B) } we need: { 0: remove(A), _0: add(B) }
+  //   so if delta 1 has an remove, we don't need to do anything to adds
+
+  const array1 = parseArrayDelta(t1.delta);
+  const array2 = parseArrayDelta(t2.delta);
+
+  console.log('array1', array1, 'array2', array2);
+
   for (const key of Object.keys(t2.delta)) {
     if (key === '_t') {
       continue;
     }
-    // const indexInOrigin = key[0] === '_';
-    // const index = parseInt(indexInOrigin ? key.slice(1) : key, 10);
-    // if (indexInOrigin) {
-    //   throw new Error('unsupported');
-    // } else {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    obj[key] = flattenDeltas(obj[key], t2.delta[key], jdp, verifyEquality);
-    // }
-    // number: refers to the index in the final (right) state of the array, this is used to indicate items inserted.
-    // underscore + number: refers to the index in the original (left) state of the array, this is used to indicate items removed, or moved.
+    const indexInOrigin = key[0] === '_';
+    const index = parseInt(indexInOrigin ? key.slice(1) : key, 10);
+    if (indexInOrigin) {
+      const ct1 = getDeltaType(obj[index]);
+      const ct2 = getDeltaType(t2.delta[index]);
+      const result = flattenDeltaTypes(ct1, ct2, jdp, verifyEquality);
+      if (result !== undefined) {
+        obj[index] = result;
+      } else {
+        delete obj[index];
+      }
+    } else {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      obj[key] = flattenDeltas(obj[key], t2.delta[key], jdp, verifyEquality);
+    }
   }
   return obj;
 }
@@ -207,10 +327,19 @@ export function flattenDeltas(
   if (!d2) {
     return d1;
   }
-
-  const t1 = getDeltaType(d1);
-  const t2 = getDeltaType(d2);
-
+  return flattenDeltaTypes(
+    getDeltaType(d1),
+    getDeltaType(d2),
+    jdp,
+    verifyEquality,
+  );
+}
+function flattenDeltaTypes(
+  t1: DeltaType,
+  t2: DeltaType,
+  jdp: DiffPatcher,
+  verifyEquality?: (a: unknown, b: unknown) => void,
+): Delta | undefined {
   if ('newValue' in t1 && 'oldValue' in t2) {
     verifyEquality?.(t1.newValue, t2.oldValue);
   }

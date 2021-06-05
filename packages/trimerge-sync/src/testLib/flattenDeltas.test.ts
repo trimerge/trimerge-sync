@@ -39,6 +39,78 @@ describe('merges deltas', () => {
       deleteDelta('there'),
       deleteDelta('hello'),
     ],
+    [
+      // [ 0, 3 ],
+      // [ 0, 2, 3 ],
+      // [ 0, 1, 2, 3 ],
+      { '1': [2], _t: 'a' } as Delta,
+      { '1': [1], _t: 'a' } as Delta,
+      { '1': [1], '2': [2], _t: 'a' } as Delta,
+    ],
+    [
+      // [ 0, 3 ],
+      // [ 0, 1, 3 ],
+      // [ 0, 1, 2, 3 ],
+      { '1': [1], _t: 'a' } as Delta,
+      { '2': [2], _t: 'a' } as Delta,
+      { '1': [1], '2': [2], _t: 'a' } as Delta,
+    ],
+    [
+      // [ 0, 3 ],
+      // [ 0, 2, 3 ],
+      // [ 0, 3 ],
+      { '1': [2], _t: 'a' } as Delta,
+      { _1: [2, 0, 0], _t: 'a' } as Delta,
+      undefined,
+    ],
+    [
+      // [ 0, 3 ],
+      // [ 0, 2, 3 ],
+      // [ 0, 2 ],
+      { '1': [2], _t: 'a' } as Delta,
+      { _2: [3, 0, 0], _t: 'a' } as Delta,
+      { '1': [2], _1: [3, 0, 0], _t: 'a' } as Delta,
+    ],
+    [
+      // [ 1, 3 ],
+      // [ 3 ],
+      // [ 0, 3 ],
+      { _0: [1, 0, 0], _t: 'a' } as Delta,
+      { '0': [0], _t: 'a' } as Delta,
+      { '0': [0], _0: [1, 0, 0], _t: 'a' } as Delta,
+    ],
+    [
+      // [ 0, 1, 2, 3 ],
+      // [ 0, 2, 3 ],
+      // [ 0, 3 ],
+      { _1: [1, 0, 0], _t: 'a' } as Delta,
+      { _1: [2, 0, 0], _t: 'a' } as Delta,
+      { _1: [1, 0, 0], _2: [2, 0, 0], _t: 'a' } as Delta,
+    ],
+    [
+      // [ 1, 3 ],
+      // [ 1, 2, 3 ],
+      // [ 1, 2, 4 ],
+      { '1': [2], _t: 'a' } as Delta,
+      { '2': [4], _t: 'a', _2: [3, 0, 0] },
+      { '2': [3, 4], _t: 'a' } as Delta,
+    ],
+    [
+      // [ 1, 3 ],
+      // [ 1, 2, 3, 4 ],
+      // [ 1, 2, 3, 4, 5 ],
+      { '1': [2], '3': [4], _t: 'a' } as Delta,
+      { '4': [5], _t: 'a' },
+      { '1': [2], '3': [4], '4': [5], _t: 'a' } as Delta,
+    ],
+    [
+      //   a: [ 1, 3 ],
+      // b: [ 1, 2, 3, 4, 5 ],
+      // c: [ 1, 3, 4, 5 ],
+      { '1': [2], '3': [4], '4': [5], _t: 'a' } as Delta,
+      { _t: 'a', _1: [2, 0, 0] },
+      { _t: 'a', _1: [2, 0, 0], '3': [4], '4': [5] } as Delta,
+    ],
   ];
 
   it.each(tests)('flattenDeltas(%s, %s) => %s', (a, b, r) => {
@@ -59,6 +131,14 @@ describe('merges deltas', () => {
     [unidiffDelta('hello'), addDelta('hello'), 'invalid combo'],
     [unidiffDelta('hello'), {}, 'invalid combo'],
     [unidiffDelta('hello'), { _t: 'a' }, 'invalid combo'],
+    [{}, addDelta('hello'), 'invalid combo'],
+    [{}, deleteDelta('hello'), 'reverse failed'],
+    [{}, replaceDelta('hello', 'world'), 'reverse failed'],
+    [{}, unidiffDelta('hello'), 'invalid combo'],
+    [{ _t: 'a' }, addDelta('hello'), 'invalid combo'],
+    [{ _t: 'a' }, deleteDelta('hello'), 'reverse failed'],
+    [{ _t: 'a' }, replaceDelta('hello', 'world'), 'reverse failed'],
+    [{ _t: 'a' }, unidiffDelta('hello'), 'invalid combo'],
   ];
 
   it.each(badTests)('flattenDeltas(%s, %s) fails with %s', (a, b, r) => {
@@ -88,12 +168,13 @@ describe('merges deltas', () => {
   function testDiffPatch(a: unknown, b: unknown, c: unknown) {
     const diffAB = jdp.diff(a, b);
     const diffBC = jdp.diff(b, c);
+    console.log({ a, b, c, diffAB, diffBC });
     const flattened = flattenDeltas(diffAB, diffBC, jdp, crashOnNotEqual);
 
     try {
       expect(flattened ? jdp.patch(jdp.clone(a), flattened) : a).toEqual(c);
     } catch (e) {
-      console.warn(diffAB, diffBC, flattened);
+      console.warn({ a, b, c, diffAB, diffBC, flattened });
       throw e;
     }
   }
@@ -116,17 +197,21 @@ describe('merges deltas', () => {
   });
 
   const objects: unknown[] = [
-    'hello',
-    'hello darkness',
-    'hello that is a darkness',
-    { a: true },
-    { a: true, b: 'hello' },
-    { a: false, b: 'hello' },
-    [1, 2, 3, 4],
-    [1, 2, 3, 4, 5],
-    [1, 3, 4, 5],
-    [1, 3, 4],
-    undefined,
+    // 'hello',
+    // 'hello darkness',
+    // 'hello that is a darkness',
+    // { a: true },
+    // { a: true, b: 'hello' },
+    // { a: false, b: 'hello' },
+    // [1, 2, 3, 4],
+    // [1, 2, 3, 4, 5],
+    // [1, 3, 4, 5],
+    // [1, 3, 4],
+    // [1, 3],
+    [1, 3],
+    [1, 2, 3],
+    [1, 4, 2, 3],
+    // undefined,
   ];
 
   const fuzzTests: [unknown, unknown, unknown][] = [];
