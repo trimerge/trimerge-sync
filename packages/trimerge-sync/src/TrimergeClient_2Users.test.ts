@@ -108,12 +108,14 @@ describe('TrimergeClient: 2 users', () => {
     expect(client1.clients).toEqual([
       {
         userId: 'a',
+        self: true,
         clientId: 'test',
       },
     ]);
     expect(client2.clients).toEqual([
       {
         userId: 'b',
+        self: true,
         clientId: 'test',
       },
     ]);
@@ -123,6 +125,7 @@ describe('TrimergeClient: 2 users', () => {
         [
           {
             userId: 'a',
+            self: true,
             clientId: 'test',
           },
         ],
@@ -136,6 +139,7 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
+        self: true,
         state: undefined,
         userId: 'a',
       },
@@ -156,6 +160,7 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
+        self: true,
         state: undefined,
         userId: 'b',
       },
@@ -167,7 +172,7 @@ describe('TrimergeClient: 2 users', () => {
           {
             clientId: 'test',
             ref: undefined,
-
+            self: true,
             state: undefined,
             userId: 'a',
           },
@@ -178,6 +183,7 @@ describe('TrimergeClient: 2 users', () => {
           {
             clientId: 'test',
             ref: undefined,
+            self: true,
             state: undefined,
             userId: 'a',
           },
@@ -194,6 +200,7 @@ describe('TrimergeClient: 2 users', () => {
           {
             clientId: 'test',
             ref: undefined,
+            self: true,
             state: undefined,
             userId: 'a',
           },
@@ -217,12 +224,14 @@ describe('TrimergeClient: 2 users', () => {
     expect(client1.clients).toEqual([
       {
         userId: 'a',
+        self: true,
         clientId: 'test',
       },
     ]);
     expect(client2.clients).toEqual([
       {
         userId: 'b',
+        self: true,
         clientId: 'test',
       },
     ]);
@@ -235,6 +244,7 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
+        self: true,
         state: 'hello',
         userId: 'a',
       },
@@ -255,6 +265,7 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
+        self: true,
         state: undefined,
         userId: 'b',
       },

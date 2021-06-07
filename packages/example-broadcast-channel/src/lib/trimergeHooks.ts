@@ -51,6 +51,7 @@ function getCachedTrimergeClient<State, EditMetadata, Delta, PresenceState>(
           ),
       ),
       differ,
+      100,
     );
   }
   return TRIMERGE_CLIENT_CACHE[key];

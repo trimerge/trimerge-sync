@@ -51,7 +51,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
       PresenceState
     >,
     private readonly differ: Differ<State, EditMetadata, Delta>,
-    private readonly bufferMs: number = 100,
+    private readonly bufferMs: number,
   ) {
     this.selfFullId = getFullId(userId, clientId);
     this.store = getLocalStore(userId, clientId, this.onEvent);
