@@ -13,7 +13,11 @@ jobs:
       - run: yarn --frozen-lockfile
       - run: yarn lint
       - run: yarn build-all
-      - run: yarn test-ci
+      - uses: mattallty/jest-github-action@v1
+        with:
+          test-command: yarn test-ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: yarn codecov
         env:
           CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
