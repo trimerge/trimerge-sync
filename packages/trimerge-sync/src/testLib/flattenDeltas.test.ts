@@ -93,7 +93,7 @@ describe('merges deltas', () => {
       // [ 1, 2, 4 ],
       { '1': [2], _t: 'a' } as Delta,
       { '2': [4], _t: 'a', _2: [3, 0, 0] },
-      { '2': [3, 4], _t: 'a' } as Delta,
+      { '1': [2], '2': [4], _t: 'a', _1: [3, 0, 0] } as Delta,
     ],
     [
       // [ 1, 3 ],
@@ -104,17 +104,23 @@ describe('merges deltas', () => {
       { '1': [2], '3': [4], '4': [5], _t: 'a' } as Delta,
     ],
     [
-      //   a: [ 1, 3 ],
+      // a: [ 1, 3 ],
       // b: [ 1, 2, 3, 4, 5 ],
       // c: [ 1, 3, 4, 5 ],
       { '1': [2], '3': [4], '4': [5], _t: 'a' } as Delta,
       { _t: 'a', _1: [2, 0, 0] },
-      { _t: 'a', _1: [2, 0, 0], '3': [4], '4': [5] } as Delta,
+      { _t: 'a', '2': [4], '3': [5] } as Delta,
     ],
   ];
 
   it.each(tests)('flattenDeltas(%s, %s) => %s', (a, b, r) => {
-    expect(flattenDeltas(a, b, jdp, crashOnNotEqual)).toEqual(r);
+    const result = flattenDeltas(a, b, jdp, crashOnNotEqual);
+    try {
+      expect(result).toEqual(r);
+    } catch (e) {
+      console.warn({ a, b, expected: r, result });
+      throw e;
+    }
   });
   const badTests: [Delta, Delta, string][] = [
     [
@@ -168,13 +174,14 @@ describe('merges deltas', () => {
   function testDiffPatch(a: unknown, b: unknown, c: unknown) {
     const diffAB = jdp.diff(a, b);
     const diffBC = jdp.diff(b, c);
-    console.log({ a, b, c, diffAB, diffBC });
-    const flattened = flattenDeltas(diffAB, diffBC, jdp, crashOnNotEqual);
-
+    let diffABC;
+    let result;
     try {
-      expect(flattened ? jdp.patch(jdp.clone(a), flattened) : a).toEqual(c);
+      diffABC = flattenDeltas(diffAB, diffBC, jdp, crashOnNotEqual);
+      result = diffABC ? jdp.patch(jdp.clone(a), diffABC) : a;
+      expect(result).toEqual(c);
     } catch (e) {
-      console.warn({ a, b, c, diffAB, diffBC, flattened });
+      console.warn({ a, b, c, diffAB, diffBC, diffABC, result });
       throw e;
     }
   }
@@ -197,21 +204,21 @@ describe('merges deltas', () => {
   });
 
   const objects: unknown[] = [
-    // 'hello',
-    // 'hello darkness',
-    // 'hello that is a darkness',
-    // { a: true },
-    // { a: true, b: 'hello' },
-    // { a: false, b: 'hello' },
-    // [1, 2, 3, 4],
-    // [1, 2, 3, 4, 5],
-    // [1, 3, 4, 5],
-    // [1, 3, 4],
-    // [1, 3],
+    'hello',
+    'hello darkness',
+    'hello that is a darkness',
+    { a: true },
+    { a: true, b: 'hello' },
+    { a: true, b: 'hello that is a darkness' },
+    { a: false, b: 'hello' },
+    [1, 2, 3, 4],
+    [1, 2, 3, 4, 5],
+    [1, 3, 4, 5],
+    [1, 3, 4],
     [1, 3],
     [1, 2, 3],
     [1, 4, 2, 3],
-    // undefined,
+    undefined,
   ];
 
   const fuzzTests: [unknown, unknown, unknown][] = [];

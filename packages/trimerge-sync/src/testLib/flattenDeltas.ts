@@ -266,6 +266,49 @@ function flattenArrayDeltas(
 
   // console.log('BEFORE array1', array1, 'array2', array2);
 
+  for (const remove2 of array2.toRemove) {
+    if (remove2.type !== 'array-move') {
+      for (const modify1 of array1.toModify) {
+        if (modify1.newIndex === remove2.oldIndex) {
+          if (remove2.type === 'delete') {
+            modify1.cancel = true;
+            remove2.delta = flattenAnyDelete(modify1, remove2, jdp);
+          }
+        }
+      }
+      for (const insert1 of array1.toInsert) {
+        if (insert1.type !== 'array-move') {
+          if (insert1.newIndex === remove2.oldIndex) {
+            // delete both insert and remove
+            insert1.cancel = true;
+            remove2.cancel = true;
+          }
+        }
+      }
+    }
+  }
+  // if we have { 2: modify(A) } + { _0: remove(B) } we need: { _0: remove(B), 1: modify(A) }
+  //   so if delta 2 has a remove, decrease delta 1 ≤X modifies by 1
+  for (const remove2 of array2.toRemove) {
+    for (const modify1 of array1.toModify) {
+      if (modify1.newIndex > remove2.oldIndex) {
+        modify1.newIndex--;
+      }
+    }
+    for (const insert1 of array1.toInsert) {
+      // if we have { 1: add(A) } + { _2: remove(B) } we need: { 1: add(A), _1: remove(B) }
+      //   so if delta 1 has an add, we need to decrease delta2 ≥X removes by 1
+
+      // if we have { 2: add(A) } + { _0: remove(B) } we need: { _0: remove(B), 1: add(A) }
+      //   so if delta 2 has a remove, decrease delta 1 ≤X adds by 1
+      if (insert1.newIndex > remove2.oldIndex) {
+        insert1.newIndex--;
+      } else if (insert1.newIndex < remove2.oldIndex) {
+        remove2.oldIndex--;
+      }
+    }
+  }
+
   // if we have { 2: add(A) } + { 2: add(B) } we need: { 2: add(B), 3: add(A) }
   //   so if delta 2 has an add, increase delta1 ≥X index by 1
   // if we have { 2: modify(A) } + { 1: add(B) } we need: { 1: add(B), 3: modify(A) }
@@ -283,21 +326,6 @@ function flattenArrayDeltas(
     }
   }
 
-  // if we have { 1: add(A) } + { _2: remove(B) } we need: { 1: add(A), _1: remove(B) }
-  //   so if delta 1 has an add, we need to decrease delta2 ≥X removes by 1
-  for (const remove2 of array2.toRemove) {
-    for (const insert1 of array1.toInsert) {
-      // TODO: this loop can be merged down below
-      if (remove2.oldIndex === insert1.newIndex) {
-        // delete both insert and remove
-        insert1.cancel = true;
-        remove2.cancel = true;
-      }
-      if (remove2.oldIndex > insert1.newIndex) {
-        remove2.oldIndex--;
-      }
-    }
-  }
   // if we have { _2: remove(A) } + { _2: remove(B) } we need: { _2: remove(A), _3: remove(B) }
   //   so if delta 1 has an remove, we need to increase delta2 ≥X removes by 1
   // if we have { _0: remove(A) } + { 0: add(B) } we need: { _0: remove(A), 0: add(B) }
@@ -309,23 +337,6 @@ function flattenArrayDeltas(
       }
     }
   }
-  // if we have { 2: modify(A) } + { _0: remove(B) } we need: { _0: remove(B), 1: modify(A) }
-  //   so if delta 2 has a remove, decrease delta 1 ≤X modifies by 1
-  // if we have { 2: add(A) } + { _0: remove(B) } we need: { _0: remove(B), 1: add(A) }
-  //   so if delta 2 has a remove, decrease delta 1 ≤X adds by 1
-  for (const remove2 of array2.toRemove) {
-    for (const modify1 of array1.toModify) {
-      if (remove2.oldIndex <= modify1.newIndex) {
-        modify1.newIndex--;
-      }
-    }
-    for (const insert1 of array1.toInsert) {
-      if (remove2.oldIndex <= insert1.newIndex) {
-        insert1.newIndex--;
-      }
-    }
-  }
-
   // if we have { 1: add(A) } + { _1: remove(B) } we need: {}
   //   so if delta 1 has an add and delta 2 has delete at same index, cancel them out (plus other rules below)
   // if we have { 1: modify(A,B) } + { _1: remove(B) } we need: { remove(A) }
@@ -398,33 +409,9 @@ function flattenArrayDeltas(
     }
   }
 
-  // const obj: ArrayDelta = { ...t1.delta };
-  // for (const key of Object.keys(t2.delta)) {
-  //   if (key === '_t') {
-  //     continue;
-  //   }
-  //   const indexInOrigin = key[0] === '_';
-  //   const index = parseInt(indexInOrigin ? key.slice(1) : key, 10);
-  //   if (indexInOrigin) {
-  //     const ct1 = getDeltaType(obj[index]);
-  //     const ct2 = getDeltaType(t2.delta[index]);
-  //     const result = flattenDeltaTypes(ct1, ct2, jdp, verifyEquality);
-  //     if (result !== undefined) {
-  //       obj[index] = result;
-  //     } else {
-  //       delete obj[index];
-  //     }
-  //   } else {
-  //     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  //     // @ts-ignore
-  //     obj[key] = flattenDeltas(obj[key], t2.delta[key], jdp, verifyEquality);
-  //   }
-  // }
   if (Object.keys(obj).length === 1) {
-    console.log('result', undefined);
     return undefined;
   }
-  console.log('result', obj);
   return obj;
 }
 function flattenAnyReplace(
@@ -469,7 +456,7 @@ function flattenDeltaTypes(
   t2: DeltaType,
   jdp: DiffPatcher,
   verifyEquality?: (a: unknown, b: unknown) => void,
-): Delta | undefined {
+): AnyDelta | undefined {
   if ('newValue' in t1 && 'oldValue' in t2) {
     verifyEquality?.(t1.newValue, t2.oldValue);
   }
@@ -549,19 +536,15 @@ function flattenDeltaTypes(
     case 'array-move':
       switch (t2.type) {
         case 'add':
-          break;
-        case 'replace':
-          break;
+          throw invalidCombo(t1, t2);
+
         case 'delete':
-          break;
-        case 'unidiff':
-          break;
         case 'array-move':
-          break;
+        case 'replace':
+        case 'unidiff':
         case 'array':
-          break;
         case 'object':
-          break;
+          return t2.delta;
       }
       break;
     case 'array':
