@@ -13,7 +13,7 @@ jobs:
       - run: yarn --frozen-lockfile
       - run: yarn lint
       - run: yarn build-all
-      - uses: mattallty/jest-github-action@v1
+      - uses: marcello3d/jest-github-action@main
         with:
           test-command: yarn test-ci
         env:
