@@ -13,11 +13,6 @@ jobs:
       - run: yarn --frozen-lockfile
       - run: yarn lint
       - run: yarn build-all
-      - uses: marcello3d/jest-github-action@main
-        with:
-          test-command: yarn test-ci
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: yarn codecov
         env:
           CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
