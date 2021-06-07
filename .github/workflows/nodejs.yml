@@ -13,6 +13,7 @@ jobs:
       - run: yarn --frozen-lockfile
       - run: yarn lint
       - run: yarn build-all
+      - run: yarn test-ci
       - run: yarn codecov
         env:
           CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}

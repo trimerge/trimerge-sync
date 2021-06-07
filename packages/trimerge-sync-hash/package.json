@@ -8,7 +8,7 @@
   "sideEffects": false,
   "scripts": {
     "test": "jest --watch",
-    "test-ci": "jest --coverage --passWithNoTests",
+    "test-ci": "jest --coverage --testLocationInResults --passWithNoTests",
     "build": "rollup -c",
     "watch": "rollup -c -w",
     "lint": "eslint src/**/*.ts",
@@ -52,6 +52,7 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
+    "reporters": ["default", "jest-github-reporter"],
     "globals": {
       "ts-jest": {
         "diagnostics": {
