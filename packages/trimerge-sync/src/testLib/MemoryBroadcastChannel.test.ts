@@ -1,5 +1,5 @@
 import { MemoryBroadcastChannel, resetAll } from './MemoryBroadcastChannel';
-import { timeout } from './MergeUtils';
+import { timeout } from './Timeout';
 
 afterEach(() => {
   resetAll();

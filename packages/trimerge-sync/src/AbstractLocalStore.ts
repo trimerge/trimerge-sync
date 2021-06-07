@@ -13,9 +13,17 @@ import {
 import { PromiseQueue } from './lib/PromiseQueue';
 import { timeoutPromise } from './lib/timeoutPromise';
 
-const INITIAL_RECONNECT_DELAY_MS = 1_000;
-const RECONNECT_BACKOFF_MULTIPLIER = 2;
-const MAX_RECONNECT_DELAY_MS = 30_000;
+export type ReconnectSettings = Readonly<{
+  initialDelayMs: number;
+  reconnectBackoffMultiplier: number;
+  maxReconnectDelayMs: number;
+}>;
+
+const DEFAULT_SETTINGS: ReconnectSettings = {
+  initialDelayMs: 1_000,
+  reconnectBackoffMultiplier: 2,
+  maxReconnectDelayMs: 30_000,
+};
 
 export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   implements LocalStore<EditMetadata, Delta, PresenceState> {
@@ -28,14 +36,17 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     | GetRemoteFn<EditMetadata, Delta, PresenceState>
     | undefined;
   private remote: Remote<EditMetadata, Delta, PresenceState> | undefined;
-  private reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS;
+  private reconnectDelayMs: number;
   private readonly remoteQueue = new PromiseQueue();
 
   public constructor(
     protected readonly userId: string,
     protected readonly clientId: string,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
-  ) {}
+    private readonly reconnectSettings: ReconnectSettings = DEFAULT_SETTINGS,
+  ) {
+    this.reconnectDelayMs = reconnectSettings.initialDelayMs;
+  }
 
   /**
    * Send to all *other* local nodes
@@ -88,7 +99,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     switch (event.type) {
       case 'ready':
         // Reset reconnect timeout
-        this.reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS;
+        this.reconnectDelayMs = this.reconnectSettings.initialDelayMs;
         await this.sendEvent(
           { type: 'remote-state', read: 'ready' },
           { self: true, local: true },
@@ -155,8 +166,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
             this.getRemote = undefined;
             await timeoutPromise(this.reconnectDelayMs);
             this.reconnectDelayMs = Math.min(
-              this.reconnectDelayMs * RECONNECT_BACKOFF_MULTIPLIER,
-              MAX_RECONNECT_DELAY_MS,
+              this.reconnectDelayMs *
+                this.reconnectSettings.reconnectBackoffMultiplier,
+              this.reconnectSettings.maxReconnectDelayMs,
             );
             // Do not await on this or we'll deadlock
             this.connectRemote(getRemote).catch(this.handleAsError('network'));

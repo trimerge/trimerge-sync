@@ -2,9 +2,10 @@ import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
-import { computeRef, diff, merge, patch, timeout } from './testLib/MergeUtils';
+import { computeRef, diff, merge, patch } from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 import { ClientInfo } from './types';
+import { timeout } from './testLib/Timeout';
 
 type TestEditMetadata = string;
 type TestState = any;

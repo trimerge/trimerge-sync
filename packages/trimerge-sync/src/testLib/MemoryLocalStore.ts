@@ -25,7 +25,11 @@ export class MemoryLocalStore<
     onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
     getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
   ) {
-    super(userId, clientId, onEvent);
+    super(userId, clientId, onEvent, {
+      initialDelayMs: 0,
+      reconnectBackoffMultiplier: 1,
+      maxReconnectDelayMs: 0,
+    });
     this.channel = new MemoryBroadcastChannel(
       this.store.docId,
       this.onLocalBroadcastEvent,
