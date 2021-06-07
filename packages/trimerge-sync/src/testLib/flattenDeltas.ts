@@ -276,14 +276,12 @@ function flattenArrayDeltas(
           }
         }
       }
-      for (const insert1 of array1.toInsert) {
-        if (insert1.type !== 'array-move') {
-          if (insert1.newIndex === remove2.oldIndex) {
-            // delete both insert and remove
-            insert1.cancel = true;
-            remove2.cancel = true;
-          }
-        }
+    }
+    for (const insert1 of array1.toInsert) {
+      if (insert1.newIndex === remove2.oldIndex) {
+        // delete both insert and remove
+        insert1.cancel = true;
+        remove2.cancel = true;
       }
     }
   }
