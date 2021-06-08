@@ -7,7 +7,7 @@ import {
   NodesEvent,
   OnEventFn,
 } from 'trimerge-sync';
-import { DBSchema, IDBPDatabase, openDB, StoreValue } from 'idb';
+import { DBSchema, deleteDB, IDBPDatabase, openDB, StoreValue } from 'idb';
 import {
   BroadcastChannel,
   createLeaderElection,
@@ -45,6 +45,14 @@ export function createIndexedDbBackendFactory<
     new IndexedDbBackend(docId, userId, clientId, onEvent, getRemote);
 }
 
+function getDatabaseName(docId: string): string {
+  return `trimerge-sync:${docId}`;
+}
+
+export function deleteDocDatabase(docId: string): Promise<void> {
+  return deleteDB(getDatabaseName(docId));
+}
+
 class IndexedDbBackend<
   EditMetadata,
   Delta,
@@ -63,9 +71,10 @@ class IndexedDbBackend<
     clientId: string,
     onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
     getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
+    private readonly remoteId: string = 'origin',
   ) {
     super(userId, clientId, onEvent);
-    const dbName = `trimerge-sync:${docId}`;
+    const dbName = getDatabaseName(docId);
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.db = this.connect();
@@ -88,24 +97,53 @@ class IndexedDbBackend<
     return this.channel.postMessage(event).catch(this.handleAsError('network'));
   }
 
-  protected getNodesForRemote(): AsyncIterableIterator<
+  protected async *getNodesForRemote(): AsyncIterableIterator<
     NodesEvent<EditMetadata, Delta, PresenceState>
   > {
-    // FIXME: getNodesForRemote on IndexedDbBackend
-    throw new Error('unimplemented');
+    const db = await this.db;
+    const unsentNodes = await db.getAllFromIndex('nodes', 'remoteSyncId', '');
+    if (unsentNodes.length > 0) {
+      yield {
+        type: 'nodes',
+        nodes: unsentNodes,
+        syncId: '',
+      };
+    }
   }
 
   protected async acknowledgeRemoteNodes(
     refs: readonly string[],
     remoteSyncId: string,
   ): Promise<void> {
-    // FIXME: acknowledgeRemoteNodes on IndexedDbBackend
-    throw new Error('unimplemented');
+    const db = await this.db;
+    for (const ref of refs) {
+      const node = await db.get('nodes', ref);
+      if (node && !node.remoteSyncId) {
+        node.remoteSyncId = remoteSyncId;
+        await db.put('nodes', node);
+      }
+    }
+    await this.updateLastRemoteSyncId(remoteSyncId);
   }
 
   protected async getLastRemoteSyncId(): Promise<string | undefined> {
-    // FIXME: getLastRemoteSyncId on IndexedDbBackend
-    throw new Error('unimplemented');
+    const db = await this.db;
+    const remote = await db.get('remotes', this.remoteId);
+    const lastSyncId = remote?.lastSyncId;
+    if (lastSyncId) {
+      return String(lastSyncId);
+    }
+    return undefined;
+  }
+
+  protected async updateLastRemoteSyncId(lastSyncId: string): Promise<void> {
+    const db = await this.db;
+    const tx = db.transaction(['remotes'], 'readwrite');
+    const remotes = tx.objectStore('remotes');
+    const remote = (await remotes.get(this.remoteId)) ?? {};
+    remote.lastSyncId = lastSyncId;
+    await remotes.put(remote, this.remoteId);
+    await tx.done;
   }
 
   private async connect(
@@ -125,7 +163,8 @@ class IndexedDbBackend<
   }
 
   protected async addNodes(
-    nodes: DiffNode<EditMetadata, Delta>[],
+    nodes: readonly DiffNode<EditMetadata, Delta>[],
+    lastSyncId: string | undefined,
   ): Promise<string> {
     const db = await this.db;
     const tx = db.transaction(['heads', 'nodes'], 'readwrite');
@@ -146,7 +185,20 @@ class IndexedDbBackend<
     const promises: Promise<unknown>[] = [];
     for (const node of nodes) {
       syncCounter++;
-      promises.push(nodesDb.add({ syncId: syncCounter, ...node }));
+      promises.push(
+        (async () => {
+          const existingNode = await nodesDb.get(node.ref);
+          if (existingNode) {
+            console.warn(`already have node`, { node, existingNode });
+            return;
+          }
+          await nodesDb.add({
+            syncId: syncCounter,
+            remoteSyncId: '',
+            ...node,
+          });
+        })(),
+      );
       const { ref, baseRef, mergeRef } = node;
       if (baseRef !== undefined) {
         headsToDelete.add(baseRef);
@@ -164,6 +216,10 @@ class IndexedDbBackend<
     }
     for (const ref of headsToAdd) {
       promises.push(headsDb.add({ ref }));
+    }
+
+    if (lastSyncId) {
+      await this.updateLastRemoteSyncId(lastSyncId);
     }
     if (promises.length > 0) {
       await Promise.all(promises);
@@ -191,6 +247,11 @@ class IndexedDbBackend<
     };
   }
 
+  async deleteDatabase() {
+    await this.shutdown();
+    await deleteDB(this.dbName);
+  }
+
   shutdown = async (): Promise<void> => {
     await super.shutdown();
     window.removeEventListener('beforeunload', this.shutdown);
@@ -213,9 +274,19 @@ interface TrimergeSyncDbSchema extends DBSchema {
   };
   nodes: {
     key: string;
-    value: { syncId: number } & DiffNode<any, any>;
+    value: DiffNode<any, any> & {
+      syncId: number;
+      remoteSyncId: string;
+    };
     indexes: {
       syncId: number;
+      remoteSyncId: string;
+    };
+  };
+  remotes: {
+    key: string;
+    value: {
+      lastSyncId?: string;
     };
   };
 }
@@ -223,14 +294,19 @@ interface TrimergeSyncDbSchema extends DBSchema {
 function createIndexedDb(
   dbName: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
-  return openDB<TrimergeSyncDbSchema>(dbName, 1, {
-    upgrade(db, oldVersion) {
+  return openDB<TrimergeSyncDbSchema>(dbName, 2, {
+    upgrade(db, oldVersion, newVersion, tx) {
+      let nodes;
       if (oldVersion < 1) {
         db.createObjectStore('heads', { keyPath: 'ref' });
-        const nodes = db.createObjectStore('nodes', {
-          keyPath: 'ref',
-        });
+        nodes = db.createObjectStore('nodes', { keyPath: 'ref' });
         nodes.createIndex('syncId', 'syncId');
+      } else {
+        nodes = tx.objectStore('nodes');
+      }
+      if (oldVersion < 2) {
+        db.createObjectStore('remotes');
+        nodes.createIndex('remoteSyncId', 'remoteSyncId');
       }
     },
   });

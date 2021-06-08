@@ -2,8 +2,10 @@ import { Delta } from 'jsondiffpatch';
 
 import {
   useTrimergeClientList,
+  useTrimergeDeleteDatabase,
   useTrimergeState,
   useTrimergeStateShutdown,
+  useTrimergeSyncStatus,
 } from './lib/trimergeHooks';
 import { diff, merge, patch } from './lib/trimergeDiffer';
 import { Differ } from 'trimerge-sync';
@@ -14,10 +16,12 @@ import { FocusPresenceState } from './lib/FocusPresenceState';
 export type AppState = {
   title: string;
   text: string;
+  slider: number;
 };
 export const defaultState = {
   title: '',
   text: '',
+  slider: 0,
 };
 
 export const differ: Differ<AppState, string, Delta> = {
@@ -38,8 +42,25 @@ export function useDemoAppState() {
   );
 }
 
+export function useDemoAppDeleteDatabase() {
+  return useTrimergeDeleteDatabase(
+    DEMO_DOC_ID,
+    DEMO_USER_ID,
+    currentTabId,
+    differ,
+  );
+}
+
 export function useDemoAppClientList() {
   return useTrimergeClientList<AppState, string, Delta, FocusPresenceState>(
+    DEMO_DOC_ID,
+    DEMO_USER_ID,
+    currentTabId,
+    differ,
+  );
+}
+export function useDemoAppSyncStatus() {
+  return useTrimergeSyncStatus<AppState, string, Delta>(
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,

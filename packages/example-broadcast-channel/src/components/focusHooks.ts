@@ -37,7 +37,7 @@ export function useFocusInfo<PresenceState extends FocusPresenceState>(
 } {
   return useMemo(() => {
     const otherClients = cursors.filter(
-      ({ state, origin }) => origin !== 'self' && state?.focusId === id,
+      ({ state, self }) => !self && state?.focusId === id,
     );
     const boxShadow = otherClients
       .map(

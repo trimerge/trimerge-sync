@@ -1,6 +1,7 @@
 import {
   ClientInfo,
   ClientList,
+  LocalClientInfo,
   DiffNode,
   GetLocalStoreFn,
   LocalStore,
@@ -20,7 +21,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private syncStateSubs = new SubscriberList(() => this.syncState);
   private clientListSubs = new SubscriberList(() => this.clientList);
 
-  private clientMap = new Map<string, ClientInfo<PresenceState>>();
+  private clientMap = new Map<string, LocalClientInfo<PresenceState>>();
   private clientList: ClientList<PresenceState> = [];
 
   private nodes = new Map<string, DiffNode<EditMetadata, Delta>>();
@@ -42,15 +43,15 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   };
 
   constructor(
-    readonly userId: string,
-    readonly clientId: string,
+    public readonly userId: string,
+    public readonly clientId: string,
     private readonly getLocalStore: GetLocalStoreFn<
       EditMetadata,
       Delta,
       PresenceState
     >,
     private readonly differ: Differ<State, EditMetadata, Delta>,
-    private readonly bufferMs: number = 0,
+    private readonly bufferMs: number,
   ) {
     this.selfFullId = getFullId(userId, clientId);
     this.store = getLocalStore(userId, clientId, this.onEvent);
@@ -59,11 +60,11 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
       clientId,
       ref: undefined,
       state: undefined,
-      origin: 'self',
+      self: true,
     });
   }
 
-  private setCursor(cursor: ClientInfo<PresenceState>) {
+  private setCursor(cursor: LocalClientInfo<PresenceState>) {
     const { userId, clientId } = cursor;
     this.clientMap.set(getFullId(userId, clientId), cursor);
     this.emitClientListChange();
@@ -101,11 +102,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
         break;
 
       case 'remote-state':
-        for (const [key, { origin }] of this.clientMap.entries()) {
-          if (origin === 'remote') {
-            this.clientMap.delete(key);
-          }
-        }
+        // TODO: remove remote clients as applicable?
         this.emitClientListChange();
         const changes: Partial<SyncStatus> = {};
         if (event.connect) {
@@ -124,6 +121,9 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
         this.updateSyncState({ localRead: 'ready' });
         break;
       case 'error':
+        if (event.code === 'internal') {
+          this.updateSyncState({ localRead: 'error' });
+        }
         break;
 
       default:
@@ -135,6 +135,9 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   get state(): State | undefined {
     return this.current?.value;
   }
+  get syncStatus(): SyncStatus {
+    return this.syncState;
+  }
   get clients(): ClientList<PresenceState> {
     return this.clientList;
   }
@@ -143,7 +146,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     return this.stateSubs.subscribe(onChange);
   }
 
-  subscribeSyncState(onChange: OnChangeFn<SyncStatus>) {
+  subscribeSyncStatus(onChange: OnChangeFn<SyncStatus>) {
     return this.syncStateSubs.subscribe(onChange);
   }
 
@@ -173,8 +176,8 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     ref = this.current?.ref,
   ) {
     const { userId, clientId } = this;
-    this.newPresenceState = { userId, clientId, ref, state, origin: 'self' };
-    this.setCursor(this.newPresenceState);
+    this.newPresenceState = { userId, clientId, ref, state };
+    this.setCursor({ userId, clientId, ref, state, self: true });
     this.emitClientListChange();
   }
 

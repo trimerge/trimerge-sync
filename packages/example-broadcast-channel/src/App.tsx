@@ -7,8 +7,10 @@ import styles from './App.module.css';
 import {
   defaultState,
   useDemoAppClientList,
+  useDemoAppDeleteDatabase,
   useDemoAppShutdown,
   useDemoAppState,
+  useDemoAppSyncStatus,
 } from './AppState';
 import { FocusInput } from './components/FocusInput';
 import { FocusTextarea } from './components/FocusTextarea';
@@ -20,6 +22,8 @@ enableMapSet();
 export function App() {
   const [state = defaultState, updateState] = useDemoAppState();
   const [clients, updatePresence] = useDemoAppClientList();
+  const deleteDatabase = useDemoAppDeleteDatabase();
+  const syncStatus = useDemoAppSyncStatus();
   useDemoAppShutdown();
 
   const users = useMemo(
@@ -60,6 +64,17 @@ export function App() {
     [state, updateState],
   );
 
+  const onChangeSlider = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) =>
+      updateState?.(
+        produce(state, (draft) => {
+          draft.slider = parseInt(event.target.value, 10);
+        }),
+        'edit slider',
+      ),
+    [state, updateState],
+  );
+
   const onChangeText = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) =>
       updateState?.(
@@ -88,6 +103,20 @@ export function App() {
             updatePresence={updatePresence}
           />
         </div>
+        <div>
+          A slider:{' '}
+          <FocusInput
+            id="slider"
+            type="range"
+            min="0"
+            max="1000"
+            value={String(state.slider)}
+            onChange={onChangeSlider}
+            clients={clients}
+            updatePresence={updatePresence}
+          />{' '}
+          ({state.slider})
+        </div>
         <FocusTextarea
           id="text"
           value={state.text}
@@ -96,6 +125,8 @@ export function App() {
           clients={clients}
           updatePresence={updatePresence}
         />
+        <button onClick={deleteDatabase}>Delete Database…</button>
+        Sync Status: <pre>{JSON.stringify(syncStatus, undefined, 2)}</pre>
         Raw State: <pre>{JSON.stringify(state, undefined, 2)}</pre>
         Raw Clients: <pre>{JSON.stringify(clients, undefined, 2)}</pre>
       </div>

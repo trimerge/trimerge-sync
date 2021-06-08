@@ -14,14 +14,17 @@ export type DiffNode<EditMetadata, Delta> = {
   mergeBaseRef?: string;
   delta?: Delta;
   editMetadata: EditMetadata;
+  remoteSyncId?: string;
 };
 
 export type LocalReadStatus =
   | 'loading' /** reading state from disk */
+  | 'error'
   | 'ready'; /** have latest state from disk, receiving local changes */
 
 export type LocalSaveStatus =
   | 'ready' /** no changes in local memory */
+  | 'error'
   | 'pending' /** changes in local memory, not sent to store yet */
   | 'saving'; /** sent changes to local store, no `ack` yet */
 
@@ -50,10 +53,14 @@ export type ClientPresenceRef<PresenceState> = {
 export type ClientInfo<PresenceState> = ClientPresenceRef<PresenceState> & {
   userId: string;
   clientId: string;
-  origin: 'self' | 'local' | 'remote';
 };
 
-export type ClientList<PresenceState> = readonly ClientInfo<PresenceState>[];
+export type LocalClientInfo<PresenceState> = ClientInfo<PresenceState> & {
+  self?: true;
+};
+export type ClientList<
+  PresenceState
+> = readonly LocalClientInfo<PresenceState>[];
 
 export type NodesEvent<EditMetadata, Delta, PresenceState> = {
   type: 'nodes';

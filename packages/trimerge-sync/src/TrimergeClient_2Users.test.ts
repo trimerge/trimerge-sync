@@ -2,9 +2,10 @@ import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
-import { computeRef, diff, merge, patch, timeout } from './testLib/MergeUtils';
+import { computeRef, diff, merge, patch } from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 import { ClientInfo } from './types';
+import { timeout } from './testLib/Timeout';
 
 type TestEditMetadata = string;
 type TestState = any;
@@ -108,15 +109,15 @@ describe('TrimergeClient: 2 users', () => {
     expect(client1.clients).toEqual([
       {
         userId: 'a',
+        self: true,
         clientId: 'test',
-        origin: 'self',
       },
     ]);
     expect(client2.clients).toEqual([
       {
         userId: 'b',
+        self: true,
         clientId: 'test',
-        origin: 'self',
       },
     ]);
 
@@ -125,8 +126,8 @@ describe('TrimergeClient: 2 users', () => {
         [
           {
             userId: 'a',
+            self: true,
             clientId: 'test',
-            origin: 'self',
           },
         ],
       ],
@@ -139,14 +140,13 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'self',
+        self: true,
         state: undefined,
         userId: 'a',
       },
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'local',
         state: undefined,
         userId: 'b',
       },
@@ -155,14 +155,13 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'local',
         state: undefined,
         userId: 'a',
       },
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'self',
+        self: true,
         state: undefined,
         userId: 'b',
       },
@@ -174,7 +173,7 @@ describe('TrimergeClient: 2 users', () => {
           {
             clientId: 'test',
             ref: undefined,
-            origin: 'self',
+            self: true,
             state: undefined,
             userId: 'a',
           },
@@ -185,14 +184,13 @@ describe('TrimergeClient: 2 users', () => {
           {
             clientId: 'test',
             ref: undefined,
-            origin: 'self',
+            self: true,
             state: undefined,
             userId: 'a',
           },
           {
             clientId: 'test',
             ref: undefined,
-            origin: 'local',
             state: undefined,
             userId: 'b',
           },
@@ -203,14 +201,13 @@ describe('TrimergeClient: 2 users', () => {
           {
             clientId: 'test',
             ref: undefined,
-            origin: 'self',
+            self: true,
             state: undefined,
             userId: 'a',
           },
           {
             clientId: 'test',
             ref: undefined,
-            origin: 'local',
             state: undefined,
             userId: 'b',
           },
@@ -228,15 +225,15 @@ describe('TrimergeClient: 2 users', () => {
     expect(client1.clients).toEqual([
       {
         userId: 'a',
+        self: true,
         clientId: 'test',
-        origin: 'self',
       },
     ]);
     expect(client2.clients).toEqual([
       {
         userId: 'b',
+        self: true,
         clientId: 'test',
-        origin: 'self',
       },
     ]);
 
@@ -248,14 +245,13 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'self',
+        self: true,
         state: 'hello',
         userId: 'a',
       },
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'local',
         state: undefined,
         userId: 'b',
       },
@@ -264,14 +260,13 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'local',
         state: 'hello',
         userId: 'a',
       },
       {
         clientId: 'test',
         ref: undefined,
-        origin: 'self',
+        self: true,
         state: undefined,
         userId: 'b',
       },

@@ -1,40 +1,32 @@
+import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
 import {
-  AckNodesEvent,
-  SyncEvent,
-  ClientInfo,
-  ClientPresenceRef,
   DiffNode,
   ErrorCode,
-  GetLocalStoreFn,
   NodesEvent,
   OnEventFn,
-  LocalStore,
-  GetRemoteFn,
   Remote,
-} from './types';
-import { PromiseQueue } from './lib/PromiseQueue';
+  SyncEvent,
+} from '../types';
+import { MemoryStore } from './MemoryStore';
+import { PromiseQueue } from '../lib/PromiseQueue';
 
-export abstract class AbstractRemote<EditMetadata, Delta, PresenceState>
+export class MemoryRemote<EditMetadata, Delta, PresenceState>
   implements Remote<EditMetadata, Delta, PresenceState> {
   private readonly remoteQueue = new PromiseQueue();
   private closed = false;
+  private readonly channel: MemoryBroadcastChannel<
+    SyncEvent<EditMetadata, Delta, PresenceState>
+  >;
 
-  public constructor(
+  constructor(
+    private readonly store: MemoryStore<EditMetadata, Delta, PresenceState>,
     private readonly userId: string,
-    private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
-  ) {}
-
-  protected abstract broadcast(
-    event: SyncEvent<EditMetadata, Delta, PresenceState>,
-  ): Promise<void>;
-
-  protected abstract addNodes(
-    nodes: readonly DiffNode<EditMetadata, Delta>[],
-  ): Promise<string>;
-
-  protected abstract getNodes(
     lastSyncId: string | undefined,
-  ): AsyncIterableIterator<NodesEvent<EditMetadata, Delta, PresenceState>>;
+    private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
+  ) {
+    this.channel = new MemoryBroadcastChannel(this.store.docId, onEvent);
+    this.sendInitialEvents(lastSyncId).catch(this.handleAsError('internal'));
+  }
 
   private async handle(
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
@@ -60,11 +52,6 @@ export abstract class AbstractRemote<EditMetadata, Delta, PresenceState>
 
       case 'client-join':
       case 'client-presence':
-        await this.broadcast({
-          ...event,
-          info: { ...event.info, origin: 'remote' },
-        });
-        break;
       case 'client-leave':
         await this.broadcast(event);
         break;
@@ -92,7 +79,7 @@ export abstract class AbstractRemote<EditMetadata, Delta, PresenceState>
     for await (const event of this.getNodes(lastSyncId)) {
       this.onEvent(event);
     }
-    this.onEvent({ type: 'ready' });
+    // this.onEvent({ type: 'ready' });
   }
 
   async shutdown(): Promise<void> {
@@ -101,9 +88,10 @@ export abstract class AbstractRemote<EditMetadata, Delta, PresenceState>
     }
     this.closed = true;
     this.onEvent({ type: 'remote-state', connect: 'offline', read: 'offline' });
+    this.channel.close();
   }
 
-  protected fail(message: string, code: ErrorCode, reconnect = true) {
+  fail(message: string, code: ErrorCode, reconnect = true) {
     this.onEvent({
       type: 'error',
       code,
@@ -116,5 +104,22 @@ export abstract class AbstractRemote<EditMetadata, Delta, PresenceState>
 
   protected handleAsError(code: ErrorCode) {
     return (error: Error) => this.fail(error.message, code);
+  }
+  protected addNodes(
+    nodes: readonly DiffNode<EditMetadata, Delta>[],
+  ): Promise<string> {
+    return this.store.addNodes(nodes);
+  }
+
+  protected broadcast(
+    event: SyncEvent<EditMetadata, Delta, PresenceState>,
+  ): Promise<void> {
+    return this.channel.postMessage(event);
+  }
+
+  protected async *getNodes(
+    lastSyncId: string | undefined,
+  ): AsyncIterableIterator<NodesEvent<EditMetadata, Delta, PresenceState>> {
+    yield await this.store.getLocalNodesEvent(lastSyncId);
   }
 }

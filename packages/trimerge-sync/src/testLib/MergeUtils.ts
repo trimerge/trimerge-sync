@@ -35,10 +35,6 @@ export function diff<T>(left: T, right: T) {
   return jdp.diff(left, right);
 }
 
-export function timeout() {
-  return new Promise((resolve) => setTimeout(resolve, 0));
-}
-
 export function computeRef(
   baseRef: string | undefined,
   mergeRef: string | undefined,
