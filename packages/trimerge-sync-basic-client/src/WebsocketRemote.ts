@@ -1,4 +1,4 @@
-import { ErrorCode, OnEventFn, Remote, SyncEvent } from 'trimerge-sync';
+import type { ErrorCode, OnEventFn, Remote, SyncEvent } from 'trimerge-sync';
 
 export class WebsocketRemote<EditMetadata, Delta, PresenceState>
   implements Remote<EditMetadata, Delta, PresenceState> {
