@@ -1,9 +1,8 @@
-import type { Database } from 'better-sqlite3';
-import SqliteDatabase from 'better-sqlite3';
-
+import SqliteDatabase, { Database } from 'better-sqlite3';
 import { join } from 'path';
-import { mkdirp, unlink } from 'fs-extra';
 import { AckNodesEvent, DiffNode, NodesEvent } from 'trimerge-sync';
+import { unlink } from 'fs-extra';
+import { DocStore } from '../DocStore';
 
 type SqliteNodeType = {
   ref: string;
@@ -18,8 +17,9 @@ type SqliteNodeType = {
   editMetadata?: string;
 };
 
-export class DocStore {
+export class SqliteDocStore implements DocStore {
   private readonly db: Database;
+
   constructor(
     docId: string,
     baseDir: string,

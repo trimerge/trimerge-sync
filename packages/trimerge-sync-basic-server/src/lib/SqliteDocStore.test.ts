@@ -1,6 +1,6 @@
-import { DocStore } from './store';
 import { join } from 'path';
 import { unlink, readdir, mkdirp, pathExists } from 'fs-extra';
+import { SqliteDocStore } from './SqliteDocStore';
 
 const testDir = join(__dirname, '..', '_test_data');
 
@@ -11,14 +11,14 @@ beforeAll(async () => {
   }
 });
 
-describe('store', () => {
+describe('SqliteDocStore', () => {
   it('is created', async () => {
-    const store = new DocStore('create_test', testDir);
+    const store = new SqliteDocStore('create_test', testDir);
     expect(store.getNodesEvent().nodes).toEqual([]);
   });
 
   it('is deleted', async () => {
-    const store = new DocStore('delete_test', testDir);
+    const store = new SqliteDocStore('delete_test', testDir);
     expect(store.getNodesEvent().nodes).toEqual([]);
     const filename = join(testDir, 'delete_test.sqlite');
     await expect(pathExists(filename)).resolves.toBe(true);
@@ -28,7 +28,7 @@ describe('store', () => {
 
   it('can be added to', async () => {
     let id = 0;
-    const store = new DocStore('insert_test', testDir, () =>
+    const store = new SqliteDocStore('insert_test', testDir, () =>
       new Date(id++).toISOString(),
     );
 
