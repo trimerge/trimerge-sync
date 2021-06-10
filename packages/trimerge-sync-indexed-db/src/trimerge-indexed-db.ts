@@ -184,7 +184,7 @@ class IndexedDbBackend<
     const headsToAdd = new Set<string>();
     const promises: Promise<unknown>[] = [];
     for (const node of nodes) {
-      syncCounter++;
+      const syncId = ++syncCounter;
       promises.push(
         (async () => {
           const existingNode = await nodesDb.get(node.ref);
@@ -193,7 +193,7 @@ class IndexedDbBackend<
             return;
           }
           await nodesDb.add({
-            syncId: syncCounter,
+            syncId,
             remoteSyncId: '',
             ...node,
           });
