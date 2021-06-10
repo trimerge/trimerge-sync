@@ -35,25 +35,25 @@
   },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
   "dependencies": {
-    "broadcast-channel": "^3.4.1",
-    "idb": "6.0.0"
+    "broadcast-channel": "^3.6.0",
+    "idb": "6.1.2"
   },
   "peerDependencies": {
-    "trimerge-sync": "^0.4.0"
+    "trimerge-sync": "0.5.2"
   },
   "files": [
     "dist/**/*",
     "src/**/*"
   ],
   "devDependencies": {
-    "@rollup/plugin-commonjs": "17.1.0",
-    "@rollup/plugin-node-resolve": "11.2.0",
-    "immer": "^8.0.1",
+    "@rollup/plugin-commonjs": "19.0.0",
+    "@rollup/plugin-node-resolve": "13.0.0",
+    "immer": "^9.0.3",
     "jest": "26.6.3",
-    "rollup": "2.39.1",
+    "rollup": "2.51.1",
     "rollup-plugin-typescript2": "0.30.0",
     "trimerge-sync": "*",
-    "typescript": "4.2.2"
+    "typescript": "4.3.2"
   },
   "jest": {
     "preset": "ts-jest",
