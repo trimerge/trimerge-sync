@@ -19,6 +19,8 @@
       <excludeFolder url="file://$MODULE_DIR$/tmp" />
       <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-basic-server/dist" />
       <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-basic-server/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-basic-client/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/trimerge-sync-basic-client/dist" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
