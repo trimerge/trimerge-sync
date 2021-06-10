@@ -3,7 +3,9 @@ export type ErrorCode =
   | 'invalid-nodes'
   | 'internal'
   | 'disconnected'
-  | 'network';
+  | 'network'
+  | 'bad-request'
+  | 'unauthorized';
 
 export type DiffNode<EditMetadata, Delta> = {
   userId: string;
@@ -62,6 +64,12 @@ export type ClientList<
   PresenceState
 > = readonly LocalClientInfo<PresenceState>[];
 
+export type AuthEvent = {
+  type: 'init';
+  lastSyncId: string | undefined;
+  auth: unknown;
+};
+
 export type NodesEvent<EditMetadata, Delta, PresenceState> = {
   type: 'nodes';
   nodes: readonly DiffNode<EditMetadata, Delta>[];
@@ -104,6 +112,7 @@ export type RemoteStateEvent = {
 };
 
 export type SyncEvent<EditMetadata, Delta, PresenceState> = Readonly<
+  | AuthEvent
   | NodesEvent<EditMetadata, Delta, PresenceState>
   | ReadyEvent
   | AckNodesEvent

@@ -40,14 +40,9 @@ function getCachedTrimergeClient<State, EditMetadata, Delta, PresenceState>(
         (userId, lastSyncId, onEvent) =>
           new WebsocketRemote(
             userId,
+            lastSyncId,
             onEvent,
-            `ws://localhost:4444/${encodeURIComponent(
-              docId,
-            )}?userId=${encodeURIComponent(userId)}${
-              lastSyncId !== undefined
-                ? `&lastSyncId=${encodeURIComponent(lastSyncId)}`
-                : ''
-            }`,
+            `ws://localhost:4444/${encodeURIComponent(docId)}`,
           ),
       ),
       differ,
