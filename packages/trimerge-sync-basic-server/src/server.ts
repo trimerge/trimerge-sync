@@ -4,7 +4,7 @@ import { AuthenticateFn, Connection } from './lib/connection';
 import { DocStore } from './DocStore';
 
 export class BasicServer {
-  liveDocs = new Map<string, LiveDoc>();
+  private readonly liveDocs = new Map<string, LiveDoc>();
 
   constructor(
     private readonly authenticate: AuthenticateFn,
