@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-indexed-db",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "indexed-db backend for trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
