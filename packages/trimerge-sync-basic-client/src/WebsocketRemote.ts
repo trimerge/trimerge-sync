@@ -5,7 +5,7 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
   private socket: WebSocket | undefined;
   private bufferedEvents: SyncEvent<EditMetadata, Delta, PresenceState>[] = [];
   constructor(
-    private readonly userId: string,
+    auth: unknown,
     lastSyncId: string | undefined,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
     websocketUrl: string,
@@ -25,7 +25,7 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
     this.socket.onmessage = (event) => {
       onEvent(JSON.parse(event.data));
     };
-    this.send({ type: 'init', lastSyncId, auth: { userId, readonly: false } });
+    this.send({ type: 'init', lastSyncId, auth });
   }
 
   send(event: SyncEvent<EditMetadata, Delta, PresenceState>): void {
