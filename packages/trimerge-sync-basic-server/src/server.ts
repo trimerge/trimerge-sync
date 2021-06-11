@@ -1,7 +1,9 @@
-import WebSocket, { Server } from 'ws';
+import type WebSocket from 'ws';
+import type { DocStore } from './DocStore';
+import type { AuthenticateFn } from './types';
+import { Server } from 'ws';
 import { LiveDoc, parseUrl } from './lib/docs';
-import { AuthenticateFn, Connection } from './lib/connection';
-import { DocStore } from './DocStore';
+import { Connection } from './lib/connection';
 
 export class BasicServer {
   private readonly liveDocs = new Map<string, LiveDoc>();
