@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-basic-server",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "basic websocket server for trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
