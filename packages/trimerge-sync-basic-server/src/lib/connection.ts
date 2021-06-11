@@ -1,15 +1,9 @@
-import WebSocket from 'ws';
+import type WebSocket from 'ws';
 import type { ErrorCode, SyncEvent } from 'trimerge-sync';
+import type { LiveDoc } from './docs';
+import type { Authenticated, AuthenticateFn } from '../types';
 import { PromiseQueue } from 'trimerge-sync';
 import { InternalError, MessageTooBig, UnsupportedData } from './codes';
-import { LiveDoc } from './docs';
-
-export type Authenticated = { userId: string; readonly: boolean };
-
-export type AuthenticateFn = (
-  docId: string,
-  auth: unknown,
-) => Promise<Authenticated>;
 
 export class Connection {
   private readonly clients = new Set<string>();

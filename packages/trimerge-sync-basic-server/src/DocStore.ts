@@ -1,4 +1,4 @@
-import { AckNodesEvent, DiffNode, NodesEvent } from 'trimerge-sync';
+import type { AckNodesEvent, DiffNode, NodesEvent } from 'trimerge-sync';
 
 export interface DocStore {
   getNodesEvent(
