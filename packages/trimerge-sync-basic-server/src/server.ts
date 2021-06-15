@@ -1,9 +1,11 @@
+import express from 'express';
+import { createServer } from 'http';
 import type WebSocket from 'ws';
-import type { DocStore } from './DocStore';
-import type { AuthenticateFn } from './types';
 import { Server } from 'ws';
-import { LiveDoc, parseUrl } from './lib/docs';
+import type { DocStore } from './DocStore';
 import { Connection } from './lib/connection';
+import { LiveDoc, parseUrl } from './lib/docs';
+import type { AuthenticateFn } from './types';
 
 export class BasicServer {
   private readonly liveDocs = new Map<string, LiveDoc>();
@@ -40,11 +42,12 @@ export class BasicServer {
   }
 
   listen(port: number) {
-    const wss = new Server({ port });
-
-    wss.on('listening', () => {
-      console.log('listening on: %s', wss.address());
+    const app = express();
+    app.get('/health', (req, res) => {
+      res.status(200).send('ok');
     });
+    const server = createServer(app);
+    const wss = new Server({ server });
 
     let id = 0;
 
@@ -57,6 +60,9 @@ export class BasicServer {
         console.log(`${connId}: closing connection: ${e}`);
         ws.close();
       }
+    });
+    server.listen(port, () => {
+      console.log('listening on: %s', server.address());
     });
   }
 }
