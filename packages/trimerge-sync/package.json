@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "distributed data sync using trimerge",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",

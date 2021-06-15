@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-indexed-db",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "indexed-db backend for trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
@@ -39,7 +39,7 @@
     "idb": "6.1.2"
   },
   "peerDependencies": {
-    "trimerge-sync": "0.6.0"
+    "trimerge-sync": "0.7.0"
   },
   "files": [
     "dist/**/*",
