@@ -12,7 +12,7 @@ function isFakeAuth(auth: unknown): auth is FakeAuth {
   return auth ? typeof (auth as any).userId === 'string' : false;
 }
 
-new BasicServer(
+const server = new BasicServer(
   async (docId, auth) => {
     if (!isFakeAuth(auth)) {
       throw new Error('invalid auth');
@@ -20,4 +20,5 @@ new BasicServer(
     return auth;
   },
   (docId) => new SqliteDocStore(docId, dataDir),
-).listen(4444);
+);
+server.attach({ port: 4444 });
