@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-basic-server",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "basic websocket server for trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
@@ -34,8 +34,9 @@
   },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
   "dependencies": {
+    "@types/ws": "^7.4.4",
     "fs-extra": "^10.0.0",
-    "trimerge-sync": "^0.5.2",
+    "trimerge-sync": "0.7.1",
     "ws": "^7.4.6"
   },
   "files": [
@@ -50,7 +51,6 @@
     "@rollup/plugin-node-resolve": "13.0.0",
     "@types/better-sqlite3": "^5.4.1",
     "@types/fs-extra": "^9.0.11",
-    "@types/ws": "^7.4.4",
     "better-sqlite3": "^7.4.1",
     "jest": "26.6.3",
     "rollup": "2.51.1",
