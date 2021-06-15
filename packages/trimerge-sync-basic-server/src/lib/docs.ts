@@ -1,28 +1,6 @@
 import { Connection } from './connection';
-import { parse } from 'querystring';
 import { AckNodesEvent, NodesEvent } from 'trimerge-sync';
 import { DocStore } from '../DocStore';
-
-export function parseUrl(
-  url: string | undefined,
-): { docId: string; userId?: string; lastSyncId?: string } {
-  if (!url) {
-    throw new Error('no url');
-  }
-  const [, docId, query = ''] =
-    /^\/+([^\/?]+)\/?.*?(?:\?(.+))?/.exec(url) ?? [];
-  if (!docId) {
-    throw new Error('invalid url');
-  }
-  const { lastSyncId, userId } = parse(query);
-  if (userId !== undefined && typeof userId !== 'string') {
-    throw new Error('invalid userId');
-  }
-  if (lastSyncId !== undefined && typeof lastSyncId !== 'string') {
-    throw new Error('invalid lastSyncId');
-  }
-  return { docId, userId, lastSyncId };
-}
 
 export class LiveDoc {
   private readonly connections = new Set<Connection>();

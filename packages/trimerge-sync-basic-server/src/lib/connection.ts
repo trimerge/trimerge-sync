@@ -2,8 +2,7 @@ import type WebSocket from 'ws';
 import type { ErrorCode, SyncEvent } from 'trimerge-sync';
 import { PromiseQueue } from 'trimerge-sync';
 import type { LiveDoc } from './docs';
-import type { Authenticated, AuthenticateFn } from '../types';
-import { LogFn } from '../types';
+import type { Authenticated, AuthenticateFn, Logger } from '../types';
 import { InternalError, MessageTooBig, UnsupportedData } from './codes';
 
 export class Connection {
@@ -12,18 +11,15 @@ export class Connection {
   private authenticated?: Authenticated = undefined;
 
   constructor(
-    private readonly id: string,
     private readonly ws: WebSocket,
     private readonly docId: string,
     private readonly liveDoc: LiveDoc,
     private readonly authenticate: AuthenticateFn,
     private readonly onClose: () => void,
-    private readonly logDebug: LogFn,
-    private readonly logInfo: LogFn,
-    private readonly logWarn: LogFn,
+    private readonly logger: Logger,
   ) {
     ws.on('close', () => {
-      this.logInfo('socket closed', { connId: this.id });
+      this.logger.info('socket closed', {});
       this.queue
         .add(async () => this.onClosed())
         .catch((error) => {
@@ -43,7 +39,7 @@ export class Connection {
         this.closeWithCode(MessageTooBig, 'bad-request', 'payload too big');
         return;
       }
-      this.logDebug(`--> received ${message}`, { connId: this.id });
+      this.logger.debug(`--> received ${message}`, {});
       this.queue.add(() => this.onMessage(message));
     });
   }
@@ -78,9 +74,7 @@ export class Connection {
       }
       const { auth, lastSyncId } = data;
       this.authenticated = await this.authenticate(this.docId, auth);
-      this.logInfo(`initialize`, {
-        connId: this.id,
-        docId: this.docId,
+      this.logger.info(`initialize`, {
         userId: this.authenticated.userId,
         lastSyncId,
       });
@@ -114,7 +108,7 @@ export class Connection {
         }
         this.broadcast(message);
         if (!this.clients.has(clientId)) {
-          this.logDebug('adding clientId', { connId: this.id, clientId });
+          this.logger.debug('adding clientId', { clientId });
           this.clients.add(clientId);
         }
         break;
@@ -139,7 +133,7 @@ export class Connection {
           return;
         }
         this.broadcast(message);
-        this.logDebug(`removing clientId`, { connId: this.id, clientId });
+        this.logger.debug(`removing clientId`, { clientId });
         this.clients.delete(clientId);
         break;
       }
@@ -148,7 +142,7 @@ export class Connection {
       case 'remote-state':
       case 'ack':
       case 'error': {
-        this.logWarn(`ignoring command ${data.type}`, { connId: this.id });
+        this.logger.warn(`ignoring command ${data.type}`);
         // this.closeWithCode(UnsupportedData, 'unexpected event');
         return;
       }
@@ -168,13 +162,12 @@ export class Connection {
   }
 
   public send(message: string) {
-    this.logDebug(`<-- sending: ${message}`, { connId: this.id });
+    this.logger.debug(`<-- sending: ${message}`);
     this.ws.send(message);
   }
 
   private closeWithCode(wsCode: number, code: ErrorCode, message: string) {
-    this.logInfo(`closing with code ${wsCode}: ${message}`, {
-      connId: this.id,
+    this.logger.info(`closing with code ${wsCode}: ${message}`, {
       wsCode,
       code,
     });
