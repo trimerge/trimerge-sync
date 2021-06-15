@@ -27,7 +27,7 @@ function makeLogger(sharedParams: Record<string, any>): Logger {
   };
 }
 
-export function parseUrlDocId(uri: string): string {
+function parseUrlDocId(uri: string): string {
   const docId = uri.split('/').find((x) => x);
   if (docId && /^[A-Z0-9_-]{1,50}$/i.test(docId)) {
     return docId;
