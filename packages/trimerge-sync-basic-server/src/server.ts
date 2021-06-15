@@ -1,4 +1,6 @@
-import { Server } from 'ws';
+import type { ServerOptions } from 'ws';
+import type { IncomingMessage } from 'http';
+import WebSocket, { Server } from 'ws';
 import type { DocStore } from './DocStore';
 import type { AuthenticateFn, LogFn } from './types';
 import { LiveDoc, parseUrl } from './lib/docs';
@@ -21,13 +23,19 @@ export class BasicServer {
     private readonly logWarn: LogFn = DEFAULT_LOG_WARN,
   ) {}
 
-  attach(wss: Server) {
+  attach(options: ServerOptions): () => void {
+    const wss = new Server(options);
     let id = 0;
 
-    wss.on('connection', (ws, req) => {
+    const onConnection = (ws: WebSocket, req: IncomingMessage) => {
       const connId = (id++).toString(16);
       try {
-        this.logInfo(`${connId}: new connection`);
+        this.logInfo(`${connId}: new connection`, {
+          connId,
+          remoteAddress: req.socket.remoteAddress,
+          remotePort: req.socket.remotePort,
+          remoteFamily: req.socket.remoteFamily,
+        });
         const { docId } = parseUrl(req.url);
         const liveDoc =
           this.liveDocs.get(docId) ?? new LiveDoc(this.makeDocStore(docId));
@@ -51,18 +59,20 @@ export class BasicServer {
         );
         liveDoc.add(conn);
       } catch (e) {
-        this.logInfo(`${connId}: closing connection: ${e}`);
+        this.logInfo(`${connId}: closing connection: ${e}`, {
+          connId,
+          error: e.message,
+        });
         ws.close();
       }
-    });
-  }
-
-  listen(port: number) {
-    const wss = new Server({ port });
-    this.attach(wss);
-
+    };
+    wss.on('connection', onConnection);
     wss.on('listening', () => {
-      this.logInfo(`listening on: ${wss.address()}`);
+      this.logInfo(`listening`, { ...(wss.address() as Record<string, any>) });
     });
+
+    return () => {
+      wss.off('connection', onConnection);
+    };
   }
 }

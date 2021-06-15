@@ -23,7 +23,7 @@ export class Connection {
     private readonly logWarn: LogFn,
   ) {
     ws.on('close', () => {
-      this.logInfo('socket closed');
+      this.logInfo('socket closed', { connId: this.id });
       this.queue
         .add(async () => this.onClosed())
         .catch((error) => {
@@ -43,7 +43,7 @@ export class Connection {
         this.closeWithCode(MessageTooBig, 'bad-request', 'payload too big');
         return;
       }
-      this.logDebug(`--> received ${message}`);
+      this.logDebug(`--> received ${message}`, { connId: this.id });
       this.queue.add(() => this.onMessage(message));
     });
   }
@@ -79,6 +79,7 @@ export class Connection {
       const { auth, lastSyncId } = data;
       this.authenticated = await this.authenticate(this.docId, auth);
       this.logInfo(`initialize`, {
+        connId: this.id,
         docId: this.docId,
         userId: this.authenticated.userId,
         lastSyncId,
@@ -113,7 +114,7 @@ export class Connection {
         }
         this.broadcast(message);
         if (!this.clients.has(clientId)) {
-          this.logDebug('adding clientId', { clientId });
+          this.logDebug('adding clientId', { connId: this.id, clientId });
           this.clients.add(clientId);
         }
         break;
@@ -138,7 +139,7 @@ export class Connection {
           return;
         }
         this.broadcast(message);
-        this.logDebug(`removing clientId`, { clientId });
+        this.logDebug(`removing clientId`, { connId: this.id, clientId });
         this.clients.delete(clientId);
         break;
       }
@@ -147,7 +148,7 @@ export class Connection {
       case 'remote-state':
       case 'ack':
       case 'error': {
-        this.logWarn(`ignoring command ${data.type}`);
+        this.logWarn(`ignoring command ${data.type}`, { connId: this.id });
         // this.closeWithCode(UnsupportedData, 'unexpected event');
         return;
       }
@@ -167,12 +168,16 @@ export class Connection {
   }
 
   public send(message: string) {
-    this.logDebug(`<-- sending: ${message}`);
+    this.logDebug(`<-- sending: ${message}`, { connId: this.id });
     this.ws.send(message);
   }
 
   private closeWithCode(wsCode: number, code: ErrorCode, message: string) {
-    this.logInfo(`closing with code ${wsCode}: ${message}`, { wsCode, code });
+    this.logInfo(`closing with code ${wsCode}: ${message}`, {
+      connId: this.id,
+      wsCode,
+      code,
+    });
     this.sendEvent({
       type: 'error',
       code,
