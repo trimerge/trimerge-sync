@@ -6,6 +6,8 @@ import {
   GetRemoteFn,
   NodesEvent,
   OnEventFn,
+  AckNodesEvent,
+  AckRefErrors,
 } from 'trimerge-sync';
 import { DBSchema, deleteDB, IDBPDatabase, openDB, StoreValue } from 'idb';
 import {
@@ -165,7 +167,7 @@ class IndexedDbBackend<
   protected async addNodes(
     nodes: readonly DiffNode<EditMetadata, Delta>[],
     lastSyncId: string | undefined,
-  ): Promise<string> {
+  ): Promise<AckNodesEvent> {
     const db = await this.db;
     const tx = db.transaction(['heads', 'nodes'], 'readwrite');
 
@@ -183,23 +185,32 @@ class IndexedDbBackend<
     const headsToDelete = new Set<string>();
     const headsToAdd = new Set<string>();
     const promises: Promise<unknown>[] = [];
+    const refs = new Set<string>();
+    const refErrors: AckRefErrors = {};
     for (const node of nodes) {
       const syncId = ++syncCounter;
+      const { ref, baseRef, mergeRef } = node;
       promises.push(
         (async () => {
-          const existingNode = await nodesDb.get(node.ref);
+          const existingNode = await nodesDb.get(ref);
           if (existingNode) {
+            refs.add(ref);
             console.warn(`already have node`, { node, existingNode });
             return;
           }
-          await nodesDb.add({
-            syncId,
-            remoteSyncId: '',
-            ...node,
-          });
+          try {
+            await nodesDb.add({
+              syncId,
+              remoteSyncId: '',
+              ...node,
+            });
+            refs.add(ref);
+          } catch (e) {
+            refErrors[ref] = { message: e.message };
+            console.warn(`error inserting node`, { node, existingNode }, e);
+          }
         })(),
       );
-      const { ref, baseRef, mergeRef } = node;
       if (baseRef !== undefined) {
         headsToDelete.add(baseRef);
       }
@@ -226,7 +237,12 @@ class IndexedDbBackend<
       await tx.done;
     }
 
-    return toSyncId(syncCounter);
+    return {
+      type: 'ack',
+      refs: Array.from(refs),
+      refErrors,
+      syncId: toSyncId(syncCounter),
+    };
   }
 
   protected async *getLocalNodes(): AsyncIterableIterator<
