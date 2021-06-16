@@ -8,6 +8,7 @@ import {
   NodesEvent,
   OnEventFn,
   Remote,
+  RemoteStateEvent,
   SyncEvent,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
@@ -37,6 +38,13 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     | undefined;
   private remote: Remote<EditMetadata, Delta, PresenceState> | undefined;
   private reconnectDelayMs: number;
+  private remoteSyncState: RemoteStateEvent = {
+    type: 'remote-state',
+    save: 'ready',
+    connect: 'offline',
+    read: 'offline',
+  };
+  private readonly unacknowledgedRefs = new Set<string>();
   private readonly remoteQueue = new PromiseQueue();
 
   public constructor(
@@ -80,16 +88,28 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     return { userId, clientId, ...this.presence };
   }
 
-  // Three sources of events: self, local broadcast, and remote broadcast
+  private async setRemoteState(
+    update: RemoteStateEvent,
+    sendEvent: boolean = true,
+  ): Promise<void> {
+    this.remoteSyncState = { ...this.remoteSyncState, ...update };
+    if (sendEvent) {
+      await this.sendEvent(update, { local: true, self: true });
+    }
+  }
 
   protected processEvent = async (
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
+    // Three sources of events: self, local broadcast, and remote broadcast
     origin: 'self' | 'local' | 'remote',
   ): Promise<void> => {
-    console.log(
-      `processing "${event.type}" from ${origin}: ${JSON.stringify(event)}`,
-    );
+    if (process.env.NODE_ENV === 'development') {
+      console.log(
+        `processing "${event.type}" from ${origin}: ${JSON.stringify(event)}`,
+      );
+    }
 
+    // Re-broadcast event to other channels
     await this.sendEvent(event, {
       self: origin !== 'self',
       local: origin !== 'local',
@@ -100,10 +120,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       case 'ready':
         // Reset reconnect timeout
         this.reconnectDelayMs = this.reconnectSettings.initialDelayMs;
-        await this.sendEvent(
-          { type: 'remote-state', read: 'ready' },
-          { self: true, local: true },
-        );
+        await this.setRemoteState({ type: 'remote-state', read: 'ready' });
         break;
 
       case 'nodes':
@@ -124,11 +141,12 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       case 'ack':
         if (origin === 'remote') {
           await this.acknowledgeRemoteNodes(event.refs, event.syncId);
-          // FIXME: we might have sent more stuff since this acknowledgement
-          await this.sendEvent(
-            { type: 'remote-state', save: 'ready' },
-            { self: true, local: true },
-          );
+          for (const ref of event.refs) {
+            this.unacknowledgedRefs.delete(ref);
+          }
+          if (this.unacknowledgedRefs.size === 0) {
+            await this.setRemoteState({ type: 'remote-state', save: 'ready' });
+          }
         }
         break;
 
@@ -140,13 +158,16 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           },
           { local: true, remote: true },
         );
+        if (origin === 'local' && this.remote) {
+          await this.sendEvent(this.remoteSyncState, { local: true });
+        }
         break;
       case 'client-presence':
         break;
       case 'client-leave':
         break;
       case 'remote-state':
-        if (event.connect === 'online') {
+        if (origin === 'remote' && event.connect === 'online') {
           await this.sendEvent(
             {
               type: 'client-join',
@@ -155,6 +176,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
             { local: true, remote: true },
           );
         }
+        await this.setRemoteState(event, false);
         break;
       case 'error':
         if (origin === 'remote') {
@@ -210,14 +232,11 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       return;
     }
     await this.remote.shutdown();
-    await this.sendEvent(
-      {
-        type: 'remote-state',
-        connect: 'offline',
-        read: 'offline',
-      },
-      { local: true, self: true },
-    );
+    await this.setRemoteState({
+      type: 'remote-state',
+      connect: 'offline',
+      read: 'offline',
+    });
     this.remote = undefined;
   }
 
@@ -229,14 +248,11 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       if (this.closed) {
         return;
       }
-      await this.sendEvent(
-        {
-          type: 'remote-state',
-          connect: 'connecting',
-          read: 'loading',
-        },
-        { self: true, local: true },
-      );
+      await this.setRemoteState({
+        type: 'remote-state',
+        connect: 'connecting',
+        read: 'loading',
+      });
       this.remote = getRemote(
         this.userId,
         await this.getLastRemoteSyncId(),
@@ -248,11 +264,11 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       );
       let saving = false;
       for await (const event of this.getNodesForRemote()) {
+        for (const { ref } of event.nodes) {
+          this.unacknowledgedRefs.add(ref);
+        }
         if (!saving) {
-          await this.sendEvent(
-            { type: 'remote-state', save: 'saving' },
-            { self: true, local: true },
-          );
+          await this.setRemoteState({ type: 'remote-state', save: 'saving' });
           saving = true;
         }
         await this.sendEvent(event, { remote: true });
@@ -285,7 +301,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }: { remote?: boolean; local?: boolean; self?: boolean },
   ): Promise<void> {
     if (self) {
-      console.log(`handle event: ${JSON.stringify(event)}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`handle event: ${JSON.stringify(event)}`);
+      }
       try {
         this.onEvent(event);
       } catch (e) {
@@ -294,11 +312,15 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       }
     }
     if (local) {
-      console.log(`send local event: ${JSON.stringify(event)}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`send local event: ${JSON.stringify(event)}`);
+      }
       await this.broadcastLocal(event);
     }
     if (remote && this.remote) {
-      console.log(`send remote event: ${JSON.stringify(event)}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`send remote event: ${JSON.stringify(event)}`);
+      }
       await this.remote.send(event);
     }
   }
@@ -333,10 +355,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       this.presence = presenceRef;
     }
     if (nodes.length > 0) {
-      await this.sendEvent(
-        { type: 'remote-state', save: 'pending' },
-        { self: true, local: true },
-      );
+      await this.setRemoteState({ type: 'remote-state', save: 'pending' });
     }
 
     const syncId = await this.addNodes(nodes);
@@ -354,10 +373,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       clientId: this.clientId,
     };
     if (nodes.length > 0) {
-      await this.sendEvent(
-        { type: 'remote-state', save: 'saving' },
-        { self: true, local: true },
-      );
+      await this.setRemoteState({ type: 'remote-state', save: 'saving' });
       await this.sendEvent(
         {
           type: 'nodes',
