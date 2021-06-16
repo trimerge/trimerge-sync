@@ -103,9 +103,11 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     // Three sources of events: self, local broadcast, and remote broadcast
     origin: 'self' | 'local' | 'remote',
   ): Promise<void> => {
-    console.log(
-      `processing "${event.type}" from ${origin}: ${JSON.stringify(event)}`,
-    );
+    if (process.env.NODE_ENV === 'development') {
+      console.log(
+        `processing "${event.type}" from ${origin}: ${JSON.stringify(event)}`,
+      );
+    }
 
     // Re-broadcast event to other channels
     await this.sendEvent(event, {
@@ -165,7 +167,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       case 'client-leave':
         break;
       case 'remote-state':
-        if (event.connect === 'online') {
+        if (origin === 'remote' && event.connect === 'online') {
           await this.sendEvent(
             {
               type: 'client-join',
@@ -299,7 +301,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }: { remote?: boolean; local?: boolean; self?: boolean },
   ): Promise<void> {
     if (self) {
-      console.log(`handle event: ${JSON.stringify(event)}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`handle event: ${JSON.stringify(event)}`);
+      }
       try {
         this.onEvent(event);
       } catch (e) {
@@ -308,11 +312,15 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       }
     }
     if (local) {
-      console.log(`send local event: ${JSON.stringify(event)}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`send local event: ${JSON.stringify(event)}`);
+      }
       await this.broadcastLocal(event);
     }
     if (remote && this.remote) {
-      console.log(`send remote event: ${JSON.stringify(event)}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`send remote event: ${JSON.stringify(event)}`);
+      }
       await this.remote.send(event);
     }
   }
