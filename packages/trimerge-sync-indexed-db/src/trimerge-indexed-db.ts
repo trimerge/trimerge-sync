@@ -205,22 +205,14 @@ class IndexedDbBackend<
       const { ref, baseRef, mergeRef } = node;
       promises.push(
         (async () => {
-          if (await nodeExistsAlready(node)) {
-            return;
-          }
           try {
-            await nodesDb.add({
-              syncId,
-              remoteSyncId: '',
-              ...node,
-            });
-            refs.add(ref);
-          } catch (e) {
-            // Check again (I'm not sure why the first check fails sometimes)
-            if (await nodeExistsAlready(node, e.message)) {
+            if (await nodeExistsAlready(node)) {
               return;
             }
-            refErrors[ref] = { code: 'internal', message: e.message };
+            await nodesDb.add({ syncId, remoteSyncId: '', ...node });
+            refs.add(ref);
+          } catch (e) {
+            refErrors[ref] = { code: 'storage-failure', message: e.message };
             console.warn(`error inserting node`, { node }, e);
           }
         })(),
@@ -240,16 +232,15 @@ class IndexedDbBackend<
       }
     }
     for (const ref of headsToAdd) {
-      promises.push(headsDb.add({ ref }));
+      promises.push(headsDb.put({ ref }));
     }
 
     if (lastSyncId) {
       await this.updateLastRemoteSyncId(lastSyncId);
     }
-    if (promises.length > 0) {
-      await Promise.all(promises);
-      await tx.done;
-    }
+
+    await Promise.all(promises);
+    await tx.done;
 
     return {
       type: 'ack',
