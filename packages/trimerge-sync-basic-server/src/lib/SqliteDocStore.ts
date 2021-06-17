@@ -109,11 +109,11 @@ export class SqliteDocStore implements DocStore {
         VALUES (@ref, @remoteSyncId, @remoteSyncIndex, @userId, @clientId, @baseRef, @mergeRef, @mergeBaseRef, @delta, @editMetadata)
         ON CONFLICT DO NOTHING`,
     );
-    const seenRefs = new Set(this.seenRefs);
+    const knownRefs = new Set(this.seenRefs);
     for (const { ref } of nodes) {
-      seenRefs.add(ref);
+      knownRefs.add(ref);
     }
-    const refs: string[] = [];
+    const refs = new Set<string>();
     const refErrors: AckRefErrors = {};
     function invalidParentRef(
       node: DiffNode<unknown, unknown>,
@@ -123,10 +123,10 @@ export class SqliteDocStore implements DocStore {
       >,
     ) {
       const parentRef = node[key];
-      if (parentRef && !seenRefs.has(parentRef)) {
+      if (parentRef && !knownRefs.has(parentRef)) {
         refErrors[node.ref] = {
           code: 'invalid-node',
-          message: `unknown ${parentRef}`,
+          message: `unknown ${key}`,
         };
         return true;
       }
@@ -152,8 +152,8 @@ export class SqliteDocStore implements DocStore {
         ) {
           continue;
         }
-        refs.push(ref);
-        if (seenRefs.has(ref)) {
+        refs.add(ref);
+        if (this.seenRefs.has(ref)) {
           continue;
         }
         insert.run({
@@ -174,7 +174,8 @@ export class SqliteDocStore implements DocStore {
     })();
     return {
       type: 'ack',
-      refs,
+      refs: Array.from(refs),
+      refErrors,
       syncId: remoteSyncId,
     };
   }

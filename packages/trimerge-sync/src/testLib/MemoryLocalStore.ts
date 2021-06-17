@@ -1,6 +1,7 @@
 import { AbstractLocalStore } from '../AbstractLocalStore';
 import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
 import {
+  AckNodesEvent,
   DiffNode,
   GetRemoteFn,
   NodesEvent,
@@ -48,7 +49,7 @@ export class MemoryLocalStore<
   protected addNodes(
     nodes: DiffNode<EditMetadata, Delta>[],
     remoteSyncId?: string,
-  ): Promise<string> {
+  ): Promise<AckNodesEvent> {
     return this.store.addNodes(nodes, remoteSyncId);
   }
 

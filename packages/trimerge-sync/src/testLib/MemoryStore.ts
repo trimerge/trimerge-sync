@@ -1,4 +1,10 @@
-import { DiffNode, GetLocalStoreFn, GetRemoteFn, NodesEvent } from '../types';
+import {
+  AckNodesEvent,
+  DiffNode,
+  GetLocalStoreFn,
+  GetRemoteFn,
+  NodesEvent,
+} from '../types';
 import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
 import { MemoryLocalStore } from './MemoryLocalStore';
@@ -66,16 +72,22 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
   addNodes(
     nodes: readonly DiffNode<EditMetadata, Delta>[],
     remoteSyncId?: string,
-  ): Promise<string> {
+  ): Promise<AckNodesEvent> {
     return this.queue.add(async () => {
       this.nodes.push(...nodes);
+      const refs = new Set<string>();
       if (remoteSyncId !== undefined) {
         for (const { ref } of nodes) {
           this.syncedNodes.add(ref);
+          refs.add(ref);
         }
         this.lastRemoteSyncId = remoteSyncId;
       }
-      return this.syncId;
+      return {
+        type: 'ack',
+        refs: Array.from(refs),
+        syncId: this.syncId,
+      };
     });
   }
   async acknowledgeNodes(
