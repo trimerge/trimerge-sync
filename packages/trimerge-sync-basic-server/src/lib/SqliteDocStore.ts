@@ -117,10 +117,7 @@ export class SqliteDocStore implements DocStore {
     const refErrors: AckRefErrors = {};
     function invalidParentRef(
       node: DiffNode<unknown, unknown>,
-      key: keyof Pick<
-        DiffNode<unknown, unknown>,
-        'baseRef' | 'mergeRef' | 'mergeBaseRef'
-      >,
+      key: 'baseRef' | 'mergeRef' | 'mergeBaseRef',
     ) {
       const parentRef = node[key];
       if (parentRef && !knownRefs.has(parentRef)) {
