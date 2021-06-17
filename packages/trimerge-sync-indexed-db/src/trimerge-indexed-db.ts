@@ -6,6 +6,8 @@ import {
   GetRemoteFn,
   NodesEvent,
   OnEventFn,
+  AckNodesEvent,
+  AckRefErrors,
 } from 'trimerge-sync';
 import { DBSchema, deleteDB, IDBPDatabase, openDB, StoreValue } from 'idb';
 import {
@@ -165,7 +167,7 @@ class IndexedDbBackend<
   protected async addNodes(
     nodes: readonly DiffNode<EditMetadata, Delta>[],
     lastSyncId: string | undefined,
-  ): Promise<string> {
+  ): Promise<AckNodesEvent> {
     const db = await this.db;
     const tx = db.transaction(['heads', 'nodes'], 'readwrite');
 
@@ -183,23 +185,46 @@ class IndexedDbBackend<
     const headsToDelete = new Set<string>();
     const headsToAdd = new Set<string>();
     const promises: Promise<unknown>[] = [];
+    const refs = new Set<string>();
+    const refErrors: AckRefErrors = {};
+    async function nodeExistsAlready(
+      node: DiffNode<unknown, unknown>,
+      error?: string,
+    ): Promise<boolean> {
+      const existingNode = await nodesDb.get(node.ref);
+      if (existingNode) {
+        refs.add(node.ref);
+        console.warn(`already have node`, { node, existingNode, error });
+        return true;
+      }
+      return false;
+    }
+
     for (const node of nodes) {
       const syncId = ++syncCounter;
+      const { ref, baseRef, mergeRef } = node;
       promises.push(
         (async () => {
-          const existingNode = await nodesDb.get(node.ref);
-          if (existingNode) {
-            console.warn(`already have node`, { node, existingNode });
+          if (await nodeExistsAlready(node)) {
             return;
           }
-          await nodesDb.add({
-            syncId,
-            remoteSyncId: '',
-            ...node,
-          });
+          try {
+            await nodesDb.add({
+              syncId,
+              remoteSyncId: '',
+              ...node,
+            });
+            refs.add(ref);
+          } catch (e) {
+            // Check again (I'm not sure why the first check fails sometimes)
+            if (await nodeExistsAlready(node, e.message)) {
+              return;
+            }
+            refErrors[ref] = { code: 'internal', message: e.message };
+            console.warn(`error inserting node`, { node }, e);
+          }
         })(),
       );
-      const { ref, baseRef, mergeRef } = node;
       if (baseRef !== undefined) {
         headsToDelete.add(baseRef);
       }
@@ -226,7 +251,12 @@ class IndexedDbBackend<
       await tx.done;
     }
 
-    return toSyncId(syncCounter);
+    return {
+      type: 'ack',
+      refs: Array.from(refs),
+      refErrors,
+      syncId: toSyncId(syncCounter),
+    };
   }
 
   protected async *getLocalNodes(): AsyncIterableIterator<

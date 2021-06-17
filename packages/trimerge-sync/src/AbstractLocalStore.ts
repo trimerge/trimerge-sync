@@ -1,4 +1,5 @@
 import {
+  AckNodesEvent,
   ClientInfo,
   ClientPresenceRef,
   DiffNode,
@@ -74,7 +75,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   protected abstract addNodes(
     nodes: readonly DiffNode<EditMetadata, Delta>[],
     remoteSyncId?: string,
-  ): Promise<string>;
+  ): Promise<AckNodesEvent>;
 
   protected abstract acknowledgeRemoteNodes(
     refs: readonly string[],
@@ -125,7 +126,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
 
       case 'nodes':
         if (origin === 'remote') {
-          const syncId = await this.addNodes(event.nodes, event.syncId);
+          const { syncId } = await this.addNodes(event.nodes, event.syncId);
           await this.sendEvent(
             {
               type: 'nodes',
@@ -358,15 +359,8 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       await this.setRemoteState({ type: 'remote-state', save: 'pending' });
     }
 
-    const syncId = await this.addNodes(nodes);
-    await this.sendEvent(
-      {
-        type: 'ack',
-        refs: nodes.map(({ ref }) => ref),
-        syncId,
-      },
-      { self: true },
-    );
+    const ack = await this.addNodes(nodes);
+    await this.sendEvent(ack, { self: true });
     const clientInfo: ClientInfo<PresenceState> | undefined = presenceRef && {
       ...presenceRef,
       userId: this.userId,
@@ -378,7 +372,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         {
           type: 'nodes',
           nodes,
-          syncId,
+          syncId: ack.syncId,
           clientInfo,
         },
         { local: true, remote: true },

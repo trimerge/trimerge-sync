@@ -79,9 +79,16 @@ export type NodesEvent<EditMetadata, Delta, PresenceState> = {
 export type ReadyEvent = {
   type: 'ready';
 };
+export type AckNodeErrorCode = 'invalid-node' | 'internal';
+export type AckNodeError = {
+  code: AckNodeErrorCode;
+  message: string;
+};
+export type AckRefErrors = Record<string, AckNodeError>;
 export type AckNodesEvent = {
   type: 'ack';
   refs: readonly string[];
+  refErrors?: AckRefErrors;
   syncId: string;
 };
 export type ClientJoinEvent<PresenceState> = {

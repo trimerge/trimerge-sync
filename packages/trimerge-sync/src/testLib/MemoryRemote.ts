@@ -1,5 +1,6 @@
 import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
 import {
+  AckNodesEvent,
   DiffNode,
   ErrorCode,
   NodesEvent,
@@ -37,13 +38,9 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
     switch (event.type) {
       case 'nodes':
         // FIXME: check for nodes with wrong userId
-        const syncId = await this.addNodes(event.nodes);
-        await this.onEvent({
-          type: 'ack',
-          refs: event.nodes.map(({ ref }) => ref),
-          syncId,
-        });
-        await this.broadcast({ ...event, syncId });
+        const ack = await this.addNodes(event.nodes);
+        await this.onEvent(ack);
+        await this.broadcast({ ...event, syncId: ack.syncId });
         break;
 
       case 'ready':
@@ -107,7 +104,7 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
   }
   protected addNodes(
     nodes: readonly DiffNode<EditMetadata, Delta>[],
-  ): Promise<string> {
+  ): Promise<AckNodesEvent> {
     return this.store.addNodes(nodes);
   }
 

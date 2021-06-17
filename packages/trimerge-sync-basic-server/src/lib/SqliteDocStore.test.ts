@@ -11,6 +11,15 @@ beforeAll(async () => {
   }
 });
 
+function makeIdCreator() {
+  let id = 0;
+  return () => new Date(id++).toISOString();
+}
+
+function makeSqliteStore(docId: string) {
+  return new SqliteDocStore(docId, testDir, makeIdCreator());
+}
+
 describe('SqliteDocStore', () => {
   it('is created', async () => {
     const store = new SqliteDocStore('create_test', testDir);
@@ -27,10 +36,7 @@ describe('SqliteDocStore', () => {
   });
 
   it('can be added to', async () => {
-    let id = 0;
-    const store = new SqliteDocStore('insert_test', testDir, () =>
-      new Date(id++).toISOString(),
-    );
+    const store = makeSqliteStore('insert_test');
 
     expect(
       store.add([
@@ -45,14 +51,13 @@ describe('SqliteDocStore', () => {
           clientId: 'client-1',
           userId: 'client-2',
           editMetadata: { hello: 'world' },
-          mergeRef: 'merge-ref',
-          mergeBaseRef: 'merge-base-ref',
           baseRef: 'hello1',
           delta: { delta: 'format' },
         },
       ]),
     ).toMatchInlineSnapshot(`
       Object {
+        "refErrors": Object {},
         "refs": Array [
           "hello1",
           "hello2",
@@ -73,6 +78,7 @@ describe('SqliteDocStore', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
+        "refErrors": Object {},
         "refs": Array [
           "hello3",
         ],
@@ -106,8 +112,8 @@ describe('SqliteDocStore', () => {
             "editMetadata": Object {
               "hello": "world",
             },
-            "mergeBaseRef": "merge-base-ref",
-            "mergeRef": "merge-ref",
+            "mergeBaseRef": undefined,
+            "mergeRef": undefined,
             "ref": "hello2",
             "remoteSyncId": "1970-01-01T00:00:00.000Z",
             "userId": "client-2",
@@ -151,6 +157,86 @@ describe('SqliteDocStore', () => {
         ],
         "syncId": "1970-01-01T00:00:00.001Z",
         "type": "nodes",
+      }
+    `);
+  });
+
+  it('handles double add', async () => {
+    const store = makeSqliteStore('double_add_test');
+
+    expect(
+      store.add([
+        {
+          ref: 'hello1',
+          clientId: 'client-1',
+          userId: 'client-2',
+          editMetadata: { hello: 'world' },
+        },
+        {
+          ref: 'hello1',
+          clientId: 'client-1',
+          userId: 'client-2',
+          editMetadata: { hello: 'world' },
+        },
+      ]),
+    ).toMatchInlineSnapshot(`
+      Object {
+        "refErrors": Object {},
+        "refs": Array [
+          "hello1",
+        ],
+        "syncId": "1970-01-01T00:00:00.000Z",
+        "type": "ack",
+      }
+    `);
+  });
+
+  it('handles missing baseRef', async () => {
+    const store = makeSqliteStore('missing_tests');
+
+    expect(
+      store.add([
+        {
+          ref: 'hello1',
+          clientId: 'client-1',
+          userId: 'client-2',
+          baseRef: 'unknown',
+          editMetadata: { hello: 'world' },
+        },
+        {
+          ref: 'hello2',
+          clientId: 'client-1',
+          userId: 'client-2',
+          mergeRef: 'unknown',
+          editMetadata: { hello: 'world' },
+        },
+        {
+          ref: 'hello3',
+          clientId: 'client-1',
+          userId: 'client-2',
+          mergeBaseRef: 'unknown',
+          editMetadata: { hello: 'world' },
+        },
+      ]),
+    ).toMatchInlineSnapshot(`
+      Object {
+        "refErrors": Object {
+          "hello1": Object {
+            "code": "invalid-node",
+            "message": "unknown baseRef",
+          },
+          "hello2": Object {
+            "code": "invalid-node",
+            "message": "unknown mergeRef",
+          },
+          "hello3": Object {
+            "code": "invalid-node",
+            "message": "unknown mergeBaseRef",
+          },
+        },
+        "refs": Array [],
+        "syncId": "1970-01-01T00:00:00.000Z",
+        "type": "ack",
       }
     `);
   });
