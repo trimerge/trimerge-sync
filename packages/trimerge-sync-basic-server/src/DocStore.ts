@@ -11,7 +11,5 @@ export interface DocStore {
     nodes: readonly DiffNode<unknown, unknown>[],
   ): Promise<AckNodesEvent> | AckNodesEvent;
 
-  delete(): Promise<void>;
-
   close(): void;
 }
