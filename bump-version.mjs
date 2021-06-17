@@ -3,13 +3,17 @@ import { resolve } from 'path';
 import fs from 'fs-extra';
 import prettier from 'prettier';
 import { createInterface } from 'readline';
+import { spawnSync } from 'child_process';
 
 const rl = createInterface({ input: process.stdin, output: process.stdout });
 function readLine(question) {
   return new Promise((resolve) => rl.question(question, resolve));
 }
 
-const packagesRoot = resolve('packages');
+const root = resolve('.');
+const spawnOptions = { cwd: root, shell: true };
+
+const packagesRoot = resolve(root, 'packages');
 const packageNames = (await fs.readdir(packagesRoot, { withFileTypes: true }))
   .filter((x) => x.isDirectory() && x.name[0] !== '.')
   .map(({ name }) => name);
@@ -74,5 +78,11 @@ for (const name of packageNames) {
       parser: 'json',
     }),
   );
+
+  console.log(`Committing version change to git...`);
+  spawnSync(`git`, ['add', packageJsonPath], spawnOptions);
 }
+
+spawnSync(`git`, ['commit', '-m', `"v${newVersion}"`], spawnOptions);
+spawnSync(`git`, ['tag', `"v${newVersion}"`], spawnOptions);
 rl.close();
