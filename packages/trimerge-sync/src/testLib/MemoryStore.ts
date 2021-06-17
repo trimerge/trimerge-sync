@@ -76,10 +76,12 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     return this.queue.add(async () => {
       this.nodes.push(...nodes);
       const refs = new Set<string>();
+      for (const { ref } of nodes) {
+        refs.add(ref);
+      }
       if (remoteSyncId !== undefined) {
         for (const { ref } of nodes) {
           this.syncedNodes.add(ref);
-          refs.add(ref);
         }
         this.lastRemoteSyncId = remoteSyncId;
       }
