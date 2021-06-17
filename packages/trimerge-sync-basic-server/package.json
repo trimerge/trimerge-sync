@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-basic-server",
-  "version": "0.7.2",
+  "version": "0.8.0-rc.1",
   "description": "basic websocket server for trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
@@ -36,7 +36,7 @@
   "dependencies": {
     "@types/ws": "^7.4.4",
     "fs-extra": "^10.0.0",
-    "trimerge-sync": "0.7.2",
+    "trimerge-sync": "0.8.0-rc.1",
     "ws": "^7.4.6"
   },
   "files": [
