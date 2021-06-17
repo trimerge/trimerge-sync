@@ -1,6 +1,11 @@
 import SqliteDatabase, { Database } from 'better-sqlite3';
 import { join } from 'path';
-import { AckNodesEvent, DiffNode, NodesEvent } from 'trimerge-sync';
+import type {
+  AckNodesEvent,
+  AckRefErrors,
+  DiffNode,
+  NodesEvent,
+} from 'trimerge-sync';
 import { unlink } from 'fs-extra';
 import { DocStore } from '../DocStore';
 
@@ -19,6 +24,7 @@ type SqliteNodeType = {
 
 export class SqliteDocStore implements DocStore {
   private readonly db: Database;
+  private readonly seenRefs = new Set<string>();
 
   constructor(
     docId: string,
@@ -41,6 +47,11 @@ export class SqliteDocStore implements DocStore {
       );
       CREATE INDEX IF NOT EXISTS remoteSyncIdIndex ON nodes (remoteSyncId, remoteSyncIndex);
 `);
+    const stmt = this.db.prepare(
+      `SELECT ref FROM nodes ORDER BY remoteSyncId, remoteSyncIndex`,
+    );
+    const sqliteNodes: Pick<SqliteNodeType, 'ref'>[] = stmt.all();
+    this.seenRefs = new Set(sqliteNodes.map(({ ref }) => ref));
   }
 
   getNodesEvent(lastSyncId?: string): NodesEvent<unknown, unknown, unknown> {
@@ -98,19 +109,53 @@ export class SqliteDocStore implements DocStore {
         VALUES (@ref, @remoteSyncId, @remoteSyncIndex, @userId, @clientId, @baseRef, @mergeRef, @mergeBaseRef, @delta, @editMetadata)
         ON CONFLICT DO NOTHING`,
     );
+    const seenRefs = new Set(this.seenRefs);
+    for (const { ref } of nodes) {
+      seenRefs.add(ref);
+    }
     const refs: string[] = [];
+    const refErrors: AckRefErrors = {};
+    function invalidParentRef(
+      node: DiffNode<unknown, unknown>,
+      key: keyof Pick<
+        DiffNode<unknown, unknown>,
+        'baseRef' | 'mergeRef' | 'mergeBaseRef'
+      >,
+    ) {
+      const parentRef = node[key];
+      if (parentRef && !seenRefs.has(parentRef)) {
+        refErrors[node.ref] = {
+          code: 'invalid-node',
+          message: `unknown ${parentRef}`,
+        };
+        return true;
+      }
+      return false;
+    }
     this.db.transaction(() => {
       let remoteSyncIndex = 0;
-      for (const {
-        userId,
-        clientId,
-        ref,
-        baseRef,
-        mergeBaseRef,
-        mergeRef,
-        delta,
-        editMetadata,
-      } of nodes) {
+      for (const node of nodes) {
+        const {
+          userId,
+          clientId,
+          ref,
+          baseRef,
+          mergeBaseRef,
+          mergeRef,
+          delta,
+          editMetadata,
+        } = node;
+        if (
+          invalidParentRef(node, 'baseRef') ||
+          invalidParentRef(node, 'mergeRef') ||
+          invalidParentRef(node, 'mergeBaseRef')
+        ) {
+          continue;
+        }
+        refs.push(ref);
+        if (seenRefs.has(ref)) {
+          continue;
+        }
         insert.run({
           userId,
           clientId,
@@ -123,8 +168,8 @@ export class SqliteDocStore implements DocStore {
           remoteSyncId,
           remoteSyncIndex,
         });
-        refs.push(ref);
         remoteSyncIndex++;
+        this.seenRefs.add(ref);
       }
     })();
     return {

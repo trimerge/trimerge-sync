@@ -187,15 +187,25 @@ class IndexedDbBackend<
     const promises: Promise<unknown>[] = [];
     const refs = new Set<string>();
     const refErrors: AckRefErrors = {};
+    async function nodeExistsAlready(
+      node: DiffNode<unknown, unknown>,
+      error?: string,
+    ): Promise<boolean> {
+      const existingNode = await nodesDb.get(node.ref);
+      if (existingNode) {
+        refs.add(node.ref);
+        console.warn(`already have node`, { node, existingNode, error });
+        return true;
+      }
+      return false;
+    }
+
     for (const node of nodes) {
       const syncId = ++syncCounter;
       const { ref, baseRef, mergeRef } = node;
       promises.push(
         (async () => {
-          const existingNode = await nodesDb.get(ref);
-          if (existingNode) {
-            refs.add(ref);
-            console.warn(`already have node`, { node, existingNode });
+          if (await nodeExistsAlready(node)) {
             return;
           }
           try {
@@ -206,8 +216,12 @@ class IndexedDbBackend<
             });
             refs.add(ref);
           } catch (e) {
-            refErrors[ref] = { message: e.message };
-            console.warn(`error inserting node`, { node, existingNode }, e);
+            // Check again (I'm not sure why the first check fails sometimes)
+            if (await nodeExistsAlready(node, e.message)) {
+              return;
+            }
+            refErrors[ref] = { code: 'internal', message: e.message };
+            console.warn(`error inserting node`, { node }, e);
           }
         })(),
       );

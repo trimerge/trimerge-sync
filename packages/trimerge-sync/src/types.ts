@@ -79,7 +79,11 @@ export type NodesEvent<EditMetadata, Delta, PresenceState> = {
 export type ReadyEvent = {
   type: 'ready';
 };
-export type AckNodeError = { message: string };
+export type AckNodeErrorCode = 'invalid-node' | 'internal';
+export type AckNodeError = {
+  code: AckNodeErrorCode;
+  message: string;
+};
 export type AckRefErrors = Record<string, AckNodeError>;
 export type AckNodesEvent = {
   type: 'ack';
