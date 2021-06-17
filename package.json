@@ -7,7 +7,8 @@
     "test-ci": "wsrun --serial test-ci",
     "build-all": "wsrun --serial build",
     "watch-all": "wsrun --parallel watch",
-    "lint": "eslint packages/*/src/**/*.ts"
+    "lint": "eslint packages/*/src/**/*.ts",
+    "bump-version": "node bump-version.mjs"
   },
   "husky": {
     "hooks": {
@@ -26,6 +27,7 @@
     "codecov": "3.8.1",
     "eslint": "7.20.0",
     "eslint-config-prettier": "8.0.0",
+    "fs-extra": "^10.0.0",
     "husky": "4.3.0",
     "prettier": "2.2.1",
     "pretty-quick": "3.1.0",
