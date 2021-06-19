@@ -62,10 +62,11 @@ class IndexedDbBackend<
 > extends AbstractLocalStore<EditMetadata, Delta, PresenceState> {
   private readonly dbName: string;
   private db: Promise<IDBPDatabase<TrimergeSyncDbSchema>>;
-  private readonly channel: BroadcastChannel<
-    SyncEvent<EditMetadata, Delta, PresenceState>
-  >;
-  private readonly leaderElector: LeaderElector | undefined;
+  private readonly channel: BroadcastChannel<{
+    event: SyncEvent<EditMetadata, Delta, PresenceState>;
+    remoteOrigin: boolean;
+  }>;
+  private leaderElector: LeaderElector | undefined;
 
   public constructor(
     private readonly docId: string,
@@ -81,7 +82,9 @@ class IndexedDbBackend<
     this.dbName = dbName;
     this.db = this.connect();
     this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
-    this.channel.addEventListener('message', this.onLocalBroadcastEvent);
+    this.channel.addEventListener('message', (data) =>
+      this.onLocalBroadcastEvent(data.event, data.remoteOrigin),
+    );
     if (getRemote) {
       this.leaderElector = createLeaderElection(this.channel);
       this.leaderElector
@@ -95,8 +98,11 @@ class IndexedDbBackend<
 
   protected broadcastLocal(
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
+    remoteOrigin: boolean,
   ): Promise<void> {
-    return this.channel.postMessage(event).catch(this.handleAsError('network'));
+    return this.channel
+      .postMessage({ event, remoteOrigin })
+      .catch(this.handleAsError('network'));
   }
 
   protected async *getNodesForRemote(): AsyncIterableIterator<

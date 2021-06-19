@@ -62,6 +62,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
    */
   protected abstract broadcastLocal(
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
+    remoteOrigin: boolean,
   ): Promise<void>;
 
   protected abstract getLocalNodes(): AsyncIterableIterator<
@@ -102,7 +103,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   protected processEvent = async (
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
     // Three sources of events: self, local broadcast, and remote broadcast
-    origin: 'self' | 'local' | 'remote',
+    origin: 'self' | 'local' | 'remote' | 'remote-via-local',
   ): Promise<void> => {
     if (process.env.NODE_ENV === 'development') {
       console.log(
@@ -111,11 +112,15 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
 
     // Re-broadcast event to other channels
-    await this.sendEvent(event, {
-      self: origin !== 'self',
-      local: origin !== 'local',
-      remote: origin !== 'remote',
-    });
+    await this.sendEvent(
+      event,
+      {
+        self: origin !== 'self',
+        local: origin !== 'local' && origin !== 'remote-via-local',
+        remote: origin !== 'remote' && origin !== 'remote-via-local',
+      },
+      origin === 'remote',
+    );
 
     switch (event.type) {
       case 'ready':
@@ -203,8 +208,11 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
 
   protected readonly onLocalBroadcastEvent = (
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
+    remoteOrigin: boolean,
   ): void => {
-    this.processEvent(event, 'local').catch(this.handleAsError('network'));
+    this.processEvent(event, remoteOrigin ? 'remote-via-local' : 'local').catch(
+      this.handleAsError('network'),
+    );
   };
 
   async shutdown(): Promise<void> {
@@ -300,6 +308,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       local = false,
       self = false,
     }: { remote?: boolean; local?: boolean; self?: boolean },
+    remoteOrigin: boolean = false,
   ): Promise<void> {
     if (self) {
       if (process.env.NODE_ENV === 'development') {
@@ -316,7 +325,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       if (process.env.NODE_ENV === 'development') {
         console.log(`send local event: ${JSON.stringify(event)}`);
       }
-      await this.broadcastLocal(event);
+      await this.broadcastLocal(event, remoteOrigin);
     }
     if (remote && this.remote) {
       if (process.env.NODE_ENV === 'development') {
