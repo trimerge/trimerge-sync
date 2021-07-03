@@ -14,6 +14,7 @@ import {
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
 import { timeoutPromise } from './lib/timeoutPromise';
+import { LeaderManagement } from './lib/LeaderManagement';
 
 export type ReconnectSettings = Readonly<{
   initialDelayMs: number;
@@ -34,9 +35,6 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     ref: undefined,
     state: undefined,
   };
-  private getRemote:
-    | GetRemoteFn<EditMetadata, Delta, PresenceState>
-    | undefined;
   private remote: Remote<EditMetadata, Delta, PresenceState> | undefined;
   private reconnectDelayMs: number;
   private remoteSyncState: RemoteStateEvent = {
@@ -47,11 +45,17 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   };
   private readonly unacknowledgedRefs = new Set<string>();
   private readonly remoteQueue = new PromiseQueue();
+  private leaderManagement?: LeaderManagement = undefined;
 
   public constructor(
     protected readonly userId: string,
     protected readonly clientId: string,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
+    private readonly getRemote?: GetRemoteFn<
+      EditMetadata,
+      Delta,
+      PresenceState
+    >,
     private readonly reconnectSettings: ReconnectSettings = DEFAULT_SETTINGS,
   ) {
     this.reconnectDelayMs = reconnectSettings.initialDelayMs;
@@ -109,6 +113,11 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       console.log(
         `processing "${event.type}" from ${origin}: ${JSON.stringify(event)}`,
       );
+    }
+
+    if (event.type === 'leader') {
+      this.leaderManagement?.receiveEvent(event);
+      return;
     }
 
     // Re-broadcast event to other channels
@@ -190,8 +199,6 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
             await this.closeRemote();
           }
           if (event.reconnect !== false && this.getRemote) {
-            const { getRemote } = this;
-            this.getRemote = undefined;
             await timeoutPromise(this.reconnectDelayMs);
             this.reconnectDelayMs = Math.min(
               this.reconnectDelayMs *
@@ -199,7 +206,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
               this.reconnectSettings.maxReconnectDelayMs,
             );
             // Do not await on this or we'll deadlock
-            this.connectRemote(getRemote).catch(this.handleAsError('network'));
+            this.connectRemote(this.getRemote).catch(
+              this.handleAsError('network'),
+            );
           }
         }
         break;
@@ -208,7 +217,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
 
   protected readonly onLocalBroadcastEvent = (
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
-    remoteOrigin: boolean,
+    remoteOrigin: boolean = false,
   ): void => {
     this.processEvent(event, remoteOrigin ? 'remote-via-local' : 'local').catch(
       this.handleAsError('network'),
@@ -249,10 +258,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     this.remote = undefined;
   }
 
-  protected async connectRemote(
+  private async connectRemote(
     getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
-    this.getRemote = getRemote;
     await this.remoteQueue.add(async () => {
       if (this.closed) {
         return;
@@ -335,7 +343,21 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
   }
 
-  protected async sendInitialEvents() {
+  protected async initialize() {
+    const { getRemote } = this;
+    if (getRemote) {
+      this.leaderManagement = new LeaderManagement(
+        this.clientId,
+        (leaderId) => {
+          if (leaderId === this.clientId) {
+            void this.connectRemote(getRemote);
+          } else {
+            void this.closeRemote();
+          }
+        },
+        (event) => this.broadcastLocal(event, false),
+      );
+    }
     await this.sendEvent(
       {
         type: 'client-join',

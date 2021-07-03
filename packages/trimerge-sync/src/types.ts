@@ -1,3 +1,5 @@
+import { LeaderEvent } from './lib/LeaderManagement';
+
 export type ErrorCode =
   | 'invalid-sync-id'
   | 'invalid-nodes'
@@ -122,6 +124,7 @@ export type SyncEvent<EditMetadata, Delta, PresenceState> = Readonly<
   | AuthEvent
   | NodesEvent<EditMetadata, Delta, PresenceState>
   | ReadyEvent
+  | LeaderEvent
   | AckNodesEvent
   | ClientJoinEvent<PresenceState>
   | ClientPresenceEvent<PresenceState>

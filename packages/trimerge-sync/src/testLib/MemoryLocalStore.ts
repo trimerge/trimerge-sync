@@ -26,7 +26,7 @@ export class MemoryLocalStore<
     onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
     getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
   ) {
-    super(userId, clientId, onEvent, {
+    super(userId, clientId, onEvent, getRemote, {
       initialDelayMs: 0,
       reconnectBackoffMultiplier: 1,
       maxReconnectDelayMs: 0,
@@ -35,15 +35,7 @@ export class MemoryLocalStore<
       this.store.docId,
       this.onLocalBroadcastEvent,
     );
-    if (getRemote) {
-      this.channel
-        .awaitLeadership()
-        .then(() => this.connectRemote(getRemote))
-        .catch(() => {
-          // this happens if we close before becoming leader
-        });
-    }
-    this.sendInitialEvents().catch(this.handleAsError('internal'));
+    this.initialize().catch(this.handleAsError('internal'));
   }
 
   protected addNodes(

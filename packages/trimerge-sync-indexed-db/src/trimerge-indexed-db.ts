@@ -1,20 +1,16 @@
 import {
   AbstractLocalStore,
-  SyncEvent,
+  AckNodesEvent,
+  AckRefErrors,
   DiffNode,
   GetLocalStoreFn,
   GetRemoteFn,
   NodesEvent,
   OnEventFn,
-  AckNodesEvent,
-  AckRefErrors,
+  SyncEvent,
 } from 'trimerge-sync';
 import { DBSchema, deleteDB, IDBPDatabase, openDB, StoreValue } from 'idb';
-import {
-  BroadcastChannel,
-  createLeaderElection,
-  LeaderElector,
-} from 'broadcast-channel';
+import { BroadcastChannel, LeaderElector } from 'broadcast-channel';
 
 function getSyncCounter(
   nodes: StoreValue<TrimergeSyncDbSchema, 'nodes'>[],
@@ -76,7 +72,7 @@ class IndexedDbBackend<
     getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
     private readonly remoteId: string = 'origin',
   ) {
-    super(userId, clientId, onEvent);
+    super(userId, clientId, onEvent, getRemote);
     const dbName = getDatabaseName(docId);
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
@@ -85,14 +81,7 @@ class IndexedDbBackend<
     this.channel.addEventListener('message', (data) =>
       this.onLocalBroadcastEvent(data.event, data.remoteOrigin),
     );
-    if (getRemote) {
-      this.leaderElector = createLeaderElection(this.channel);
-      this.leaderElector
-        .awaitLeadership()
-        .then(() => this.connectRemote(getRemote))
-        .catch(this.handleAsError('internal'));
-    }
-    this.sendInitialEvents().catch(this.handleAsError('internal'));
+    this.initialize().catch(this.handleAsError('internal'));
     window.addEventListener('beforeunload', this.shutdown);
   }
 
