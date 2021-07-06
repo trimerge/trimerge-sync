@@ -92,12 +92,38 @@ describe('TrimergeClient: 2 users', () => {
 
     await timeout();
 
+    expect(client1.syncStatus).toEqual({
+      localRead: 'ready',
+      localSave: 'ready',
+      remoteConnect: 'offline',
+      remoteRead: 'offline',
+      remoteSave: 'saving',
+    });
+    expect(client2.syncStatus).toMatchInlineSnapshot(
+      {
+        localRead: 'ready',
+        localSave: 'ready',
+        remoteConnect: 'offline',
+        remoteRead: 'offline',
+        remoteSave: 'saving',
+      },
+      `
+      Object {
+        "localRead": "ready",
+        "localSave": "ready",
+        "remoteConnect": "offline",
+        "remoteRead": "offline",
+        "remoteSave": "saving",
+      }
+    `,
+    );
+
     // Client2 is updated now
     expect(client1.state).toEqual({});
     expect(client2.state).toEqual({});
   });
 
-  it('sends cursor information correctly', async () => {
+  it('sends presence information correctly', async () => {
     const store = newStore();
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
@@ -236,7 +262,7 @@ describe('TrimergeClient: 2 users', () => {
     ]);
   });
 
-  it('updates cursor information', async () => {
+  it('updates presence information', async () => {
     const store = newStore();
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);

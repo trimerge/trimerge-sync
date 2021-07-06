@@ -388,6 +388,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     newNodes: DiffNode<EditMetadata, Delta>[],
     presence: ClientPresenceRef<PresenceState> | undefined,
   ): void {
+    if (this.closed) {
+      return;
+    }
     this.doUpdate(newNodes, presence).catch(
       this.handleAsError('invalid-nodes'),
     );
