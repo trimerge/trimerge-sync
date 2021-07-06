@@ -17,7 +17,7 @@ afterEach(async () => {
   pendingCloseFunctions = [];
 });
 
-function makeLeaderManagement(
+function makeLeaderManager(
   clientId: string,
   events: string[],
 ): { paused: boolean; close: CloseFn } {
@@ -87,7 +87,7 @@ function makeLeaderManagement(
 describe('LeaderManagement', () => {
   it('makes leader of 1', async () => {
     const events: string[] = [];
-    const lm1 = makeLeaderManagement('a', events);
+    const lm1 = makeLeaderManager('a', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
       Array [
@@ -134,8 +134,8 @@ describe('LeaderManagement', () => {
 
   it('allows double-close', async () => {
     const events: string[] = [];
-    const lm1 = makeLeaderManagement('a', events);
-    const lm2 = makeLeaderManagement('b', events);
+    const lm1 = makeLeaderManager('a', events);
+    const lm2 = makeLeaderManager('b', events);
     await lm1.close(true);
     await lm1.close(true);
     expect(events).toMatchInlineSnapshot(`
@@ -148,8 +148,8 @@ describe('LeaderManagement', () => {
 
   it('makes leader with 2, transfers after close', async () => {
     const events: string[] = [];
-    const lm1 = makeLeaderManagement('a', events);
-    const lm2 = makeLeaderManagement('b', events);
+    const lm1 = makeLeaderManager('a', events);
+    const lm2 = makeLeaderManager('b', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
       Array [
@@ -178,8 +178,8 @@ describe('LeaderManagement', () => {
 
   it('makes leader with 2, then 1', async () => {
     const events: string[] = [];
-    const lm1 = makeLeaderManagement('a', events);
-    const lm2 = makeLeaderManagement('b', events);
+    const lm1 = makeLeaderManager('a', events);
+    const lm2 = makeLeaderManager('b', events);
 
     await timeout();
 
@@ -189,7 +189,7 @@ describe('LeaderManagement', () => {
       ]
     `);
 
-    const lm3 = makeLeaderManagement('0', events);
+    const lm3 = makeLeaderManager('0', events);
 
     await timeout();
 
@@ -206,8 +206,8 @@ describe('LeaderManagement', () => {
 
   it('handles close while electing', async () => {
     const events: string[] = [];
-    const lm1 = makeLeaderManagement('a', events);
-    const lm2 = makeLeaderManagement('b', events);
+    const lm1 = makeLeaderManager('a', events);
+    const lm2 = makeLeaderManager('b', events);
 
     await lm1.close(true);
 
@@ -228,8 +228,8 @@ describe('LeaderManagement', () => {
 
   it('makes leader with 2, transfers after unclean shutdown', async () => {
     const events: string[] = [];
-    const lm1 = makeLeaderManagement('a', events);
-    const lm2 = makeLeaderManagement('b', events);
+    const lm1 = makeLeaderManager('a', events);
+    const lm2 = makeLeaderManager('b', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
       Array [
@@ -260,8 +260,8 @@ describe('LeaderManagement', () => {
 
   it('makes leader with 2, handles network split', async () => {
     const events: string[] = [];
-    const lm1 = makeLeaderManagement('a', events);
-    makeLeaderManagement('b', events);
+    const lm1 = makeLeaderManager('a', events);
+    makeLeaderManager('b', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
       Array [
@@ -298,8 +298,8 @@ describe('LeaderManagement', () => {
   });
   it('makes leader with 2, handles network split (reverse)', async () => {
     const events: string[] = [];
-    makeLeaderManagement('a', events);
-    const lm2 = makeLeaderManagement('b', events);
+    makeLeaderManager('a', events);
+    const lm2 = makeLeaderManager('b', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
       Array [
@@ -336,7 +336,7 @@ describe('LeaderManagement', () => {
 
   it('1st leader closes before 2nd starts', async () => {
     const events: string[] = [];
-    const lm1 = makeLeaderManagement('a', events);
+    const lm1 = makeLeaderManager('a', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
       Array [
@@ -345,7 +345,7 @@ describe('LeaderManagement', () => {
     `);
     await lm1.close(true);
 
-    const lm2 = makeLeaderManagement('b', events);
+    const lm2 = makeLeaderManager('b', events);
     await timeout();
 
     await lm2.close(true);
@@ -359,7 +359,7 @@ describe('LeaderManagement', () => {
 
   it('2nd joins after initial leader election', async () => {
     const events: string[] = [];
-    const lm1 = makeLeaderManagement('a', events);
+    const lm1 = makeLeaderManager('a', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
       Array [
@@ -367,7 +367,7 @@ describe('LeaderManagement', () => {
       ]
     `);
 
-    const lm2 = makeLeaderManagement('b', events);
+    const lm2 = makeLeaderManager('b', events);
     await timeout();
 
     expect(events).toMatchInlineSnapshot(`
@@ -388,7 +388,7 @@ describe('LeaderManagement', () => {
 
   it('2nd joins after initial leader election (reverse)', async () => {
     const events: string[] = [];
-    const lm2 = makeLeaderManagement('b', events);
+    const lm2 = makeLeaderManager('b', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
       Array [
@@ -396,7 +396,7 @@ describe('LeaderManagement', () => {
       ]
     `);
 
-    const lm1 = makeLeaderManagement('a', events);
+    const lm1 = makeLeaderManager('a', events);
     await timeout();
 
     expect(events).toMatchInlineSnapshot(`
@@ -412,9 +412,9 @@ describe('LeaderManagement', () => {
   it('handles 3 leaders', async () => {
     const events: string[] = [];
 
-    const lm1 = makeLeaderManagement('a', events);
-    const lm2 = makeLeaderManagement('b', events);
-    const lm3 = makeLeaderManagement('c', events);
+    const lm1 = makeLeaderManager('a', events);
+    const lm2 = makeLeaderManager('b', events);
+    const lm3 = makeLeaderManager('c', events);
 
     await timeout();
 
@@ -450,9 +450,9 @@ describe('LeaderManagement', () => {
   });
   it('handles 3 closing then a 4th', async () => {
     const events: string[] = [];
-    const lm1 = makeLeaderManagement('a', events);
-    const lm2 = makeLeaderManagement('b', events);
-    const lm3 = makeLeaderManagement('c', events);
+    const lm1 = makeLeaderManager('a', events);
+    const lm2 = makeLeaderManager('b', events);
+    const lm3 = makeLeaderManager('c', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
       Array [
@@ -485,7 +485,7 @@ describe('LeaderManagement', () => {
       ]
     `);
 
-    makeLeaderManagement('d', events);
+    makeLeaderManager('d', events);
 
     await timeout();
     expect(events).toMatchInlineSnapshot(`
