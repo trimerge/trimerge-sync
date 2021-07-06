@@ -3,7 +3,8 @@ import {
   resetAll,
 } from '../testLib/MemoryBroadcastChannel';
 import { timeout } from '../testLib/Timeout';
-import { LeaderEvent, LeaderManagement } from './LeaderManagement';
+import { LeaderManager } from './LeaderManager';
+import { LeaderEvent } from '../types';
 
 type CloseFn = (cleanShutdown?: boolean) => Promise<void>;
 let pendingCloseFunctions: CloseFn[] = [];
@@ -27,17 +28,16 @@ function makeLeaderManagement(
   let paused = false;
   let pauseChannelQueue: LeaderEvent[] = [];
   let pauseLeaderQueue: LeaderEvent[] = [];
-  const leaderManagement = new LeaderManagement(
+  const leaderManagement = new LeaderManager(
     clientId,
-    (leader) =>
+    (isLeader) =>
       events.push(
-        `${clientId} is ${leader ? 'promoted to leader' : 'demoted'}`,
+        `${clientId} is ${isLeader ? 'promoted to leader' : 'demoted'}`,
       ),
     (event) => {
       if (paused) {
         pauseChannelQueue.push(event);
       } else {
-        console.log(`[${clientId}] channel.postMessage`, event);
         channel.postMessage(event);
       }
     },
@@ -49,7 +49,6 @@ function makeLeaderManagement(
     if (paused) {
       pauseLeaderQueue.push(event);
     } else {
-      console.log(`[${clientId}] leaderManagement.receiveEvent`, event);
       leaderManagement.receiveEvent(event);
     }
   };
@@ -67,15 +66,13 @@ function makeLeaderManagement(
   return {
     set paused(p: boolean) {
       paused = p;
-      if (!p) {
+      if (!paused) {
+        // Send queued events
         for (const e of pauseChannelQueue) {
-          console.log(`[${clientId}] channel.postMessage`, e);
-
           void channel.postMessage(e);
         }
         pauseChannelQueue = [];
         for (const e of pauseLeaderQueue) {
-          console.log(`[${clientId}] leaderManagement.receiveEvent`, e);
           leaderManagement.receiveEvent(e);
         }
         pauseLeaderQueue = [];
@@ -105,7 +102,7 @@ describe('LeaderManagement', () => {
 
   it('ignores events after close', async () => {
     const events: LeaderEvent[] = [];
-    const lm = new LeaderManagement(
+    const lm = new LeaderManager(
       'test',
       () => {
         throw new Error('unexpected');

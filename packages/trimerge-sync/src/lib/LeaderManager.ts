@@ -1,8 +1,5 @@
-export type LeaderEvent = {
-  type: 'leader';
-  action: 'request' | 'current' | 'accept' | 'withdraw';
-  clientId: string;
-};
+import { LeaderEvent } from '../types';
+
 type Timeout = ReturnType<typeof setTimeout>;
 type Interval = ReturnType<typeof setInterval>;
 
@@ -21,7 +18,7 @@ type Interval = ReturnType<typeof setInterval>;
  * If a leader receives an announcement from another leader, a re-election will
  * occur, and all but one of them will be demoted back to non-leader.
  */
-export class LeaderManagement {
+export class LeaderManager {
   private closed = false;
   private currentLeaderId?: string = undefined;
   private isLeader: boolean = false;

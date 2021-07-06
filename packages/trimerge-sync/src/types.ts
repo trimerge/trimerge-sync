@@ -1,5 +1,3 @@
-import { LeaderEvent } from './lib/LeaderManagement';
-
 export type ErrorCode =
   | 'invalid-sync-id'
   | 'invalid-nodes'
@@ -120,6 +118,11 @@ export type RemoteStateEvent = {
   save?: RemoteSaveStatus;
 };
 
+export type LeaderEvent = {
+  type: 'leader';
+  action: 'request' | 'current' | 'accept' | 'withdraw';
+  clientId: string;
+};
 export type SyncEvent<EditMetadata, Delta, PresenceState> = Readonly<
   | AuthEvent
   | NodesEvent<EditMetadata, Delta, PresenceState>

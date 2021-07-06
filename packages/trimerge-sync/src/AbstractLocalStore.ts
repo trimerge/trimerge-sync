@@ -14,7 +14,7 @@ import {
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
 import { timeoutPromise } from './lib/timeoutPromise';
-import { LeaderManagement } from './lib/LeaderManagement';
+import { LeaderManager } from './lib/LeaderManager';
 
 export type ReconnectSettings = Readonly<{
   initialDelayMs: number;
@@ -45,7 +45,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   };
   private readonly unacknowledgedRefs = new Set<string>();
   private readonly remoteQueue = new PromiseQueue();
-  private leaderManagement?: LeaderManagement = undefined;
+  private leaderManager?: LeaderManager = undefined;
 
   public constructor(
     protected readonly userId: string,
@@ -116,7 +116,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
 
     if (event.type === 'leader') {
-      this.leaderManagement?.receiveEvent(event);
+      this.leaderManager?.receiveEvent(event);
       return;
     }
 
@@ -230,6 +230,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
     this.closed = true;
     const { userId, clientId } = this;
+    this.leaderManager?.close();
     try {
       await this.sendEvent(
         {
@@ -346,10 +347,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   protected async initialize() {
     const { getRemote } = this;
     if (getRemote) {
-      this.leaderManagement = new LeaderManagement(
+      this.leaderManager = new LeaderManager(
         this.clientId,
-        (leaderId) => {
-          if (leaderId === this.clientId) {
+        (isLeader) => {
+          if (isLeader) {
             void this.connectRemote(getRemote);
           } else {
             void this.closeRemote();
