@@ -41,9 +41,11 @@ function makeLeaderManagement(
         channel.postMessage(event);
       }
     },
-    0,
-    10,
-    50,
+    {
+      electionTimeoutMs: 0,
+      heartbeatMs: 10,
+      heartbeatTimeoutMs: 50,
+    },
   );
   channel.onEvent = (event) => {
     if (paused) {

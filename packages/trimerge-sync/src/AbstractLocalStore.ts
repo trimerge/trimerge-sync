@@ -16,16 +16,22 @@ import { PromiseQueue } from './lib/PromiseQueue';
 import { timeoutPromise } from './lib/timeoutPromise';
 import { LeaderManager } from './lib/LeaderManager';
 
-export type ReconnectSettings = Readonly<{
+export type NetworkSettings = Readonly<{
   initialDelayMs: number;
   reconnectBackoffMultiplier: number;
   maxReconnectDelayMs: number;
+  electionTimeoutMs: number;
+  heartbeatMs: number;
+  heartbeatTimeoutMs: number;
 }>;
 
-const DEFAULT_SETTINGS: ReconnectSettings = {
+const DEFAULT_SETTINGS: NetworkSettings = {
   initialDelayMs: 1_000,
   reconnectBackoffMultiplier: 2,
   maxReconnectDelayMs: 30_000,
+  electionTimeoutMs: 200,
+  heartbeatMs: 1_000,
+  heartbeatTimeoutMs: 2_500,
 };
 
 export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
@@ -46,6 +52,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   private readonly unacknowledgedRefs = new Set<string>();
   private readonly remoteQueue = new PromiseQueue();
   private leaderManager?: LeaderManager = undefined;
+  private readonly networkSettings: NetworkSettings;
 
   public constructor(
     protected readonly userId: string,
@@ -56,9 +63,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       Delta,
       PresenceState
     >,
-    private readonly reconnectSettings: ReconnectSettings = DEFAULT_SETTINGS,
+    reconnectSettings: Partial<NetworkSettings> = {},
   ) {
-    this.reconnectDelayMs = reconnectSettings.initialDelayMs;
+    this.networkSettings = { ...DEFAULT_SETTINGS, ...reconnectSettings };
+    this.reconnectDelayMs = this.networkSettings.initialDelayMs;
   }
 
   /**
@@ -134,7 +142,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     switch (event.type) {
       case 'ready':
         // Reset reconnect timeout
-        this.reconnectDelayMs = this.reconnectSettings.initialDelayMs;
+        this.reconnectDelayMs = this.networkSettings.initialDelayMs;
         await this.setRemoteState({ type: 'remote-state', read: 'ready' });
         break;
 
@@ -202,8 +210,8 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
             await timeoutPromise(this.reconnectDelayMs);
             this.reconnectDelayMs = Math.min(
               this.reconnectDelayMs *
-                this.reconnectSettings.reconnectBackoffMultiplier,
-              this.reconnectSettings.maxReconnectDelayMs,
+                this.networkSettings.reconnectBackoffMultiplier,
+              this.networkSettings.maxReconnectDelayMs,
             );
             // Do not await on this or we'll deadlock
             this.connectRemote(this.getRemote).catch(
@@ -345,7 +353,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   }
 
   protected async initialize() {
-    const { getRemote } = this;
+    const { getRemote, networkSettings } = this;
     if (getRemote) {
       this.leaderManager = new LeaderManager(
         this.clientId,
@@ -357,6 +365,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           }
         },
         (event) => this.broadcastLocal(event, false),
+        networkSettings,
       );
     }
     await this.sendEvent(

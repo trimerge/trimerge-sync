@@ -3,6 +3,18 @@ import { LeaderEvent } from '../types';
 type Timeout = ReturnType<typeof setTimeout>;
 type Interval = ReturnType<typeof setInterval>;
 
+export type LeaderSettings = Readonly<{
+  electionTimeoutMs: number;
+  heartbeatMs: number;
+  heartbeatTimeoutMs: number;
+}>;
+
+const DEFAULT_SETTINGS: LeaderSettings = {
+  electionTimeoutMs: 200,
+  heartbeatMs: 1_000,
+  heartbeatTimeoutMs: 2_500,
+};
+
 /**
  * This class takes a best-effort approach to picking a single leader amongst
  * multiple clients assuming a shared broadcast channel.
@@ -40,9 +52,7 @@ export class LeaderManager {
      * A callback for when this class needs to broadcast messages to other clients
      */
     private readonly broadcastEvent: (event: LeaderEvent) => void,
-    private readonly electionTimeoutMs: number = 200,
-    private readonly heartbeatMs: number = 1000,
-    private readonly heartbeatTimeoutMs: number = 2500,
+    private readonly settings: LeaderSettings = DEFAULT_SETTINGS,
   ) {
     this.elect();
   }
@@ -60,7 +70,7 @@ export class LeaderManager {
     });
     this.electionTimeout = setTimeout(
       () => this.finishElection(),
-      this.electionTimeoutMs,
+      this.settings.electionTimeoutMs,
     );
   }
 
@@ -92,7 +102,7 @@ export class LeaderManager {
         this.broadcastEvent({ type: 'leader', action: 'current', clientId });
         this.leaderHeartbeat = setInterval(
           () => this.onLeaderHeartbeat(),
-          this.heartbeatMs,
+          this.settings.heartbeatMs,
         );
       }
     }
@@ -103,7 +113,7 @@ export class LeaderManager {
     if (!isLeader) {
       this.heartbeatTimeout = setTimeout(
         () => this.onHeartbeatTimeout(),
-        this.heartbeatTimeoutMs,
+        this.settings.heartbeatTimeoutMs,
       );
     }
   }

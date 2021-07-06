@@ -196,23 +196,6 @@ describe('TrimergeClient: 2 users', () => {
           },
         ],
       ],
-      [
-        [
-          {
-            clientId: 'test',
-            ref: undefined,
-            self: true,
-            state: undefined,
-            userId: 'a',
-          },
-          {
-            clientId: 'test',
-            ref: undefined,
-            state: undefined,
-            userId: 'b',
-          },
-        ],
-      ],
     ]);
     client1Unsub();
   });
