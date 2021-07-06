@@ -45,12 +45,12 @@ function basicGraph(
   );
 }
 
-function sortedCursors(
+function sortedClients(
   client: TrimergeClient<TestState, TestEditMetadata, Delta, TestPresenceState>,
 ) {
-  return Array.from(client.clients).sort(cursorSort);
+  return Array.from(client.clients).sort(clientSort);
 }
-function cursorSort(
+function clientSort(
   a: ClientInfo<TestPresenceState>,
   b: ClientInfo<TestPresenceState>,
 ): -1 | 1 | 0 {
@@ -136,7 +136,7 @@ describe('TrimergeClient: 2 users', () => {
     await timeout();
 
     // Client2 is updated now
-    expect(sortedCursors(client1)).toEqual([
+    expect(sortedClients(client1)).toEqual([
       {
         clientId: 'test',
         ref: undefined,
@@ -151,7 +151,7 @@ describe('TrimergeClient: 2 users', () => {
         userId: 'b',
       },
     ]);
-    expect(sortedCursors(client2)).toEqual([
+    expect(sortedClients(client2)).toEqual([
       {
         clientId: 'test',
         ref: undefined,
@@ -200,6 +200,42 @@ describe('TrimergeClient: 2 users', () => {
     client1Unsub();
   });
 
+  it('handles client-leave', async () => {
+    const store = newStore();
+    const client1 = makeClient('a', store);
+    const client2 = makeClient('b', store);
+
+    await timeout();
+
+    expect(sortedClients(client2)).toEqual([
+      {
+        clientId: 'test',
+        ref: undefined,
+        state: undefined,
+        userId: 'a',
+      },
+      {
+        clientId: 'test',
+        ref: undefined,
+        self: true,
+        state: undefined,
+        userId: 'b',
+      },
+    ]);
+
+    await client1.shutdown();
+
+    expect(sortedClients(client2)).toEqual([
+      {
+        clientId: 'test',
+        ref: undefined,
+        self: true,
+        state: undefined,
+        userId: 'b',
+      },
+    ]);
+  });
+
   it('updates cursor information', async () => {
     const store = newStore();
     const client1 = makeClient('a', store);
@@ -224,7 +260,7 @@ describe('TrimergeClient: 2 users', () => {
 
     await timeout();
 
-    expect(sortedCursors(client1)).toEqual([
+    expect(sortedClients(client1)).toEqual([
       {
         clientId: 'test',
         ref: undefined,
@@ -239,7 +275,7 @@ describe('TrimergeClient: 2 users', () => {
         userId: 'b',
       },
     ]);
-    expect(sortedCursors(client2)).toEqual([
+    expect(sortedClients(client2)).toEqual([
       {
         clientId: 'test',
         ref: undefined,

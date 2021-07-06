@@ -242,7 +242,6 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
     this.closed = true;
     const { userId, clientId } = this;
-    this.leaderManager?.close();
     try {
       await this.sendEvent(
         {
@@ -250,9 +249,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           userId,
           clientId,
         },
-        { local: true },
+        { local: true, remote: true },
       );
       await this.closeRemote();
+      this.leaderManager?.close();
     } catch (error) {
       console.warn('ignoring error while shutting down', error);
     }

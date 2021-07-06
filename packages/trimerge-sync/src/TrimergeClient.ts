@@ -1,17 +1,18 @@
 import {
   ClientInfo,
   ClientList,
-  LocalClientInfo,
   DiffNode,
   GetLocalStoreFn,
+  LocalClientInfo,
   LocalStore,
   OnEventFn,
   SyncStatus,
 } from './types';
 import { mergeHeadNodes } from './merge-nodes';
 import { Differ, NodeStateRef } from './differ';
-import { getFullId, waitMs } from './util';
+import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
+import { timeout } from './lib/Timeout';
 
 export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private current?: NodeStateRef<State, EditMetadata>;
@@ -253,7 +254,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private async doSync() {
     while (this.needsSync) {
       this.updateSyncState({ localSave: 'pending' });
-      await waitMs(this.bufferMs);
+      await timeout(this.bufferMs);
       const nodes = this.unsyncedNodes;
       this.unsyncedNodes = [];
       this.updateSyncState({ localSave: 'saving' });

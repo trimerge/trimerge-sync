@@ -84,8 +84,8 @@ export class MemoryLocalStore<
     if (this._closed) {
       return;
     }
-    this._closed = true;
     await super.shutdown();
+    this._closed = true;
     this.channel.close();
   }
 }
