@@ -272,7 +272,7 @@ describe('LeaderManagement', () => {
     lm1.paused = true;
 
     // Wait for 50ms timeout
-    await timeout(150);
+    await timeout(100);
 
     // Now both sides are leaders
     expect(events).toMatchInlineSnapshot(`
@@ -285,14 +285,58 @@ describe('LeaderManagement', () => {
     lm1.paused = false;
 
     // Wait for timeout again
-    await timeout(150);
-    await timeout(150);
+    await timeout(100);
 
     expect(events).toMatchInlineSnapshot(`
       Array [
         "a is promoted to leader",
         "b is promoted to leader",
         "b is demoted",
+      ]
+    `);
+  });
+  it('makes leader with 3, handles network split', async () => {
+    const events: string[] = [];
+    const lm1 = makeLeaderManager('a', events);
+    const lm2 = makeLeaderManager('b', events);
+    const lm3 = makeLeaderManager('c', events);
+    await timeout();
+    expect(events).toMatchInlineSnapshot(`
+      Array [
+        "a is promoted to leader",
+      ]
+    `);
+
+    lm1.paused = true;
+    lm2.paused = true;
+    lm3.paused = true;
+
+    // Wait for 50ms timeout
+    await timeout(100);
+
+    // Now both sides are leaders
+    expect(events).toMatchInlineSnapshot(`
+      Array [
+        "a is promoted to leader",
+        "b is promoted to leader",
+        "c is promoted to leader",
+      ]
+    `);
+
+    lm1.paused = false;
+    lm2.paused = false;
+    lm3.paused = false;
+
+    // Wait for timeout again
+    await timeout(100);
+
+    expect(events).toMatchInlineSnapshot(`
+      Array [
+        "a is promoted to leader",
+        "b is promoted to leader",
+        "c is promoted to leader",
+        "b is demoted",
+        "c is demoted",
       ]
     `);
   });
