@@ -1,4 +1,4 @@
-import { AbstractLocalStore } from '../AbstractLocalStore';
+import { AbstractLocalStore, BroadcastEvent } from '../AbstractLocalStore';
 import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
 import {
   AckNodesEvent,
@@ -6,7 +6,6 @@ import {
   GetRemoteFn,
   NodesEvent,
   OnEventFn,
-  SyncEvent,
 } from '../types';
 import { MemoryStore } from './MemoryStore';
 
@@ -15,8 +14,9 @@ export class MemoryLocalStore<
   Delta,
   PresenceState
 > extends AbstractLocalStore<EditMetadata, Delta, PresenceState> {
+  private _closed = false;
   private readonly channel: MemoryBroadcastChannel<
-    SyncEvent<EditMetadata, Delta, PresenceState>
+    BroadcastEvent<EditMetadata, Delta, PresenceState>
   >;
 
   constructor(
@@ -35,7 +35,7 @@ export class MemoryLocalStore<
       heartbeatTimeoutMs: 50,
     });
     this.channel = new MemoryBroadcastChannel(
-      this.store.docId,
+      'local:' + this.store.channelName,
       this.onLocalBroadcastEvent,
     );
     this.initialize().catch(this.handleAsError('internal'));
@@ -56,8 +56,11 @@ export class MemoryLocalStore<
   }
 
   protected async broadcastLocal(
-    event: SyncEvent<EditMetadata, Delta, PresenceState>,
+    event: BroadcastEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
+    if (this._closed) {
+      return;
+    }
     await this.channel.postMessage(event);
   }
 
@@ -78,6 +81,10 @@ export class MemoryLocalStore<
   }
 
   async shutdown(): Promise<void> {
+    if (this._closed) {
+      return;
+    }
+    this._closed = true;
     await super.shutdown();
     this.channel.close();
   }

@@ -2,12 +2,12 @@ import {
   AbstractLocalStore,
   AckNodesEvent,
   AckRefErrors,
+  BroadcastEvent,
   DiffNode,
   GetLocalStoreFn,
   GetRemoteFn,
   NodesEvent,
   OnEventFn,
-  SyncEvent,
 } from 'trimerge-sync';
 import { DBSchema, deleteDB, IDBPDatabase, openDB, StoreValue } from 'idb';
 import { BroadcastChannel, LeaderElector } from 'broadcast-channel';
@@ -58,10 +58,9 @@ class IndexedDbBackend<
 > extends AbstractLocalStore<EditMetadata, Delta, PresenceState> {
   private readonly dbName: string;
   private db: Promise<IDBPDatabase<TrimergeSyncDbSchema>>;
-  private readonly channel: BroadcastChannel<{
-    event: SyncEvent<EditMetadata, Delta, PresenceState>;
-    remoteOrigin: boolean;
-  }>;
+  private readonly channel: BroadcastChannel<
+    BroadcastEvent<EditMetadata, Delta, PresenceState>
+  >;
   private leaderElector: LeaderElector | undefined;
 
   public constructor(
@@ -78,20 +77,15 @@ class IndexedDbBackend<
     this.dbName = dbName;
     this.db = this.connect();
     this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
-    this.channel.addEventListener('message', (data) =>
-      this.onLocalBroadcastEvent(data.event, data.remoteOrigin),
-    );
+    this.channel.addEventListener('message', this.onLocalBroadcastEvent);
     this.initialize().catch(this.handleAsError('internal'));
     window.addEventListener('beforeunload', this.shutdown);
   }
 
   protected broadcastLocal(
-    event: SyncEvent<EditMetadata, Delta, PresenceState>,
-    remoteOrigin: boolean,
+    event: BroadcastEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
-    return this.channel
-      .postMessage({ event, remoteOrigin })
-      .catch(this.handleAsError('network'));
+    return this.channel.postMessage(event).catch(this.handleAsError('network'));
   }
 
   protected async *getNodesForRemote(): AsyncIterableIterator<

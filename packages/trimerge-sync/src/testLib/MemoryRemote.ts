@@ -25,7 +25,10 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
     lastSyncId: string | undefined,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
   ) {
-    this.channel = new MemoryBroadcastChannel(this.store.docId, onEvent);
+    this.channel = new MemoryBroadcastChannel(
+      'remote:' + this.store.channelName,
+      onEvent,
+    );
     this.sendInitialEvents(lastSyncId).catch(this.handleAsError('internal'));
   }
 

@@ -5,7 +5,8 @@ import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 import { SyncStatus } from './types';
-import { timeout } from './testLib/Timeout';
+import { timeout } from './lib/Timeout';
+import { setChannelsPaused } from './testLib/MemoryBroadcastChannel';
 
 type TestEditMetadata = string;
 type TestState = any;
@@ -361,6 +362,101 @@ describe('Remote sync', () => {
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "ready",
+        },
+      ]
+    `);
+  });
+
+  it('syncs two clients to remote with a local split', async () => {
+    const remoteStore = newStore();
+    const localStore = newStore(remoteStore);
+    const client1 = makeClient('test', 'a', localStore);
+    const client2 = makeClient('test', 'b', localStore);
+
+    const states1: TestState[] = [];
+    client1.subscribeState((state) => states1.push(state));
+    const states2: TestState[] = [];
+    client2.subscribeState((state) => states2.push(state));
+
+    client1.updateState({}, 'initialize');
+    client1.updateState({ hello: 'world' }, 'add hello');
+
+    await timeout();
+
+    expect(states1).toMatchInlineSnapshot(`
+      Array [
+        undefined,
+        Object {},
+        Object {
+          "hello": "world",
+        },
+      ]
+    `);
+    expect(states2).toMatchInlineSnapshot(`
+      Array [
+        undefined,
+        Object {
+          "hello": "world",
+        },
+      ]
+    `);
+
+    setChannelsPaused(true);
+
+    await timeout();
+
+    client2.updateState({ hello: 'world', world: 'hello' }, 'add world');
+
+    await timeout(100);
+
+    expect(states1).toMatchInlineSnapshot(`
+      Array [
+        undefined,
+        Object {},
+        Object {
+          "hello": "world",
+        },
+      ]
+    `);
+    expect(states2).toMatchInlineSnapshot(`
+      Array [
+        undefined,
+        Object {
+          "hello": "world",
+        },
+        Object {
+          "hello": "world",
+          "world": "hello",
+        },
+      ]
+    `);
+
+    setChannelsPaused(false);
+
+    await timeout(100);
+
+    expect(states1).toMatchInlineSnapshot(`
+      Array [
+        undefined,
+        Object {},
+        Object {
+          "hello": "world",
+        },
+        Object {
+          "hello": "world",
+          "world": "hello",
+        },
+      ]
+    `);
+    expect(states2).toMatchInlineSnapshot(`
+      Array [
+        undefined,
+        Object {
+          "hello": "world",
+        },
+        Object {
+          "hello": "world",
+          "world": "hello",
         },
       ]
     `);

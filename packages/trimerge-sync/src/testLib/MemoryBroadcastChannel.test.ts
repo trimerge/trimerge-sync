@@ -1,4 +1,9 @@
-import { MemoryBroadcastChannel, resetAll } from './MemoryBroadcastChannel';
+import {
+  MemoryBroadcastChannel,
+  resetAll,
+  setChannelsPaused,
+} from './MemoryBroadcastChannel';
+import { timeout } from '../lib/Timeout';
 
 afterEach(() => {
   resetAll();
@@ -31,6 +36,73 @@ describe('MemoryBroadcastChannel', () => {
       Array [
         Array [
           "hi",
+        ],
+      ]
+    `);
+  });
+
+  it('pauses broadcasting', async () => {
+    const on1 = jest.fn();
+    const bc1 = new MemoryBroadcastChannel<string>('test', on1);
+    const on2 = jest.fn();
+    const bc2 = new MemoryBroadcastChannel<string>('test', on2);
+
+    bc1.paused = true;
+
+    await bc1.postMessage('hi 1');
+    await bc2.postMessage('hi 2');
+
+    expect(on1.mock.calls).toMatchInlineSnapshot(`Array []`);
+    expect(on2.mock.calls).toMatchInlineSnapshot(`Array []`);
+
+    bc1.paused = false;
+
+    await timeout();
+
+    expect(on1.mock.calls).toMatchInlineSnapshot(`
+      Array [
+        Array [
+          "hi 2",
+        ],
+      ]
+    `);
+    expect(on2.mock.calls).toMatchInlineSnapshot(`
+      Array [
+        Array [
+          "hi 1",
+        ],
+      ]
+    `);
+  });
+  it('setChannelsPaused', async () => {
+    const on1 = jest.fn();
+    const bc1 = new MemoryBroadcastChannel<string>('test', on1);
+    const on2 = jest.fn();
+    const bc2 = new MemoryBroadcastChannel<string>('test', on2);
+
+    setChannelsPaused(true);
+
+    await bc1.postMessage('hi 1');
+    await bc2.postMessage('hi 2');
+
+    expect(on1.mock.calls).toMatchInlineSnapshot(`Array []`);
+    expect(on2.mock.calls).toMatchInlineSnapshot(`Array []`);
+
+    setChannelsPaused(false);
+
+    await timeout();
+
+    expect(on1.mock.calls).toMatchInlineSnapshot(`
+      Array [
+        Array [
+          "hi 2",
+        ],
+      ]
+    `);
+    expect(on2.mock.calls).toMatchInlineSnapshot(`
+      Array [
+        Array [
+          "hi 1",
         ],
       ]
     `);

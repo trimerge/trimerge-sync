@@ -2,7 +2,7 @@ import {
   MemoryBroadcastChannel,
   resetAll,
 } from '../testLib/MemoryBroadcastChannel';
-import { timeout } from '../testLib/Timeout';
+import { timeout } from './Timeout';
 import { LeaderManager } from './LeaderManager';
 import { LeaderEvent } from '../types';
 
@@ -25,40 +25,23 @@ function makeLeaderManager(
     'test',
     () => undefined,
   );
-  let paused = false;
-  let pauseChannelQueue: LeaderEvent[] = [];
-  let pauseLeaderQueue: LeaderEvent[] = [];
   const leaderManagement = new LeaderManager(
     clientId,
     (isLeader) =>
       events.push(
         `${clientId} is ${isLeader ? 'promoted to leader' : 'demoted'}`,
       ),
-    (event) => {
-      if (paused) {
-        pauseChannelQueue.push(event);
-      } else {
-        channel.postMessage(event);
-      }
-    },
+    (event) => channel.postMessage(event),
     {
       electionTimeoutMs: 0,
       heartbeatMs: 10,
       heartbeatTimeoutMs: 50,
     },
   );
-  channel.onEvent = (event) => {
-    if (paused) {
-      pauseLeaderQueue.push(event);
-    } else {
-      leaderManagement.receiveEvent(event);
-    }
-  };
+  channel.onMessage = (event) => leaderManagement.receiveEvent(event);
   async function close(cleanShutdown: boolean | undefined) {
     leaderManagement.close(cleanShutdown);
     channel.close();
-
-    paused = true;
 
     // need to wait for messages to send
     await timeout();
@@ -66,19 +49,8 @@ function makeLeaderManager(
   }
   pendingCloseFunctions.push(close);
   return {
-    set paused(p: boolean) {
-      paused = p;
-      if (!paused) {
-        // Send queued events
-        for (const e of pauseChannelQueue) {
-          void channel.postMessage(e);
-        }
-        pauseChannelQueue = [];
-        for (const e of pauseLeaderQueue) {
-          leaderManagement.receiveEvent(e);
-        }
-        pauseLeaderQueue = [];
-      }
+    set paused(paused: boolean) {
+      channel.paused = paused;
     },
     close,
   };
@@ -354,13 +326,12 @@ describe('LeaderManagement', () => {
     lm2.paused = true;
 
     // Wait for 50ms timeout
-    await timeout(100);
+    await timeout(150);
 
     // Now both sides are leaders
     expect(events).toMatchInlineSnapshot(`
       Array [
         "a is promoted to leader",
-        "b is promoted to leader",
       ]
     `);
 
@@ -372,8 +343,6 @@ describe('LeaderManagement', () => {
     expect(events).toMatchInlineSnapshot(`
       Array [
         "a is promoted to leader",
-        "b is promoted to leader",
-        "b is demoted",
       ]
     `);
   });

@@ -5,7 +5,7 @@ import { MemoryStore } from './testLib/MemoryStore';
 import { computeRef, diff, merge, patch } from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 import { ClientInfo } from './types';
-import { timeout } from './testLib/Timeout';
+import { timeout } from './lib/Timeout';
 
 type TestEditMetadata = string;
 type TestState = any;

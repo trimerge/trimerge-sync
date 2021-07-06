@@ -30,7 +30,7 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
   private queue = new PromiseQueue();
 
   constructor(
-    public readonly docId: string = randomId(),
+    public readonly channelName: string = randomId(),
     private readonly getRemoteFn?: GetRemoteFn<
       EditMetadata,
       Delta,

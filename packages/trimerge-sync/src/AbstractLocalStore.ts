@@ -13,8 +13,8 @@ import {
   SyncEvent,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
-import { timeoutPromise } from './lib/timeoutPromise';
 import { LeaderManager } from './lib/LeaderManager';
+import { timeout } from './lib/Timeout';
 
 export type NetworkSettings = Readonly<{
   initialDelayMs: number;
@@ -24,6 +24,11 @@ export type NetworkSettings = Readonly<{
   heartbeatMs: number;
   heartbeatTimeoutMs: number;
 }>;
+
+export type BroadcastEvent<EditMetadata, Delta, PresenceState> = {
+  event: SyncEvent<EditMetadata, Delta, PresenceState>;
+  remoteOrigin: boolean;
+};
 
 const DEFAULT_SETTINGS: NetworkSettings = {
   initialDelayMs: 1_000,
@@ -73,8 +78,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
    * Send to all *other* local nodes
    */
   protected abstract broadcastLocal(
-    event: SyncEvent<EditMetadata, Delta, PresenceState>,
-    remoteOrigin: boolean,
+    event: BroadcastEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void>;
 
   protected abstract getLocalNodes(): AsyncIterableIterator<
@@ -207,7 +211,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
             await this.closeRemote();
           }
           if (event.reconnect !== false && this.getRemote) {
-            await timeoutPromise(this.reconnectDelayMs);
+            await timeout(this.reconnectDelayMs);
             this.reconnectDelayMs = Math.min(
               this.reconnectDelayMs *
                 this.networkSettings.reconnectBackoffMultiplier,
@@ -223,10 +227,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
   };
 
-  protected readonly onLocalBroadcastEvent = (
-    event: SyncEvent<EditMetadata, Delta, PresenceState>,
-    remoteOrigin: boolean = false,
-  ): void => {
+  protected readonly onLocalBroadcastEvent = ({
+    event,
+    remoteOrigin,
+  }: BroadcastEvent<EditMetadata, Delta, PresenceState>): void => {
     this.processEvent(event, remoteOrigin ? 'remote-via-local' : 'local').catch(
       this.handleAsError('network'),
     );
@@ -342,7 +346,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       if (process.env.NODE_ENV === 'development') {
         console.log(`send local event: ${JSON.stringify(event)}`);
       }
-      await this.broadcastLocal(event, remoteOrigin);
+      await this.broadcastLocal({ event, remoteOrigin });
     }
     if (remote && this.remote) {
       if (process.env.NODE_ENV === 'development') {
@@ -364,7 +368,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
             void this.closeRemote();
           }
         },
-        (event) => this.broadcastLocal(event, false),
+        (event) => this.broadcastLocal({ event, remoteOrigin: false }),
         networkSettings,
       );
     }
