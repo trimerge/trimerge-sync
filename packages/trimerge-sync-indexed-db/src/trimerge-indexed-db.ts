@@ -1,20 +1,16 @@
 import {
   AbstractLocalStore,
-  SyncEvent,
+  AckNodesEvent,
+  AckRefErrors,
+  BroadcastEvent,
   DiffNode,
   GetLocalStoreFn,
   GetRemoteFn,
   NodesEvent,
   OnEventFn,
-  AckNodesEvent,
-  AckRefErrors,
 } from 'trimerge-sync';
 import { DBSchema, deleteDB, IDBPDatabase, openDB, StoreValue } from 'idb';
-import {
-  BroadcastChannel,
-  createLeaderElection,
-  LeaderElector,
-} from 'broadcast-channel';
+import { BroadcastChannel, LeaderElector } from 'broadcast-channel';
 
 function getSyncCounter(
   nodes: StoreValue<TrimergeSyncDbSchema, 'nodes'>[],
@@ -63,9 +59,9 @@ class IndexedDbBackend<
   private readonly dbName: string;
   private db: Promise<IDBPDatabase<TrimergeSyncDbSchema>>;
   private readonly channel: BroadcastChannel<
-    SyncEvent<EditMetadata, Delta, PresenceState>
+    BroadcastEvent<EditMetadata, Delta, PresenceState>
   >;
-  private readonly leaderElector: LeaderElector | undefined;
+  private leaderElector: LeaderElector | undefined;
 
   public constructor(
     private readonly docId: string,
@@ -75,26 +71,19 @@ class IndexedDbBackend<
     getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
     private readonly remoteId: string = 'origin',
   ) {
-    super(userId, clientId, onEvent);
+    super(userId, clientId, onEvent, getRemote);
     const dbName = getDatabaseName(docId);
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.db = this.connect();
     this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
     this.channel.addEventListener('message', this.onLocalBroadcastEvent);
-    if (getRemote) {
-      this.leaderElector = createLeaderElection(this.channel);
-      this.leaderElector
-        .awaitLeadership()
-        .then(() => this.connectRemote(getRemote))
-        .catch(this.handleAsError('internal'));
-    }
-    this.sendInitialEvents().catch(this.handleAsError('internal'));
+    this.initialize().catch(this.handleAsError('internal'));
     window.addEventListener('beforeunload', this.shutdown);
   }
 
   protected broadcastLocal(
-    event: SyncEvent<EditMetadata, Delta, PresenceState>,
+    event: BroadcastEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
     return this.channel.postMessage(event).catch(this.handleAsError('network'));
   }

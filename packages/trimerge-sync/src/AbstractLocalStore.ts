@@ -13,18 +13,30 @@ import {
   SyncEvent,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
-import { timeoutPromise } from './lib/timeoutPromise';
+import { LeaderManager } from './lib/LeaderManager';
+import { timeout } from './lib/Timeout';
 
-export type ReconnectSettings = Readonly<{
+export type NetworkSettings = Readonly<{
   initialDelayMs: number;
   reconnectBackoffMultiplier: number;
   maxReconnectDelayMs: number;
+  electionTimeoutMs: number;
+  heartbeatMs: number;
+  heartbeatTimeoutMs: number;
 }>;
 
-const DEFAULT_SETTINGS: ReconnectSettings = {
+export type BroadcastEvent<EditMetadata, Delta, PresenceState> = {
+  event: SyncEvent<EditMetadata, Delta, PresenceState>;
+  remoteOrigin: boolean;
+};
+
+const DEFAULT_SETTINGS: NetworkSettings = {
   initialDelayMs: 1_000,
   reconnectBackoffMultiplier: 2,
   maxReconnectDelayMs: 30_000,
+  electionTimeoutMs: 200,
+  heartbeatMs: 1_000,
+  heartbeatTimeoutMs: 2_500,
 };
 
 export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
@@ -34,9 +46,6 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     ref: undefined,
     state: undefined,
   };
-  private getRemote:
-    | GetRemoteFn<EditMetadata, Delta, PresenceState>
-    | undefined;
   private remote: Remote<EditMetadata, Delta, PresenceState> | undefined;
   private reconnectDelayMs: number;
   private remoteSyncState: RemoteStateEvent = {
@@ -47,21 +56,30 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   };
   private readonly unacknowledgedRefs = new Set<string>();
   private readonly remoteQueue = new PromiseQueue();
+  private leaderManager?: LeaderManager = undefined;
+  private readonly networkSettings: NetworkSettings;
+  private initialized = false;
 
-  public constructor(
+  protected constructor(
     protected readonly userId: string,
     protected readonly clientId: string,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
-    private readonly reconnectSettings: ReconnectSettings = DEFAULT_SETTINGS,
+    private readonly getRemote?: GetRemoteFn<
+      EditMetadata,
+      Delta,
+      PresenceState
+    >,
+    reconnectSettings: Partial<NetworkSettings> = {},
   ) {
-    this.reconnectDelayMs = reconnectSettings.initialDelayMs;
+    this.networkSettings = { ...DEFAULT_SETTINGS, ...reconnectSettings };
+    this.reconnectDelayMs = this.networkSettings.initialDelayMs;
   }
 
   /**
    * Send to all *other* local nodes
    */
   protected abstract broadcastLocal(
-    event: SyncEvent<EditMetadata, Delta, PresenceState>,
+    event: BroadcastEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void>;
 
   protected abstract getLocalNodes(): AsyncIterableIterator<
@@ -102,7 +120,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   protected processEvent = async (
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
     // Three sources of events: self, local broadcast, and remote broadcast
-    origin: 'self' | 'local' | 'remote',
+    origin: 'self' | 'local' | 'remote' | 'remote-via-local',
   ): Promise<void> => {
     if (process.env.NODE_ENV === 'development') {
       console.log(
@@ -110,17 +128,26 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       );
     }
 
+    if (event.type === 'leader') {
+      this.leaderManager?.receiveEvent(event);
+      return;
+    }
+
     // Re-broadcast event to other channels
-    await this.sendEvent(event, {
-      self: origin !== 'self',
-      local: origin !== 'local',
-      remote: origin !== 'remote',
-    });
+    await this.sendEvent(
+      event,
+      {
+        self: origin !== 'self',
+        local: origin !== 'local' && origin !== 'remote-via-local',
+        remote: origin !== 'remote' && origin !== 'remote-via-local',
+      },
+      origin === 'remote',
+    );
 
     switch (event.type) {
       case 'ready':
         // Reset reconnect timeout
-        this.reconnectDelayMs = this.reconnectSettings.initialDelayMs;
+        this.reconnectDelayMs = this.networkSettings.initialDelayMs;
         await this.setRemoteState({ type: 'remote-state', read: 'ready' });
         break;
 
@@ -185,26 +212,29 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
             await this.closeRemote();
           }
           if (event.reconnect !== false && this.getRemote) {
-            const { getRemote } = this;
-            this.getRemote = undefined;
-            await timeoutPromise(this.reconnectDelayMs);
+            await timeout(this.reconnectDelayMs);
             this.reconnectDelayMs = Math.min(
               this.reconnectDelayMs *
-                this.reconnectSettings.reconnectBackoffMultiplier,
-              this.reconnectSettings.maxReconnectDelayMs,
+                this.networkSettings.reconnectBackoffMultiplier,
+              this.networkSettings.maxReconnectDelayMs,
             );
             // Do not await on this or we'll deadlock
-            this.connectRemote(getRemote).catch(this.handleAsError('network'));
+            this.connectRemote(this.getRemote).catch(
+              this.handleAsError('network'),
+            );
           }
         }
         break;
     }
   };
 
-  protected readonly onLocalBroadcastEvent = (
-    event: SyncEvent<EditMetadata, Delta, PresenceState>,
-  ): void => {
-    this.processEvent(event, 'local').catch(this.handleAsError('network'));
+  protected readonly onLocalBroadcastEvent = ({
+    event,
+    remoteOrigin,
+  }: BroadcastEvent<EditMetadata, Delta, PresenceState>): void => {
+    this.processEvent(event, remoteOrigin ? 'remote-via-local' : 'local').catch(
+      this.handleAsError('network'),
+    );
   };
 
   async shutdown(): Promise<void> {
@@ -220,9 +250,20 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           userId,
           clientId,
         },
-        { local: true },
+        { local: true, remote: true },
       );
+    } catch (error) {
+      console.warn('ignoring error while shutting down', error);
+    }
+
+    try {
       await this.closeRemote();
+    } catch (error) {
+      console.warn('ignoring error while shutting down', error);
+    }
+
+    try {
+      this.leaderManager?.close();
     } catch (error) {
       console.warn('ignoring error while shutting down', error);
     }
@@ -241,10 +282,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     this.remote = undefined;
   }
 
-  protected async connectRemote(
+  private async connectRemote(
     getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
-    this.getRemote = getRemote;
     await this.remoteQueue.add(async () => {
       if (this.closed) {
         return;
@@ -300,11 +340,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       local = false,
       self = false,
     }: { remote?: boolean; local?: boolean; self?: boolean },
+    remoteOrigin: boolean = false,
   ): Promise<void> {
     if (self) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`handle event: ${JSON.stringify(event)}`);
-      }
       try {
         this.onEvent(event);
       } catch (e) {
@@ -313,36 +351,55 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       }
     }
     if (local) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`send local event: ${JSON.stringify(event)}`);
-      }
-      await this.broadcastLocal(event);
+      await this.broadcastLocal({ event, remoteOrigin });
     }
     if (remote && this.remote) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`send remote event: ${JSON.stringify(event)}`);
-      }
       await this.remote.send(event);
     }
   }
 
-  protected async sendInitialEvents() {
-    await this.sendEvent(
-      {
-        type: 'client-join',
-        info: this.clientInfo,
-      },
-      { local: true },
-    );
-    for await (const event of this.getLocalNodes()) {
-      await this.sendEvent(event, { self: true });
+  protected initialize(): Promise<void> {
+    const { getRemote, networkSettings, initialized } = this;
+    if (initialized) {
+      throw new Error('only call initialize() once');
     }
-    await this.sendEvent({ type: 'ready' }, { self: true });
+    this.initialized = true;
+    if (getRemote) {
+      this.leaderManager = new LeaderManager(
+        this.clientId,
+        (isLeader) => {
+          if (isLeader) {
+            void this.connectRemote(getRemote);
+          } else {
+            void this.closeRemote();
+          }
+        },
+        (event) => this.broadcastLocal({ event, remoteOrigin: false }),
+        networkSettings,
+      );
+    }
+    // Do only this part async
+    return (async () => {
+      await this.sendEvent(
+        {
+          type: 'client-join',
+          info: this.clientInfo,
+        },
+        { local: true },
+      );
+      for await (const event of this.getLocalNodes()) {
+        await this.sendEvent(event, { self: true });
+      }
+      await this.sendEvent({ type: 'ready' }, { self: true });
+    })();
   }
   update(
     newNodes: DiffNode<EditMetadata, Delta>[],
     presence: ClientPresenceRef<PresenceState> | undefined,
   ): void {
+    if (this.closed) {
+      return;
+    }
     this.doUpdate(newNodes, presence).catch(
       this.handleAsError('invalid-nodes'),
     );

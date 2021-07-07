@@ -1,98 +1,90 @@
-const channels = new Map<string, MemoryBroadcastChannel<any>[]>();
-const leaders = new Map<
-  string,
-  {
-    current: MemoryBroadcastChannel<any>;
-    awaiting: MemoryBroadcastChannel<any>[];
-  }
->();
+import { removeItem } from './Arrays';
+
+const ALL_CHANNELS = new Map<string, MemoryBroadcastChannel<any>[]>();
 
 export function resetAll() {
-  channels.clear();
-  leaders.clear();
+  for (const channels of ALL_CHANNELS.values()) {
+    for (const channel of channels) {
+      channel.close();
+    }
+  }
+  ALL_CHANNELS.clear();
 }
 
-function removeItem<T>(array: T[], item: T): boolean {
-  const index = array.indexOf(item);
-  if (index < 0) {
-    return false;
+function getChannelsArray(name: string) {
+  let channels = ALL_CHANNELS.get(name);
+  if (!channels) {
+    channels = [];
+    ALL_CHANNELS.set(name, channels);
   }
-  array.splice(index, 1);
-  return true;
+  return channels;
+}
+
+export function setChannelsPaused(paused: boolean) {
+  for (const channels of ALL_CHANNELS.values()) {
+    for (const channel of channels) {
+      channel.paused = paused;
+    }
+  }
 }
 
 export class MemoryBroadcastChannel<T> {
-  private closed = false;
-  private readonly array: MemoryBroadcastChannel<T>[];
-  private resolveLeader?: () => void;
-  private rejectLeader?: (error: Error) => void;
+  private _closed = false;
+  private _paused = false;
+  private readonly _channels: MemoryBroadcastChannel<T>[];
+  private _postMessageQueue: T[] = [];
+  private _onMessageQueue: T[] = [];
 
   constructor(
-    private readonly channel: string,
-    private readonly onEvent: (value: T) => void,
+    private readonly channelName: string,
+    private readonly _onMessage: (value: T) => void,
   ) {
-    this.array = channels.get(channel) ?? [];
-    if (this.array.length === 0) {
-      channels.set(channel, this.array);
-    }
-    this.array.push(this);
+    this._channels = getChannelsArray(channelName);
+    this._channels.push(this);
   }
 
-  awaitLeadership(): Promise<void> {
-    const leader = leaders.get(this.channel);
-    if (leader) {
-      return new Promise((resolve, reject) => {
-        this.resolveLeader = resolve;
-        this.rejectLeader = reject;
-        leader.awaiting.push(this);
-      });
+  set paused(paused: boolean) {
+    this._paused = paused;
+    if (!paused && !this._closed) {
+      // Send queued events
+      for (const message of this._postMessageQueue) {
+        void this.postMessage(message);
+      }
+      this._postMessageQueue = [];
+      for (const message of this._onMessageQueue) {
+        this._onMessage(message);
+      }
+      this._onMessageQueue = [];
     }
-    leaders.set(this.channel, {
-      current: this,
-      awaiting: [],
-    });
-    return Promise.resolve();
   }
 
-  async postMessage(value: T): Promise<void> {
-    if (this.closed) {
+  onMessage(message: T): void {
+    if (this._paused) {
+      this._onMessageQueue.push(message);
+      return;
+    }
+    this._onMessage(message);
+  }
+
+  async postMessage(message: T): Promise<void> {
+    if (this._closed) {
       throw new Error('already closed');
     }
-    for await (const channel of this.array) {
+    if (this._paused) {
+      this._postMessageQueue.push(message);
+      return;
+    }
+    for await (const channel of Array.from(this._channels)) {
       if (channel !== this) {
-        channel.onEvent(value);
+        channel.onMessage(message);
       }
     }
   }
   close(): void {
-    if (this.closed) {
+    if (this._closed) {
       return;
     }
-    this.closed = true;
-    removeItem(this.array, this);
-    if (this.rejectLeader) {
-      this.rejectLeader(new Error('closed'));
-      this.rejectLeader = undefined;
-    }
-    this.resolveLeader = undefined;
-    const leader = leaders.get(this.channel);
-    if (!leader) {
-      return;
-    }
-    removeItem(leader.awaiting, this);
-    if (leader.current === this) {
-      const nextLeader = leader.awaiting.shift();
-      if (nextLeader) {
-        if (nextLeader.resolveLeader) {
-          leader.current = nextLeader;
-          nextLeader.resolveLeader();
-          nextLeader.resolveLeader = undefined;
-        }
-        nextLeader.rejectLeader = undefined;
-      } else {
-        // No more leaders
-        leaders.delete(this.channel);
-      }
-    }
+    this._closed = true;
+    removeItem(this._channels, this);
   }
 }

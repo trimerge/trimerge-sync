@@ -4,7 +4,7 @@ import { Differ } from '../differ';
 import { MemoryStore } from './MemoryStore';
 import { computeRef, diff, merge, patch } from './MergeUtils';
 import { getBasicGraph, getDotGraph } from './GraphVisualizers';
-import { timeout } from './Timeout';
+import { timeout } from '../lib/Timeout';
 
 type TestEditMetadata = string;
 type TestState = any;

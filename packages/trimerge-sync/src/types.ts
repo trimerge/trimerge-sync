@@ -118,10 +118,16 @@ export type RemoteStateEvent = {
   save?: RemoteSaveStatus;
 };
 
+export type LeaderEvent = {
+  type: 'leader';
+  action: 'request' | 'current' | 'accept' | 'withdraw';
+  clientId: string;
+};
 export type SyncEvent<EditMetadata, Delta, PresenceState> = Readonly<
   | AuthEvent
   | NodesEvent<EditMetadata, Delta, PresenceState>
   | ReadyEvent
+  | LeaderEvent
   | AckNodesEvent
   | ClientJoinEvent<PresenceState>
   | ClientPresenceEvent<PresenceState>

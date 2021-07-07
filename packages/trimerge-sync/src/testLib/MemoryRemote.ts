@@ -25,7 +25,10 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
     lastSyncId: string | undefined,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
   ) {
-    this.channel = new MemoryBroadcastChannel(this.store.docId, onEvent);
+    this.channel = new MemoryBroadcastChannel(
+      'remote:' + this.store.channelName,
+      onEvent,
+    );
     this.sendInitialEvents(lastSyncId).catch(this.handleAsError('internal'));
   }
 
@@ -76,7 +79,7 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
     for await (const event of this.getNodes(lastSyncId)) {
       this.onEvent(event);
     }
-    // this.onEvent({ type: 'ready' });
+    this.onEvent({ type: 'ready' });
   }
 
   async shutdown(): Promise<void> {

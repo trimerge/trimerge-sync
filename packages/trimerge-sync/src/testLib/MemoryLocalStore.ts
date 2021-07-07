@@ -1,4 +1,4 @@
-import { AbstractLocalStore } from '../AbstractLocalStore';
+import { AbstractLocalStore, BroadcastEvent } from '../AbstractLocalStore';
 import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
 import {
   AckNodesEvent,
@@ -6,7 +6,6 @@ import {
   GetRemoteFn,
   NodesEvent,
   OnEventFn,
-  SyncEvent,
 } from '../types';
 import { MemoryStore } from './MemoryStore';
 
@@ -15,8 +14,9 @@ export class MemoryLocalStore<
   Delta,
   PresenceState
 > extends AbstractLocalStore<EditMetadata, Delta, PresenceState> {
+  private _closed = false;
   private readonly channel: MemoryBroadcastChannel<
-    SyncEvent<EditMetadata, Delta, PresenceState>
+    BroadcastEvent<EditMetadata, Delta, PresenceState>
   >;
 
   constructor(
@@ -26,24 +26,19 @@ export class MemoryLocalStore<
     onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
     getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
   ) {
-    super(userId, clientId, onEvent, {
+    super(userId, clientId, onEvent, getRemote, {
       initialDelayMs: 0,
       reconnectBackoffMultiplier: 1,
       maxReconnectDelayMs: 0,
+      electionTimeoutMs: 0,
+      heartbeatMs: 10,
+      heartbeatTimeoutMs: 50,
     });
     this.channel = new MemoryBroadcastChannel(
-      this.store.docId,
+      'local:' + this.store.channelName,
       this.onLocalBroadcastEvent,
     );
-    if (getRemote) {
-      this.channel
-        .awaitLeadership()
-        .then(() => this.connectRemote(getRemote))
-        .catch(() => {
-          // this happens if we close before becoming leader
-        });
-    }
-    this.sendInitialEvents().catch(this.handleAsError('internal'));
+    this.initialize().catch(this.handleAsError('internal'));
   }
 
   protected addNodes(
@@ -61,8 +56,11 @@ export class MemoryLocalStore<
   }
 
   protected async broadcastLocal(
-    event: SyncEvent<EditMetadata, Delta, PresenceState>,
+    event: BroadcastEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
+    if (this._closed) {
+      return;
+    }
     await this.channel.postMessage(event);
   }
 
@@ -83,7 +81,12 @@ export class MemoryLocalStore<
   }
 
   async shutdown(): Promise<void> {
+    if (this._closed) {
+      return;
+    }
     await super.shutdown();
+    // Must be after super.shutdown() because it needs to call broadcastLocal()
+    this._closed = true;
     this.channel.close();
   }
 }

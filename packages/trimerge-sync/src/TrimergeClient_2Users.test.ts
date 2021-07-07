@@ -5,7 +5,7 @@ import { MemoryStore } from './testLib/MemoryStore';
 import { computeRef, diff, merge, patch } from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 import { ClientInfo } from './types';
-import { timeout } from './testLib/Timeout';
+import { timeout } from './lib/Timeout';
 
 type TestEditMetadata = string;
 type TestState = any;
@@ -45,12 +45,12 @@ function basicGraph(
   );
 }
 
-function sortedCursors(
+function sortedClients(
   client: TrimergeClient<TestState, TestEditMetadata, Delta, TestPresenceState>,
 ) {
-  return Array.from(client.clients).sort(cursorSort);
+  return Array.from(client.clients).sort(clientSort);
 }
-function cursorSort(
+function clientSort(
   a: ClientInfo<TestPresenceState>,
   b: ClientInfo<TestPresenceState>,
 ): -1 | 1 | 0 {
@@ -75,6 +75,27 @@ describe('TrimergeClient: 2 users', () => {
     expect(client.state).toEqual({ hello: 'vorld' });
   });
 
+  it('tracks non-edits', async () => {
+    const store = newStore();
+    const client = makeClient('a', store);
+
+    const onStateChange = jest.fn();
+    const unsub = client.subscribeState(onStateChange);
+    client.updateState(undefined, 'initialize');
+    await timeout();
+    client.updateState(undefined, 'initialize');
+    await timeout();
+
+    expect(onStateChange.mock.calls).toMatchInlineSnapshot(`
+      Array [
+        Array [
+          undefined,
+        ],
+      ]
+    `);
+    unsub();
+  });
+
   it('edit syncs across two clients', async () => {
     const store = newStore();
     const client1 = makeClient('a', store);
@@ -92,12 +113,38 @@ describe('TrimergeClient: 2 users', () => {
 
     await timeout();
 
+    expect(client1.syncStatus).toEqual({
+      localRead: 'ready',
+      localSave: 'ready',
+      remoteConnect: 'offline',
+      remoteRead: 'offline',
+      remoteSave: 'saving',
+    });
+    expect(client2.syncStatus).toMatchInlineSnapshot(
+      {
+        localRead: 'ready',
+        localSave: 'ready',
+        remoteConnect: 'offline',
+        remoteRead: 'offline',
+        remoteSave: 'saving',
+      },
+      `
+      Object {
+        "localRead": "ready",
+        "localSave": "ready",
+        "remoteConnect": "offline",
+        "remoteRead": "offline",
+        "remoteSave": "saving",
+      }
+    `,
+    );
+
     // Client2 is updated now
     expect(client1.state).toEqual({});
     expect(client2.state).toEqual({});
   });
 
-  it('sends cursor information correctly', async () => {
+  it('sends presence information correctly', async () => {
     const store = newStore();
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
@@ -136,7 +183,7 @@ describe('TrimergeClient: 2 users', () => {
     await timeout();
 
     // Client2 is updated now
-    expect(sortedCursors(client1)).toEqual([
+    expect(sortedClients(client1)).toEqual([
       {
         clientId: 'test',
         ref: undefined,
@@ -151,7 +198,7 @@ describe('TrimergeClient: 2 users', () => {
         userId: 'b',
       },
     ]);
-    expect(sortedCursors(client2)).toEqual([
+    expect(sortedClients(client2)).toEqual([
       {
         clientId: 'test',
         ref: undefined,
@@ -196,28 +243,47 @@ describe('TrimergeClient: 2 users', () => {
           },
         ],
       ],
-      [
-        [
-          {
-            clientId: 'test',
-            ref: undefined,
-            self: true,
-            state: undefined,
-            userId: 'a',
-          },
-          {
-            clientId: 'test',
-            ref: undefined,
-            state: undefined,
-            userId: 'b',
-          },
-        ],
-      ],
     ]);
     client1Unsub();
   });
 
-  it('updates cursor information', async () => {
+  it('handles client-leave', async () => {
+    const store = newStore();
+    const client1 = makeClient('a', store);
+    const client2 = makeClient('b', store);
+
+    await timeout();
+
+    expect(sortedClients(client2)).toEqual([
+      {
+        clientId: 'test',
+        ref: undefined,
+        state: undefined,
+        userId: 'a',
+      },
+      {
+        clientId: 'test',
+        ref: undefined,
+        self: true,
+        state: undefined,
+        userId: 'b',
+      },
+    ]);
+
+    await client1.shutdown();
+
+    expect(sortedClients(client2)).toEqual([
+      {
+        clientId: 'test',
+        ref: undefined,
+        self: true,
+        state: undefined,
+        userId: 'b',
+      },
+    ]);
+  });
+
+  it('updates presence information', async () => {
     const store = newStore();
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
@@ -241,7 +307,7 @@ describe('TrimergeClient: 2 users', () => {
 
     await timeout();
 
-    expect(sortedCursors(client1)).toEqual([
+    expect(sortedClients(client1)).toEqual([
       {
         clientId: 'test',
         ref: undefined,
@@ -256,7 +322,7 @@ describe('TrimergeClient: 2 users', () => {
         userId: 'b',
       },
     ]);
-    expect(sortedCursors(client2)).toEqual([
+    expect(sortedClients(client2)).toEqual([
       {
         clientId: 'test',
         ref: undefined,

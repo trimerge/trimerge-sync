@@ -1,17 +1,18 @@
 import {
   ClientInfo,
   ClientList,
-  LocalClientInfo,
   DiffNode,
   GetLocalStoreFn,
+  LocalClientInfo,
   LocalStore,
   OnEventFn,
   SyncStatus,
 } from './types';
 import { mergeHeadNodes } from './merge-nodes';
 import { Differ, NodeStateRef } from './differ';
-import { getFullId, waitMs } from './util';
+import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
+import { timeout } from './lib/Timeout';
 
 export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private current?: NodeStateRef<State, EditMetadata>;
@@ -55,7 +56,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   ) {
     this.selfFullId = getFullId(userId, clientId);
     this.store = getLocalStore(userId, clientId, this.onEvent);
-    this.setCursor({
+    this.setClientInfo({
       userId,
       clientId,
       ref: undefined,
@@ -64,7 +65,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     });
   }
 
-  private setCursor(cursor: LocalClientInfo<PresenceState>) {
+  private setClientInfo(cursor: LocalClientInfo<PresenceState>) {
     const { userId, clientId } = cursor;
     this.clientMap.set(getFullId(userId, clientId), cursor);
     this.emitClientListChange();
@@ -81,7 +82,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
         this.stateSubs.emitChange();
         this.sync();
         if (clientInfo) {
-          this.setCursor(clientInfo);
+          this.setClientInfo(clientInfo);
         }
 
         break;
@@ -98,7 +99,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
 
       case 'client-join':
       case 'client-presence':
-        this.setCursor(event.info);
+        this.setClientInfo(event.info);
         break;
 
       case 'remote-state':
@@ -177,7 +178,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   ) {
     const { userId, clientId } = this;
     this.newPresenceState = { userId, clientId, ref, state };
-    this.setCursor({ userId, clientId, ref, state, self: true });
+    this.setClientInfo({ userId, clientId, ref, state, self: true });
     this.emitClientListChange();
   }
 
@@ -253,7 +254,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private async doSync() {
     while (this.needsSync) {
       this.updateSyncState({ localSave: 'pending' });
-      await waitMs(this.bufferMs);
+      await timeout(this.bufferMs);
       const nodes = this.unsyncedNodes;
       this.unsyncedNodes = [];
       this.updateSyncState({ localSave: 'saving' });
