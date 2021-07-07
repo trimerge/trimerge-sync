@@ -85,6 +85,7 @@ export class MemoryLocalStore<
       return;
     }
     await super.shutdown();
+    // Must be after super.shutdown() because it needs to call broadcastLocal()
     this._closed = true;
     this.channel.close();
   }

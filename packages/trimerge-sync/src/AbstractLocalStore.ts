@@ -58,8 +58,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   private readonly remoteQueue = new PromiseQueue();
   private leaderManager?: LeaderManager = undefined;
   private readonly networkSettings: NetworkSettings;
+  private initialized = false;
 
-  public constructor(
+  protected constructor(
     protected readonly userId: string,
     protected readonly clientId: string,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
@@ -251,7 +252,17 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         },
         { local: true, remote: true },
       );
+    } catch (error) {
+      console.warn('ignoring error while shutting down', error);
+    }
+
+    try {
       await this.closeRemote();
+    } catch (error) {
+      console.warn('ignoring error while shutting down', error);
+    }
+
+    try {
       this.leaderManager?.close();
     } catch (error) {
       console.warn('ignoring error while shutting down', error);
@@ -356,8 +367,12 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
   }
 
-  protected async initialize() {
-    const { getRemote, networkSettings } = this;
+  protected initialize(): Promise<void> {
+    const { getRemote, networkSettings, initialized } = this;
+    if (initialized) {
+      throw new Error('only call initialize() once');
+    }
+    this.initialized = true;
     if (getRemote) {
       this.leaderManager = new LeaderManager(
         this.clientId,
@@ -372,17 +387,20 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         networkSettings,
       );
     }
-    await this.sendEvent(
-      {
-        type: 'client-join',
-        info: this.clientInfo,
-      },
-      { local: true },
-    );
-    for await (const event of this.getLocalNodes()) {
-      await this.sendEvent(event, { self: true });
-    }
-    await this.sendEvent({ type: 'ready' }, { self: true });
+    // Do only this part async
+    return (async () => {
+      await this.sendEvent(
+        {
+          type: 'client-join',
+          info: this.clientInfo,
+        },
+        { local: true },
+      );
+      for await (const event of this.getLocalNodes()) {
+        await this.sendEvent(event, { self: true });
+      }
+      await this.sendEvent({ type: 'ready' }, { self: true });
+    })();
   }
   update(
     newNodes: DiffNode<EditMetadata, Delta>[],

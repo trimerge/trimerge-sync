@@ -1,4 +1,5 @@
 import { LeaderEvent } from '../types';
+import { getSortedMin } from './Iterables';
 
 type Timeout = ReturnType<typeof setTimeout>;
 type Interval = ReturnType<typeof setInterval>;
@@ -82,8 +83,7 @@ export class LeaderManager {
   }
   private finishElection() {
     this.electionTimeout = undefined;
-    const [proposedLeader] = Array.from(this.potentialLeaders).sort();
-    this.setLeader(proposedLeader);
+    this.setLeader(getSortedMin(this.potentialLeaders));
   }
 
   private setLeader(leaderId: string | undefined) {
