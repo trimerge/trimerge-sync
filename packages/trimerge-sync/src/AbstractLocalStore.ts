@@ -343,9 +343,6 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     remoteOrigin: boolean = false,
   ): Promise<void> {
     if (self) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`handle event: ${JSON.stringify(event)}`);
-      }
       try {
         this.onEvent(event);
       } catch (e) {
@@ -354,15 +351,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       }
     }
     if (local) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`send local event: ${JSON.stringify(event)}`);
-      }
       await this.broadcastLocal({ event, remoteOrigin });
     }
     if (remote && this.remote) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`send remote event: ${JSON.stringify(event)}`);
-      }
       await this.remote.send(event);
     }
   }

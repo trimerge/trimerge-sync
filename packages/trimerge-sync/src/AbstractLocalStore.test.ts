@@ -10,7 +10,7 @@ class MockLocalStore extends AbstractLocalStore<unknown, unknown, unknown> {
   }
 
   async addNodes(): Promise<AckNodesEvent> {
-    throw new Error('unsupported');
+    return { type: 'ack', refs: [], syncId: '' };
   }
 
   async broadcastLocal(): Promise<void> {
@@ -54,5 +54,21 @@ describe('AbstractLocalStore', () => {
     await store.shutdown();
     await store.shutdown();
     expect(fn.mock.calls).toMatchInlineSnapshot(`Array []`);
+  });
+  it('handle empty update call', async () => {
+    const fn = jest.fn();
+    const store = new MockLocalStore(fn);
+    await store.update([], undefined);
+    expect(fn.mock.calls).toMatchInlineSnapshot(`
+      Array [
+        Array [
+          Object {
+            "refs": Array [],
+            "syncId": "",
+            "type": "ack",
+          },
+        ],
+      ]
+    `);
   });
 });

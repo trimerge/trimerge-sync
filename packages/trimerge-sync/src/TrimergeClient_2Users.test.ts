@@ -75,6 +75,27 @@ describe('TrimergeClient: 2 users', () => {
     expect(client.state).toEqual({ hello: 'vorld' });
   });
 
+  it('tracks non-edits', async () => {
+    const store = newStore();
+    const client = makeClient('a', store);
+
+    const onStateChange = jest.fn();
+    const unsub = client.subscribeState(onStateChange);
+    client.updateState(undefined, 'initialize');
+    await timeout();
+    client.updateState(undefined, 'initialize');
+    await timeout();
+
+    expect(onStateChange.mock.calls).toMatchInlineSnapshot(`
+      Array [
+        Array [
+          undefined,
+        ],
+      ]
+    `);
+    unsub();
+  });
+
   it('edit syncs across two clients', async () => {
     const store = newStore();
     const client1 = makeClient('a', store);
