@@ -3,6 +3,11 @@ import { removeItem } from './Arrays';
 const ALL_CHANNELS = new Map<string, MemoryBroadcastChannel<any>[]>();
 
 export function resetAll() {
+  for (const channels of ALL_CHANNELS.values()) {
+    for (const channel of channels) {
+      channel.close();
+    }
+  }
   ALL_CHANNELS.clear();
 }
 

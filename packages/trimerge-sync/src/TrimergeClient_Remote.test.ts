@@ -6,7 +6,7 @@ import { TrimergeClient } from './TrimergeClient';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 import { SyncStatus } from './types';
 import { timeout } from './lib/Timeout';
-import { setChannelsPaused } from './testLib/MemoryBroadcastChannel';
+import { resetAll, setChannelsPaused } from './testLib/MemoryBroadcastChannel';
 
 type TestEditMetadata = string;
 type TestState = any;
@@ -19,13 +19,27 @@ const differ: Differ<TestState, TestEditMetadata, TestPresenceState> = {
   merge,
 };
 
+const stores = new Set<
+  MemoryStore<TestEditMetadata, Delta, TestPresenceState>
+>();
+
+afterEach(async () => {
+  for (const store of stores) {
+    await store.shutdown();
+  }
+  stores.clear();
+  resetAll();
+});
+
 function newStore(
   remote?: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
 ) {
-  return new MemoryStore<TestEditMetadata, Delta, TestPresenceState>(
+  const store = new MemoryStore<TestEditMetadata, Delta, TestPresenceState>(
     undefined,
     remote?.getRemote,
   );
+  stores.add(store);
+  return store;
 }
 
 function makeClient(

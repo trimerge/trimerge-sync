@@ -28,6 +28,11 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
   private syncedNodes = new Set<string>();
   private lastRemoteSyncId: string | undefined;
   private queue = new PromiseQueue();
+  private localStores: MemoryLocalStore<
+    EditMetadata,
+    Delta,
+    PresenceState
+  >[] = [];
 
   constructor(
     public readonly channelName: string = randomId(),
@@ -51,14 +56,17 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     clientId,
     onEvent,
   ) => {
-    return new MemoryLocalStore(
+    const store = new MemoryLocalStore(
       this,
       userId,
       clientId,
       onEvent,
       this.getRemoteFn,
     );
+    this.localStores.push(store);
+    return store;
   };
+
   getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState> = (
     userId: string,
     lastSyncId,
@@ -132,6 +140,17 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
         nodes,
         syncId: this.syncId,
       };
+    });
+  }
+
+  async shutdown(): Promise<void> {
+    return await this.queue.add(async () => {
+      for (const remote of this.remotes) {
+        await remote.shutdown();
+      }
+      for (const local of this.localStores) {
+        await local.shutdown();
+      }
     });
   }
 }
