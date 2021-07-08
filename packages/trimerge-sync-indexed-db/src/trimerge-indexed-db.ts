@@ -11,6 +11,7 @@ import {
 } from 'trimerge-sync';
 import { DBSchema, deleteDB, IDBPDatabase, openDB, StoreValue } from 'idb';
 import { BroadcastChannel, LeaderElector } from 'broadcast-channel';
+import { NetworkSettings } from 'trimerge-sync/dist/AbstractLocalStore';
 
 function getSyncCounter(
   nodes: StoreValue<TrimergeSyncDbSchema, 'nodes'>[],
@@ -69,9 +70,10 @@ class IndexedDbBackend<
     clientId: string,
     onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
     getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
+    networkSettings?: Partial<NetworkSettings>,
     private readonly remoteId: string = 'origin',
   ) {
-    super(userId, clientId, onEvent, getRemote);
+    super(userId, clientId, onEvent, getRemote, networkSettings);
     const dbName = getDatabaseName(docId);
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
