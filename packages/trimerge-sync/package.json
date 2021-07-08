@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync",
-  "version": "0.9.1-rc.1",
+  "version": "0.9.1-rc.2",
   "description": "distributed data sync using trimerge",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
@@ -59,7 +59,7 @@
     "rollup": "2.51.1",
     "rollup-plugin-typescript2": "0.30.0",
     "trimerge": "^1.3.0-alpha.15",
-    "trimerge-sync-hash": "0.9.1-rc.1",
+    "trimerge-sync-hash": "0.9.1-rc.2",
     "typescript": "4.3.2"
   },
   "jest": {
