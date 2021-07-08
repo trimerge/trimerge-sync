@@ -31,7 +31,7 @@ export class MemoryLocalStore<
       reconnectBackoffMultiplier: 1,
       maxReconnectDelayMs: 0,
       electionTimeoutMs: 0,
-      heartbeatMs: 10,
+      heartbeatIntervalMs: 10,
       heartbeatTimeoutMs: 50,
     });
     this.channel = new MemoryBroadcastChannel(

@@ -21,7 +21,7 @@ export type NetworkSettings = Readonly<{
   reconnectBackoffMultiplier: number;
   maxReconnectDelayMs: number;
   electionTimeoutMs: number;
-  heartbeatMs: number;
+  heartbeatIntervalMs: number;
   heartbeatTimeoutMs: number;
 }>;
 
@@ -35,8 +35,8 @@ const DEFAULT_SETTINGS: NetworkSettings = {
   reconnectBackoffMultiplier: 2,
   maxReconnectDelayMs: 30_000,
   electionTimeoutMs: 1_000,
-  heartbeatMs: 1_000,
-  heartbeatTimeoutMs: 2_500,
+  heartbeatIntervalMs: 2_000,
+  heartbeatTimeoutMs: 5_000,
 };
 
 export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
@@ -270,16 +270,17 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   }
 
   private async closeRemote() {
-    if (!this.remote) {
+    const remote = this.remote;
+    if (!remote) {
       return;
     }
-    await this.remote.shutdown();
+    this.remote = undefined;
+    await remote.shutdown();
     await this.setRemoteState({
       type: 'remote-state',
       connect: 'offline',
       read: 'offline',
     });
-    this.remote = undefined;
   }
 
   private async connectRemote(

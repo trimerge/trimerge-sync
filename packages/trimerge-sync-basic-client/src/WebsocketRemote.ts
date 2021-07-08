@@ -10,6 +10,7 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
     private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
     websocketUrl: string,
   ) {
+    console.log(`[TRIMERGE-SYNC] Connecting to ${websocketUrl}...`);
     this.socket = new WebSocket(websocketUrl);
     onEvent({ type: 'remote-state', connect: 'connecting' });
     this.socket.onopen = () => {
@@ -43,6 +44,9 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
     if (!this.socket) {
       return;
     }
+    console.log(
+      `[TRIMERGE-SYNC] Shutting down websocket ${this.socket.url}...`,
+    );
     this.socket.close(1000, 'shutdown');
     this.socket = undefined;
     this.onEvent({

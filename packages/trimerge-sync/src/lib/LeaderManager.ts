@@ -6,14 +6,14 @@ type Interval = ReturnType<typeof setInterval>;
 
 export type LeaderSettings = Readonly<{
   electionTimeoutMs: number;
-  heartbeatMs: number;
+  heartbeatIntervalMs: number;
   heartbeatTimeoutMs: number;
 }>;
 
 const DEFAULT_SETTINGS: LeaderSettings = {
-  electionTimeoutMs: 200,
-  heartbeatMs: 1_000,
-  heartbeatTimeoutMs: 2_500,
+  electionTimeoutMs: 1_000,
+  heartbeatIntervalMs: 2_000,
+  heartbeatTimeoutMs: 5_000,
 };
 
 /**
@@ -83,14 +83,17 @@ export class LeaderManager {
   }
   private finishElection() {
     this.electionTimeout = undefined;
+    console.log(`[LEADER] election over…`, Array.from(this.potentialLeaders));
     this.setLeader(getSortedMin(this.potentialLeaders));
   }
 
   private setLeader(leaderId: string | undefined) {
     this.cancelElection();
     const { clientId } = this;
-    this.currentLeaderId = leaderId;
     const isLeader = leaderId === clientId;
+    if (leaderId !== this.currentLeaderId) {
+      this.currentLeaderId = leaderId;
+    }
     if (this.isLeader !== isLeader) {
       this.isLeader = isLeader;
       this.onLeaderChange(isLeader);
@@ -102,7 +105,7 @@ export class LeaderManager {
         this.broadcastEvent({ type: 'leader', action: 'current', clientId });
         this.leaderHeartbeat = setInterval(
           () => this.onLeaderHeartbeat(),
-          this.settings.heartbeatMs,
+          this.settings.heartbeatIntervalMs,
         );
       }
     }
@@ -124,6 +127,7 @@ export class LeaderManager {
   }
   private onHeartbeatTimeout() {
     this.heartbeatTimeout = undefined;
+    console.warn(`[TRIMERGE-SYNC] leader timeout`);
     this.elect();
   }
 
@@ -158,6 +162,7 @@ export class LeaderManager {
           if (otherClientId < clientId) {
             this.setLeader(undefined);
           }
+          console.warn(`[TRIMERGE-SYNC] multiple leaders detected`);
           this.elect();
         } else {
           this.setLeader(otherClientId);

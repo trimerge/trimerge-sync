@@ -34,7 +34,7 @@ function makeLeaderManager(
     (event) => channel.postMessage(event),
     {
       electionTimeoutMs: 0,
-      heartbeatMs: 10,
+      heartbeatIntervalMs: 10,
       heartbeatTimeoutMs: 50,
     },
   );
