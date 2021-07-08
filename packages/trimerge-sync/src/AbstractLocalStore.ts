@@ -34,7 +34,7 @@ const DEFAULT_SETTINGS: NetworkSettings = {
   initialDelayMs: 1_000,
   reconnectBackoffMultiplier: 2,
   maxReconnectDelayMs: 30_000,
-  electionTimeoutMs: 200,
+  electionTimeoutMs: 1_000,
   heartbeatMs: 1_000,
   heartbeatTimeoutMs: 2_500,
 };
@@ -69,9 +69,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       Delta,
       PresenceState
     >,
-    reconnectSettings: Partial<NetworkSettings> = {},
+    networkSettings: Partial<NetworkSettings> = {},
   ) {
-    this.networkSettings = { ...DEFAULT_SETTINGS, ...reconnectSettings };
+    this.networkSettings = { ...DEFAULT_SETTINGS, ...networkSettings };
     this.reconnectDelayMs = this.networkSettings.initialDelayMs;
   }
 
@@ -369,8 +369,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         this.clientId,
         (isLeader) => {
           if (isLeader) {
+            console.log(`[TRIMERGE-SYNC] Became leader, connecting...`);
             void this.connectRemote(getRemote);
           } else {
+            console.warn(`[TRIMERGE-SYNC] Demoted as leader, disconnecting...`);
             void this.closeRemote();
           }
         },
