@@ -129,7 +129,7 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
   getRemoteSyncInfo(): Promise<RemoteSyncInfo> {
     return this.queue.add(async () => ({
       localStoreId: this.localStoreId,
-      lastRemoteSyncCursor: this.lastRemoteSyncCursor,
+      lastSyncCursor: this.lastRemoteSyncCursor,
     }));
   }
 

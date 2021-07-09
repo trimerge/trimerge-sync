@@ -41,7 +41,7 @@ function basicGraph(
   >,
 ) {
   return getBasicGraph(
-    store,
+    store.getNodes(),
     (node) => node.editMetadata.message,
     (node) => clientA.getNodeState(node.ref).value,
   );
