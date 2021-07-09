@@ -204,22 +204,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         await this.setRemoteState(event, false);
         break;
       case 'error':
-        if (origin === 'remote') {
-          if (event.fatal) {
-            await this.closeRemote();
-          }
-          if (event.reconnect !== false && this.getRemote) {
-            await timeout(this.reconnectDelayMs);
-            this.reconnectDelayMs = Math.min(
-              this.reconnectDelayMs *
-                this.networkSettings.reconnectBackoffMultiplier,
-              this.networkSettings.maxReconnectDelayMs,
-            );
-            // Do not await on this or we'll deadlock
-            this.connectRemote(this.getRemote).catch(
-              this.handleAsError('network'),
-            );
-          }
+        if (origin === 'remote' && event.fatal) {
+          // Do not await on this or we'll deadlock
+          void this.closeRemote(event.reconnect !== false);
         }
         break;
     }
@@ -253,11 +240,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       console.warn('ignoring error while shutting down', error);
     }
 
-    try {
-      await this.closeRemote();
-    } catch (error) {
-      console.warn('ignoring error while shutting down', error);
-    }
+    await this.closeRemote();
 
     try {
       this.leaderManager?.close();
@@ -266,20 +249,34 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
   }
 
-  private closeRemote(): Promise<void> {
-    return this.remoteQueue.add(async () => {
-      const remote = this.remote;
-      if (!remote) {
-        return;
-      }
-      this.remote = undefined;
-      await remote.shutdown();
-      await this.setRemoteState({
-        type: 'remote-state',
-        connect: 'offline',
-        read: 'offline',
+  private async closeRemote(reconnect: boolean = false): Promise<void> {
+    try {
+      await this.remoteQueue.add(async () => {
+        const remote = this.remote;
+        if (!remote) {
+          return;
+        }
+        this.remote = undefined;
+        await remote.shutdown();
+        await this.setRemoteState({
+          type: 'remote-state',
+          connect: 'offline',
+          read: 'offline',
+        });
       });
-    });
+
+      if (reconnect && this.getRemote) {
+        await timeout(this.reconnectDelayMs);
+        this.reconnectDelayMs = Math.min(
+          this.reconnectDelayMs *
+            this.networkSettings.reconnectBackoffMultiplier,
+          this.networkSettings.maxReconnectDelayMs,
+        );
+        this.connectRemote(this.getRemote).catch(this.handleAsError('network'));
+      }
+    } catch (e) {
+      console.warn(`[TRIMERGE-SYNC] error closing remote`, e);
+    }
   }
 
   private async connectRemote(

@@ -629,6 +629,13 @@ describe('Remote sync', () => {
         },
         Object {
           "localRead": "ready",
+          "localSave": "pending",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "offline",
@@ -647,13 +654,6 @@ describe('Remote sync', () => {
           "remoteConnect": "offline",
           "remoteRead": "offline",
           "remoteSave": "pending",
-        },
-        Object {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteRead": "offline",
-          "remoteSave": "saving",
         },
         Object {
           "localRead": "ready",
