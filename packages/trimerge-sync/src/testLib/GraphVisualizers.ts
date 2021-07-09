@@ -1,4 +1,3 @@
-import { MemoryStore } from './MemoryStore';
 import { DiffNode } from '../types';
 
 type BasicGraphItem = {
