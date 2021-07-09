@@ -17,7 +17,7 @@ class MockLocalStore extends AbstractLocalStore<unknown, unknown, unknown> {
     return Promise.resolve(undefined);
   }
 
-  async getLastRemoteSyncId(): Promise<string | undefined> {
+  async getRemoteSyncInfo(): Promise<string | undefined> {
     return Promise.resolve(undefined);
   }
 

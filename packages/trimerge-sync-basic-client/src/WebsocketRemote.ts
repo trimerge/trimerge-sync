@@ -1,4 +1,10 @@
-import type { ErrorCode, OnEventFn, Remote, SyncEvent } from 'trimerge-sync';
+import type {
+  ErrorCode,
+  OnEventFn,
+  Remote,
+  RemoteSyncInfo,
+  SyncEvent,
+} from 'trimerge-sync';
 
 export class WebsocketRemote<EditMetadata, Delta, PresenceState>
   implements Remote<EditMetadata, Delta, PresenceState> {
@@ -6,7 +12,7 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
   private bufferedEvents: SyncEvent<EditMetadata, Delta, PresenceState>[] = [];
   constructor(
     auth: unknown,
-    lastSyncId: string | undefined,
+    { localStoreId, lastSyncCursor }: RemoteSyncInfo,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
     websocketUrl: string,
   ) {
@@ -31,7 +37,13 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
     this.socket.onmessage = (event) => {
       onEvent(JSON.parse(event.data));
     };
-    this.send({ type: 'init', lastSyncId, auth });
+    this.send({
+      type: 'init',
+      version: 1,
+      localStoreId,
+      lastSyncCursor,
+      auth,
+    });
   }
 
   send(event: SyncEvent<EditMetadata, Delta, PresenceState>): void {

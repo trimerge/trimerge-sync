@@ -4,14 +4,15 @@ import {
   GetLocalStoreFn,
   GetRemoteFn,
   NodesEvent,
+  RemoteSyncInfo,
 } from '../types';
 import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
 import { MemoryLocalStore } from './MemoryLocalStore';
 import { MemoryRemote } from './MemoryRemote';
 
-function getSyncCounter(syncId: string): number {
-  return parseInt(syncId, 36);
+function getSyncCounter(syncCursor: string): number {
+  return parseInt(syncCursor, 36);
 }
 
 function randomId() {
@@ -26,7 +27,8 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
   >[] = [];
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
   private syncedNodes = new Set<string>();
-  private lastRemoteSyncId: string | undefined;
+  private readonly localStoreId = randomId();
+  private lastRemoteSyncCursor: string | undefined;
   private queue = new PromiseQueue();
   private localStores: MemoryLocalStore<
     EditMetadata,
@@ -47,7 +49,7 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     return this.nodes;
   }
 
-  private get syncId(): string {
+  private get syncCursor(): string {
     return this.nodes.length.toString(36);
   }
 
@@ -69,10 +71,10 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
 
   getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState> = (
     userId: string,
-    lastSyncId,
+    { lastSyncCursor },
     onEvent,
   ) => {
-    const be = new MemoryRemote(this, userId, lastSyncId, onEvent);
+    const be = new MemoryRemote(this, userId, lastSyncCursor, onEvent);
     this.remotes.push(be);
     return be;
   };
@@ -91,12 +93,12 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
         for (const { ref } of nodes) {
           this.syncedNodes.add(ref);
         }
-        this.lastRemoteSyncId = remoteSyncId;
+        this.lastRemoteSyncCursor = remoteSyncId;
       }
       return {
         type: 'ack',
         refs: Array.from(refs),
-        syncId: this.syncId,
+        syncId: this.syncCursor,
       };
     });
   }
@@ -108,24 +110,27 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
       for (const ref of refs) {
         this.syncedNodes.add(ref);
       }
-      this.lastRemoteSyncId = remoteSyncId;
+      this.lastRemoteSyncCursor = remoteSyncId;
     });
   }
 
   getLocalNodesEvent(
-    startSyncId?: string,
+    startSyncCursor?: string,
   ): Promise<NodesEvent<EditMetadata, Delta, PresenceState>> {
     return this.queue.add(async () => ({
       type: 'nodes',
       nodes:
-        startSyncId !== undefined
-          ? this.nodes.slice(getSyncCounter(startSyncId))
+        startSyncCursor !== undefined
+          ? this.nodes.slice(getSyncCounter(startSyncCursor))
           : this.nodes,
-      syncId: this.syncId,
+      syncId: this.syncCursor,
     }));
   }
-  getLastRemoteSyncId(): Promise<string | undefined> {
-    return this.queue.add(async () => this.lastRemoteSyncId);
+  getRemoteSyncInfo(): Promise<RemoteSyncInfo> {
+    return this.queue.add(async () => ({
+      localStoreId: this.localStoreId,
+      lastRemoteSyncCursor: this.lastRemoteSyncCursor,
+    }));
   }
 
   getNodesEventForRemote(): Promise<
@@ -138,7 +143,7 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
       return {
         type: 'nodes',
         nodes,
-        syncId: this.syncId,
+        syncId: this.syncCursor,
       };
     });
   }

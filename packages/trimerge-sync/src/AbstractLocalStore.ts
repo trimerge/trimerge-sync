@@ -10,6 +10,7 @@ import {
   OnEventFn,
   Remote,
   RemoteStateEvent,
+  RemoteSyncInfo,
   SyncEvent,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
@@ -100,7 +101,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     remoteSyncId: string,
   ): Promise<void>;
 
-  protected abstract getLastRemoteSyncId(): Promise<string | undefined>;
+  protected abstract getRemoteSyncInfo(): Promise<RemoteSyncInfo>;
 
   private get clientInfo(): ClientInfo<PresenceState> {
     const { userId, clientId } = this;
@@ -293,7 +294,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       });
       this.remote = getRemote(
         this.userId,
-        await this.getLastRemoteSyncId(),
+        await this.getRemoteSyncInfo(),
         (event) => {
           this.remoteQueue
             .add(() => this.processEvent(event, 'remote'))

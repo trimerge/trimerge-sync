@@ -64,11 +64,20 @@ export type ClientList<
   PresenceState
 > = readonly LocalClientInfo<PresenceState>[];
 
-export type AuthEvent = {
-  type: 'init';
-  lastSyncId: string | undefined;
-  auth: unknown;
-};
+export type InitEvent =
+  | {
+      type: 'init';
+      version?: undefined;
+      lastSyncId: string | undefined;
+      auth: unknown;
+    }
+  | {
+      type: 'init';
+      version: 1;
+      localStoreId: string;
+      lastSyncCursor: string | undefined;
+      auth: unknown;
+    };
 
 export type NodesEvent<EditMetadata, Delta, PresenceState> = {
   type: 'nodes';
@@ -124,7 +133,7 @@ export type LeaderEvent = {
   clientId: string;
 };
 export type SyncEvent<EditMetadata, Delta, PresenceState> = Readonly<
-  | AuthEvent
+  | InitEvent
   | NodesEvent<EditMetadata, Delta, PresenceState>
   | ReadyEvent
   | LeaderEvent
@@ -146,9 +155,14 @@ export type GetLocalStoreFn<EditMetadata, Delta, PresenceState> = (
   onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
 ) => LocalStore<EditMetadata, Delta, PresenceState>;
 
+export type RemoteSyncInfo = {
+  localStoreId: string;
+  lastSyncCursor: string | undefined;
+};
+
 export type GetRemoteFn<EditMetadata, Delta, PresenceState> = (
   userId: string,
-  lastSyncId: string | undefined,
+  remoteSyncInfo: RemoteSyncInfo,
   onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
 ) => Remote<EditMetadata, Delta, PresenceState>;
 

@@ -16,13 +16,13 @@ function isFakeAuth(auth: unknown): auth is FakeAuth {
 function makeLogger(sharedParams: Record<string, any>): Logger {
   return {
     debug(message, params): void {
-      console.log(message, { ...params, ...sharedParams });
+      console.log('[debug]', message, { ...params, ...sharedParams });
     },
     info(message, params): void {
-      console.info(message, { ...params, ...sharedParams });
+      console.info('[info]', message, { ...params, ...sharedParams });
     },
     warn(message, params): void {
-      console.warn(message, { ...params, ...sharedParams });
+      console.warn('[warn]', message, { ...params, ...sharedParams });
     },
   };
 }
