@@ -14,6 +14,11 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
     this.socket = new WebSocket(websocketUrl);
     onEvent({ type: 'remote-state', connect: 'connecting' });
     this.socket.onopen = () => {
+      if (!this.socket) {
+        console.warn(`[TRIMERGE-SYNC] Connected, but already shutdown...`);
+        return;
+      }
+      console.log(`[TRIMERGE-SYNC] Connected to ${websocketUrl}`);
       onEvent({ type: 'remote-state', connect: 'online' });
       const events = this.bufferedEvents;
       this.bufferedEvents = [];
@@ -47,7 +52,9 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
     console.log(
       `[TRIMERGE-SYNC] Shutting down websocket ${this.socket.url}...`,
     );
-    this.socket.close(1000, 'shutdown');
+    if (this.socket.readyState !== WebSocket.CLOSED) {
+      this.socket.close(1000, 'shutdown');
+    }
     this.socket = undefined;
     this.onEvent({
       type: 'remote-state',

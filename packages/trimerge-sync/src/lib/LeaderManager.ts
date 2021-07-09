@@ -83,7 +83,6 @@ export class LeaderManager {
   }
   private finishElection() {
     this.electionTimeout = undefined;
-    console.log(`[LEADER] election over…`, Array.from(this.potentialLeaders));
     this.setLeader(getSortedMin(this.potentialLeaders));
   }
 
@@ -160,9 +159,15 @@ export class LeaderManager {
         if (this.isLeader) {
           // This will happen if there's a disconnect/messages are delayed
           if (otherClientId < clientId) {
+            console.warn(
+              `[TRIMERGE-SYNC] multiple leaders detected, deferring...`,
+            );
             this.setLeader(undefined);
+          } else {
+            console.warn(
+              `[TRIMERGE-SYNC] multiple leaders detected, staying...`,
+            );
           }
-          console.warn(`[TRIMERGE-SYNC] multiple leaders detected`);
           this.elect();
         } else {
           this.setLeader(otherClientId);

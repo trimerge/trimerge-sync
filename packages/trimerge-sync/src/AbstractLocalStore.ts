@@ -122,12 +122,6 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     // Three sources of events: self, local broadcast, and remote broadcast
     origin: 'self' | 'local' | 'remote' | 'remote-via-local',
   ): Promise<void> => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(
-        `processing "${event.type}" from ${origin}: ${JSON.stringify(event)}`,
-      );
-    }
-
     if (event.type === 'leader') {
       this.leaderManager?.receiveEvent(event);
       return;
@@ -139,7 +133,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       {
         self: origin !== 'self',
         local: origin !== 'local' && origin !== 'remote-via-local',
-        remote: origin !== 'remote' && origin !== 'remote-via-local',
+        remote:
+          origin !== 'remote' &&
+          origin !== 'remote-via-local' &&
+          event.type !== 'remote-state',
       },
       origin === 'remote',
     );
@@ -269,17 +266,19 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
   }
 
-  private async closeRemote() {
-    const remote = this.remote;
-    if (!remote) {
-      return;
-    }
-    this.remote = undefined;
-    await remote.shutdown();
-    await this.setRemoteState({
-      type: 'remote-state',
-      connect: 'offline',
-      read: 'offline',
+  private closeRemote(): Promise<void> {
+    return this.remoteQueue.add(async () => {
+      const remote = this.remote;
+      if (!remote) {
+        return;
+      }
+      this.remote = undefined;
+      await remote.shutdown();
+      await this.setRemoteState({
+        type: 'remote-state',
+        connect: 'offline',
+        read: 'offline',
+      });
     });
   }
 
