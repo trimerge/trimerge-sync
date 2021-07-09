@@ -16,7 +16,7 @@ export class Connection {
     private readonly liveDoc: LiveDoc,
     private readonly authenticate: AuthenticateFn,
     private readonly onClose: () => void,
-    private readonly logger: Logger,
+    public readonly logger: Logger,
   ) {
     ws.on('close', () => {
       this.logger.info('socket closed', {});
@@ -42,6 +42,7 @@ export class Connection {
       this.logger.debug(`--> received ${message}`, {});
       this.queue.add(() => this.onMessage(message));
     });
+    ws.on('error', onClose);
   }
 
   private async sendInitialEvents(

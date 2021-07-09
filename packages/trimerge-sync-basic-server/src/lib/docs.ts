@@ -12,7 +12,9 @@ export class LiveDoc {
   }
 
   remove(conn: Connection): void {
-    this.connections.delete(conn);
+    if (!this.connections.delete(conn)) {
+      throw new Error('could not remove connection');
+    }
   }
 
   isEmpty(): boolean {
