@@ -37,7 +37,7 @@ describe('mergeHeadNodes()', () => {
     expect(mergeFn.mock.calls).toEqual([[undefined, 'bar3', 'foo3', 4]]);
   });
 
-  it('find no common parent for  three nodes', () => {
+  it('find no common parent for three nodes', () => {
     const getNode = makeGetNodeFn([
       { ref: 'foo' },
       { ref: 'bar' },
@@ -53,6 +53,30 @@ describe('mergeHeadNodes()', () => {
     ]);
   });
 
+  it('basic merge', () => {
+    const getNode = makeGetNodeFn([
+      { ref: 'root' },
+      { ref: 'foo', baseRef: 'root' },
+      { ref: 'bar', baseRef: 'root' },
+    ]);
+    const mergeFn = jest.fn(basicMerge);
+    expect(mergeHeadNodes(['foo', 'bar'], getNode, mergeFn)).toEqual(
+      '(root:bar+foo)',
+    );
+    expect(mergeFn.mock.calls).toEqual([['root', 'bar', 'foo', 1]]);
+  });
+  it('invalid merge with base as merge', () => {
+    const getNode = makeGetNodeFn([
+      { ref: 'root' },
+      { ref: 'foo', baseRef: 'root' },
+    ]);
+    const mergeFn = jest.fn(basicMerge);
+    expect(() =>
+      mergeHeadNodes(['root', 'foo'], getNode, mergeFn),
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"unexpected merge with base === left/right"`,
+    );
+  });
   it('find common parent on v split', () => {
     const getNode = makeGetNodeFn([
       { ref: 'root' },
