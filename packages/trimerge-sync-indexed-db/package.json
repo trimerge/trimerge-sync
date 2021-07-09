@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-indexed-db",
-  "version": "0.9.1-rc.2",
+  "version": "0.9.1-rc.3",
   "description": "indexed-db backend for trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
@@ -39,7 +39,7 @@
     "idb": "6.1.2"
   },
   "peerDependencies": {
-    "trimerge-sync": "0.9.1-rc.2"
+    "trimerge-sync": "0.9.1-rc.3"
   },
   "files": [
     "dist/**/*",
@@ -52,7 +52,7 @@
     "jest": "26.6.3",
     "rollup": "2.51.1",
     "rollup-plugin-typescript2": "0.30.0",
-    "trimerge-sync": "0.9.1-rc.2",
+    "trimerge-sync": "0.9.1-rc.3",
     "typescript": "4.3.2"
   },
   "jest": {
