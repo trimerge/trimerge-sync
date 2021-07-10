@@ -270,9 +270,15 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     const { ref, baseRef, mergeRef } = node;
     this.nodes.set(ref, node);
     if (baseRef !== undefined) {
+      if (!this.nodes.has(baseRef)) {
+        throw new Error('unknown baseRef node');
+      }
       this.headRefs.delete(baseRef);
     }
     if (mergeRef !== undefined) {
+      if (!this.nodes.has(mergeRef)) {
+        throw new Error('unknown mergeRef node');
+      }
       this.headRefs.delete(mergeRef);
     }
     this.headRefs.add(ref);

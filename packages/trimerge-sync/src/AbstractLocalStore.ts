@@ -344,7 +344,8 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       try {
         this.onEvent(event);
       } catch (e) {
-        console.error(`local error handling event`, e);
+        console.error(`[TRIMERGE-SYNC] local error handling event`, e);
+        void this.shutdown();
         throw e;
       }
     }
@@ -374,7 +375,11 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
             void this.closeRemote();
           }
         },
-        (event) => this.broadcastLocal({ event, remoteOrigin: false }),
+        (event) => {
+          this.broadcastLocal({ event, remoteOrigin: false }).catch(
+            this.handleAsError('internal'),
+          );
+        },
         networkSettings,
       );
     }
