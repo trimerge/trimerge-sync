@@ -10,10 +10,10 @@ export type LeaderSettings = Readonly<{
   heartbeatTimeoutMs: number;
 }>;
 
-const DEFAULT_SETTINGS: LeaderSettings = {
+export const DEFAULT_LEADER_SETTINGS: LeaderSettings = {
   electionTimeoutMs: 1_000,
   heartbeatIntervalMs: 2_000,
-  heartbeatTimeoutMs: 5_000,
+  heartbeatTimeoutMs: 8_000,
 };
 
 /**
@@ -53,7 +53,7 @@ export class LeaderManager {
      * A callback for when this class needs to broadcast messages to other clients
      */
     private readonly broadcastEvent: (event: LeaderEvent) => void,
-    private readonly settings: LeaderSettings = DEFAULT_SETTINGS,
+    private readonly settings: LeaderSettings = DEFAULT_LEADER_SETTINGS,
   ) {
     this.elect();
   }

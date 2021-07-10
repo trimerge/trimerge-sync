@@ -14,17 +14,20 @@ import {
   SyncEvent,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
-import { LeaderManager } from './lib/LeaderManager';
+import {
+  DEFAULT_LEADER_SETTINGS,
+  LeaderManager,
+  LeaderSettings,
+} from './lib/LeaderManager';
 import { timeout } from './lib/Timeout';
 
-export type NetworkSettings = Readonly<{
-  initialDelayMs: number;
-  reconnectBackoffMultiplier: number;
-  maxReconnectDelayMs: number;
-  electionTimeoutMs: number;
-  heartbeatIntervalMs: number;
-  heartbeatTimeoutMs: number;
-}>;
+export type NetworkSettings = Readonly<
+  {
+    initialDelayMs: number;
+    reconnectBackoffMultiplier: number;
+    maxReconnectDelayMs: number;
+  } & LeaderSettings
+>;
 
 export type BroadcastEvent<EditMetadata, Delta, PresenceState> = {
   event: SyncEvent<EditMetadata, Delta, PresenceState>;
@@ -35,9 +38,7 @@ const DEFAULT_SETTINGS: NetworkSettings = {
   initialDelayMs: 1_000,
   reconnectBackoffMultiplier: 2,
   maxReconnectDelayMs: 30_000,
-  electionTimeoutMs: 1_000,
-  heartbeatIntervalMs: 2_000,
-  heartbeatTimeoutMs: 5_000,
+  ...DEFAULT_LEADER_SETTINGS,
 };
 
 export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
@@ -129,17 +130,15 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
 
     // Re-broadcast event to other channels
+    const remoteOrigin = origin === 'remote' || origin === 'remote-via-local';
     await this.sendEvent(
       event,
       {
         self: origin !== 'self',
         local: origin !== 'local' && origin !== 'remote-via-local',
-        remote:
-          origin !== 'remote' &&
-          origin !== 'remote-via-local' &&
-          event.type !== 'remote-state',
+        remote: !remoteOrigin && event.type !== 'remote-state',
       },
-      origin === 'remote',
+      remoteOrigin,
     );
 
     switch (event.type) {
@@ -151,16 +150,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
 
       case 'nodes':
         if (origin === 'remote') {
-          const { syncId } = await this.addNodes(event.nodes, event.syncId);
-          await this.sendEvent(
-            {
-              type: 'nodes',
-              nodes: event.nodes,
-              clientInfo: event.clientInfo,
-              syncId,
-            },
-            { self: true, local: true },
-          );
+          await this.addNodes(event.nodes, event.syncId);
         }
         break;
 

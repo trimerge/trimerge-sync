@@ -58,10 +58,10 @@ export class SqliteDocStore implements DocStore {
     const stmt =
       lastSyncId === undefined
         ? this.db.prepare(
-            `SELECT * FROM nodes ORDER BY remoteSyncId, remoteSyncIndex LIMIT 100`,
+            `SELECT * FROM nodes ORDER BY remoteSyncId, remoteSyncIndex`,
           )
         : this.db.prepare(
-            `SELECT * FROM nodes WHERE remoteSyncId > @lastSyncId ORDER BY remoteSyncId, remoteSyncIndex LIMIT 100`,
+            `SELECT * FROM nodes WHERE remoteSyncId > @lastSyncId ORDER BY remoteSyncId, remoteSyncIndex`,
           );
 
     const sqliteNodes: SqliteNodeType[] = stmt.all({ lastSyncId });
