@@ -49,9 +49,13 @@ export class Connection {
   private async sendInitialEvents(
     lastSyncId: string | undefined,
   ): Promise<void> {
-    const event = await this.liveDoc.store.getNodesEvent(lastSyncId);
-    if (event.nodes.length > 0) {
+    while (true) {
+      const event = await this.liveDoc.store.getNodesEvent(lastSyncId);
+      if (event.nodes.length === 0) {
+        break;
+      }
       this.sendEvent(event);
+      lastSyncId = event.syncId;
     }
     this.sendEvent({ type: 'ready' });
   }

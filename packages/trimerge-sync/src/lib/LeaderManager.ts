@@ -124,6 +124,7 @@ export class LeaderManager {
     const { clientId } = this;
     this.broadcastEvent({ type: 'leader', action: 'current', clientId });
   }
+
   private onHeartbeatTimeout() {
     this.heartbeatTimeout = undefined;
     console.warn(`[TRIMERGE-SYNC] leader timeout`);
