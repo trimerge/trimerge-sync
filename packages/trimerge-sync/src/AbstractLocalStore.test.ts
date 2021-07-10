@@ -1,5 +1,5 @@
 import { AbstractLocalStore } from './AbstractLocalStore';
-import { AckNodesEvent, NodesEvent, OnEventFn } from './types';
+import { AckNodesEvent, NodesEvent, OnEventFn, RemoteSyncInfo } from './types';
 
 class MockLocalStore extends AbstractLocalStore<unknown, unknown, unknown> {
   constructor(onEvent: OnEventFn<unknown, unknown, unknown> = () => undefined) {
@@ -14,11 +14,11 @@ class MockLocalStore extends AbstractLocalStore<unknown, unknown, unknown> {
   }
 
   async broadcastLocal(): Promise<void> {
-    return Promise.resolve(undefined);
+    //
   }
 
-  async getRemoteSyncInfo(): Promise<string | undefined> {
-    return Promise.resolve(undefined);
+  async getRemoteSyncInfo(): Promise<RemoteSyncInfo> {
+    return { localStoreId: '', lastSyncCursor: undefined };
   }
 
   async *getLocalNodes(): AsyncIterableIterator<
