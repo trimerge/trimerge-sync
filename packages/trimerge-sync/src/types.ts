@@ -164,7 +164,9 @@ export type GetRemoteFn<EditMetadata, Delta, PresenceState> = (
   userId: string,
   remoteSyncInfo: RemoteSyncInfo,
   onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
-) => Remote<EditMetadata, Delta, PresenceState>;
+) =>
+  | Remote<EditMetadata, Delta, PresenceState>
+  | Promise<Remote<EditMetadata, Delta, PresenceState>>;
 
 export interface LocalStore<EditMetadata, Delta, PresenceState> {
   update(

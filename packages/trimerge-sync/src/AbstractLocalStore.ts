@@ -282,15 +282,12 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         connect: 'connecting',
         read: 'loading',
       });
-      this.remote = getRemote(
-        this.userId,
-        await this.getRemoteSyncInfo(),
-        (event) => {
-          this.remoteQueue
-            .add(() => this.processEvent(event, 'remote'))
-            .catch(this.handleAsError('internal'));
-        },
-      );
+      const remoteSyncInfo = await this.getRemoteSyncInfo();
+      this.remote = await getRemote(this.userId, remoteSyncInfo, (event) => {
+        this.remoteQueue
+          .add(() => this.processEvent(event, 'remote'))
+          .catch(this.handleAsError('internal'));
+      });
       let saving = false;
       for await (const event of this.getNodesForRemote()) {
         for (const { ref } of event.nodes) {
