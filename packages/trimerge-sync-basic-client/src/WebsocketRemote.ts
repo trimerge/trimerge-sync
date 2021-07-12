@@ -61,10 +61,10 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
     if (!this.socket) {
       return;
     }
-    console.log(
-      `[TRIMERGE-SYNC] Shutting down websocket ${this.socket.url}...`,
-    );
     if (this.socket.readyState !== WebSocket.CLOSED) {
+      console.log(
+        `[TRIMERGE-SYNC] Shutting down websocket ${this.socket.url}...`,
+      );
       this.socket.close(1000, 'shutdown');
     }
     this.socket = undefined;

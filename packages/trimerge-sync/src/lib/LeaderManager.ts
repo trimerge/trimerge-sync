@@ -90,9 +90,7 @@ export class LeaderManager {
     this.cancelElection();
     const { clientId } = this;
     const isLeader = leaderId === clientId;
-    if (leaderId !== this.currentLeaderId) {
-      this.currentLeaderId = leaderId;
-    }
+    this.currentLeaderId = leaderId;
     if (this.isLeader !== isLeader) {
       this.isLeader = isLeader;
       this.onLeaderChange(isLeader);

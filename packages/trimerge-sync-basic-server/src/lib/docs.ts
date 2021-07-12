@@ -21,7 +21,7 @@ export class LiveDoc {
 
   broadcast(from: Connection, message: string) {
     for (const conn of this.connections) {
-      conn.receiveBroadcast(message, from);
+      conn.receiveBroadcast(from, message);
     }
   }
 

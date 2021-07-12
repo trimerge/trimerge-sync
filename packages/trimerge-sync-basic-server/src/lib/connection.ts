@@ -49,6 +49,7 @@ export class Connection {
   private async sendInitialEvents(
     lastSyncId: string | undefined,
   ): Promise<void> {
+    // Call store multiple times so that it can do paging if desired
     while (true) {
       const event = await this.liveDoc.store.getNodesEvent(lastSyncId);
       if (event.nodes.length === 0) {
@@ -182,7 +183,7 @@ export class Connection {
     this.liveDoc.broadcast(this, message);
   }
 
-  public receiveBroadcast(message: string, from: Connection) {
+  public receiveBroadcast(from: Connection, message: string) {
     if (from === this) {
       return;
     }
