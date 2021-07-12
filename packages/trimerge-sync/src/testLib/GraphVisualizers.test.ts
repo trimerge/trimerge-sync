@@ -38,7 +38,7 @@ function basicGraph(
   >,
 ) {
   return getBasicGraph(
-    store,
+    store.getNodes(),
     (node) => node.editMetadata,
     (node) => client1.getNodeState(node.ref).value,
   );
@@ -54,7 +54,7 @@ function dotGraph(
   >,
 ) {
   return getDotGraph(
-    store,
+    store.getNodes(),
     (node) => client1.getNodeState(node.ref).value,
     (node) => node.editMetadata,
   );

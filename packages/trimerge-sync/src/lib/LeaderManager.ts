@@ -6,14 +6,14 @@ type Interval = ReturnType<typeof setInterval>;
 
 export type LeaderSettings = Readonly<{
   electionTimeoutMs: number;
-  heartbeatMs: number;
+  heartbeatIntervalMs: number;
   heartbeatTimeoutMs: number;
 }>;
 
-const DEFAULT_SETTINGS: LeaderSettings = {
-  electionTimeoutMs: 200,
-  heartbeatMs: 1_000,
-  heartbeatTimeoutMs: 2_500,
+export const DEFAULT_LEADER_SETTINGS: LeaderSettings = {
+  electionTimeoutMs: 1_000,
+  heartbeatIntervalMs: 2_000,
+  heartbeatTimeoutMs: 8_000,
 };
 
 /**
@@ -53,7 +53,7 @@ export class LeaderManager {
      * A callback for when this class needs to broadcast messages to other clients
      */
     private readonly broadcastEvent: (event: LeaderEvent) => void,
-    private readonly settings: LeaderSettings = DEFAULT_SETTINGS,
+    private readonly settings: LeaderSettings = DEFAULT_LEADER_SETTINGS,
   ) {
     this.elect();
   }
@@ -102,7 +102,7 @@ export class LeaderManager {
         this.broadcastEvent({ type: 'leader', action: 'current', clientId });
         this.leaderHeartbeat = setInterval(
           () => this.onLeaderHeartbeat(),
-          this.settings.heartbeatMs,
+          this.settings.heartbeatIntervalMs,
         );
       }
     }
@@ -122,8 +122,10 @@ export class LeaderManager {
     const { clientId } = this;
     this.broadcastEvent({ type: 'leader', action: 'current', clientId });
   }
+
   private onHeartbeatTimeout() {
     this.heartbeatTimeout = undefined;
+    console.warn(`[TRIMERGE-SYNC] leader timeout`);
     this.elect();
   }
 
@@ -156,7 +158,14 @@ export class LeaderManager {
         if (this.isLeader) {
           // This will happen if there's a disconnect/messages are delayed
           if (otherClientId < clientId) {
+            console.warn(
+              `[TRIMERGE-SYNC] multiple leaders detected, deferring...`,
+            );
             this.setLeader(undefined);
+          } else {
+            console.warn(
+              `[TRIMERGE-SYNC] multiple leaders detected, staying...`,
+            );
           }
           this.elect();
         } else {

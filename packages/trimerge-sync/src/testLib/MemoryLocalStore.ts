@@ -6,6 +6,7 @@ import {
   GetRemoteFn,
   NodesEvent,
   OnEventFn,
+  RemoteSyncInfo,
 } from '../types';
 import { MemoryStore } from './MemoryStore';
 
@@ -31,7 +32,7 @@ export class MemoryLocalStore<
       reconnectBackoffMultiplier: 1,
       maxReconnectDelayMs: 0,
       electionTimeoutMs: 0,
-      heartbeatMs: 10,
+      heartbeatIntervalMs: 10,
       heartbeatTimeoutMs: 50,
     });
     this.channel = new MemoryBroadcastChannel(
@@ -76,8 +77,8 @@ export class MemoryLocalStore<
     yield await this.store.getNodesEventForRemote();
   }
 
-  protected getLastRemoteSyncId(): Promise<string | undefined> {
-    return this.store.getLastRemoteSyncId();
+  protected getRemoteSyncInfo(): Promise<RemoteSyncInfo> {
+    return this.store.getRemoteSyncInfo();
   }
 
   async shutdown(): Promise<void> {

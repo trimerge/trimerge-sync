@@ -44,6 +44,9 @@ export function mergeHeadNodes<N extends MergableNode>(
     const b = visitors[j];
     const aRef = a.ref;
     const bRef = b.ref;
+    if (baseRef === aRef || baseRef === bRef) {
+      throw new Error('unexpected merge with base === left/right');
+    }
     const ref =
       aRef < bRef
         ? merge(baseRef, aRef, bRef, depth)

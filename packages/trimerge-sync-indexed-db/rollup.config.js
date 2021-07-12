@@ -6,7 +6,7 @@ import typescript from 'rollup-plugin-typescript2';
 
 export default {
   input: 'src/index.ts',
-  external: ['broadcast-channel', 'idb'],
+  external: ['broadcast-channel', 'idb', 'trimerge-sync'],
   plugins: [
     commonjs(),
     resolve({ browser: true }),

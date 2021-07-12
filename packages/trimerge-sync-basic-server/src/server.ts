@@ -37,6 +37,16 @@ export class BasicServer {
             remotePort: req.socket.remotePort,
             remoteFamily: req.socket.remoteFamily,
           });
+          ws.on('error', (e) => {
+            logger.warn(`connection error`, {
+              docId,
+              message: String(e),
+              remoteAddress: req.socket.remoteAddress,
+              remotePort: req.socket.remotePort,
+              remoteFamily: req.socket.remoteFamily,
+            });
+            ws.close();
+          });
           const liveDoc =
             this.liveDocs.get(docId) ?? new LiveDoc(this.makeDocStore(docId));
           this.liveDocs.set(docId, liveDoc);
@@ -46,6 +56,7 @@ export class BasicServer {
             liveDoc,
             this.authenticate,
             () => {
+              conn.logger.debug(`removing connection`);
               liveDoc.remove(conn);
               if (liveDoc.isEmpty()) {
                 liveDoc.close();

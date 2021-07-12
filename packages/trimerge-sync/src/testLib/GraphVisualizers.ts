@@ -1,34 +1,42 @@
-import { MemoryStore } from './MemoryStore';
 import { DiffNode } from '../types';
 
+type BasicGraphItem = {
+  graph: string;
+  step: string;
+  value: any;
+};
 export function getBasicGraph<EditMetadata>(
-  store: MemoryStore<EditMetadata, any, any>,
-  getEditLabel: (node: DiffNode<EditMetadata, any>) => string,
-  getValue: (node: DiffNode<EditMetadata, any>) => any,
-) {
-  return store.getNodes().map((node) => {
+  nodes: Iterable<DiffNode<EditMetadata, unknown>>,
+  getEditLabel: (node: DiffNode<EditMetadata, unknown>) => string,
+  getValue: (node: DiffNode<EditMetadata, unknown>) => any,
+): BasicGraphItem[] {
+  const result = [];
+  for (const node of nodes) {
     const { ref, baseRef, mergeBaseRef, mergeRef, userId } = node;
     if (mergeRef) {
-      return {
+      result.push({
         graph: `(${baseRef} + ${mergeRef}) w/ base=${mergeBaseRef} -> ${ref}`,
         step: `User ${userId}: merge`,
         value: getValue(node),
-      };
+      });
+    } else {
+      result.push({
+        graph: `${baseRef} -> ${ref}`,
+        step: `User ${userId}: ${getEditLabel(node)}`,
+        value: getValue(node),
+      });
     }
-    return {
-      graph: `${baseRef} -> ${ref}`,
-      step: `User ${userId}: ${getEditLabel(node)}`,
-      value: getValue(node),
-    };
-  });
+  }
+  return result;
 }
+
 export function getDotGraph<EditMetadata>(
-  store: MemoryStore<EditMetadata, any, any>,
+  nodes: Iterable<DiffNode<EditMetadata, unknown>>,
   getEditLabel: (node: DiffNode<EditMetadata, any>) => string,
   getValue: (node: DiffNode<EditMetadata, any>) => string,
 ): string {
   const lines: string[] = ['digraph {'];
-  for (const node of store.getNodes()) {
+  for (const node of nodes) {
     lines.push(
       `"${node.ref}" [shape=${
         node.mergeRef ? 'rectangle' : 'ellipse'

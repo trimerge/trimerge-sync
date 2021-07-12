@@ -22,14 +22,16 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
   constructor(
     private readonly store: MemoryStore<EditMetadata, Delta, PresenceState>,
     private readonly userId: string,
-    lastSyncId: string | undefined,
+    lastSyncCursor: string | undefined,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
   ) {
     this.channel = new MemoryBroadcastChannel(
       'remote:' + this.store.channelName,
       onEvent,
     );
-    this.sendInitialEvents(lastSyncId).catch(this.handleAsError('internal'));
+    this.sendInitialEvents(lastSyncCursor).catch(
+      this.handleAsError('internal'),
+    );
   }
 
   private async handle(
@@ -71,12 +73,12 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
   }
 
   protected async sendInitialEvents(
-    lastSyncId: string | undefined,
+    lastSyncCursor: string | undefined,
   ): Promise<void> {
     this.onEvent({ type: 'remote-state', connect: 'connecting' });
     this.onEvent({ type: 'remote-state', connect: 'online' });
 
-    for await (const event of this.getNodes(lastSyncId)) {
+    for await (const event of this.getNodes(lastSyncCursor)) {
       this.onEvent(event);
     }
     this.onEvent({ type: 'ready' });
@@ -118,8 +120,8 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
   }
 
   protected async *getNodes(
-    lastSyncId: string | undefined,
+    lastSyncCursor: string | undefined,
   ): AsyncIterableIterator<NodesEvent<EditMetadata, Delta, PresenceState>> {
-    yield await this.store.getLocalNodesEvent(lastSyncId);
+    yield await this.store.getLocalNodesEvent(lastSyncCursor);
   }
 }

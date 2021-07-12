@@ -21,9 +21,7 @@ export class LiveDoc {
 
   broadcast(from: Connection, message: string) {
     for (const conn of this.connections) {
-      if (conn !== from) {
-        conn.send(message);
-      }
+      conn.receiveBroadcast(from, message);
     }
   }
 
@@ -33,7 +31,21 @@ export class LiveDoc {
 
   async addNodes(
     event: NodesEvent<unknown, unknown, unknown>,
-  ): Promise<AckNodesEvent> {
-    return this.store.add(event.nodes);
+  ): Promise<{
+    nodes: NodesEvent<unknown, unknown, unknown>;
+    ack: AckNodesEvent;
+  }> {
+    const ack = await this.store.add(event.nodes);
+    const acks = new Set(ack.refs);
+    return {
+      nodes: {
+        type: 'nodes',
+        // Only broadcast the acknowledged nodes
+        nodes: event.nodes.filter(({ ref }) => acks.has(ref)),
+        syncId: ack.syncId,
+        clientInfo: event.clientInfo,
+      },
+      ack,
+    };
   }
 }

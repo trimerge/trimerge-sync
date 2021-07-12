@@ -10,20 +10,24 @@ import {
   OnEventFn,
   Remote,
   RemoteStateEvent,
+  RemoteSyncInfo,
   SyncEvent,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
-import { LeaderManager } from './lib/LeaderManager';
+import {
+  DEFAULT_LEADER_SETTINGS,
+  LeaderManager,
+  LeaderSettings,
+} from './lib/LeaderManager';
 import { timeout } from './lib/Timeout';
 
-export type NetworkSettings = Readonly<{
-  initialDelayMs: number;
-  reconnectBackoffMultiplier: number;
-  maxReconnectDelayMs: number;
-  electionTimeoutMs: number;
-  heartbeatMs: number;
-  heartbeatTimeoutMs: number;
-}>;
+export type NetworkSettings = Readonly<
+  {
+    initialDelayMs: number;
+    reconnectBackoffMultiplier: number;
+    maxReconnectDelayMs: number;
+  } & LeaderSettings
+>;
 
 export type BroadcastEvent<EditMetadata, Delta, PresenceState> = {
   event: SyncEvent<EditMetadata, Delta, PresenceState>;
@@ -34,9 +38,7 @@ const DEFAULT_SETTINGS: NetworkSettings = {
   initialDelayMs: 1_000,
   reconnectBackoffMultiplier: 2,
   maxReconnectDelayMs: 30_000,
-  electionTimeoutMs: 200,
-  heartbeatMs: 1_000,
-  heartbeatTimeoutMs: 2_500,
+  ...DEFAULT_LEADER_SETTINGS,
 };
 
 export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
@@ -69,9 +71,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       Delta,
       PresenceState
     >,
-    reconnectSettings: Partial<NetworkSettings> = {},
+    networkSettings: Partial<NetworkSettings> = {},
   ) {
-    this.networkSettings = { ...DEFAULT_SETTINGS, ...reconnectSettings };
+    this.networkSettings = { ...DEFAULT_SETTINGS, ...networkSettings };
     this.reconnectDelayMs = this.networkSettings.initialDelayMs;
   }
 
@@ -100,7 +102,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     remoteSyncId: string,
   ): Promise<void>;
 
-  protected abstract getLastRemoteSyncId(): Promise<string | undefined>;
+  protected abstract getRemoteSyncInfo(): Promise<RemoteSyncInfo>;
 
   private get clientInfo(): ClientInfo<PresenceState> {
     const { userId, clientId } = this;
@@ -122,26 +124,21 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     // Three sources of events: self, local broadcast, and remote broadcast
     origin: 'self' | 'local' | 'remote' | 'remote-via-local',
   ): Promise<void> => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(
-        `processing "${event.type}" from ${origin}: ${JSON.stringify(event)}`,
-      );
-    }
-
     if (event.type === 'leader') {
       this.leaderManager?.receiveEvent(event);
       return;
     }
 
     // Re-broadcast event to other channels
+    const remoteOrigin = origin === 'remote' || origin === 'remote-via-local';
     await this.sendEvent(
       event,
       {
         self: origin !== 'self',
         local: origin !== 'local' && origin !== 'remote-via-local',
-        remote: origin !== 'remote' && origin !== 'remote-via-local',
+        remote: !remoteOrigin && event.type !== 'remote-state',
       },
-      origin === 'remote',
+      remoteOrigin,
     );
 
     switch (event.type) {
@@ -153,16 +150,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
 
       case 'nodes':
         if (origin === 'remote') {
-          const { syncId } = await this.addNodes(event.nodes, event.syncId);
-          await this.sendEvent(
-            {
-              type: 'nodes',
-              nodes: event.nodes,
-              clientInfo: event.clientInfo,
-              syncId,
-            },
-            { self: true, local: true },
-          );
+          await this.addNodes(event.nodes, event.syncId);
         }
         break;
 
@@ -207,22 +195,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         await this.setRemoteState(event, false);
         break;
       case 'error':
-        if (origin === 'remote') {
-          if (event.fatal) {
-            await this.closeRemote();
-          }
-          if (event.reconnect !== false && this.getRemote) {
-            await timeout(this.reconnectDelayMs);
-            this.reconnectDelayMs = Math.min(
-              this.reconnectDelayMs *
-                this.networkSettings.reconnectBackoffMultiplier,
-              this.networkSettings.maxReconnectDelayMs,
-            );
-            // Do not await on this or we'll deadlock
-            this.connectRemote(this.getRemote).catch(
-              this.handleAsError('network'),
-            );
-          }
+        if (origin === 'remote' && event.fatal) {
+          // Do not await on this or we'll deadlock
+          void this.closeRemote(event.reconnect !== false);
         }
         break;
     }
@@ -256,11 +231,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       console.warn('ignoring error while shutting down', error);
     }
 
-    try {
-      await this.closeRemote();
-    } catch (error) {
-      console.warn('ignoring error while shutting down', error);
-    }
+    await this.closeRemote();
 
     try {
       this.leaderManager?.close();
@@ -269,17 +240,34 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
   }
 
-  private async closeRemote() {
-    if (!this.remote) {
-      return;
+  private async closeRemote(reconnect: boolean = false): Promise<void> {
+    try {
+      await this.remoteQueue.add(async () => {
+        const remote = this.remote;
+        if (!remote) {
+          return;
+        }
+        this.remote = undefined;
+        await remote.shutdown();
+        await this.setRemoteState({
+          type: 'remote-state',
+          connect: 'offline',
+          read: 'offline',
+        });
+      });
+
+      if (reconnect && this.getRemote) {
+        await timeout(this.reconnectDelayMs);
+        this.reconnectDelayMs = Math.min(
+          this.reconnectDelayMs *
+            this.networkSettings.reconnectBackoffMultiplier,
+          this.networkSettings.maxReconnectDelayMs,
+        );
+        this.connectRemote(this.getRemote).catch(this.handleAsError('network'));
+      }
+    } catch (e) {
+      console.warn(`[TRIMERGE-SYNC] error closing remote`, e);
     }
-    await this.remote.shutdown();
-    await this.setRemoteState({
-      type: 'remote-state',
-      connect: 'offline',
-      read: 'offline',
-    });
-    this.remote = undefined;
   }
 
   private async connectRemote(
@@ -294,15 +282,12 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         connect: 'connecting',
         read: 'loading',
       });
-      this.remote = getRemote(
-        this.userId,
-        await this.getLastRemoteSyncId(),
-        (event) => {
-          this.remoteQueue
-            .add(() => this.processEvent(event, 'remote'))
-            .catch(this.handleAsError('internal'));
-        },
-      );
+      const remoteSyncInfo = await this.getRemoteSyncInfo();
+      this.remote = await getRemote(this.userId, remoteSyncInfo, (event) => {
+        this.remoteQueue
+          .add(() => this.processEvent(event, 'remote'))
+          .catch(this.handleAsError('internal'));
+      });
       let saving = false;
       for await (const event of this.getNodesForRemote()) {
         for (const { ref } of event.nodes) {
@@ -346,7 +331,8 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       try {
         this.onEvent(event);
       } catch (e) {
-        console.error(`local error handling event`, e);
+        console.error(`[TRIMERGE-SYNC] local error handling event`, e);
+        void this.shutdown();
         throw e;
       }
     }
@@ -369,12 +355,18 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         this.clientId,
         (isLeader) => {
           if (isLeader) {
+            console.log(`[TRIMERGE-SYNC] Became leader, connecting...`);
             void this.connectRemote(getRemote);
           } else {
+            console.warn(`[TRIMERGE-SYNC] Demoted as leader, disconnecting...`);
             void this.closeRemote();
           }
         },
-        (event) => this.broadcastLocal({ event, remoteOrigin: false }),
+        (event) => {
+          this.broadcastLocal({ event, remoteOrigin: false }).catch(
+            this.handleAsError('internal'),
+          );
+        },
         networkSettings,
       );
     }

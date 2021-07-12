@@ -266,13 +266,28 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     return true;
   }
 
-  private addNode(node: DiffNode<EditMetadata, Delta>, local: boolean): void {
+  private addNode(
+    node: DiffNode<EditMetadata, Delta>,
+    createdLocally: boolean,
+  ): void {
     const { ref, baseRef, mergeRef } = node;
+    if (this.nodes.has(ref)) {
+      console.warn(
+        `[TRIMERGE-SYNC] skipping add node ${ref}, base ${baseRef}, merge ${mergeRef} (createdLocally=${createdLocally})`,
+      );
+      return;
+    }
     this.nodes.set(ref, node);
     if (baseRef !== undefined) {
+      if (!this.nodes.has(baseRef)) {
+        throw new Error(`unknown baseRef node ${baseRef}`);
+      }
       this.headRefs.delete(baseRef);
     }
     if (mergeRef !== undefined) {
+      if (!this.nodes.has(mergeRef)) {
+        throw new Error(`unknown mergeRef node ${mergeRef}`);
+      }
       this.headRefs.delete(mergeRef);
     }
     this.headRefs.add(ref);
@@ -280,7 +295,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     if (currentRef === node.baseRef || currentRef === node.mergeRef) {
       this.current = this.getNodeState(node.ref);
     }
-    if (local) {
+    if (createdLocally) {
       this.unsyncedNodes.push(node);
     }
   }

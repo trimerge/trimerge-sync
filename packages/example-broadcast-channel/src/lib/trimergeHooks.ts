@@ -5,6 +5,7 @@ import {
   deleteDocDatabase,
 } from 'trimerge-sync-indexed-db';
 import { WebsocketRemote } from 'trimerge-sync-basic-client';
+import { randomId } from './randomId';
 
 export type UpdateStateFn<State, EditMetadata> = (
   newState: State,
@@ -35,16 +36,17 @@ function getCachedTrimergeClient<State, EditMetadata, Delta, PresenceState>(
     >(
       userId,
       clientId,
-      createIndexedDbBackendFactory(
-        docId,
-        (userId, lastSyncId, onEvent) =>
+      createIndexedDbBackendFactory(docId, {
+        getRemote: (userId, lastSyncId, onEvent) =>
           new WebsocketRemote(
             { userId, readonly: false },
             lastSyncId,
             onEvent,
             `ws://localhost:4444/${encodeURIComponent(docId)}`,
           ),
-      ),
+        localIdGenerator: randomId,
+        remoteId: 'localhost',
+      }),
       differ,
       100,
     );

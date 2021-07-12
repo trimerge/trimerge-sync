@@ -8,6 +8,7 @@ import { InternalError, MessageTooBig, UnsupportedData } from './codes';
 export class Connection {
   private readonly clients = new Set<string>();
   private readonly queue = new PromiseQueue();
+  private clientStoreId?: string = undefined;
   private authenticated?: Authenticated = undefined;
 
   constructor(
@@ -16,7 +17,7 @@ export class Connection {
     private readonly liveDoc: LiveDoc,
     private readonly authenticate: AuthenticateFn,
     private readonly onClose: () => void,
-    private readonly logger: Logger,
+    public readonly logger: Logger,
   ) {
     ws.on('close', () => {
       this.logger.info('socket closed', {});
@@ -42,14 +43,20 @@ export class Connection {
       this.logger.debug(`--> received ${message}`, {});
       this.queue.add(() => this.onMessage(message));
     });
+    ws.on('error', onClose);
   }
 
   private async sendInitialEvents(
     lastSyncId: string | undefined,
   ): Promise<void> {
-    const event = await this.liveDoc.store.getNodesEvent(lastSyncId);
-    if (event.nodes.length > 0) {
+    // Call store multiple times so that it can do paging if desired
+    while (true) {
+      const event = await this.liveDoc.store.getNodesEvent(lastSyncId);
+      if (event.nodes.length === 0) {
+        break;
+      }
       this.sendEvent(event);
+      lastSyncId = event.syncId;
     }
     this.sendEvent({ type: 'ready' });
   }
@@ -63,6 +70,15 @@ export class Connection {
       return;
     }
     if (data.type === 'init') {
+      if (data.version !== 1) {
+        this.sendEvent({
+          type: 'error',
+          code: 'bad-request',
+          message: 'unsupported client version',
+          fatal: false,
+        });
+        return;
+      }
       if (this.authenticated) {
         this.sendEvent({
           type: 'error',
@@ -72,13 +88,15 @@ export class Connection {
         });
         return;
       }
-      const { auth, lastSyncId } = data;
+      const { auth, localStoreId, lastSyncCursor } = data;
       this.authenticated = await this.authenticate(this.docId, auth);
+      this.clientStoreId = localStoreId;
       this.logger.info(`initialize`, {
         userId: this.authenticated.userId,
-        lastSyncId,
+        localStoreId,
+        lastSyncCursor,
       });
-      await this.sendInitialEvents(lastSyncId);
+      await this.sendInitialEvents(lastSyncCursor);
       return;
     }
 
@@ -89,9 +107,9 @@ export class Connection {
 
     switch (data.type) {
       case 'nodes': {
-        const response = await this.liveDoc.addNodes(data);
-        this.sendEvent(response);
-        this.broadcastEvent({ ...data, syncId: response.syncId });
+        const { ack, nodes } = await this.liveDoc.addNodes(data);
+        this.sendEvent(ack);
+        this.broadcastEvent(nodes);
         break;
       }
 
@@ -139,11 +157,15 @@ export class Connection {
       }
 
       case 'ready':
+        // Do nothing
+        break;
+
       case 'remote-state':
       case 'ack':
-      case 'error': {
-        this.logger.warn(`ignoring command ${data.type}`);
-        // this.closeWithCode(UnsupportedData, 'unexpected event');
+      case 'error':
+      default: {
+        this.logger.warn(`invalid command ${data.type}`);
+        this.closeWithCode(UnsupportedData, 'bad-request', 'unexpected event');
         return;
       }
     }
@@ -161,7 +183,27 @@ export class Connection {
     this.liveDoc.broadcast(this, message);
   }
 
-  public send(message: string) {
+  public receiveBroadcast(from: Connection, message: string) {
+    if (from === this) {
+      return;
+    }
+    this.queue.add(async () => {
+      const { clientStoreId, authenticated } = this;
+      if (!authenticated) {
+        return;
+      }
+      // Don't send to other clients with the same userId/clientStoreId pair
+      if (
+        authenticated.userId === from.authenticated?.userId &&
+        clientStoreId === from.clientStoreId
+      ) {
+        return;
+      }
+      this.send(message);
+    });
+  }
+
+  private send(message: string) {
     this.logger.debug(`<-- sending: ${message}`);
     this.ws.send(message);
   }

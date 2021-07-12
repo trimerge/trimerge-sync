@@ -1,4 +1,10 @@
-import type { ErrorCode, OnEventFn, Remote, SyncEvent } from 'trimerge-sync';
+import type {
+  ErrorCode,
+  OnEventFn,
+  Remote,
+  RemoteSyncInfo,
+  SyncEvent,
+} from 'trimerge-sync';
 
 export class WebsocketRemote<EditMetadata, Delta, PresenceState>
   implements Remote<EditMetadata, Delta, PresenceState> {
@@ -6,13 +12,19 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
   private bufferedEvents: SyncEvent<EditMetadata, Delta, PresenceState>[] = [];
   constructor(
     auth: unknown,
-    lastSyncId: string | undefined,
+    { localStoreId, lastSyncCursor }: RemoteSyncInfo,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
     websocketUrl: string,
   ) {
+    console.log(`[TRIMERGE-SYNC] Connecting to ${websocketUrl}...`);
     this.socket = new WebSocket(websocketUrl);
     onEvent({ type: 'remote-state', connect: 'connecting' });
     this.socket.onopen = () => {
+      if (!this.socket) {
+        console.warn(`[TRIMERGE-SYNC] Connected, but already shutdown...`);
+        return;
+      }
+      console.log(`[TRIMERGE-SYNC] Connected to ${websocketUrl}`);
       onEvent({ type: 'remote-state', connect: 'online' });
       const events = this.bufferedEvents;
       this.bufferedEvents = [];
@@ -25,7 +37,13 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
     this.socket.onmessage = (event) => {
       onEvent(JSON.parse(event.data));
     };
-    this.send({ type: 'init', lastSyncId, auth });
+    this.send({
+      type: 'init',
+      version: 1,
+      localStoreId,
+      lastSyncCursor,
+      auth,
+    });
   }
 
   send(event: SyncEvent<EditMetadata, Delta, PresenceState>): void {
@@ -43,7 +61,12 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
     if (!this.socket) {
       return;
     }
-    this.socket.close(1000, 'shutdown');
+    if (this.socket.readyState !== WebSocket.CLOSED) {
+      console.log(
+        `[TRIMERGE-SYNC] Shutting down websocket ${this.socket.url}...`,
+      );
+      this.socket.close(1000, 'shutdown');
+    }
     this.socket = undefined;
     this.onEvent({
       type: 'remote-state',
