@@ -10,7 +10,7 @@
     "test": "jest --watch",
     "test-ci": "jest --coverage --passWithNoTests --reporters=@descript/jest-github-reporter",
     "start": "ts-node-dev --respawn --transpile-only src/sample-server.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "rollup -c",
     "lint": "eslint src/**/*.ts"
   },
   "repository": {

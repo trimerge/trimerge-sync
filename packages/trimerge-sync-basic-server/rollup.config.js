@@ -6,8 +6,12 @@ import { dependencies } from './package.json';
 
 export default {
   input: 'src/index.ts',
+  plugins: [
+    commonjs(),
+    resolve({ preferBuiltins: true }),
+    typescript({ exclude: '**/*.test.ts' }),
+  ],
   external: Object.keys(dependencies),
-  plugins: [commonjs(), resolve(), typescript({ exclude: '**/*.test.ts' })],
   output: [
     {
       file: pkg.main,
