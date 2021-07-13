@@ -21,15 +21,7 @@ export class Connection {
   ) {
     ws.on('close', () => {
       this.logger.info('socket closed', {});
-      this.queue
-        .add(async () => this.onClosed())
-        .catch((error) => {
-          this.closeWithCode(
-            InternalError,
-            'internal',
-            `internal error: ${error}`,
-          );
-        });
+      this.queueExec(async () => this.onClosed());
     });
     ws.on('message', (message) => {
       if (typeof message !== 'string') {
@@ -41,9 +33,21 @@ export class Connection {
         return;
       }
       this.logger.debug(`--> received ${message}`, {});
-      this.queue.add(() => this.onMessage(message));
+      this.queueExec(() => this.onMessage(message));
     });
     ws.on('error', onClose);
+  }
+
+  private queueExec(fn: () => Promise<void>): void {
+    this.queue
+      .add(fn)
+      .catch((error: Error) =>
+        this.closeWithCode(
+          InternalError,
+          'internal',
+          `internal error: ${error}`,
+        ),
+      );
   }
 
   private async sendInitialEvents(
@@ -187,7 +191,7 @@ export class Connection {
     if (from === this) {
       return;
     }
-    this.queue.add(async () => {
+    this.queueExec(async () => {
       const { clientStoreId, authenticated } = this;
       if (!authenticated) {
         return;
@@ -224,7 +228,7 @@ export class Connection {
     this.onClosed();
   }
 
-  private onClosed() {
+  private onClosed(): void {
     if (this.authenticated) {
       for (const clientId of this.clients) {
         this.broadcastEvent({

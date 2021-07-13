@@ -216,6 +216,14 @@ describe('Remote sync', () => {
       ]
     `);
   });
+  it('handles shutdown while connecting', async () => {
+    const remoteStore = newRemoteStore(false);
+    const localStore = newStore(remoteStore);
+    const client = makeClient('a', 'test', localStore);
+    await timeout();
+    await client.shutdown();
+  });
+
   it('syncs local pending changes in batches', async () => {
     const remoteStore = newRemoteStore(false);
     const localStore = newStore(remoteStore);

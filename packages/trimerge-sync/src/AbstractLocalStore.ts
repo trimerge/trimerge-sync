@@ -42,7 +42,8 @@ const DEFAULT_SETTINGS: NetworkSettings = {
 };
 
 export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
-  implements LocalStore<EditMetadata, Delta, PresenceState> {
+  implements LocalStore<EditMetadata, Delta, PresenceState>
+{
   private closed = false;
   private presence: ClientPresenceRef<PresenceState> = {
     ref: undefined,
@@ -268,19 +269,19 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         networkSettings: { reconnectBackoffMultiplier, maxReconnectDelayMs },
       } = this;
       console.log(`[TRIMERGE-SYNC] reconnecting in ${reconnectDelayMs}`);
-      timeout(reconnectDelayMs).then(() => {
+      void timeout(reconnectDelayMs).then(() => {
         this.reconnectDelayMs = Math.min(
           reconnectDelayMs * reconnectBackoffMultiplier,
           maxReconnectDelayMs,
         );
         console.log(`[TRIMERGE-SYNC] reconnecting now...`);
-        this.connectRemote().catch(this.handleAsError('network'));
+        this.connectRemote();
       });
     }
     return p;
   }
 
-  private async connectRemote(): Promise<void> {
+  private connectRemote(): void {
     this.remoteQueue
       .add(async () => {
         if (this.closed || !this.getRemote) {
@@ -334,7 +335,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           fatal: true,
         },
         { self: true },
-      );
+      ).catch((e) => {
+        console.warn(`error ending error message`);
+      });
       void this.shutdown();
     };
   }
@@ -376,7 +379,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         (isLeader) => {
           if (isLeader) {
             console.log(`[TRIMERGE-SYNC] Became leader, connecting...`);
-            void this.connectRemote();
+            this.connectRemote();
           } else {
             console.warn(`[TRIMERGE-SYNC] Demoted as leader, disconnecting...`);
             void this.closeRemote();
