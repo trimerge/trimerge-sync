@@ -115,7 +115,6 @@ class IndexedDbBackend<
       yield {
         type: 'nodes',
         nodes: unsentNodes,
-        syncId: '',
       };
     }
   }

@@ -26,6 +26,7 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     PresenceState
   >[] = [];
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
+  private localNodeRefs = new Set<string>();
   private syncedNodes = new Set<string>();
   private readonly localStoreId = randomId();
   private lastRemoteSyncCursor: string | undefined;
@@ -36,6 +37,8 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     PresenceState
   >[] = [];
 
+  public writeErrorMode = false;
+
   constructor(
     public readonly channelName: string = randomId(),
     private readonly getRemoteFn?: GetRemoteFn<
@@ -43,6 +46,7 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
       Delta,
       PresenceState
     >,
+    public online = true,
   ) {}
 
   public getNodes(): readonly DiffNode<EditMetadata, Delta>[] {
@@ -74,6 +78,9 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     { lastSyncCursor },
     onEvent,
   ) => {
+    if (!this.online) {
+      throw new Error('offline');
+    }
     const be = new MemoryRemote(this, userId, lastSyncCursor, onEvent);
     this.remotes.push(be);
     return be;
@@ -84,9 +91,13 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     remoteSyncId?: string,
   ): Promise<AckNodesEvent> {
     return this.queue.add(async () => {
-      this.nodes.push(...nodes);
       const refs = new Set<string>();
-      for (const { ref } of nodes) {
+      for (const node of nodes) {
+        const { ref } = node;
+        if (!this.localNodeRefs.has(ref)) {
+          this.nodes.push(node);
+          this.localNodeRefs.add(ref);
+        }
         refs.add(ref);
       }
       if (remoteSyncId !== undefined) {
@@ -133,19 +144,19 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     }));
   }
 
-  getNodesEventForRemote(): Promise<
+  async *getNodesForRemote(): AsyncIterableIterator<
     NodesEvent<EditMetadata, Delta, PresenceState>
   > {
-    return this.queue.add(async () => {
-      const nodes = await this.nodes.filter(
-        ({ ref }) => !this.syncedNodes.has(ref),
-      );
-      return {
+    const nodes = await this.queue.add(async () =>
+      this.nodes.filter(({ ref }) => !this.syncedNodes.has(ref)),
+    );
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < nodes.length; i += BATCH_SIZE) {
+      yield {
         type: 'nodes',
-        nodes,
-        syncId: this.syncCursor,
+        nodes: nodes.slice(i, i + BATCH_SIZE),
       };
-    });
+    }
   }
 
   async shutdown(): Promise<void> {
