@@ -53,6 +53,20 @@ describe('mergeHeadNodes()', () => {
     ]);
   });
 
+  it('find no common parent for two trees, requiring a vistor sort', () => {
+    const getNode = makeGetNodeFn([
+      { ref: 'foo' },
+      { ref: 'fooA', baseRef: 'bar' },
+      { ref: 'fooB', baseRef: 'bar' },
+      { ref: 'bar' },
+    ]);
+    const mergeFn = jest.fn(basicMerge);
+    expect(mergeHeadNodes(['fooA', 'fooB', 'foo'], getNode, mergeFn)).toEqual(
+      '(-:bar+foo)',
+    );
+    expect(mergeFn.mock.calls).toEqual([[undefined, 'bar', 'foo', 1]]);
+  });
+
   it('basic merge', () => {
     const getNode = makeGetNodeFn([
       { ref: 'root' },
@@ -65,6 +79,7 @@ describe('mergeHeadNodes()', () => {
     );
     expect(mergeFn.mock.calls).toEqual([['root', 'bar', 'foo', 1]]);
   });
+
   it('invalid merge with base as merge', () => {
     const getNode = makeGetNodeFn([
       { ref: 'root' },
@@ -77,6 +92,16 @@ describe('mergeHeadNodes()', () => {
       `"unexpected merge with base === left/right"`,
     );
   });
+
+  it('handles no head nodes', () => {
+    const getNode = makeGetNodeFn([
+      { ref: 'root' },
+      { ref: 'foo', baseRef: 'root' },
+    ]);
+    const mergeFn = jest.fn(basicMerge);
+    expect(mergeHeadNodes([], getNode, mergeFn)).toBeUndefined();
+  });
+
   it('find common parent on v split', () => {
     const getNode = makeGetNodeFn([
       { ref: 'root' },
