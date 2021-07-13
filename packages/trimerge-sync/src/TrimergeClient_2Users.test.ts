@@ -95,6 +95,32 @@ describe('TrimergeClient: 2 users', () => {
     `);
     unsub();
   });
+  it('tracks presence', async () => {
+    const store = newStore();
+    const client = makeClient('a', store);
+
+    const onStateChange = jest.fn();
+    const unsub = client.subscribeClientList(onStateChange);
+    client.updatePresence('blah');
+    await timeout();
+
+    expect(onStateChange.mock.calls.slice(-1)).toMatchInlineSnapshot(`
+      Array [
+        Array [
+          Array [
+            Object {
+              "clientId": "test",
+              "ref": undefined,
+              "self": true,
+              "state": "blah",
+              "userId": "a",
+            },
+          ],
+        ],
+      ]
+    `);
+    unsub();
+  });
 
   it('edit syncs across two clients', async () => {
     const store = newStore();

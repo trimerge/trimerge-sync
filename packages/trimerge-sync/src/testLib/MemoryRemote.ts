@@ -57,12 +57,6 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
       case 'client-leave':
         await this.broadcast(event);
         break;
-
-      case 'ack':
-      case 'remote-state':
-      case 'error':
-        // Should never get these from a client
-        break;
     }
   }
 

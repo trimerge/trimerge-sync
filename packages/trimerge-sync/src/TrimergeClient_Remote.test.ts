@@ -33,10 +33,12 @@ afterEach(async () => {
 
 function newStore(
   remote?: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  online?: boolean,
 ) {
   const store = new MemoryStore<TestEditMetadata, Delta, TestPresenceState>(
     undefined,
     remote?.getRemote,
+    online,
   );
   stores.add(store);
   return store;
@@ -79,6 +81,10 @@ function basicClients(
     obj[`${client.userId}:${client.clientId}`] = client.state;
   }
   return obj;
+}
+
+function newRemoteStore(online?: boolean) {
+  return newStore(undefined, online);
 }
 
 describe('Remote sync', () => {
@@ -149,35 +155,21 @@ describe('Remote sync', () => {
           "localSave": "pending",
           "remoteConnect": "connecting",
           "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        Object {
-          "localRead": "ready",
-          "localSave": "pending",
-          "remoteConnect": "connecting",
-          "remoteRead": "loading",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
           "localSave": "pending",
           "remoteConnect": "online",
           "remoteRead": "loading",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
           "localSave": "pending",
           "remoteConnect": "online",
           "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        Object {
-          "localRead": "ready",
-          "localSave": "pending",
-          "remoteConnect": "online",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
@@ -220,6 +212,104 @@ describe('Remote sync', () => {
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "ready",
+        },
+      ]
+    `);
+  });
+  it('handles shutdown while connecting', async () => {
+    const remoteStore = newRemoteStore(false);
+    const localStore = newStore(remoteStore);
+    const client = makeClient('a', 'test', localStore);
+    await timeout();
+    await client.shutdown();
+  });
+
+  it('syncs local pending changes in batches', async () => {
+    const remoteStore = newRemoteStore(false);
+    const localStore = newStore(remoteStore);
+    const client = makeClient('a', 'test', localStore);
+    client.updateState({}, 'initialize');
+    client.updateState({ hello: 'world' }, 'add hello');
+    client.updateState({ hello: 'world 2' }, 'edit hello');
+    client.updateState({ hello: 'world 3' }, 'edit hello');
+    client.updateState({ hello: 'world 4' }, 'edit hello');
+    client.updateState({ hello: 'world 5' }, 'edit hello');
+    client.updateState({ hello: 'world 6' }, 'edit hello');
+    client.updateState({ hello: 'world 7' }, 'edit hello');
+    client.updateState({ hello: 'world 8' }, 'edit hello');
+
+    await timeout();
+
+    remoteStore.online = true;
+
+    // Wait for reconnect
+    await timeout(50);
+
+    const localGraph1 = basicGraph(localStore, client);
+    const remoteGraph1 = basicGraph(remoteStore, client);
+    expect(remoteGraph1).toEqual(localGraph1);
+    expect(localGraph1).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "graph": "undefined -> DuQe--Vh",
+          "step": "User a: initialize",
+          "value": Object {},
+        },
+        Object {
+          "graph": "DuQe--Vh -> u0wBto6f",
+          "step": "User a: add hello",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        Object {
+          "graph": "u0wBto6f -> mtMnDodx",
+          "step": "User a: edit hello",
+          "value": Object {
+            "hello": "world 2",
+          },
+        },
+        Object {
+          "graph": "mtMnDodx -> tB2Oxxss",
+          "step": "User a: edit hello",
+          "value": Object {
+            "hello": "world 3",
+          },
+        },
+        Object {
+          "graph": "tB2Oxxss -> ltIl6khP",
+          "step": "User a: edit hello",
+          "value": Object {
+            "hello": "world 4",
+          },
+        },
+        Object {
+          "graph": "ltIl6khP -> 6_CORFe7",
+          "step": "User a: edit hello",
+          "value": Object {
+            "hello": "world 5",
+          },
+        },
+        Object {
+          "graph": "6_CORFe7 -> OhiKsT4g",
+          "step": "User a: edit hello",
+          "value": Object {
+            "hello": "world 6",
+          },
+        },
+        Object {
+          "graph": "OhiKsT4g -> bTzlNzXZ",
+          "step": "User a: edit hello",
+          "value": Object {
+            "hello": "world 7",
+          },
+        },
+        Object {
+          "graph": "bTzlNzXZ -> ilW_0_ne",
+          "step": "User a: edit hello",
+          "value": Object {
+            "hello": "world 8",
+          },
         },
       ]
     `);
@@ -280,35 +370,21 @@ describe('Remote sync', () => {
           "localSave": "pending",
           "remoteConnect": "connecting",
           "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        Object {
-          "localRead": "ready",
-          "localSave": "pending",
-          "remoteConnect": "connecting",
-          "remoteRead": "loading",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
           "localSave": "pending",
           "remoteConnect": "online",
           "remoteRead": "loading",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
           "localSave": "pending",
           "remoteConnect": "online",
           "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        Object {
-          "localRead": "ready",
-          "localSave": "pending",
-          "remoteConnect": "online",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
@@ -541,35 +617,21 @@ describe('Remote sync', () => {
           "localSave": "pending",
           "remoteConnect": "connecting",
           "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        Object {
-          "localRead": "ready",
-          "localSave": "pending",
-          "remoteConnect": "connecting",
-          "remoteRead": "loading",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
           "localSave": "pending",
           "remoteConnect": "online",
           "remoteRead": "loading",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
           "localSave": "pending",
           "remoteConnect": "online",
           "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        Object {
-          "localRead": "ready",
-          "localSave": "pending",
-          "remoteConnect": "online",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
@@ -832,35 +894,21 @@ describe('Remote sync', () => {
           "localSave": "pending",
           "remoteConnect": "connecting",
           "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        Object {
-          "localRead": "ready",
-          "localSave": "pending",
-          "remoteConnect": "connecting",
-          "remoteRead": "loading",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
           "localSave": "pending",
           "remoteConnect": "online",
           "remoteRead": "loading",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
           "localSave": "pending",
           "remoteConnect": "online",
           "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        Object {
-          "localRead": "ready",
-          "localSave": "pending",
-          "remoteConnect": "online",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
@@ -948,35 +996,21 @@ describe('Remote sync', () => {
           "localSave": "ready",
           "remoteConnect": "connecting",
           "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        Object {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "connecting",
-          "remoteRead": "loading",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "loading",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        Object {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         Object {
           "localRead": "ready",

@@ -73,7 +73,7 @@ describe('SqliteDocStore', () => {
           ref: 'hello3',
           clientId: 'client-1',
           userId: 'client-2',
-          editMetadata: { hello: 'world' },
+          editMetadata: undefined,
         },
       ]),
     ).toMatchInlineSnapshot(`
@@ -122,9 +122,7 @@ describe('SqliteDocStore', () => {
             "baseRef": undefined,
             "clientId": "client-1",
             "delta": undefined,
-            "editMetadata": Object {
-              "hello": "world",
-            },
+            "editMetadata": undefined,
             "mergeBaseRef": undefined,
             "mergeRef": undefined,
             "ref": "hello3",
@@ -145,9 +143,7 @@ describe('SqliteDocStore', () => {
             "baseRef": undefined,
             "clientId": "client-1",
             "delta": undefined,
-            "editMetadata": Object {
-              "hello": "world",
-            },
+            "editMetadata": undefined,
             "mergeBaseRef": undefined,
             "mergeRef": undefined,
             "ref": "hello3",

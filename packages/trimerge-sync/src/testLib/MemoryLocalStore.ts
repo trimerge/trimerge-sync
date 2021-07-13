@@ -71,10 +71,10 @@ export class MemoryLocalStore<
     yield await this.store.getLocalNodesEvent();
   }
 
-  protected async *getNodesForRemote(): AsyncIterableIterator<
+  protected getNodesForRemote(): AsyncIterableIterator<
     NodesEvent<EditMetadata, Delta, PresenceState>
   > {
-    yield await this.store.getNodesEventForRemote();
+    return this.store.getNodesForRemote();
   }
 
   protected getRemoteSyncInfo(): Promise<RemoteSyncInfo> {

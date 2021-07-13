@@ -83,7 +83,7 @@ export type NodesEvent<EditMetadata, Delta, PresenceState> = {
   type: 'nodes';
   nodes: readonly DiffNode<EditMetadata, Delta>[];
   clientInfo?: ClientInfo<PresenceState>;
-  syncId: string;
+  syncId?: string;
 };
 export type ReadyEvent = {
   type: 'ready';

@@ -3,9 +3,9 @@
     "target": "es2018",
     "module": "esnext",
     "moduleResolution": "node",
-    "lib": ["es2018"],
+    "lib": ["es2018", "DOM"],
 
-    "rootDir": "src",
+    "rootDir": "packages",
     "outDir": "dist",
 
     "strict": true,
@@ -25,5 +25,5 @@
 
     "pretty": true
   },
-  "include": ["src"]
+  "include": ["packages/*/src"]
 }

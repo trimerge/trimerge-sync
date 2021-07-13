@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-basic-server",
-  "version": "0.10.0-rc.2",
+  "version": "0.10.0-rc.4",
   "description": "basic websocket server for trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
@@ -8,9 +8,9 @@
   "sideEffects": false,
   "scripts": {
     "test": "jest --watch",
-    "test-ci": "jest --coverage --passWithNoTests",
-    "start": "ts-node-dev --respawn --transpile-only src/sample-server.ts",
-    "build": "tsc -p tsconfig.json",
+    "test-ci": "jest --coverage --passWithNoTests --reporters=@descript/jest-github-reporter",
+    "start": "ts-node-dev --respawn --project tsconfig.dev-start.json --transpile-only src/sample-server.ts",
+    "build": "rollup -c",
     "lint": "eslint src/**/*.ts"
   },
   "repository": {
@@ -34,10 +34,10 @@
   },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
   "dependencies": {
-    "@types/ws": "^7.4.4",
+    "@types/ws": "^7.4.6",
     "fs-extra": "^10.0.0",
-    "trimerge-sync": "0.10.0-rc.2",
-    "ws": "^7.4.6"
+    "trimerge-sync": "0.10.0-rc.4",
+    "ws": "^7.5.3"
   },
   "files": [
     "dist/**/*",
@@ -49,16 +49,16 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "19.0.0",
     "@rollup/plugin-node-resolve": "13.0.0",
-    "@types/better-sqlite3": "^5.4.1",
-    "@types/fs-extra": "^9.0.11",
+    "@types/better-sqlite3": "^5.4.3",
+    "@types/fs-extra": "^9.0.12",
     "better-sqlite3": "^7.4.1",
-    "jest": "26.6.3",
-    "rollup": "2.51.1",
+    "jest": "27.0.6",
+    "rollup": "2.53.1",
     "rollup-plugin-typescript2": "0.30.0",
-    "trimerge-sync": "0.10.0-rc.2",
-    "ts-node": "^10.0.0",
-    "ts-node-dev": "^1.1.6",
-    "typescript": "4.3.2"
+    "trimerge-sync": "0.10.0-rc.4",
+    "ts-node": "^10.1.0",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "4.3.5"
   },
   "jest": {
     "preset": "ts-jest",

@@ -42,7 +42,8 @@ const DEFAULT_SETTINGS: NetworkSettings = {
 };
 
 export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
-  implements LocalStore<EditMetadata, Delta, PresenceState> {
+  implements LocalStore<EditMetadata, Delta, PresenceState>
+{
   private closed = false;
   private presence: ClientPresenceRef<PresenceState> = {
     ref: undefined,
@@ -125,7 +126,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     origin: 'self' | 'local' | 'remote' | 'remote-via-local',
   ): Promise<void> => {
     if (event.type === 'leader') {
-      this.leaderManager?.receiveEvent(event);
+      if (!this.leaderManager) {
+        throw new Error('got leader event with no manager');
+      }
+      this.leaderManager.receiveEvent(event);
       return;
     }
 
@@ -240,9 +244,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
   }
 
-  private async closeRemote(reconnect: boolean = false): Promise<void> {
-    try {
-      await this.remoteQueue.add(async () => {
+  private closeRemote(reconnect: boolean = false): Promise<void> {
+    const p = this.remoteQueue
+      .add(async () => {
         const remote = this.remote;
         if (!remote) {
           return;
@@ -254,53 +258,70 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           connect: 'offline',
           read: 'offline',
         });
+      })
+      .catch((e) => {
+        console.warn(`[TRIMERGE-SYNC] error closing remote`, e);
       });
 
-      if (reconnect && this.getRemote) {
-        await timeout(this.reconnectDelayMs);
+    if (reconnect) {
+      const {
+        reconnectDelayMs,
+        networkSettings: { reconnectBackoffMultiplier, maxReconnectDelayMs },
+      } = this;
+      console.log(`[TRIMERGE-SYNC] reconnecting in ${reconnectDelayMs}`);
+      void timeout(reconnectDelayMs).then(() => {
         this.reconnectDelayMs = Math.min(
-          this.reconnectDelayMs *
-            this.networkSettings.reconnectBackoffMultiplier,
-          this.networkSettings.maxReconnectDelayMs,
+          reconnectDelayMs * reconnectBackoffMultiplier,
+          maxReconnectDelayMs,
         );
-        this.connectRemote(this.getRemote).catch(this.handleAsError('network'));
-      }
-    } catch (e) {
-      console.warn(`[TRIMERGE-SYNC] error closing remote`, e);
+        console.log(`[TRIMERGE-SYNC] reconnecting now...`);
+        this.connectRemote();
+      });
     }
+    return p;
   }
 
-  private async connectRemote(
-    getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState>,
-  ): Promise<void> {
-    await this.remoteQueue.add(async () => {
-      if (this.closed) {
-        return;
-      }
-      await this.setRemoteState({
-        type: 'remote-state',
-        connect: 'connecting',
-        read: 'loading',
-      });
-      const remoteSyncInfo = await this.getRemoteSyncInfo();
-      this.remote = await getRemote(this.userId, remoteSyncInfo, (event) => {
-        this.remoteQueue
-          .add(() => this.processEvent(event, 'remote'))
-          .catch(this.handleAsError('internal'));
-      });
-      let saving = false;
-      for await (const event of this.getNodesForRemote()) {
-        for (const { ref } of event.nodes) {
-          this.unacknowledgedRefs.add(ref);
+  private connectRemote(): void {
+    this.remoteQueue
+      .add(async () => {
+        if (this.closed || !this.getRemote) {
+          return;
         }
-        if (!saving) {
-          await this.setRemoteState({ type: 'remote-state', save: 'saving' });
-          saving = true;
+        await this.setRemoteState({
+          type: 'remote-state',
+          connect: 'connecting',
+          read: 'loading',
+        });
+        const remoteSyncInfo = await this.getRemoteSyncInfo();
+        this.remote = await this.getRemote(
+          this.userId,
+          remoteSyncInfo,
+          (event) => {
+            this.remoteQueue
+              .add(() => this.processEvent(event, 'remote'))
+              .catch(this.handleAsError('internal'));
+          },
+        );
+        let saving = false;
+        for await (const event of this.getNodesForRemote()) {
+          for (const { ref } of event.nodes) {
+            this.unacknowledgedRefs.add(ref);
+          }
+          if (!saving) {
+            await this.setRemoteState({
+              type: 'remote-state',
+              save: 'saving',
+            });
+            saving = true;
+          }
+          await this.sendEvent(event, { remote: true });
         }
-        await this.sendEvent(event, { remote: true });
-      }
-      await this.sendEvent({ type: 'ready' }, { remote: true });
-    });
+        await this.sendEvent({ type: 'ready' }, { remote: true });
+      })
+      .catch((e) => {
+        console.warn(`[TRIMERGE-SYNC] error connecting to remote`, e);
+        void this.closeRemote(true);
+      });
   }
 
   protected handleAsError(code: ErrorCode) {
@@ -314,7 +335,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           fatal: true,
         },
         { self: true },
-      );
+      ).catch((e) => {
+        console.warn(`error ending error message`);
+      });
       void this.shutdown();
     };
   }
@@ -356,7 +379,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         (isLeader) => {
           if (isLeader) {
             console.log(`[TRIMERGE-SYNC] Became leader, connecting...`);
-            void this.connectRemote(getRemote);
+            this.connectRemote();
           } else {
             console.warn(`[TRIMERGE-SYNC] Demoted as leader, disconnecting...`);
             void this.closeRemote();

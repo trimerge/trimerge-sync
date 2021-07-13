@@ -1,10 +1,14 @@
 {
-  "extends": [
-    "plugin:@typescript-eslint/recommended",
-    "prettier"
-  ],
+  "extends": ["plugin:@typescript-eslint/recommended", "prettier"],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "jsx": true,
+    "project": "tsconfig.json",
+    "sourceType": "module"
+  },
   "rules": {
     "@typescript-eslint/no-explicit-any": 0,
+    "@typescript-eslint/no-floating-promises": "error",
     "@typescript-eslint/no-inferrable-types": 0,
     "@typescript-eslint/no-use-before-define": 0,
     "@typescript-eslint/no-parameter-properties": 0,
