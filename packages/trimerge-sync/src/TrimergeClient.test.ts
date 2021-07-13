@@ -91,6 +91,19 @@ describe('TrimergeClient', () => {
     expect(client.syncStatus.localRead).toEqual('error');
   });
 
+  it('ignores other error', async () => {
+    const { onEvent, client } = makeTrimergeClient();
+    onEvent({
+      type: 'error',
+      code: 'internal',
+      reconnect: false,
+      message: 'testing fake error',
+      fatal: false,
+    });
+    await timeout();
+    expect(client.syncStatus.localRead).toEqual('error');
+  });
+
   it('handles unknown event type', async () => {
     const { onEvent } = makeTrimergeClient();
     // This just logs a warning, added for code coverage
