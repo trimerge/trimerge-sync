@@ -8,7 +8,7 @@
   "sideEffects": false,
   "scripts": {
     "test": "jest --watch",
-    "test-ci": "jest --coverage --passWithNoTests",
+    "test-ci": "jest --coverage --passWithNoTests --reporters=@descript/jest-github-reporter",
     "build": "rollup -c",
     "watch": "rollup -c -w",
     "lint": "eslint src/**/*.ts",

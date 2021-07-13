@@ -1365,6 +1365,11 @@
   resolved "https://registry.yarnpkg.com/@csstools/normalize.css/-/normalize.css-10.1.0.tgz#f0950bba18819512d42f7197e56c518aa491cf18"
   integrity sha512-ij4wRiunFfaJxjB0BdrYHIH8FxBJpOwNPhhAcunlmPdXudL1WQV1qoP9un6JsEBAgQH+7UXyyjh0g7jTxXK6tg==
 
+"@descript/jest-github-reporter@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@descript/jest-github-reporter/-/jest-github-reporter-1.0.0.tgz#572f3fdb0be428f31b16d912dcc92ce4583ba3d1"
+  integrity sha512-Kgg1RDWYIDn3QN8YuzhO21g5UaYuTPZcSGA3e8YtRpPM6YDsWp/wlqRqPCO0+1iU9Ylq6kOivkUhANIisHx8tA==
+
 "@eslint/eslintrc@^0.3.0":
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/@eslint/eslintrc/-/eslintrc-0.3.0.tgz#d736d6963d7003b6514e6324bec9c602ac340318"
