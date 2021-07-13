@@ -62,9 +62,12 @@ describe('mergeHeadNodes()', () => {
     ]);
     const mergeFn = jest.fn(basicMerge);
     expect(mergeHeadNodes(['fooA', 'fooB', 'foo'], getNode, mergeFn)).toEqual(
-      '(-:bar+foo)',
+      '(-:(bar:fooA+fooB)+foo)',
     );
-    expect(mergeFn.mock.calls).toEqual([[undefined, 'bar', 'foo', 1]]);
+    expect(mergeFn.mock.calls).toEqual([
+      ['bar', 'fooA', 'fooB', 1],
+      [undefined, '(bar:fooA+fooB)', 'foo', 2],
+    ]);
   });
 
   it('basic merge', () => {
