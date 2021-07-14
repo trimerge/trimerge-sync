@@ -1365,10 +1365,10 @@
   resolved "https://registry.yarnpkg.com/@csstools/normalize.css/-/normalize.css-10.1.0.tgz#f0950bba18819512d42f7197e56c518aa491cf18"
   integrity sha512-ij4wRiunFfaJxjB0BdrYHIH8FxBJpOwNPhhAcunlmPdXudL1WQV1qoP9un6JsEBAgQH+7UXyyjh0g7jTxXK6tg==
 
-"@descript/jest-github-reporter@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@descript/jest-github-reporter/-/jest-github-reporter-1.0.0.tgz#572f3fdb0be428f31b16d912dcc92ce4583ba3d1"
-  integrity sha512-Kgg1RDWYIDn3QN8YuzhO21g5UaYuTPZcSGA3e8YtRpPM6YDsWp/wlqRqPCO0+1iU9Ylq6kOivkUhANIisHx8tA==
+"@descript/jest-github-reporter@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@descript/jest-github-reporter/-/jest-github-reporter-1.0.1.tgz#01060c9bb8afc7c1095b158be076b9cdb36aacc2"
+  integrity sha512-El0o9Ih5FUoNL0ex/dL7YQDk/nyYUWeUwvUdkoXicZp96ijVIi2cgfPwM/79Vo1hEIF0Z++E0aPCEGT9OHajug==
 
 "@eslint/eslintrc@^0.3.0":
   version "0.3.0"
@@ -2289,10 +2289,10 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.25.tgz#15967a7b577ff81383f9b888aa6705d43fbbae93"
   integrity sha512-EPpXLOVqDvisVxtlbvzfyqSsFeQxltFbluZNRndIb8tr9KiBnYNLzrc1N3pyKUCww2RNrfHDViqDWWE1LCJQtQ==
 
-"@types/node@^16.3.1":
-  version "16.3.1"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.3.1.tgz#24691fa2b0c3ec8c0d34bfcfd495edac5593ebb4"
-  integrity sha512-N87VuQi7HEeRJkhzovao/JviiqKjDKMVKxKMfUvSKw+MbkbW8R0nA3fi/MQhhlxV2fQ+2ReM+/Nt4efdrJx3zA==
+"@types/node@^16.3.2":
+  version "16.3.2"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.3.2.tgz#655432817f83b51ac869c2d51dd8305fb8342e16"
+  integrity sha512-jJs9ErFLP403I+hMLGnqDRWT0RYKSvArxuBVh2veudHV7ifEC1WAmjJADacZ7mRbA2nWgHtn8xyECMAot0SkAw==
 
 "@types/normalize-package-data@^2.4.0":
   version "2.4.0"
