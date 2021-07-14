@@ -777,6 +777,74 @@ describe('Remote sync', () => {
     `);
   });
 
+  it('handles leader network split', async () => {
+    const remoteStore = newStore();
+    const localStore = newStore(remoteStore);
+    const client1 = makeClient('test', 'a', localStore);
+    const client2 = makeClient('test', 'b', localStore);
+
+    const syncUpdates: SyncStatus[] = [];
+    client1.subscribeSyncStatus((state) => syncUpdates.push(state));
+
+    localStore.localNetworkPaused = true;
+
+    expect(client1.isRemoteLeader).toBe(false);
+    expect(client2.isRemoteLeader).toBe(false);
+
+    // wait for election
+    await timeout(100);
+
+    expect(client1.isRemoteLeader).toBe(true);
+    expect(client2.isRemoteLeader).toBe(true);
+
+    expect(client1.syncStatus).toMatchInlineSnapshot(`
+      Object {
+        "localRead": "ready",
+        "localSave": "ready",
+        "remoteConnect": "online",
+        "remoteRead": "ready",
+        "remoteSave": "ready",
+      }
+    `);
+
+    expect(client2.syncStatus).toMatchInlineSnapshot(`
+      Object {
+        "localRead": "ready",
+        "localSave": "ready",
+        "remoteConnect": "online",
+        "remoteRead": "ready",
+        "remoteSave": "ready",
+      }
+    `);
+
+    localStore.localNetworkPaused = false;
+
+    await timeout(100);
+
+    expect(client1.isRemoteLeader).toBe(true);
+    expect(client2.isRemoteLeader).toBe(false);
+
+    expect(client1.syncStatus).toMatchInlineSnapshot(`
+      Object {
+        "localRead": "ready",
+        "localSave": "ready",
+        "remoteConnect": "online",
+        "remoteRead": "ready",
+        "remoteSave": "ready",
+      }
+    `);
+
+    expect(client2.syncStatus).toMatchInlineSnapshot(`
+      Object {
+        "localRead": "ready",
+        "localSave": "ready",
+        "remoteConnect": "online",
+        "remoteRead": "ready",
+        "remoteSave": "ready",
+      }
+    `);
+  });
+
   it('syncs two clients to a store', async () => {
     const remoteStore = newStore();
     const store1 = newStore(remoteStore);

@@ -7,7 +7,8 @@ import type {
 } from 'trimerge-sync';
 
 export class WebsocketRemote<EditMetadata, Delta, PresenceState>
-  implements Remote<EditMetadata, Delta, PresenceState> {
+  implements Remote<EditMetadata, Delta, PresenceState>
+{
   private socket: WebSocket | undefined;
   private bufferedEvents: SyncEvent<EditMetadata, Delta, PresenceState>[] = [];
   constructor(
@@ -18,7 +19,6 @@ export class WebsocketRemote<EditMetadata, Delta, PresenceState>
   ) {
     console.log(`[TRIMERGE-SYNC] Connecting to ${websocketUrl}...`);
     this.socket = new WebSocket(websocketUrl);
-    onEvent({ type: 'remote-state', connect: 'connecting' });
     this.socket.onopen = () => {
       if (!this.socket) {
         console.warn(`[TRIMERGE-SYNC] Connected, but already shutdown...`);

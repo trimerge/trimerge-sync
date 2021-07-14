@@ -20,18 +20,15 @@ function randomId() {
 }
 
 export class MemoryStore<EditMetadata, Delta, PresenceState> {
-  public readonly remotes: MemoryRemote<
-    EditMetadata,
-    Delta,
-    PresenceState
-  >[] = [];
+  public readonly remotes: MemoryRemote<EditMetadata, Delta, PresenceState>[] =
+    [];
   private nodes: DiffNode<EditMetadata, Delta>[] = [];
   private localNodeRefs = new Set<string>();
   private syncedNodes = new Set<string>();
   private readonly localStoreId = randomId();
   private lastRemoteSyncCursor: string | undefined;
   private queue = new PromiseQueue();
-  private localStores: MemoryLocalStore<
+  private readonly localStores: MemoryLocalStore<
     EditMetadata,
     Delta,
     PresenceState
@@ -55,6 +52,17 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
 
   private get syncCursor(): string {
     return this.nodes.length.toString(36);
+  }
+
+  public set remoteNetworkPaused(paused: boolean) {
+    for (const remote of this.remotes) {
+      remote.channel.paused = paused;
+    }
+  }
+  public set localNetworkPaused(paused: boolean) {
+    for (const local of this.localStores) {
+      local.channel.paused = paused;
+    }
   }
 
   getLocalStore: GetLocalStoreFn<EditMetadata, Delta, PresenceState> = (

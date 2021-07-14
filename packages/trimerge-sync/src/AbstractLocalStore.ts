@@ -78,6 +78,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     this.reconnectDelayMs = this.networkSettings.initialDelayMs;
   }
 
+  public get isRemoteLeader(): boolean {
+    return !!this.remote;
+  }
+
   /**
    * Send to all *other* local nodes
    */
@@ -114,7 +118,17 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     update: RemoteStateEvent,
     sendEvent: boolean = true,
   ): Promise<void> {
-    this.remoteSyncState = { ...this.remoteSyncState, ...update };
+    const lastState = this.remoteSyncState;
+    update = { ...lastState, ...update };
+    if (
+      update.read === lastState.read &&
+      update.save === lastState.save &&
+      update.connect === lastState.connect
+    ) {
+      return;
+    }
+    console.log(`updating remoteState from`, lastState, 'to', update);
+    this.remoteSyncState = update;
     if (sendEvent) {
       await this.sendEvent(update, { local: true, self: true });
     }
@@ -122,14 +136,17 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
 
   protected processEvent = async (
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
-    // Three sources of events: self, local broadcast, and remote broadcast
-    origin: 'self' | 'local' | 'remote' | 'remote-via-local',
+    // Three sources of events: local broadcast, remote broadcast, and remote via local broadcast
+    origin: 'local' | 'remote' | 'remote-via-local',
   ): Promise<void> => {
     if (event.type === 'leader') {
       if (!this.leaderManager) {
         throw new Error('got leader event with no manager');
       }
       this.leaderManager.receiveEvent(event);
+      if (this.remote) {
+        await this.sendEvent(this.remoteSyncState, { local: true, self: true });
+      }
       return;
     }
 
@@ -138,7 +155,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     await this.sendEvent(
       event,
       {
-        self: origin !== 'self',
+        self: true,
         local: origin !== 'local' && origin !== 'remote-via-local',
         remote: !remoteOrigin && event.type !== 'remote-state',
       },
@@ -187,16 +204,18 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       case 'client-leave':
         break;
       case 'remote-state':
-        if (origin === 'remote' && event.connect === 'online') {
-          await this.sendEvent(
-            {
-              type: 'client-join',
-              info: this.clientInfo,
-            },
-            { local: true, remote: true },
-          );
+        if (origin === 'remote') {
+          if (event.connect === 'online') {
+            await this.sendEvent(
+              {
+                type: 'client-join',
+                info: this.clientInfo,
+              },
+              { local: true, remote: true },
+            );
+          }
+          await this.setRemoteState(event, true);
         }
-        await this.setRemoteState(event, false);
         break;
       case 'error':
         if (origin === 'remote' && event.fatal) {

@@ -65,6 +65,10 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     });
   }
 
+  public get isRemoteLeader(): boolean {
+    return this.store.isRemoteLeader;
+  }
+
   private setClientInfo(cursor: LocalClientInfo<PresenceState>) {
     const { userId, clientId } = cursor;
     this.clientMap.set(getFullId(userId, clientId), cursor);
@@ -239,11 +243,10 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private get needsSync(): boolean {
     return this.unsyncedNodes.length > 0 || this.newPresenceState !== undefined;
   }
-  sync(): Promise<boolean> | undefined {
+  private sync(): void {
     if (!this.syncPromise && this.needsSync) {
       this.syncPromise = this.doSync();
     }
-    return this.syncPromise;
   }
 
   private updateSyncState(update: Partial<SyncStatus>) {

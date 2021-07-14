@@ -12,10 +12,11 @@ import { MemoryStore } from './MemoryStore';
 import { PromiseQueue } from '../lib/PromiseQueue';
 
 export class MemoryRemote<EditMetadata, Delta, PresenceState>
-  implements Remote<EditMetadata, Delta, PresenceState> {
+  implements Remote<EditMetadata, Delta, PresenceState>
+{
   private readonly remoteQueue = new PromiseQueue();
   private closed = false;
-  private readonly channel: MemoryBroadcastChannel<
+  public readonly channel: MemoryBroadcastChannel<
     SyncEvent<EditMetadata, Delta, PresenceState>
   >;
 
@@ -69,7 +70,6 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
   protected async sendInitialEvents(
     lastSyncCursor: string | undefined,
   ): Promise<void> {
-    this.onEvent({ type: 'remote-state', connect: 'connecting' });
     this.onEvent({ type: 'remote-state', connect: 'online' });
 
     for await (const event of this.getNodes(lastSyncCursor)) {
