@@ -31,6 +31,8 @@ describe('MemoryLocalStore', () => {
       Array [
         Array [
           Object {
+            "connect": "offline",
+            "read": "offline",
             "save": "pending",
             "type": "remote-state",
           },
@@ -65,6 +67,8 @@ describe('MemoryLocalStore', () => {
         ],
         Array [
           Object {
+            "connect": "offline",
+            "read": "offline",
             "save": "saving",
             "type": "remote-state",
           },
@@ -88,6 +92,8 @@ describe('MemoryLocalStore', () => {
       Array [
         Array [
           Object {
+            "connect": "offline",
+            "read": "offline",
             "save": "pending",
             "type": "remote-state",
           },
@@ -122,6 +128,8 @@ describe('MemoryLocalStore', () => {
         ],
         Array [
           Object {
+            "connect": "offline",
+            "read": "offline",
             "save": "saving",
             "type": "remote-state",
           },

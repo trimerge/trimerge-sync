@@ -19,7 +19,15 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private lastSyncId: string | undefined;
 
   private stateSubs = new SubscriberList(() => this.state);
-  private syncStateSubs = new SubscriberList(() => this.syncState);
+  private syncStateSubs = new SubscriberList(
+    () => this.syncState,
+    (a, b) =>
+      a.localRead === b.localRead &&
+      a.localSave === b.localSave &&
+      a.remoteRead === b.remoteRead &&
+      a.remoteSave === b.remoteSave &&
+      a.remoteConnect === b.remoteConnect,
+  );
   private clientListSubs = new SubscriberList(() => this.clientList);
 
   private clientMap = new Map<string, LocalClientInfo<PresenceState>>();

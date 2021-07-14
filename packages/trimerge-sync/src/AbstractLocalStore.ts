@@ -127,7 +127,6 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     ) {
       return;
     }
-    console.log(`updating remoteState from`, lastState, 'to', update);
     this.remoteSyncState = update;
     if (sendEvent) {
       await this.sendEvent(update, { local: true, self: true });
