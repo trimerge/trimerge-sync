@@ -4,7 +4,7 @@
     "packages/*"
   ],
   "scripts": {
-    "test-ci": "wsrun --serial test-ci",
+    "test-ci": "wsrun --no-prefix --serial test-ci",
     "build-all": "wsrun --serial build",
     "watch-all": "wsrun --parallel watch",
     "lint": "eslint packages/*/src/**/*.ts",
