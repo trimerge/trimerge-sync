@@ -13,10 +13,10 @@ import { MemoryStore } from './MemoryStore';
 export class MemoryLocalStore<
   EditMetadata,
   Delta,
-  PresenceState
+  PresenceState,
 > extends AbstractLocalStore<EditMetadata, Delta, PresenceState> {
   private _closed = false;
-  private readonly channel: MemoryBroadcastChannel<
+  public readonly channel: MemoryBroadcastChannel<
     BroadcastEvent<EditMetadata, Delta, PresenceState>
   >;
 

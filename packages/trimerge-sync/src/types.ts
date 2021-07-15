@@ -60,9 +60,8 @@ export type ClientInfo<PresenceState> = ClientPresenceRef<PresenceState> & {
 export type LocalClientInfo<PresenceState> = ClientInfo<PresenceState> & {
   self?: true;
 };
-export type ClientList<
-  PresenceState
-> = readonly LocalClientInfo<PresenceState>[];
+export type ClientList<PresenceState> =
+  readonly LocalClientInfo<PresenceState>[];
 
 export type InitEvent =
   | {
@@ -173,6 +172,7 @@ export interface LocalStore<EditMetadata, Delta, PresenceState> {
     nodes: DiffNode<EditMetadata, Delta>[],
     presence: ClientPresenceRef<PresenceState> | undefined,
   ): void;
+  isRemoteLeader: boolean;
   shutdown(): void | Promise<void>;
 }
 

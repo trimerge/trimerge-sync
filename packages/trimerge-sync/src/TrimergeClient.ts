@@ -19,7 +19,15 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private lastSyncId: string | undefined;
 
   private stateSubs = new SubscriberList(() => this.state);
-  private syncStateSubs = new SubscriberList(() => this.syncState);
+  private syncStateSubs = new SubscriberList(
+    () => this.syncState,
+    (a, b) =>
+      a.localRead === b.localRead &&
+      a.localSave === b.localSave &&
+      a.remoteRead === b.remoteRead &&
+      a.remoteSave === b.remoteSave &&
+      a.remoteConnect === b.remoteConnect,
+  );
   private clientListSubs = new SubscriberList(() => this.clientList);
 
   private clientMap = new Map<string, LocalClientInfo<PresenceState>>();
@@ -63,6 +71,10 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
       state: undefined,
       self: true,
     });
+  }
+
+  public get isRemoteLeader(): boolean {
+    return this.store.isRemoteLeader;
   }
 
   private setClientInfo(cursor: LocalClientInfo<PresenceState>) {
@@ -239,11 +251,10 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private get needsSync(): boolean {
     return this.unsyncedNodes.length > 0 || this.newPresenceState !== undefined;
   }
-  sync(): Promise<boolean> | undefined {
+  private sync(): void {
     if (!this.syncPromise && this.needsSync) {
       this.syncPromise = this.doSync();
     }
-    return this.syncPromise;
   }
 
   private updateSyncState(update: Partial<SyncStatus>) {

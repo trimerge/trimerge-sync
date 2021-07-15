@@ -23,6 +23,7 @@ function makeTrimergeClient(): {
       return {
         update: () => undefined,
         shutdown: () => undefined,
+        isRemoteLeader: false,
       };
     },
     differ,
@@ -107,7 +108,7 @@ describe('TrimergeClient', () => {
   it('handles unknown event type', async () => {
     const { onEvent } = makeTrimergeClient();
     // This just logs a warning, added for code coverage
-    onEvent(({ type: 'fake-event' } as unknown) as SyncEvent<any, any, any>);
+    onEvent({ type: 'fake-event' } as unknown as SyncEvent<any, any, any>);
     await timeout();
   });
   it('fails on leader event with no leader', async () => {

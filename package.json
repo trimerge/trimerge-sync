@@ -4,7 +4,7 @@
     "packages/*"
   ],
   "scripts": {
-    "test-ci": "wsrun --serial test-ci",
+    "test-ci": "wsrun --no-prefix --serial test-ci",
     "build-all": "wsrun --serial build",
     "watch-all": "wsrun --parallel watch",
     "lint": "eslint packages/*/src/**/*.ts",
@@ -21,7 +21,7 @@
   "dependencies": {},
   "peerDependencies": {},
   "devDependencies": {
-    "@descript/jest-github-reporter": "^1.0.0",
+    "@descript/jest-github-reporter": "^1.0.1",
     "@types/jest": "26.0.24",
     "@typescript-eslint/eslint-plugin": "4.28.3",
     "@typescript-eslint/parser": "4.28.3",
