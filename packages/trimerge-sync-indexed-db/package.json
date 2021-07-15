@@ -46,14 +46,13 @@
     "src/**/*"
   ],
   "devDependencies": {
-    "@rollup/plugin-commonjs": "19.0.0",
-    "@rollup/plugin-node-resolve": "13.0.0",
+    "@rollup/plugin-commonjs": "19.0.1",
+    "@rollup/plugin-node-resolve": "13.0.2",
     "fake-indexeddb": "^3.1.3",
     "immer": "^9.0.5",
-    "indexeddb-export-import": "^2.1.2",
     "jest": "27.0.6",
     "jsondiffpatch": "^0.4.1",
-    "rollup": "2.53.1",
+    "rollup": "2.53.2",
     "rollup-plugin-typescript2": "0.30.0",
     "trimerge": "^1.3.0-alpha.15",
     "trimerge-sync": "0.10.1",
