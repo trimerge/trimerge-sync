@@ -143,9 +143,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         throw new Error('got leader event with no manager');
       }
       this.leaderManager.receiveEvent(event);
-      if (this.remote) {
-        await this.sendEvent(this.remoteSyncState, { local: true, self: true });
-      }
+      await this.sendRemoteStatus();
       return;
     }
 
@@ -214,6 +212,8 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
             );
           }
           await this.setRemoteState(event, true);
+        } else {
+          await this.sendRemoteStatus();
         }
         break;
       case 'error':
@@ -224,6 +224,12 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         break;
     }
   };
+
+  private async sendRemoteStatus() {
+    if (this.remote) {
+      await this.sendEvent(this.remoteSyncState, { local: true, self: true });
+    }
+  }
 
   protected readonly onLocalBroadcastEvent = ({
     event,
