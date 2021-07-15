@@ -8,7 +8,7 @@
   "sideEffects": false,
   "scripts": {
     "test": "jest --watch",
-    "test-ci": "jest --coverage --passWithNoTests --reporters=@descript/jest-github-reporter",
+    "test-ci": "jest --coverage --reporters=@descript/jest-github-reporter",
     "build": "rollup -c",
     "watch": "rollup -c -w",
     "lint": "eslint src/**/*.ts",
@@ -48,11 +48,16 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "19.0.0",
     "@rollup/plugin-node-resolve": "13.0.0",
+    "fake-indexeddb": "^3.1.3",
     "immer": "^9.0.5",
+    "indexeddb-export-import": "^2.1.2",
     "jest": "27.0.6",
+    "jsondiffpatch": "^0.4.1",
     "rollup": "2.53.1",
     "rollup-plugin-typescript2": "0.30.0",
+    "trimerge": "^1.3.0-alpha.15",
     "trimerge-sync": "0.10.1",
+    "trimerge-sync-hash": "0.10.1",
     "typescript": "4.3.5"
   },
   "jest": {

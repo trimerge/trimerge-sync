@@ -11,8 +11,10 @@ import type {
   RemoteSyncInfo,
 } from 'trimerge-sync';
 import { AbstractLocalStore } from 'trimerge-sync';
-import { DBSchema, deleteDB, IDBPDatabase, openDB, StoreValue } from 'idb';
-import { BroadcastChannel, LeaderElector } from 'broadcast-channel';
+import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
+import { deleteDB, openDB } from 'idb';
+import { BroadcastChannel } from 'broadcast-channel';
+import { timeout } from './lib/timeout';
 
 function getSyncCounter(
   nodes: StoreValue<TrimergeSyncDbSchema, 'nodes'>[],
@@ -44,7 +46,7 @@ export type IndexedDbBackendOptions<EditMetadata, Delta, PresenceState> = {
 export function createIndexedDbBackendFactory<
   EditMetadata,
   Delta,
-  PresenceState
+  PresenceState,
 >(
   docId: string,
   options: IndexedDbBackendOptions<EditMetadata, Delta, PresenceState>,
@@ -61,17 +63,22 @@ export function deleteDocDatabase(docId: string): Promise<void> {
   return deleteDB(getDatabaseName(docId));
 }
 
+export function getIDBPDatabase(
+  docId: string,
+): Promise<IDBPDatabase<TrimergeSyncDbSchema>> {
+  return createIndexedDb(getDatabaseName(docId));
+}
+
 class IndexedDbBackend<
   EditMetadata,
   Delta,
-  PresenceState
+  PresenceState,
 > extends AbstractLocalStore<EditMetadata, Delta, PresenceState> {
   private readonly dbName: string;
   private db: Promise<IDBPDatabase<TrimergeSyncDbSchema>>;
   private readonly channel: BroadcastChannel<
     BroadcastEvent<EditMetadata, Delta, PresenceState>
   >;
-  private leaderElector: LeaderElector | undefined;
   private remoteId: string;
   private localIdGenerator: LocalIdGeneratorFn;
 
@@ -97,7 +104,9 @@ class IndexedDbBackend<
     this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
     this.channel.addEventListener('message', this.onLocalBroadcastEvent);
     this.initialize().catch(this.handleAsError('internal'));
-    window.addEventListener('beforeunload', this.shutdown);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', this.shutdown);
+    }
   }
 
   protected broadcastLocal(
@@ -168,7 +177,7 @@ class IndexedDbBackend<
       console.log(
         '[TRIMERGE-SYNC] IndexedDbBackend: reconnecting after 3 second timeout…',
       );
-      await new Promise((resolve) => setTimeout(resolve, 3_000));
+      await timeout(3_000);
     }
     const db = await createIndexedDb(this.dbName);
     db.onclose = () => {
@@ -281,15 +290,11 @@ class IndexedDbBackend<
     };
   }
 
-  async deleteDatabase() {
-    await this.shutdown();
-    await deleteDB(this.dbName);
-  }
-
   shutdown = async (): Promise<void> => {
     await super.shutdown();
-    window.removeEventListener('beforeunload', this.shutdown);
-    await this.leaderElector?.die();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('beforeunload', this.shutdown);
+    }
     await this.channel.close();
 
     const db = await this.db;
