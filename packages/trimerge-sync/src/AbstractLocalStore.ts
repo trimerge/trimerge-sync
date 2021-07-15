@@ -114,10 +114,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     return { userId, clientId, ...this.presence };
   }
 
-  private async setRemoteState(
-    update: RemoteStateEvent,
-    sendEvent: boolean = true,
-  ): Promise<void> {
+  private async setRemoteState(update: RemoteStateEvent): Promise<void> {
     const lastState = this.remoteSyncState;
     update = { ...lastState, ...update };
     if (
@@ -128,9 +125,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       return;
     }
     this.remoteSyncState = update;
-    if (sendEvent) {
-      await this.sendEvent(update, { local: true, self: true });
-    }
+    await this.sendEvent(update, { local: true, self: true });
   }
 
   protected processEvent = async (
@@ -211,7 +206,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
               { local: true, remote: true },
             );
           }
-          await this.setRemoteState(event, true);
+          await this.setRemoteState(event);
         } else {
           await this.sendRemoteStatus();
         }
