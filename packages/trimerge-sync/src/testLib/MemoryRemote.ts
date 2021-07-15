@@ -1,4 +1,3 @@
-import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
 import {
   AckNodesEvent,
   DiffNode,
@@ -6,6 +5,7 @@ import {
   NodesEvent,
   OnEventFn,
   Remote,
+  RemoteSyncInfo,
   SyncEvent,
 } from '../types';
 import { MemoryStore } from './MemoryStore';
@@ -16,20 +16,15 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
 {
   private readonly remoteQueue = new PromiseQueue();
   private closed = false;
-  public readonly channel: MemoryBroadcastChannel<
-    SyncEvent<EditMetadata, Delta, PresenceState>
-  >;
+  private readonly clientStoreId: string;
 
   constructor(
     private readonly store: MemoryStore<EditMetadata, Delta, PresenceState>,
     private readonly userId: string,
-    lastSyncCursor: string | undefined,
+    { lastSyncCursor, localStoreId }: RemoteSyncInfo,
     private readonly onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
   ) {
-    this.channel = new MemoryBroadcastChannel(
-      'remote:' + this.store.channelName,
-      onEvent,
-    );
+    this.clientStoreId = localStoreId;
     this.sendInitialEvents(lastSyncCursor).catch(
       this.handleAsError('internal'),
     );
@@ -66,6 +61,11 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
       .add(() => this.handle(event))
       .catch(this.handleAsError('internal'));
   }
+  private receive(event: SyncEvent<EditMetadata, Delta, PresenceState>): void {
+    this.remoteQueue
+      .add(async () => this.onEvent(event))
+      .catch(this.handleAsError('internal'));
+  }
 
   protected async sendInitialEvents(
     lastSyncCursor: string | undefined,
@@ -84,7 +84,6 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
     }
     this.closed = true;
     this.onEvent({ type: 'remote-state', connect: 'offline', read: 'offline' });
-    this.channel.close();
   }
 
   fail(message: string, code: ErrorCode, reconnect = true) {
@@ -107,10 +106,19 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
     return this.store.addNodes(nodes);
   }
 
-  protected broadcast(
+  protected async broadcast(
     event: SyncEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void> {
-    return this.channel.postMessage(event);
+    for (const remote of this.store.remotes) {
+      // Don't send to other clients with the same userId/clientStoreId pair
+      if (
+        remote.userId === this.userId &&
+        remote.clientStoreId === this.clientStoreId
+      ) {
+        continue;
+      }
+      await remote.receive(event);
+    }
   }
 
   protected async *getNodes(

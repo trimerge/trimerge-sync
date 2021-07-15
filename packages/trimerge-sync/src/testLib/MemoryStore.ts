@@ -5,6 +5,7 @@ import {
   GetRemoteFn,
   NodesEvent,
   RemoteSyncInfo,
+  SyncEvent,
 } from '../types';
 import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
@@ -54,11 +55,6 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     return this.nodes.length.toString(36);
   }
 
-  public set remoteNetworkPaused(paused: boolean) {
-    for (const remote of this.remotes) {
-      remote.channel.paused = paused;
-    }
-  }
   public set localNetworkPaused(paused: boolean) {
     for (const local of this.localStores) {
       local.channel.paused = paused;
@@ -83,13 +79,13 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
 
   getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState> = (
     userId: string,
-    { lastSyncCursor },
+    remoteSyncInfo,
     onEvent,
   ) => {
     if (!this.online) {
       throw new Error('offline');
     }
-    const be = new MemoryRemote(this, userId, lastSyncCursor, onEvent);
+    const be = new MemoryRemote(this, userId, remoteSyncInfo, onEvent);
     this.remotes.push(be);
     return be;
   };

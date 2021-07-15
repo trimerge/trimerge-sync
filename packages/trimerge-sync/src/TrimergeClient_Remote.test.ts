@@ -463,7 +463,7 @@ describe('Remote sync', () => {
       ]
     `);
 
-    setChannelsPaused(true);
+    localStore.localNetworkPaused = true;
 
     await timeout();
 
@@ -493,7 +493,7 @@ describe('Remote sync', () => {
       ]
     `);
 
-    setChannelsPaused(false);
+    localStore.localNetworkPaused = false;
 
     await timeout(100);
 
@@ -775,12 +775,12 @@ describe('Remote sync', () => {
     `);
   });
 
-  it('syncs two clients to a store', async () => {
+  it('syncs two client stores to a remote store', async () => {
     const remoteStore = newStore();
     const store1 = newStore(remoteStore);
     const store2 = newStore(remoteStore);
-    const client1 = makeClient('a', 'test', store1);
-    const client2 = makeClient('b', 'test', store2);
+    const client1 = makeClient('a', 'a', store1);
+    const client2 = makeClient('b', 'b', store2);
 
     const syncUpdates1: SyncStatus[] = [];
     const syncUpdates2: SyncStatus[] = [];
