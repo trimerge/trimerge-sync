@@ -40,10 +40,10 @@
     "src/**/*"
   ],
   "devDependencies": {
-    "@rollup/plugin-commonjs": "19.0.0",
-    "@rollup/plugin-node-resolve": "13.0.0",
+    "@rollup/plugin-commonjs": "19.0.1",
+    "@rollup/plugin-node-resolve": "13.0.2",
     "jest": "27.0.6",
-    "rollup": "2.53.1",
+    "rollup": "2.53.2",
     "rollup-plugin-typescript2": "0.30.0",
     "trimerge-sync": "0.10.1",
     "ts-node": "^10.1.0",

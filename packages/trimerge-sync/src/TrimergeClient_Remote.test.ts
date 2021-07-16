@@ -6,7 +6,7 @@ import { TrimergeClient } from './TrimergeClient';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 import { SyncStatus } from './types';
 import { timeout } from './lib/Timeout';
-import { resetAll, setChannelsPaused } from './testLib/MemoryBroadcastChannel';
+import { resetAll } from './testLib/MemoryBroadcastChannel';
 
 type TestEditMetadata = string;
 type TestState = any;
