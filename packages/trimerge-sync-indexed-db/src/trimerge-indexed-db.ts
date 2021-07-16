@@ -59,8 +59,33 @@ function getDatabaseName(docId: string): string {
   return `trimerge-sync:${docId}`;
 }
 
+/**
+ * Deletes database for document.
+ *
+ * CAUSES DATA LOSS!
+ */
 export function deleteDocDatabase(docId: string): Promise<void> {
   return deleteDB(getDatabaseName(docId));
+}
+
+/**
+ * Clears out all remote sync data for this table without removing any nodes
+ *
+ * Should not cause data loss.
+ */
+export async function resetDocRemoteSyncData(docId: string): Promise<void> {
+  const db = await getIDBPDatabase(docId);
+  const tx = await db.transaction(['remotes', 'nodes'], 'readwrite');
+  const remotes = tx.objectStore('remotes');
+  const nodes = tx.objectStore('nodes');
+  await remotes.clear();
+  for (const node of await nodes.getAll()) {
+    if (node.remoteSyncId) {
+      node.remoteSyncId = '';
+      await nodes.put(node);
+    }
+  }
+  await tx.done;
 }
 
 export function getIDBPDatabase(
