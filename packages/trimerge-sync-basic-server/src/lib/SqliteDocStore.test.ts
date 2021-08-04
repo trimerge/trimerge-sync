@@ -218,15 +218,15 @@ describe('SqliteDocStore', () => {
       Object {
         "refErrors": Object {
           "hello1": Object {
-            "code": "invalid-node",
+            "code": "unknown-ref",
             "message": "unknown baseRef",
           },
           "hello2": Object {
-            "code": "invalid-node",
+            "code": "unknown-ref",
             "message": "unknown mergeRef",
           },
           "hello3": Object {
-            "code": "invalid-node",
+            "code": "unknown-ref",
             "message": "unknown mergeBaseRef",
           },
         },
