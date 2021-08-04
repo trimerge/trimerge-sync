@@ -236,4 +236,44 @@ describe('SqliteDocStore', () => {
       }
     `);
   });
+
+  it('handles missing baseRef in chain', async () => {
+    const store = makeSqliteStore('missing_tests');
+
+    expect(
+      store.add([
+        {
+          ref: 'hello1',
+          clientId: 'client-1',
+          userId: 'client-2',
+          baseRef: 'unknown',
+          editMetadata: { hello: 'world' },
+        },
+
+        {
+          ref: 'hello2',
+          clientId: 'client-1',
+          userId: 'client-2',
+          baseRef: 'hello1',
+          editMetadata: { hello: 'world' },
+        },
+      ]),
+    ).toMatchInlineSnapshot(`
+      Object {
+        "refErrors": Object {
+          "hello1": Object {
+            "code": "unknown-ref",
+            "message": "unknown baseRef",
+          },
+          "hello2": Object {
+            "code": "unknown-ref",
+            "message": "unknown baseRef",
+          },
+        },
+        "refs": Array [],
+        "syncId": "1970-01-01T00:00:00.000Z",
+        "type": "ack",
+      }
+    `);
+  });
 });

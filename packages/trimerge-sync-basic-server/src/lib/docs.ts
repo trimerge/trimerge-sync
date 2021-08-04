@@ -1,6 +1,7 @@
 import { Connection } from './connection';
 import { AckNodesEvent, NodesEvent } from 'trimerge-sync';
 import { DocStore } from '../DocStore';
+import { validateNodeReferences } from './validate';
 
 export class LiveDoc {
   private readonly connections = new Set<Connection>();
@@ -29,13 +30,12 @@ export class LiveDoc {
     this.store.close();
   }
 
-  async addNodes(
-    event: NodesEvent<unknown, unknown, unknown>,
-  ): Promise<{
+  async addNodes(event: NodesEvent<unknown, unknown, unknown>): Promise<{
     nodes: NodesEvent<unknown, unknown, unknown>;
     ack: AckNodesEvent;
   }> {
-    const ack = await this.store.add(event.nodes);
+    const validation = validateNodeReferences(event.nodes);
+    const ack = await this.store.add(event.nodes, validation);
     const acks = new Set(ack.refs);
     return {
       nodes: {

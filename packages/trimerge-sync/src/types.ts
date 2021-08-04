@@ -87,7 +87,13 @@ export type NodesEvent<EditMetadata, Delta, PresenceState> = {
 export type ReadyEvent = {
   type: 'ready';
 };
-export type AckNodeErrorCode = 'invalid-node' | 'storage-failure' | 'internal';
+
+export type AckNodeErrorCode =
+  | 'invalid-node'
+  | 'unknown-ref'
+  | 'storage-failure'
+  | 'internal';
+
 export type AckNodeError = {
   code: AckNodeErrorCode;
   message: string;
