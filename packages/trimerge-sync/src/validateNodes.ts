@@ -1,16 +1,16 @@
 import { AckNodesEvent, DiffNode } from 'trimerge-sync';
 
-export type NodeValidation = {
-  newNodes: readonly DiffNode<unknown, unknown>[];
+export type DiffNodeValidation<EditMetadata, Delta> = {
+  newNodes: readonly DiffNode<EditMetadata, Delta>[];
   invalidNodeRefs: Set<string>;
   referencedNodes: Set<string>;
 };
 
-export function validateNodeReferences(
-  nodes: readonly DiffNode<unknown, unknown>[],
-): NodeValidation {
+export function validateDiffNodeOrder<EditMetadata, Delta>(
+  nodes: readonly DiffNode<EditMetadata, Delta>[],
+): DiffNodeValidation<EditMetadata, Delta> {
   const newNodeRefs = new Set<string>();
-  const newNodes: DiffNode<unknown, unknown>[] = [];
+  const newNodes: DiffNode<EditMetadata, Delta>[] = [];
   const referencedNodes = new Set<string>();
   const invalidNodeRefs = new Set<string>();
   function addReferencedNode(ref?: string) {
@@ -32,7 +32,7 @@ export function validateNodeReferences(
   return { newNodes, invalidNodeRefs, referencedNodes };
 }
 
-export function addInvalidNodes(
+export function addInvalidNodesToAckEvent(
   ack: AckNodesEvent,
   invalidNodeRefs: Set<string>,
 ): AckNodesEvent {

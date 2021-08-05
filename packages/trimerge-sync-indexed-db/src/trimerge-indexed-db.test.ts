@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 
-import { GetRemoteFn, TrimergeClient } from 'trimerge-sync';
+import type { DiffNode, GetRemoteFn } from 'trimerge-sync';
+import { TrimergeClient } from 'trimerge-sync';
 import {
   createIndexedDbBackendFactory,
   deleteDocDatabase,
@@ -8,7 +9,7 @@ import {
 } from './trimerge-indexed-db';
 import { differ } from './testLib/BasicDiffer';
 import { timeout } from './lib/timeout';
-import { getMockRemote } from './testLib/MockRemote';
+import { getMockRemote, getMockRemoteForNodes } from './testLib/MockRemote';
 import { dumpDatabase, getIdbDatabases } from './testLib/IndexedDB';
 
 function makeTestClient(
@@ -472,5 +473,128 @@ describe('createIndexedDbBackendFactory', () => {
         ],
       }
     `);
+  });
+
+  it('works offline then with remote 2', async () => {
+    const docId = 'test-doc-remote2';
+    const client = makeTestClient('test', '1', docId, 'test-doc-store');
+    client.updateState('hello offline remote', '');
+    client.updateState('hello offline remote 1', '');
+    client.updateState('hello offline remote 2', '');
+    client.updateState('hello offline remote 3', '');
+    client.updateState('hello offline remote 4', '');
+    client.updateState('hello offline remote 5', '');
+
+    // Wait for write
+    await timeout(100);
+    await client.shutdown();
+
+    const nodes: DiffNode<any, any>[] = [];
+    const client2 = makeTestClient(
+      'test',
+      '2',
+      docId,
+      'test-doc-store',
+      getMockRemoteForNodes(nodes),
+    );
+    // Wait for write
+    await timeout(100);
+
+    expect(client2.state).toEqual('hello offline remote 5');
+    expect(client2.syncStatus).toMatchInlineSnapshot(`
+Object {
+  "localRead": "ready",
+  "localSave": "ready",
+  "remoteConnect": "online",
+  "remoteRead": "ready",
+  "remoteSave": "error",
+}
+`);
+
+    await client2.shutdown();
+
+    expect(nodes).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "baseRef": "axg0ZCUR",
+    "clientId": "1",
+    "delta": Array [
+      "@@ -13,8 +13,10 @@
+ e remote
++ 1
+",
+      0,
+      2,
+    ],
+    "editMetadata": "",
+    "mergeBaseRef": undefined,
+    "mergeRef": undefined,
+    "ref": "O7UTix7H",
+    "remoteSyncId": "",
+    "syncId": 2,
+    "userId": "test",
+  },
+  Object {
+    "baseRef": "O7UTix7H",
+    "clientId": "1",
+    "delta": Array [
+      "@@ -18,5 +18,5 @@
+ ote 
+-1
++2
+",
+      0,
+      2,
+    ],
+    "editMetadata": "",
+    "mergeBaseRef": undefined,
+    "mergeRef": undefined,
+    "ref": "RY803qkY",
+    "remoteSyncId": "",
+    "syncId": 3,
+    "userId": "test",
+  },
+  Object {
+    "baseRef": "spzlTTLz",
+    "clientId": "1",
+    "delta": Array [
+      "@@ -18,5 +18,5 @@
+ ote 
+-3
++4
+",
+      0,
+      2,
+    ],
+    "editMetadata": "",
+    "mergeBaseRef": undefined,
+    "mergeRef": undefined,
+    "ref": "eJbMuE8b",
+    "remoteSyncId": "",
+    "syncId": 5,
+    "userId": "test",
+  },
+  Object {
+    "baseRef": "eJbMuE8b",
+    "clientId": "1",
+    "delta": Array [
+      "@@ -18,5 +18,5 @@
+ ote 
+-4
++5
+",
+      0,
+      2,
+    ],
+    "editMetadata": "",
+    "mergeBaseRef": undefined,
+    "mergeRef": undefined,
+    "ref": "rygajELP",
+    "remoteSyncId": "",
+    "syncId": 6,
+    "userId": "test",
+  },
+]
+`);
   });
 });

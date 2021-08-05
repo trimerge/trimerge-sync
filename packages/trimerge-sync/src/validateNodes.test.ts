@@ -1,4 +1,7 @@
-import { addInvalidNodes, validateNodeReferences } from './validate';
+import {
+  addInvalidNodesToAckEvent,
+  validateDiffNodeOrder,
+} from './validateNodes';
 import type { AckNodesEvent, DiffNode } from 'trimerge-sync';
 
 function simpleNode(
@@ -15,9 +18,9 @@ function simpleNode(
   };
 }
 
-describe('validateNodeReferences', () => {
+describe('validateDiffNodeOrder', () => {
   it('validates no nodes', () => {
-    expect(validateNodeReferences([])).toMatchInlineSnapshot(`
+    expect(validateDiffNodeOrder([])).toMatchInlineSnapshot(`
       Object {
         "invalidNodeRefs": Set {},
         "newNodes": Array [],
@@ -27,7 +30,7 @@ describe('validateNodeReferences', () => {
   });
 
   it('validates single root node', () => {
-    expect(validateNodeReferences([simpleNode({ ref: '1' })]))
+    expect(validateDiffNodeOrder([simpleNode({ ref: '1' })]))
       .toMatchInlineSnapshot(`
       Object {
         "invalidNodeRefs": Set {},
@@ -46,7 +49,7 @@ describe('validateNodeReferences', () => {
 
   it('validates simple chain', () => {
     expect(
-      validateNodeReferences([
+      validateDiffNodeOrder([
         simpleNode({ ref: '1' }),
         simpleNode({ ref: '2', baseRef: '1' }),
         simpleNode({ ref: '3', baseRef: '2' }),
@@ -83,7 +86,7 @@ describe('validateNodeReferences', () => {
 
   it('validates partial chain', () => {
     expect(
-      validateNodeReferences([
+      validateDiffNodeOrder([
         simpleNode({ ref: '2', baseRef: '1' }),
         simpleNode({ ref: '3', baseRef: '2' }),
       ]),
@@ -115,7 +118,7 @@ describe('validateNodeReferences', () => {
 
   it('validates merge chain', () => {
     expect(
-      validateNodeReferences([
+      validateDiffNodeOrder([
         simpleNode({ ref: '1' }),
         simpleNode({ ref: '2', baseRef: '1' }),
         simpleNode({ ref: '3', baseRef: '1' }),
@@ -167,7 +170,7 @@ describe('validateNodeReferences', () => {
 
   it('validates partial merge chain', () => {
     expect(
-      validateNodeReferences([
+      validateDiffNodeOrder([
         simpleNode({ ref: '3', baseRef: '1' }),
         simpleNode({
           ref: '4',
@@ -207,7 +210,7 @@ describe('validateNodeReferences', () => {
 
   it('throws for backwards simple chain', () => {
     expect(() =>
-      validateNodeReferences([
+      validateDiffNodeOrder([
         simpleNode({ ref: '2', baseRef: '1' }),
         simpleNode({ ref: '1' }),
       ]),
@@ -216,7 +219,7 @@ describe('validateNodeReferences', () => {
 
   it('throws for backwards simple chain 2', () => {
     expect(() =>
-      validateNodeReferences([
+      validateDiffNodeOrder([
         simpleNode({ ref: '1' }),
         simpleNode({ ref: '3', baseRef: '2' }),
         simpleNode({ ref: '2', baseRef: '1' }),
@@ -225,14 +228,15 @@ describe('validateNodeReferences', () => {
   });
 });
 
-describe('addInvalidNodes', () => {
+describe('addInvalidNodesToAckEvent', () => {
   it('adds no nodes', () => {
     const ack: AckNodesEvent = { type: 'ack', syncId: '', refs: [] };
-    expect(addInvalidNodes(ack, new Set())).toBe(ack);
+    expect(addInvalidNodesToAckEvent(ack, new Set())).toBe(ack);
   });
   it('adds 1 node', () => {
     const ack: AckNodesEvent = { type: 'ack', syncId: '', refs: [] };
-    expect(addInvalidNodes(ack, new Set(['hi']))).toMatchInlineSnapshot(`
+    expect(addInvalidNodesToAckEvent(ack, new Set(['hi'])))
+      .toMatchInlineSnapshot(`
       Object {
         "refErrors": Object {
           "hi": Object {
@@ -252,7 +256,7 @@ describe('addInvalidNodes', () => {
       refs: [],
       refErrors: { yo: { code: 'internal' } },
     };
-    expect(addInvalidNodes(ack, new Set(['hi', 'there'])))
+    expect(addInvalidNodesToAckEvent(ack, new Set(['hi', 'there'])))
       .toMatchInlineSnapshot(`
       Object {
         "refErrors": Object {
@@ -279,6 +283,6 @@ describe('addInvalidNodes', () => {
       refs: [],
       refErrors: { hi: { code: 'internal' } },
     };
-    expect(addInvalidNodes(ack, new Set(['hi']))).toEqual(ack);
+    expect(addInvalidNodesToAckEvent(ack, new Set(['hi']))).toEqual(ack);
   });
 });
