@@ -478,12 +478,12 @@ describe('createIndexedDbBackendFactory', () => {
   it('works offline then with remote 2', async () => {
     const docId = 'test-doc-remote2';
     const client = makeTestClient('test', '1', docId, 'test-doc-store');
-    client.updateState('hello offline remote', '');
-    client.updateState('hello offline remote 1', '');
-    client.updateState('hello offline remote 2', '');
-    client.updateState('hello offline remote 3', '');
-    client.updateState('hello offline remote 4', '');
-    client.updateState('hello offline remote 5', '');
+    client.updateState(1, '');
+    client.updateState(2, '');
+    client.updateState(3, '');
+    client.updateState(4, '');
+    client.updateState(5, '');
+    client.updateState(6, '');
 
     // Wait for write
     await timeout(100);
@@ -500,14 +500,14 @@ describe('createIndexedDbBackendFactory', () => {
     // Wait for write
     await timeout(100);
 
-    expect(client2.state).toEqual('hello offline remote 5');
+    expect(client2.state).toEqual(6);
     expect(client2.syncStatus).toMatchInlineSnapshot(`
 Object {
   "localRead": "ready",
   "localSave": "ready",
   "remoteConnect": "online",
   "remoteRead": "ready",
-  "remoteSave": "error",
+  "remoteSave": "ready",
 }
 `);
 
@@ -516,80 +516,90 @@ Object {
     expect(nodes).toMatchInlineSnapshot(`
 Array [
   Object {
-    "baseRef": "axg0ZCUR",
+    "baseRef": undefined,
     "clientId": "1",
     "delta": Array [
-      "@@ -13,8 +13,10 @@
- e remote
-+ 1
-",
-      0,
+      1,
+    ],
+    "editMetadata": "",
+    "mergeBaseRef": undefined,
+    "mergeRef": undefined,
+    "ref": "f_zx0amC",
+    "remoteSyncId": "",
+    "syncId": 1,
+    "userId": "test",
+  },
+  Object {
+    "baseRef": "f_zx0amC",
+    "clientId": "1",
+    "delta": Array [
+      1,
       2,
     ],
     "editMetadata": "",
     "mergeBaseRef": undefined,
     "mergeRef": undefined,
-    "ref": "O7UTix7H",
+    "ref": "MN9DSWRy",
     "remoteSyncId": "",
     "syncId": 2,
     "userId": "test",
   },
   Object {
-    "baseRef": "O7UTix7H",
+    "baseRef": "MN9DSWRy",
     "clientId": "1",
     "delta": Array [
-      "@@ -18,5 +18,5 @@
- ote 
--1
-+2
-",
-      0,
       2,
+      3,
     ],
     "editMetadata": "",
     "mergeBaseRef": undefined,
     "mergeRef": undefined,
-    "ref": "RY803qkY",
+    "ref": "ghfnnw_t",
     "remoteSyncId": "",
     "syncId": 3,
     "userId": "test",
   },
   Object {
-    "baseRef": "spzlTTLz",
+    "baseRef": "ghfnnw_t",
     "clientId": "1",
     "delta": Array [
-      "@@ -18,5 +18,5 @@
- ote 
--3
-+4
-",
-      0,
-      2,
+      3,
+      4,
     ],
     "editMetadata": "",
     "mergeBaseRef": undefined,
     "mergeRef": undefined,
-    "ref": "eJbMuE8b",
+    "ref": "donKeCF-",
+    "remoteSyncId": "",
+    "syncId": 4,
+    "userId": "test",
+  },
+  Object {
+    "baseRef": "donKeCF-",
+    "clientId": "1",
+    "delta": Array [
+      4,
+      5,
+    ],
+    "editMetadata": "",
+    "mergeBaseRef": undefined,
+    "mergeRef": undefined,
+    "ref": "pb34uqhZ",
     "remoteSyncId": "",
     "syncId": 5,
     "userId": "test",
   },
   Object {
-    "baseRef": "eJbMuE8b",
+    "baseRef": "pb34uqhZ",
     "clientId": "1",
     "delta": Array [
-      "@@ -18,5 +18,5 @@
- ote 
--4
-+5
-",
-      0,
-      2,
+      5,
+      6,
     ],
     "editMetadata": "",
     "mergeBaseRef": undefined,
     "mergeRef": undefined,
-    "ref": "rygajELP",
+    "ref": "u2ev8uuN",
     "remoteSyncId": "",
     "syncId": 6,
     "userId": "test",
