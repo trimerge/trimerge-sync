@@ -173,7 +173,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           for (const ref of event.refs) {
             this.unacknowledgedRefs.delete(ref);
           }
-          if (this.unacknowledgedRefs.size === 0) {
+          if (event.refErrors && Object.keys(event.refErrors).length > 0) {
+            await this.setRemoteState({ type: 'remote-state', save: 'error' });
+          } else if (this.unacknowledgedRefs.size === 0) {
             await this.setRemoteState({ type: 'remote-state', save: 'ready' });
           }
         }

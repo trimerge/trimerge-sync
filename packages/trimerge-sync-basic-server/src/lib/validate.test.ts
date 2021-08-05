@@ -1,5 +1,5 @@
-import { validateNodeReferences } from './validate';
-import { DiffNode } from 'trimerge-sync';
+import { addInvalidNodes, validateNodeReferences } from './validate';
+import type { AckNodesEvent, DiffNode } from 'trimerge-sync';
 
 function simpleNode(
   args: Pick<
@@ -19,7 +19,8 @@ describe('validateNodeReferences', () => {
   it('validates no nodes', () => {
     expect(validateNodeReferences([])).toMatchInlineSnapshot(`
       Object {
-        "newNodes": Set {},
+        "invalidNodeRefs": Set {},
+        "newNodes": Array [],
         "referencedNodes": Set {},
       }
     `);
@@ -29,9 +30,15 @@ describe('validateNodeReferences', () => {
     expect(validateNodeReferences([simpleNode({ ref: '1' })]))
       .toMatchInlineSnapshot(`
       Object {
-        "newNodes": Set {
-          "1",
-        },
+        "invalidNodeRefs": Set {},
+        "newNodes": Array [
+          Object {
+            "clientId": "x",
+            "editMetadata": undefined,
+            "ref": "1",
+            "userId": "x",
+          },
+        ],
         "referencedNodes": Set {},
       }
     `);
@@ -46,11 +53,29 @@ describe('validateNodeReferences', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "newNodes": Set {
-          "1",
-          "2",
-          "3",
-        },
+        "invalidNodeRefs": Set {},
+        "newNodes": Array [
+          Object {
+            "clientId": "x",
+            "editMetadata": undefined,
+            "ref": "1",
+            "userId": "x",
+          },
+          Object {
+            "baseRef": "1",
+            "clientId": "x",
+            "editMetadata": undefined,
+            "ref": "2",
+            "userId": "x",
+          },
+          Object {
+            "baseRef": "2",
+            "clientId": "x",
+            "editMetadata": undefined,
+            "ref": "3",
+            "userId": "x",
+          },
+        ],
         "referencedNodes": Set {},
       }
     `);
@@ -64,10 +89,23 @@ describe('validateNodeReferences', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "newNodes": Set {
-          "2",
-          "3",
-        },
+        "invalidNodeRefs": Set {},
+        "newNodes": Array [
+          Object {
+            "baseRef": "1",
+            "clientId": "x",
+            "editMetadata": undefined,
+            "ref": "2",
+            "userId": "x",
+          },
+          Object {
+            "baseRef": "2",
+            "clientId": "x",
+            "editMetadata": undefined,
+            "ref": "3",
+            "userId": "x",
+          },
+        ],
         "referencedNodes": Set {
           "1",
         },
@@ -90,12 +128,38 @@ describe('validateNodeReferences', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "newNodes": Set {
-          "1",
-          "2",
-          "3",
-          "4",
-        },
+        "invalidNodeRefs": Set {},
+        "newNodes": Array [
+          Object {
+            "clientId": "x",
+            "editMetadata": undefined,
+            "ref": "1",
+            "userId": "x",
+          },
+          Object {
+            "baseRef": "1",
+            "clientId": "x",
+            "editMetadata": undefined,
+            "ref": "2",
+            "userId": "x",
+          },
+          Object {
+            "baseRef": "1",
+            "clientId": "x",
+            "editMetadata": undefined,
+            "ref": "3",
+            "userId": "x",
+          },
+          Object {
+            "baseRef": "2",
+            "clientId": "x",
+            "editMetadata": undefined,
+            "mergeBaseRef": "1",
+            "mergeRef": "3",
+            "ref": "4",
+            "userId": "x",
+          },
+        ],
         "referencedNodes": Set {},
       }
     `);
@@ -114,10 +178,25 @@ describe('validateNodeReferences', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "newNodes": Set {
-          "3",
-          "4",
-        },
+        "invalidNodeRefs": Set {},
+        "newNodes": Array [
+          Object {
+            "baseRef": "1",
+            "clientId": "x",
+            "editMetadata": undefined,
+            "ref": "3",
+            "userId": "x",
+          },
+          Object {
+            "baseRef": "2",
+            "clientId": "x",
+            "editMetadata": undefined,
+            "mergeBaseRef": "1",
+            "mergeRef": "3",
+            "ref": "4",
+            "userId": "x",
+          },
+        ],
         "referencedNodes": Set {
           "1",
           "2",
@@ -132,7 +211,7 @@ describe('validateNodeReferences', () => {
         simpleNode({ ref: '2', baseRef: '1' }),
         simpleNode({ ref: '1' }),
       ]),
-    ).toThrowErrorMatchingInlineSnapshot(`"nodes out of order"`);
+    ).toMatchInlineSnapshot(`[Function]`);
   });
 
   it('throws for backwards simple chain 2', () => {
@@ -142,6 +221,64 @@ describe('validateNodeReferences', () => {
         simpleNode({ ref: '3', baseRef: '2' }),
         simpleNode({ ref: '2', baseRef: '1' }),
       ]),
-    ).toThrowErrorMatchingInlineSnapshot(`"nodes out of order"`);
+    ).toMatchInlineSnapshot(`[Function]`);
+  });
+});
+
+describe('addInvalidNodes', () => {
+  it('adds no nodes', () => {
+    const ack: AckNodesEvent = { type: 'ack', syncId: '', refs: [] };
+    expect(addInvalidNodes(ack, new Set())).toBe(ack);
+  });
+  it('adds 1 node', () => {
+    const ack: AckNodesEvent = { type: 'ack', syncId: '', refs: [] };
+    expect(addInvalidNodes(ack, new Set(['hi']))).toMatchInlineSnapshot(`
+      Object {
+        "refErrors": Object {
+          "hi": Object {
+            "code": "unknown-ref",
+          },
+        },
+        "refs": Array [],
+        "syncId": "",
+        "type": "ack",
+      }
+    `);
+  });
+  it('adds 2 nodes', () => {
+    const ack: AckNodesEvent = {
+      type: 'ack',
+      syncId: '',
+      refs: [],
+      refErrors: { yo: { code: 'internal' } },
+    };
+    expect(addInvalidNodes(ack, new Set(['hi', 'there'])))
+      .toMatchInlineSnapshot(`
+      Object {
+        "refErrors": Object {
+          "hi": Object {
+            "code": "unknown-ref",
+          },
+          "there": Object {
+            "code": "unknown-ref",
+          },
+          "yo": Object {
+            "code": "internal",
+          },
+        },
+        "refs": Array [],
+        "syncId": "",
+        "type": "ack",
+      }
+    `);
+  });
+  it('does not overwrite node', () => {
+    const ack: AckNodesEvent = {
+      type: 'ack',
+      syncId: '',
+      refs: [],
+      refErrors: { hi: { code: 'internal' } },
+    };
+    expect(addInvalidNodes(ack, new Set(['hi']))).toEqual(ack);
   });
 });

@@ -1,28 +1,49 @@
-import { DiffNode } from 'trimerge-sync';
+import { AckNodesEvent, DiffNode } from 'trimerge-sync';
 
 export type NodeValidation = {
-  newNodes: Set<string>;
+  newNodes: readonly DiffNode<unknown, unknown>[];
+  invalidNodeRefs: Set<string>;
   referencedNodes: Set<string>;
 };
 
 export function validateNodeReferences(
   nodes: readonly DiffNode<unknown, unknown>[],
 ): NodeValidation {
-  const newNodes = new Set<string>();
+  const newNodeRefs = new Set<string>();
+  const newNodes: DiffNode<unknown, unknown>[] = [];
   const referencedNodes = new Set<string>();
+  const invalidNodeRefs = new Set<string>();
   function addReferencedNode(ref?: string) {
-    if (ref !== undefined && !newNodes.has(ref)) {
+    if (ref !== undefined && !newNodeRefs.has(ref)) {
       referencedNodes.add(ref);
     }
   }
   for (const node of nodes) {
     if (referencedNodes.has(node.ref)) {
-      throw new Error('nodes out of order');
+      invalidNodeRefs.add(node.ref);
+    } else {
+      newNodes.push(node);
+      newNodeRefs.add(node.ref);
+      addReferencedNode(node.baseRef);
+      addReferencedNode(node.mergeRef);
+      addReferencedNode(node.mergeBaseRef);
     }
-    newNodes.add(node.ref);
-    addReferencedNode(node.baseRef);
-    addReferencedNode(node.mergeRef);
-    addReferencedNode(node.mergeBaseRef);
   }
-  return { newNodes, referencedNodes };
+  return { newNodes, invalidNodeRefs, referencedNodes };
+}
+
+export function addInvalidNodes(
+  ack: AckNodesEvent,
+  invalidNodeRefs: Set<string>,
+): AckNodesEvent {
+  if (invalidNodeRefs.size === 0) {
+    return ack;
+  }
+  const refErrors = { ...ack.refErrors };
+  for (const ref of invalidNodeRefs) {
+    if (!(ref in refErrors)) {
+      refErrors[ref] = { code: 'unknown-ref' };
+    }
+  }
+  return { ...ack, refErrors };
 }

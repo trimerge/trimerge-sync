@@ -1,5 +1,4 @@
 import type { AckNodesEvent, DiffNode, NodesEvent } from 'trimerge-sync';
-import type { NodeValidation } from './lib/validate';
 
 export interface DocStore {
   getNodesEvent(
@@ -10,7 +9,6 @@ export interface DocStore {
 
   add(
     nodes: readonly DiffNode<unknown, unknown>[],
-    validation: NodeValidation,
   ): Promise<AckNodesEvent> | AckNodesEvent;
 
   close(): void;
