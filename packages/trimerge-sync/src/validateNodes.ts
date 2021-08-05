@@ -1,4 +1,4 @@
-import { AckNodesEvent, DiffNode } from 'trimerge-sync';
+import type { AckNodesEvent, DiffNode } from './types';
 
 export type DiffNodeValidation<EditMetadata, Delta> = {
   newNodes: readonly DiffNode<EditMetadata, Delta>[];
