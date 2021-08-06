@@ -146,6 +146,7 @@ export class SqliteDocStore implements DocStore {
           continue;
         }
         if (this.seenRefs.has(ref)) {
+          refs.add(ref);
           continue;
         }
         try {
