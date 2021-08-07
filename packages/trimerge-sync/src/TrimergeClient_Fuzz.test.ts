@@ -2,17 +2,18 @@ import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
-import { diff, merge, patch } from './testLib/MergeUtils';
+import { computeRef, diff, merge, patch } from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
+import { timeout } from './lib/Timeout';
 
-type TestEditMetadata = { ref: string; message: string };
+type TestEditMetadata = any;
 type TestState = any;
 type TestPresenceState = any;
 
 const differ: Differ<TestState, TestEditMetadata, TestPresenceState> = {
   diff,
   patch,
-  computeRef: (baseRef, mergeRef, delta, editMetadata) => editMetadata.ref,
+  computeRef,
   merge,
 };
 
@@ -25,10 +26,6 @@ function makeClient(
   store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
 ): TrimergeClient<TestState, TestEditMetadata, Delta, TestPresenceState> {
   return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
-}
-
-function timeout() {
-  return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 function basicGraph(
@@ -47,187 +44,66 @@ function basicGraph(
   );
 }
 
-describe('TrimergeClient: 3 users', () => {
+describe('TrimergeClient Fuzz', () => {
   it('simultaneous edit', async () => {
     const store = newStore();
     const clientA = makeClient('a', store);
     const clientB = makeClient('b', store);
     const clientC = makeClient('c', store);
 
-    clientA.updateState({ text: '' }, { ref: 'ROOT', message: 'init' });
+    clientA.updateState('', { ref: 'ROOT', message: 'init' });
 
     await timeout();
 
+    expect(clientA.state).toEqual('');
+    expect(clientB.state).toEqual('');
+    expect(clientC.state).toEqual('');
+    let aCount = 0;
+    let bCount = 0;
+    let cCount = 0;
+
+    for (let i = 0; i < 1000; i++) {
+      switch (Math.floor(Math.random() * 4)) {
+        case 0:
+          clientA.updateState(clientA.state + 'A', '');
+          aCount++;
+          break;
+        case 1:
+          clientB.updateState(clientB.state + 'B', '');
+          bCount++;
+          break;
+        case 2:
+          clientC.updateState(clientC.state + 'C', '');
+          cCount++;
+          break;
+        case 3:
+          await timeout();
+          break;
+      }
+    }
+    await timeout(100);
     // Synchronized
-    expect(clientA.state).toEqual({ text: '' });
-    expect(clientB.state).toEqual({ text: '' });
-    expect(clientC.state).toEqual({ text: '' });
+    expect(clientA.state).toEqual(clientB.state);
+    expect(clientA.state).toEqual(clientC.state);
 
-    clientA.updateState({ text: 'a' }, { ref: 'a1', message: 'set text' });
-    clientB.updateState({ text: 'b' }, { ref: 'b1', message: 'set text' });
-    clientC.updateState({ text: 'c' }, { ref: 'c1', message: 'set text' });
-
-    // Now client 1 and client 2 have different changes
-    expect(clientA.state).toEqual({ text: 'a' });
-    expect(clientB.state).toEqual({ text: 'b' });
-    expect(clientC.state).toEqual({ text: 'c' });
-
-    await timeout();
-
-    expect(basicGraph(store, clientA)).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "graph": "undefined -> ROOT",
-          "step": "User a: init",
-          "value": Object {
-            "text": "",
-          },
-        },
-        Object {
-          "graph": "ROOT -> a1",
-          "step": "User a: set text",
-          "value": Object {
-            "text": "a",
-          },
-        },
-        Object {
-          "graph": "ROOT -> b1",
-          "step": "User b: set text",
-          "value": Object {
-            "text": "b",
-          },
-        },
-        Object {
-          "graph": "(a1 + b1) w/ base=ROOT -> (a1+b1)",
-          "step": "User b: merge",
-          "value": Object {
-            "text": "ab",
-          },
-        },
-        Object {
-          "graph": "ROOT -> c1",
-          "step": "User c: set text",
-          "value": Object {
-            "text": "c",
-          },
-        },
-        Object {
-          "graph": "(a1 + c1) w/ base=ROOT -> (a1+c1)",
-          "step": "User c: merge",
-          "value": Object {
-            "text": "ac",
-          },
-        },
-        Object {
-          "graph": "((a1+b1) + (a1+c1)) w/ base=a1 -> ((a1+b1)+(a1+c1))",
-          "step": "User c: merge",
-          "value": Object {
-            "text": "abc",
-          },
-        },
-      ]
-    `);
-
-    //  Now they should all have trimerged changes
-    expect(clientA.state).toEqual({ text: 'abc' });
-    expect(clientB.state).toEqual({ text: 'abc' });
-    expect(clientC.state).toEqual({ text: 'abc' });
-
-    await clientA.shutdown();
-    await clientB.shutdown();
-    await clientC.shutdown();
-  });
-
-  it('first two clients conflict, then third one joins', async () => {
-    const store = newStore();
-    const clientA = makeClient('a', store);
-    const clientB = makeClient('b', store);
-
-    clientA.updateState(
-      { hello: 'world' },
-      { ref: 'a1', message: 'add hello' },
-    );
-    clientA.updateState(
-      { hello: 'vorld' },
-      { ref: 'a2', message: 'change hello' },
-    );
-    clientB.updateState(
-      { world: 'world' },
-      { ref: 'b1', message: 'add world' },
-    );
-    clientB.updateState(
-      { world: 'vorld' },
-      { ref: 'b2', message: 'change world' },
-    );
-
-    // Now client 1 and client 2 have different changes
-    expect(clientA.state).toEqual({ hello: 'vorld' });
-    expect(clientB.state).toEqual({ world: 'vorld' });
-
-    const clientC = makeClient('c', store);
-    expect(clientC.state).toEqual(undefined);
-
-    await timeout();
-
-    //  Now they should all have the trimerged state
-    expect(clientA.state).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(clientB.state).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(clientC.state).toEqual({ hello: 'vorld', world: 'vorld' });
-
-    clientC.updateState(
-      { hello: 'world', world: 'vorld' },
-      { ref: 'c1', message: 'change hello' },
-    );
-
-    await timeout();
-
-    expect(basicGraph(store, clientA)).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "graph": "undefined -> a1",
-          "step": "User a: add hello",
-          "value": Object {
-            "hello": "world",
-          },
-        },
-        Object {
-          "graph": "a1 -> a2",
-          "step": "User a: change hello",
-          "value": Object {
-            "hello": "vorld",
-          },
-        },
-        Object {
-          "graph": "undefined -> b1",
-          "step": "User b: add world",
-          "value": Object {
-            "world": "world",
-          },
-        },
-        Object {
-          "graph": "b1 -> b2",
-          "step": "User b: change world",
-          "value": Object {
-            "world": "vorld",
-          },
-        },
-        Object {
-          "graph": "(a2 + b2) w/ base=undefined -> (a2+b2)",
-          "step": "User b: merge",
-          "value": Object {
-            "hello": "vorld",
-            "world": "vorld",
-          },
-        },
-        Object {
-          "graph": "(a2+b2) -> c1",
-          "step": "User c: change hello",
-          "value": Object {
-            "hello": "world",
-            "world": "vorld",
-          },
-        },
-      ]
-    `);
+    let aCount2 = 0;
+    let bCount2 = 0;
+    let cCount2 = 0;
+    for (const letter of clientA.state) {
+      switch (letter) {
+        case 'A':
+          aCount2++;
+          break;
+        case 'B':
+          bCount2++;
+          break;
+        case 'C':
+          cCount2++;
+          break;
+      }
+    }
+    expect(aCount2).toBe(aCount);
+    expect(bCount2).toBe(bCount);
+    expect(cCount2).toBe(cCount);
   });
 });
