@@ -5,7 +5,6 @@ import {
   GetRemoteFn,
   NodesEvent,
   RemoteSyncInfo,
-  SyncEvent,
 } from '../types';
 import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';

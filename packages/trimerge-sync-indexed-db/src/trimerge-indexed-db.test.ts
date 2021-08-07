@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 
-import { GetRemoteFn, TrimergeClient } from 'trimerge-sync';
+import type { DiffNode, GetRemoteFn } from 'trimerge-sync';
+import { TrimergeClient } from 'trimerge-sync';
 import {
   createIndexedDbBackendFactory,
   deleteDocDatabase,
@@ -8,7 +9,7 @@ import {
 } from './trimerge-indexed-db';
 import { differ } from './testLib/BasicDiffer';
 import { timeout } from './lib/timeout';
-import { getMockRemote } from './testLib/MockRemote';
+import { getMockRemote, getMockRemoteForNodes } from './testLib/MockRemote';
 import { dumpDatabase, getIdbDatabases } from './testLib/IndexedDB';
 
 function makeTestClient(
@@ -472,5 +473,138 @@ describe('createIndexedDbBackendFactory', () => {
         ],
       }
     `);
+  });
+
+  it('works offline then with remote 2', async () => {
+    const docId = 'test-doc-remote2';
+    const client = makeTestClient('test', '1', docId, 'test-doc-store');
+    client.updateState(1, '');
+    client.updateState(2, '');
+    client.updateState(3, '');
+    client.updateState(4, '');
+    client.updateState(5, '');
+    client.updateState(6, '');
+
+    // Wait for write
+    await timeout(100);
+    await client.shutdown();
+
+    const nodes: DiffNode<any, any>[] = [];
+    const client2 = makeTestClient(
+      'test',
+      '2',
+      docId,
+      'test-doc-store',
+      getMockRemoteForNodes(nodes),
+    );
+    // Wait for write
+    await timeout(100);
+
+    expect(client2.state).toEqual(6);
+    expect(client2.syncStatus).toMatchInlineSnapshot(`
+Object {
+  "localRead": "ready",
+  "localSave": "ready",
+  "remoteConnect": "online",
+  "remoteRead": "ready",
+  "remoteSave": "ready",
+}
+`);
+
+    await client2.shutdown();
+
+    expect(nodes).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "baseRef": undefined,
+    "clientId": "1",
+    "delta": Array [
+      1,
+    ],
+    "editMetadata": "",
+    "mergeBaseRef": undefined,
+    "mergeRef": undefined,
+    "ref": "f_zx0amC",
+    "remoteSyncId": "",
+    "syncId": 1,
+    "userId": "test",
+  },
+  Object {
+    "baseRef": "f_zx0amC",
+    "clientId": "1",
+    "delta": Array [
+      1,
+      2,
+    ],
+    "editMetadata": "",
+    "mergeBaseRef": undefined,
+    "mergeRef": undefined,
+    "ref": "MN9DSWRy",
+    "remoteSyncId": "",
+    "syncId": 2,
+    "userId": "test",
+  },
+  Object {
+    "baseRef": "MN9DSWRy",
+    "clientId": "1",
+    "delta": Array [
+      2,
+      3,
+    ],
+    "editMetadata": "",
+    "mergeBaseRef": undefined,
+    "mergeRef": undefined,
+    "ref": "ghfnnw_t",
+    "remoteSyncId": "",
+    "syncId": 3,
+    "userId": "test",
+  },
+  Object {
+    "baseRef": "ghfnnw_t",
+    "clientId": "1",
+    "delta": Array [
+      3,
+      4,
+    ],
+    "editMetadata": "",
+    "mergeBaseRef": undefined,
+    "mergeRef": undefined,
+    "ref": "donKeCF-",
+    "remoteSyncId": "",
+    "syncId": 4,
+    "userId": "test",
+  },
+  Object {
+    "baseRef": "donKeCF-",
+    "clientId": "1",
+    "delta": Array [
+      4,
+      5,
+    ],
+    "editMetadata": "",
+    "mergeBaseRef": undefined,
+    "mergeRef": undefined,
+    "ref": "pb34uqhZ",
+    "remoteSyncId": "",
+    "syncId": 5,
+    "userId": "test",
+  },
+  Object {
+    "baseRef": "pb34uqhZ",
+    "clientId": "1",
+    "delta": Array [
+      5,
+      6,
+    ],
+    "editMetadata": "",
+    "mergeBaseRef": undefined,
+    "mergeRef": undefined,
+    "ref": "u2ev8uuN",
+    "remoteSyncId": "",
+    "syncId": 6,
+    "userId": "test",
+  },
+]
+`);
   });
 });

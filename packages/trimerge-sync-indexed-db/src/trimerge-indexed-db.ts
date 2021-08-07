@@ -16,6 +16,8 @@ import { deleteDB, openDB } from 'idb';
 import { BroadcastChannel } from 'broadcast-channel';
 import { timeout } from './lib/timeout';
 
+const DIFF_NODE_PAGE_SIZE = 100;
+
 function getSyncCounter(
   nodes: StoreValue<TrimergeSyncDbSchema, 'nodes'>[],
 ): number {
@@ -146,10 +148,14 @@ class IndexedDbBackend<
     const db = await this.db;
     const unsentNodes = await db.getAllFromIndex('nodes', 'remoteSyncId', '');
     if (unsentNodes.length > 0) {
-      yield {
-        type: 'nodes',
-        nodes: unsentNodes,
-      };
+      // Sort by syncId
+      unsentNodes.sort((a, b) => a.syncId - b.syncId);
+      for (let i = 0; i < unsentNodes.length; i += DIFF_NODE_PAGE_SIZE) {
+        yield {
+          type: 'nodes',
+          nodes: unsentNodes.slice(i, i + DIFF_NODE_PAGE_SIZE),
+        };
+      }
     }
   }
 

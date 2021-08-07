@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-example-broadcast-channel",
-  "version": "0.10.1",
+  "version": "0.11.0-rc.2",
   "private": true,
   "dependencies": {
     "classnames": "2.3.1",
@@ -12,10 +12,10 @@
     "react-scripts": "4.0.3",
     "textarea-caret": "^3.1.0",
     "trimerge": "1.3.0-alpha.15",
-    "trimerge-sync": "0.10.1",
-    "trimerge-sync-basic-client": "0.10.1",
-    "trimerge-sync-hash": "0.10.1",
-    "trimerge-sync-indexed-db": "0.10.1"
+    "trimerge-sync": "0.11.0-rc.2",
+    "trimerge-sync-basic-client": "0.11.0-rc.2",
+    "trimerge-sync-hash": "0.11.0-rc.2",
+    "trimerge-sync-indexed-db": "0.11.0-rc.2"
   },
   "scripts": {
     "start": "SKIP_PREFLIGHT_CHECK=true FAST_REFRESH=false react-scripts start",
@@ -24,15 +24,9 @@
     "test-ci": "SKIP_PREFLIGHT_CHECK=true react-scripts test --coverage --passWithNoTests",
     "eject": "react-scripts eject"
   },
-  "eslintConfig": {
-    "extends": "react-app"
-  },
+  "eslintConfig": { "extends": "react-app" },
   "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
+    "production": [">0.2%", "not dead", "not op_mini all"],
     "development": [
       "last 1 chrome version",
       "last 1 firefox version",
@@ -42,20 +36,20 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^12.0.0",
-    "@testing-library/user-event": "^13.1.9",
+    "@testing-library/user-event": "^13.2.1",
     "@types/jest": "26.0.24",
-    "@types/node": "^16.3.2",
+    "@types/node": "^16.4.12",
     "@types/project-name-generator": "^2.1.1",
-    "@types/react": "^17.0.14",
+    "@types/react": "^17.0.15",
     "@types/react-dom": "^17.0.9",
     "@types/textarea-caret": "^3.0.1",
-    "@typescript-eslint/eslint-plugin": "^4.28.3",
-    "@typescript-eslint/parser": "^4.28.3",
+    "@typescript-eslint/eslint-plugin": "^4.29.0",
+    "@typescript-eslint/parser": "^4.29.0",
     "babel-eslint": "^10.0.0",
-    "eslint": "^7.30.0",
+    "eslint": "^7.32.0",
     "eslint-config-prettier": "8.3.0",
     "eslint-config-react-app": "^6.0.0",
-    "eslint-plugin-flowtype": "^5.8.0",
+    "eslint-plugin-flowtype": "^5.9.0",
     "eslint-plugin-import": "^2.23.4",
     "eslint-plugin-jsx-a11y": "^6.3.1",
     "eslint-plugin-react": "^7.24.0",
@@ -63,7 +57,7 @@
     "jest": "27.0.6",
     "jest-watch-typeahead": "^0.6.4",
     "prettier": "2.3.2",
-    "ts-jest": "27.0.3",
+    "ts-jest": "27.0.4",
     "typescript": "4.3.5"
   }
 }

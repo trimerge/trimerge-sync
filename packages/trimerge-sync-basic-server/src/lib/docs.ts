@@ -1,5 +1,9 @@
 import { Connection } from './connection';
-import { AckNodesEvent, NodesEvent } from 'trimerge-sync';
+import type { AckNodesEvent, NodesEvent } from 'trimerge-sync';
+import {
+  addInvalidNodesToAckEvent,
+  validateDiffNodeOrder,
+} from 'trimerge-sync';
 import { DocStore } from '../DocStore';
 
 export class LiveDoc {
@@ -29,13 +33,15 @@ export class LiveDoc {
     this.store.close();
   }
 
-  async addNodes(
-    event: NodesEvent<unknown, unknown, unknown>,
-  ): Promise<{
+  async addNodes(event: NodesEvent<unknown, unknown, unknown>): Promise<{
     nodes: NodesEvent<unknown, unknown, unknown>;
     ack: AckNodesEvent;
   }> {
-    const ack = await this.store.add(event.nodes);
+    const { newNodes, invalidNodeRefs } = validateDiffNodeOrder(event.nodes);
+    const ack = addInvalidNodesToAckEvent(
+      await this.store.add(newNodes),
+      invalidNodeRefs,
+    );
     const acks = new Set(ack.refs);
     return {
       nodes: {

@@ -37,7 +37,8 @@ export type RemoteReadStatus = 'offline' | 'loading' | 'ready';
 export type RemoteSaveStatus =
   | 'ready' /**  all local state has been synced to remote (though maybe local changes in memory) */
   | 'pending' /**  we have local state that hasn't been sent to remote yet (maybe offline) */
-  | 'saving'; /**  we sent local state to remote, but haven't got `ack` yet */
+  | 'saving' /**  we got an error back from remote when saving nodes  */
+  | 'error'; /**  we sent local state to remote, but haven't got `ack` yet */
 
 export type SyncStatus = {
   localRead: LocalReadStatus;
@@ -87,10 +88,16 @@ export type NodesEvent<EditMetadata, Delta, PresenceState> = {
 export type ReadyEvent = {
   type: 'ready';
 };
-export type AckNodeErrorCode = 'invalid-node' | 'storage-failure' | 'internal';
+
+export type AckNodeErrorCode =
+  | 'invalid-node'
+  | 'unknown-ref'
+  | 'storage-failure'
+  | 'internal';
+
 export type AckNodeError = {
   code: AckNodeErrorCode;
-  message: string;
+  message?: string;
 };
 export type AckRefErrors = Record<string, AckNodeError>;
 export type AckNodesEvent = {

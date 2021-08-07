@@ -109,26 +109,22 @@ export class SqliteDocStore implements DocStore {
         VALUES (@ref, @remoteSyncId, @remoteSyncIndex, @userId, @clientId, @baseRef, @mergeRef, @mergeBaseRef, @delta, @editMetadata)
         ON CONFLICT DO NOTHING`,
     );
-    const knownRefs = new Set(this.seenRefs);
-    for (const { ref } of nodes) {
-      knownRefs.add(ref);
-    }
     const refs = new Set<string>();
     const refErrors: AckRefErrors = {};
-    function invalidParentRef(
+    const invalidParentRef = (
       node: DiffNode<unknown, unknown>,
       key: 'baseRef' | 'mergeRef' | 'mergeBaseRef',
-    ) {
+    ) => {
       const parentRef = node[key];
-      if (parentRef && !knownRefs.has(parentRef)) {
+      if (parentRef && !this.seenRefs.has(parentRef)) {
         refErrors[node.ref] = {
-          code: 'invalid-node',
+          code: 'unknown-ref',
           message: `unknown ${key}`,
         };
         return true;
       }
       return false;
-    }
+    };
     this.db.transaction(() => {
       let remoteSyncIndex = 0;
       for (const node of nodes) {
@@ -149,24 +145,35 @@ export class SqliteDocStore implements DocStore {
         ) {
           continue;
         }
-        refs.add(ref);
         if (this.seenRefs.has(ref)) {
+          refs.add(ref);
           continue;
         }
-        insert.run({
-          userId,
-          clientId,
-          ref,
-          baseRef,
-          mergeBaseRef,
-          mergeRef,
-          delta: JSON.stringify(delta),
-          editMetadata: JSON.stringify(editMetadata),
-          remoteSyncId,
-          remoteSyncIndex,
-        });
-        remoteSyncIndex++;
-        this.seenRefs.add(ref);
+        try {
+          const { changes } = insert.run({
+            userId,
+            clientId,
+            ref,
+            baseRef,
+            mergeBaseRef,
+            mergeRef,
+            delta: JSON.stringify(delta),
+            editMetadata: JSON.stringify(editMetadata),
+            remoteSyncId,
+            remoteSyncIndex,
+          });
+          if (changes !== 1) {
+            throw new Error(`inserted changes unexpectedly ${changes}`);
+          }
+          refs.add(ref);
+          remoteSyncIndex++;
+          this.seenRefs.add(ref);
+        } catch (error) {
+          refErrors[node.ref] = {
+            code: 'storage-failure',
+            message: String(error),
+          };
+        }
       }
     })();
     return {
