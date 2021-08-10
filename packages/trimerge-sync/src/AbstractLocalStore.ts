@@ -265,8 +265,8 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
   }
 
-  private async closeRemote(reconnect: boolean = false): Promise<void> {
-    return await this.remoteQueue
+  private closeRemote(reconnect: boolean = false): Promise<void> {
+    const p = this.remoteQueue
       .add(async () => {
         const remote = this.remote;
         if (!remote) {
@@ -279,28 +279,28 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           connect: 'offline',
           read: 'offline',
         });
-        this.clearReconnectTimeout();
-        if (!reconnect) {
-          return;
-        }
-        const {
-          reconnectDelayMs,
-          networkSettings: { reconnectBackoffMultiplier, maxReconnectDelayMs },
-        } = this;
-        console.log(`[TRIMERGE-SYNC] reconnecting in ${reconnectDelayMs}`);
-        this.reconnectTimeout = setTimeout(() => {
-          this.clearReconnectTimeout();
-          this.reconnectDelayMs = Math.min(
-            reconnectDelayMs * reconnectBackoffMultiplier,
-            maxReconnectDelayMs,
-          );
-          console.log(`[TRIMERGE-SYNC] reconnecting now...`);
-          this.connectRemote();
-        }, this.reconnectDelayMs);
       })
       .catch((e) => {
         console.warn(`[TRIMERGE-SYNC] error closing remote`, e);
       });
+    this.clearReconnectTimeout();
+    if (reconnect) {
+      const {
+        reconnectDelayMs,
+        networkSettings: { reconnectBackoffMultiplier, maxReconnectDelayMs },
+      } = this;
+      console.log(`[TRIMERGE-SYNC] reconnecting in ${reconnectDelayMs}`);
+      this.reconnectTimeout = setTimeout(() => {
+        this.clearReconnectTimeout();
+        this.reconnectDelayMs = Math.min(
+          reconnectDelayMs * reconnectBackoffMultiplier,
+          maxReconnectDelayMs,
+        );
+        console.log(`[TRIMERGE-SYNC] reconnecting now...`);
+        this.connectRemote();
+      }, reconnectDelayMs);
+    }
+    return p;
   }
 
   private connectRemote(): void {
