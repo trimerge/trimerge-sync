@@ -19,7 +19,6 @@ import {
   LeaderManager,
   LeaderSettings,
 } from './lib/LeaderManager';
-import { timeout } from './lib/Timeout';
 
 export type NetworkSettings = Readonly<
   {
@@ -50,6 +49,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     state: undefined,
   };
   private remote: Remote<EditMetadata, Delta, PresenceState> | undefined;
+  private reconnectTimeout: ReturnType<typeof setTimeout> | undefined;
   private reconnectDelayMs: number;
   private remoteSyncState: RemoteStateEvent = {
     type: 'remote-state',
@@ -265,8 +265,8 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     }
   }
 
-  private closeRemote(reconnect: boolean = false): Promise<void> {
-    const p = this.remoteQueue
+  private async closeRemote(reconnect: boolean = false): Promise<void> {
+    return await this.remoteQueue
       .add(async () => {
         const remote = this.remote;
         if (!remote) {
@@ -279,32 +279,34 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           connect: 'offline',
           read: 'offline',
         });
+        this.clearReconnectTimeout();
+        if (!reconnect) {
+          return;
+        }
+        const {
+          reconnectDelayMs,
+          networkSettings: { reconnectBackoffMultiplier, maxReconnectDelayMs },
+        } = this;
+        console.log(`[TRIMERGE-SYNC] reconnecting in ${reconnectDelayMs}`);
+        this.reconnectTimeout = setTimeout(() => {
+          this.clearReconnectTimeout();
+          this.reconnectDelayMs = Math.min(
+            reconnectDelayMs * reconnectBackoffMultiplier,
+            maxReconnectDelayMs,
+          );
+          console.log(`[TRIMERGE-SYNC] reconnecting now...`);
+          this.connectRemote();
+        }, this.reconnectDelayMs);
       })
       .catch((e) => {
         console.warn(`[TRIMERGE-SYNC] error closing remote`, e);
       });
-
-    if (reconnect) {
-      const {
-        reconnectDelayMs,
-        networkSettings: { reconnectBackoffMultiplier, maxReconnectDelayMs },
-      } = this;
-      console.log(`[TRIMERGE-SYNC] reconnecting in ${reconnectDelayMs}`);
-      void timeout(reconnectDelayMs).then(() => {
-        this.reconnectDelayMs = Math.min(
-          reconnectDelayMs * reconnectBackoffMultiplier,
-          maxReconnectDelayMs,
-        );
-        console.log(`[TRIMERGE-SYNC] reconnecting now...`);
-        this.connectRemote();
-      });
-    }
-    return p;
   }
 
   private connectRemote(): void {
     this.remoteQueue
       .add(async () => {
+        this.clearReconnectTimeout();
         if (this.closed || !this.getRemote) {
           return;
         }
@@ -345,6 +347,13 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
       });
   }
 
+  private clearReconnectTimeout() {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = undefined;
+    }
+  }
+
   protected handleAsError(code: ErrorCode) {
     return (error: Error) => {
       console.warn(`[${this.userId}:${this.clientId}] Error:`, error);
@@ -357,7 +366,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         },
         { self: true },
       ).catch((e) => {
-        console.warn(`error ending error message`);
+        console.warn(`error ending error message: ${e}`);
       });
       void this.shutdown();
     };
