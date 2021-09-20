@@ -1,46 +1,46 @@
 import type { AckCommitsEvent, Commit } from './types';
 
-export type DiffNodeValidation<EditMetadata, Delta> = {
-  newNodes: readonly Commit<EditMetadata, Delta>[];
-  invalidNodeRefs: Set<string>;
-  referencedNodes: Set<string>;
+export type CommitValidation<EditMetadata, Delta> = {
+  newCommits: readonly Commit<EditMetadata, Delta>[];
+  invalidRefs: Set<string>;
+  referencedCommits: Set<string>;
 };
 
-export function validateDiffNodeOrder<EditMetadata, Delta>(
-  nodes: readonly Commit<EditMetadata, Delta>[],
-): DiffNodeValidation<EditMetadata, Delta> {
-  const newNodeRefs = new Set<string>();
-  const newNodes: Commit<EditMetadata, Delta>[] = [];
-  const referencedNodes = new Set<string>();
-  const invalidNodeRefs = new Set<string>();
+export function validateCommitOrder<EditMetadata, Delta>(
+  commits: readonly Commit<EditMetadata, Delta>[],
+): CommitValidation<EditMetadata, Delta> {
+  const newCommitRefs = new Set<string>();
+  const newCommits: Commit<EditMetadata, Delta>[] = [];
+  const referencedCommits = new Set<string>();
+  const invalidRefs = new Set<string>();
   function addReferencedNode(ref?: string) {
-    if (ref !== undefined && !newNodeRefs.has(ref)) {
-      referencedNodes.add(ref);
+    if (ref !== undefined && !newCommitRefs.has(ref)) {
+      referencedCommits.add(ref);
     }
   }
-  for (const node of nodes) {
-    if (referencedNodes.has(node.ref)) {
-      invalidNodeRefs.add(node.ref);
+  for (const commit of commits) {
+    if (referencedCommits.has(commit.ref)) {
+      invalidRefs.add(commit.ref);
     } else {
-      newNodes.push(node);
-      newNodeRefs.add(node.ref);
-      addReferencedNode(node.baseRef);
-      addReferencedNode(node.mergeRef);
-      addReferencedNode(node.mergeBaseRef);
+      newCommits.push(commit);
+      newCommitRefs.add(commit.ref);
+      addReferencedNode(commit.baseRef);
+      addReferencedNode(commit.mergeRef);
+      addReferencedNode(commit.mergeBaseRef);
     }
   }
-  return { newNodes, invalidNodeRefs, referencedNodes };
+  return { newCommits, invalidRefs, referencedCommits };
 }
 
-export function addInvalidNodesToAckEvent(
+export function addInvalidRefsToAckEvent(
   ack: AckCommitsEvent,
-  invalidNodeRefs: Set<string>,
+  invalidRefs: Set<string>,
 ): AckCommitsEvent {
-  if (invalidNodeRefs.size === 0) {
+  if (invalidRefs.size === 0) {
     return ack;
   }
   const refErrors = { ...ack.refErrors };
-  for (const ref of invalidNodeRefs) {
+  for (const ref of invalidRefs) {
     if (!(ref in refErrors)) {
       refErrors[ref] = { code: 'unknown-ref' };
     }

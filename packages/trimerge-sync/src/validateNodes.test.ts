@@ -1,15 +1,12 @@
-import {
-  addInvalidNodesToAckEvent,
-  validateDiffNodeOrder,
-} from './validateNodes';
-import type { AckNodesEvent, DiffNode } from 'trimerge-sync';
+import { addInvalidRefsToAckEvent, validateCommitOrder } from './validateNodes';
+import type { AckCommitsEvent, Commit } from 'trimerge-sync';
 
-function simpleNode(
+function simpleCommit(
   args: Pick<
-    DiffNode<unknown, unknown>,
+    Commit<unknown, unknown>,
     'ref' | 'baseRef' | 'mergeRef' | 'mergeBaseRef'
   >,
-): DiffNode<unknown, unknown> {
+): Commit<unknown, unknown> {
   return {
     ...args,
     userId: 'x',
@@ -18,23 +15,23 @@ function simpleNode(
   };
 }
 
-describe('validateDiffNodeOrder', () => {
-  it('validates no nodes', () => {
-    expect(validateDiffNodeOrder([])).toMatchInlineSnapshot(`
+describe('validateCommitOrder', () => {
+  it('validates no commits', () => {
+    expect(validateCommitOrder([])).toMatchInlineSnapshot(`
       Object {
-        "invalidNodeRefs": Set {},
-        "newNodes": Array [],
-        "referencedNodes": Set {},
+        "invalidRefs": Set {},
+        "newCommits": Array [],
+        "referencedCommits": Set {},
       }
     `);
   });
 
-  it('validates single root node', () => {
-    expect(validateDiffNodeOrder([simpleNode({ ref: '1' })]))
+  it('validates single root commit', () => {
+    expect(validateCommitOrder([simpleCommit({ ref: '1' })]))
       .toMatchInlineSnapshot(`
       Object {
-        "invalidNodeRefs": Set {},
-        "newNodes": Array [
+        "invalidRefs": Set {},
+        "newCommits": Array [
           Object {
             "clientId": "x",
             "editMetadata": undefined,
@@ -42,22 +39,22 @@ describe('validateDiffNodeOrder', () => {
             "userId": "x",
           },
         ],
-        "referencedNodes": Set {},
+        "referencedCommits": Set {},
       }
     `);
   });
 
   it('validates simple chain', () => {
     expect(
-      validateDiffNodeOrder([
-        simpleNode({ ref: '1' }),
-        simpleNode({ ref: '2', baseRef: '1' }),
-        simpleNode({ ref: '3', baseRef: '2' }),
+      validateCommitOrder([
+        simpleCommit({ ref: '1' }),
+        simpleCommit({ ref: '2', baseRef: '1' }),
+        simpleCommit({ ref: '3', baseRef: '2' }),
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "invalidNodeRefs": Set {},
-        "newNodes": Array [
+        "invalidRefs": Set {},
+        "newCommits": Array [
           Object {
             "clientId": "x",
             "editMetadata": undefined,
@@ -79,21 +76,21 @@ describe('validateDiffNodeOrder', () => {
             "userId": "x",
           },
         ],
-        "referencedNodes": Set {},
+        "referencedCommits": Set {},
       }
     `);
   });
 
   it('validates partial chain', () => {
     expect(
-      validateDiffNodeOrder([
-        simpleNode({ ref: '2', baseRef: '1' }),
-        simpleNode({ ref: '3', baseRef: '2' }),
+      validateCommitOrder([
+        simpleCommit({ ref: '2', baseRef: '1' }),
+        simpleCommit({ ref: '3', baseRef: '2' }),
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "invalidNodeRefs": Set {},
-        "newNodes": Array [
+        "invalidRefs": Set {},
+        "newCommits": Array [
           Object {
             "baseRef": "1",
             "clientId": "x",
@@ -109,7 +106,7 @@ describe('validateDiffNodeOrder', () => {
             "userId": "x",
           },
         ],
-        "referencedNodes": Set {
+        "referencedCommits": Set {
           "1",
         },
       }
@@ -118,11 +115,11 @@ describe('validateDiffNodeOrder', () => {
 
   it('validates merge chain', () => {
     expect(
-      validateDiffNodeOrder([
-        simpleNode({ ref: '1' }),
-        simpleNode({ ref: '2', baseRef: '1' }),
-        simpleNode({ ref: '3', baseRef: '1' }),
-        simpleNode({
+      validateCommitOrder([
+        simpleCommit({ ref: '1' }),
+        simpleCommit({ ref: '2', baseRef: '1' }),
+        simpleCommit({ ref: '3', baseRef: '1' }),
+        simpleCommit({
           ref: '4',
           baseRef: '2',
           mergeRef: '3',
@@ -131,8 +128,8 @@ describe('validateDiffNodeOrder', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "invalidNodeRefs": Set {},
-        "newNodes": Array [
+        "invalidRefs": Set {},
+        "newCommits": Array [
           Object {
             "clientId": "x",
             "editMetadata": undefined,
@@ -163,16 +160,16 @@ describe('validateDiffNodeOrder', () => {
             "userId": "x",
           },
         ],
-        "referencedNodes": Set {},
+        "referencedCommits": Set {},
       }
     `);
   });
 
   it('validates partial merge chain', () => {
     expect(
-      validateDiffNodeOrder([
-        simpleNode({ ref: '3', baseRef: '1' }),
-        simpleNode({
+      validateCommitOrder([
+        simpleCommit({ ref: '3', baseRef: '1' }),
+        simpleCommit({
           ref: '4',
           baseRef: '2',
           mergeRef: '3',
@@ -181,8 +178,8 @@ describe('validateDiffNodeOrder', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "invalidNodeRefs": Set {},
-        "newNodes": Array [
+        "invalidRefs": Set {},
+        "newCommits": Array [
           Object {
             "baseRef": "1",
             "clientId": "x",
@@ -200,7 +197,7 @@ describe('validateDiffNodeOrder', () => {
             "userId": "x",
           },
         ],
-        "referencedNodes": Set {
+        "referencedCommits": Set {
           "1",
           "2",
         },
@@ -210,32 +207,32 @@ describe('validateDiffNodeOrder', () => {
 
   it('throws for backwards simple chain', () => {
     expect(() =>
-      validateDiffNodeOrder([
-        simpleNode({ ref: '2', baseRef: '1' }),
-        simpleNode({ ref: '1' }),
+      validateCommitOrder([
+        simpleCommit({ ref: '2', baseRef: '1' }),
+        simpleCommit({ ref: '1' }),
       ]),
     ).toMatchInlineSnapshot(`[Function]`);
   });
 
   it('throws for backwards simple chain 2', () => {
     expect(() =>
-      validateDiffNodeOrder([
-        simpleNode({ ref: '1' }),
-        simpleNode({ ref: '3', baseRef: '2' }),
-        simpleNode({ ref: '2', baseRef: '1' }),
+      validateCommitOrder([
+        simpleCommit({ ref: '1' }),
+        simpleCommit({ ref: '3', baseRef: '2' }),
+        simpleCommit({ ref: '2', baseRef: '1' }),
       ]),
     ).toMatchInlineSnapshot(`[Function]`);
   });
 });
 
 describe('addInvalidNodesToAckEvent', () => {
-  it('adds no nodes', () => {
-    const ack: AckNodesEvent = { type: 'ack', syncId: '', refs: [] };
-    expect(addInvalidNodesToAckEvent(ack, new Set())).toBe(ack);
+  it('adds no commits', () => {
+    const ack: AckCommitsEvent = { type: 'ack', syncId: '', refs: [] };
+    expect(addInvalidRefsToAckEvent(ack, new Set())).toBe(ack);
   });
-  it('adds 1 node', () => {
-    const ack: AckNodesEvent = { type: 'ack', syncId: '', refs: [] };
-    expect(addInvalidNodesToAckEvent(ack, new Set(['hi'])))
+  it('adds 1 commit', () => {
+    const ack: AckCommitsEvent = { type: 'ack', syncId: '', refs: [] };
+    expect(addInvalidRefsToAckEvent(ack, new Set(['hi'])))
       .toMatchInlineSnapshot(`
       Object {
         "refErrors": Object {
@@ -249,14 +246,14 @@ describe('addInvalidNodesToAckEvent', () => {
       }
     `);
   });
-  it('adds 2 nodes', () => {
-    const ack: AckNodesEvent = {
+  it('adds 2 commits', () => {
+    const ack: AckCommitsEvent = {
       type: 'ack',
       syncId: '',
       refs: [],
       refErrors: { yo: { code: 'internal' } },
     };
-    expect(addInvalidNodesToAckEvent(ack, new Set(['hi', 'there'])))
+    expect(addInvalidRefsToAckEvent(ack, new Set(['hi', 'there'])))
       .toMatchInlineSnapshot(`
       Object {
         "refErrors": Object {
@@ -276,13 +273,13 @@ describe('addInvalidNodesToAckEvent', () => {
       }
     `);
   });
-  it('does not overwrite node', () => {
-    const ack: AckNodesEvent = {
+  it('does not overwrite commit', () => {
+    const ack: AckCommitsEvent = {
       type: 'ack',
       syncId: '',
       refs: [],
       refErrors: { hi: { code: 'internal' } },
     };
-    expect(addInvalidNodesToAckEvent(ack, new Set(['hi']))).toEqual(ack);
+    expect(addInvalidRefsToAckEvent(ack, new Set(['hi']))).toEqual(ack);
   });
 });

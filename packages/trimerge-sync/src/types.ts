@@ -89,17 +89,17 @@ export type ReadyEvent = {
   type: 'ready';
 };
 
-export type AckNodeErrorCode =
-  | 'invalid-node'
+export type AckCommitErrorCode =
+  | 'invalid'
   | 'unknown-ref'
   | 'storage-failure'
   | 'internal';
 
-export type AckNodeError = {
-  code: AckNodeErrorCode;
+export type AckCommitError = {
+  code: AckCommitErrorCode;
   message?: string;
 };
-export type AckRefErrors = Record<string, AckNodeError>;
+export type AckRefErrors = Record<string, AckCommitError>;
 export type AckCommitsEvent = {
   type: 'ack';
   refs: readonly string[];

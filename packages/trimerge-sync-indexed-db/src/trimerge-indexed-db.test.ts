@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 
-import type { DiffNode, GetRemoteFn } from 'trimerge-sync';
+import type { Commit, GetRemoteFn } from 'trimerge-sync';
 import { TrimergeClient } from 'trimerge-sync';
 import {
   createIndexedDbBackendFactory,
@@ -488,7 +488,7 @@ describe('createIndexedDbBackendFactory', () => {
     await timeout(100);
     await client.shutdown();
 
-    const nodes: DiffNode<any, any>[] = [];
+    const nodes: Commit<any, any>[] = [];
     const client2 = makeTestClient(
       'test',
       '2',

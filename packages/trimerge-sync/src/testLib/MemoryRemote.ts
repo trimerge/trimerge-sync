@@ -37,9 +37,9 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
       return;
     }
     switch (event.type) {
-      case 'nodes':
+      case 'commits':
         // FIXME: check for nodes with wrong userId
-        const ack = await this.addNodes(event.nodes);
+        const ack = await this.addCommits(event.commits);
         await this.onEvent(ack);
         await this.broadcast({ ...event, syncId: ack.syncId });
         break;
@@ -72,7 +72,7 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
   ): Promise<void> {
     this.onEvent({ type: 'remote-state', connect: 'online' });
 
-    for await (const event of this.getNodes(lastSyncCursor)) {
+    for await (const event of this.getCommits(lastSyncCursor)) {
       this.onEvent(event);
     }
     this.onEvent({ type: 'ready' });
@@ -100,7 +100,7 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
   protected handleAsError(code: ErrorCode) {
     return (error: Error) => this.fail(error.message, code);
   }
-  protected addNodes(
+  protected addCommits(
     nodes: readonly Commit<EditMetadata, Delta>[],
   ): Promise<AckCommitsEvent> {
     return this.store.addCommits(nodes);
@@ -121,7 +121,7 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
     }
   }
 
-  protected async *getNodes(
+  protected async *getCommits(
     lastSyncCursor: string | undefined,
   ): AsyncIterableIterator<CommitsEvent<EditMetadata, Delta, PresenceState>> {
     yield await this.store.getLocalCommitsEvent(lastSyncCursor);

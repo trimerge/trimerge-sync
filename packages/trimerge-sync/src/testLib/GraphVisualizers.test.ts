@@ -39,7 +39,7 @@ function basicGraph(
 ) {
   return getBasicGraph(
     store.getCommits(),
-    (node) => node.editMetadata,
+    (commit) => commit.editMetadata,
     (node) => client1.getNodeState(node.ref).value,
   );
 }

@@ -55,8 +55,8 @@ export class Connection {
   ): Promise<void> {
     // Call store multiple times so that it can do paging if desired
     while (true) {
-      const event = await this.liveDoc.store.getNodesEvent(lastSyncId);
-      if (event.nodes.length === 0) {
+      const event = await this.liveDoc.store.getCommitsEvent(lastSyncId);
+      if (event.commits.length === 0) {
         break;
       }
       this.sendEvent(event);
@@ -110,10 +110,10 @@ export class Connection {
     }
 
     switch (data.type) {
-      case 'nodes': {
-        const { ack, nodes } = await this.liveDoc.addNodes(data);
+      case 'commits': {
+        const { ack, commits } = await this.liveDoc.addCommits(data);
         this.sendEvent(ack);
-        this.broadcastEvent(nodes);
+        this.broadcastEvent(commits);
         break;
       }
 

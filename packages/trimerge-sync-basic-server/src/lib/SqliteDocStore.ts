@@ -1,15 +1,15 @@
 import SqliteDatabase, { Database } from 'better-sqlite3';
 import { join } from 'path';
 import type {
-  AckNodesEvent,
+  AckCommitsEvent,
   AckRefErrors,
-  DiffNode,
-  NodesEvent,
+  Commit,
+  CommitsEvent,
 } from 'trimerge-sync';
 import { unlink } from 'fs-extra';
 import { DocStore } from '../DocStore';
 
-type SqliteNodeType = {
+type SqliteCommitType = {
   ref: string;
   remoteSyncId: string;
   remoteSyncIndex: number;
@@ -33,7 +33,7 @@ export class SqliteDocStore implements DocStore {
   ) {
     this.db = new SqliteDatabase(join(baseDir, docId + '.sqlite'));
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS nodes (
+      CREATE TABLE IF NOT EXISTS commits (
         ref TEXT PRIMARY KEY NOT NULL,
         remoteSyncId TEXT NOT NULL,
         remoteSyncIndex INTEGER NOT NULL,
@@ -45,28 +45,30 @@ export class SqliteDocStore implements DocStore {
         delta TEXT,
         editMetadata TEXT
       );
-      CREATE INDEX IF NOT EXISTS remoteSyncIdIndex ON nodes (remoteSyncId, remoteSyncIndex);
+      CREATE INDEX IF NOT EXISTS remoteSyncIdIndex ON commits (remoteSyncId, remoteSyncIndex);
 `);
     const stmt = this.db.prepare(
-      `SELECT ref FROM nodes ORDER BY remoteSyncId, remoteSyncIndex`,
+      `SELECT ref FROM commits ORDER BY remoteSyncId, remoteSyncIndex`,
     );
-    const sqliteNodes: Pick<SqliteNodeType, 'ref'>[] = stmt.all();
-    this.seenRefs = new Set(sqliteNodes.map(({ ref }) => ref));
+    const sqliteCommits: Pick<SqliteCommitType, 'ref'>[] = stmt.all();
+    this.seenRefs = new Set(sqliteCommits.map(({ ref }) => ref));
   }
 
-  getNodesEvent(lastSyncId?: string): NodesEvent<unknown, unknown, unknown> {
+  getCommitsEvent(
+    lastSyncId?: string,
+  ): CommitsEvent<unknown, unknown, unknown> {
     const stmt =
       lastSyncId === undefined
         ? this.db.prepare(
-            `SELECT * FROM nodes ORDER BY remoteSyncId, remoteSyncIndex`,
+            `SELECT * FROM commits ORDER BY remoteSyncId, remoteSyncIndex`,
           )
         : this.db.prepare(
-            `SELECT * FROM nodes WHERE remoteSyncId > @lastSyncId ORDER BY remoteSyncId, remoteSyncIndex`,
+            `SELECT * FROM commits WHERE remoteSyncId > @lastSyncId ORDER BY remoteSyncId, remoteSyncIndex`,
           );
 
-    const sqliteNodes: SqliteNodeType[] = stmt.all({ lastSyncId });
+    const sqliteCommits: SqliteCommitType[] = stmt.all({ lastSyncId });
     let syncId = '';
-    const nodes = sqliteNodes.map(
+    const commits = sqliteCommits.map(
       ({
         ref,
         remoteSyncId,
@@ -77,7 +79,7 @@ export class SqliteDocStore implements DocStore {
         mergeBaseRef,
         delta,
         editMetadata,
-      }): DiffNode<unknown, unknown> => {
+      }): Commit<unknown, unknown> => {
         if (remoteSyncId) {
           syncId = remoteSyncId;
         }
@@ -95,29 +97,29 @@ export class SqliteDocStore implements DocStore {
       },
     );
     return {
-      type: 'nodes',
-      nodes,
+      type: 'commits',
+      commits,
       syncId: syncId,
     };
   }
 
-  add(nodes: readonly DiffNode<unknown, unknown>[]): AckNodesEvent {
+  add(commits: readonly Commit<unknown, unknown>[]): AckCommitsEvent {
     const remoteSyncId = this.syncIdCreator();
     const insert = this.db.prepare(
       `
-        INSERT INTO nodes (ref, remoteSyncId, remoteSyncIndex, userId, clientId, baseRef, mergeRef, mergeBaseRef, delta, editMetadata) 
+        INSERT INTO commits (ref, remoteSyncId, remoteSyncIndex, userId, clientId, baseRef, mergeRef, mergeBaseRef, delta, editMetadata) 
         VALUES (@ref, @remoteSyncId, @remoteSyncIndex, @userId, @clientId, @baseRef, @mergeRef, @mergeBaseRef, @delta, @editMetadata)
         ON CONFLICT DO NOTHING`,
     );
     const refs = new Set<string>();
     const refErrors: AckRefErrors = {};
     const invalidParentRef = (
-      node: DiffNode<unknown, unknown>,
+      commit: Commit<unknown, unknown>,
       key: 'baseRef' | 'mergeRef' | 'mergeBaseRef',
     ) => {
-      const parentRef = node[key];
+      const parentRef = commit[key];
       if (parentRef && !this.seenRefs.has(parentRef)) {
-        refErrors[node.ref] = {
+        refErrors[commit.ref] = {
           code: 'unknown-ref',
           message: `unknown ${key}`,
         };
@@ -127,7 +129,7 @@ export class SqliteDocStore implements DocStore {
     };
     this.db.transaction(() => {
       let remoteSyncIndex = 0;
-      for (const node of nodes) {
+      for (const commit of commits) {
         const {
           userId,
           clientId,
@@ -137,11 +139,11 @@ export class SqliteDocStore implements DocStore {
           mergeRef,
           delta,
           editMetadata,
-        } = node;
+        } = commit;
         if (
-          invalidParentRef(node, 'baseRef') ||
-          invalidParentRef(node, 'mergeRef') ||
-          invalidParentRef(node, 'mergeBaseRef')
+          invalidParentRef(commit, 'baseRef') ||
+          invalidParentRef(commit, 'mergeRef') ||
+          invalidParentRef(commit, 'mergeBaseRef')
         ) {
           continue;
         }
@@ -169,7 +171,7 @@ export class SqliteDocStore implements DocStore {
           remoteSyncIndex++;
           this.seenRefs.add(ref);
         } catch (error) {
-          refErrors[node.ref] = {
+          refErrors[commit.ref] = {
             code: 'storage-failure',
             message: String(error),
           };

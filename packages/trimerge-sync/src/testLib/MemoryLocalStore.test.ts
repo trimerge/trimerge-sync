@@ -28,53 +28,53 @@ describe('MemoryLocalStore', () => {
     await timeout();
 
     expect(fn.mock.calls).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Object {
-            "connect": "offline",
-            "read": "offline",
-            "save": "pending",
-            "type": "remote-state",
-          },
-        ],
-        Array [
-          Object {
-            "nodes": Array [
-              Object {
-                "clientId": "test",
-                "editMetadata": undefined,
-                "ref": "test1",
-                "userId": "test",
-              },
-            ],
-            "syncId": "0",
-            "type": "nodes",
-          },
-        ],
-        Array [
-          Object {
-            "refs": Array [
-              "test1",
-            ],
-            "syncId": "1",
-            "type": "ack",
-          },
-        ],
-        Array [
-          Object {
-            "type": "ready",
-          },
-        ],
-        Array [
-          Object {
-            "connect": "offline",
-            "read": "offline",
-            "save": "saving",
-            "type": "remote-state",
-          },
-        ],
-      ]
-    `);
+Array [
+  Array [
+    Object {
+      "connect": "offline",
+      "read": "offline",
+      "save": "pending",
+      "type": "remote-state",
+    },
+  ],
+  Array [
+    Object {
+      "commits": Array [
+        Object {
+          "clientId": "test",
+          "editMetadata": undefined,
+          "ref": "test1",
+          "userId": "test",
+        },
+      ],
+      "syncId": "0",
+      "type": "commits",
+    },
+  ],
+  Array [
+    Object {
+      "refs": Array [
+        "test1",
+      ],
+      "syncId": "1",
+      "type": "ack",
+    },
+  ],
+  Array [
+    Object {
+      "type": "ready",
+    },
+  ],
+  Array [
+    Object {
+      "connect": "offline",
+      "read": "offline",
+      "save": "saving",
+      "type": "remote-state",
+    },
+  ],
+]
+`);
 
     await local.shutdown();
     local.update(
@@ -89,52 +89,52 @@ describe('MemoryLocalStore', () => {
       undefined,
     );
     expect(fn.mock.calls).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Object {
-            "connect": "offline",
-            "read": "offline",
-            "save": "pending",
-            "type": "remote-state",
-          },
-        ],
-        Array [
-          Object {
-            "nodes": Array [
-              Object {
-                "clientId": "test",
-                "editMetadata": undefined,
-                "ref": "test1",
-                "userId": "test",
-              },
-            ],
-            "syncId": "0",
-            "type": "nodes",
-          },
-        ],
-        Array [
-          Object {
-            "refs": Array [
-              "test1",
-            ],
-            "syncId": "1",
-            "type": "ack",
-          },
-        ],
-        Array [
-          Object {
-            "type": "ready",
-          },
-        ],
-        Array [
-          Object {
-            "connect": "offline",
-            "read": "offline",
-            "save": "saving",
-            "type": "remote-state",
-          },
-        ],
-      ]
-    `);
+Array [
+  Array [
+    Object {
+      "connect": "offline",
+      "read": "offline",
+      "save": "pending",
+      "type": "remote-state",
+    },
+  ],
+  Array [
+    Object {
+      "commits": Array [
+        Object {
+          "clientId": "test",
+          "editMetadata": undefined,
+          "ref": "test1",
+          "userId": "test",
+        },
+      ],
+      "syncId": "0",
+      "type": "commits",
+    },
+  ],
+  Array [
+    Object {
+      "refs": Array [
+        "test1",
+      ],
+      "syncId": "1",
+      "type": "ack",
+    },
+  ],
+  Array [
+    Object {
+      "type": "ready",
+    },
+  ],
+  Array [
+    Object {
+      "connect": "offline",
+      "read": "offline",
+      "save": "saving",
+      "type": "remote-state",
+    },
+  ],
+]
+`);
   });
 });
