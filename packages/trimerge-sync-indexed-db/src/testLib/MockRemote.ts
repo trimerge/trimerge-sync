@@ -13,7 +13,7 @@ class MockRemote implements Remote<any, any, any> {
     private readonly userId: string,
     private readonly remoteSyncInfo: RemoteSyncInfo,
     private readonly onEvent: OnEventFn<any, any, any>,
-    private readonly nodes?: Commit<any, any>[],
+    private readonly commits?: Commit<any, any>[],
   ) {
     this.onEvent({ type: 'remote-state', connect: 'online' });
     this.onEvent({ type: 'ready' });
@@ -24,7 +24,7 @@ class MockRemote implements Remote<any, any, any> {
         const { newCommits, invalidRefs } = validateCommitOrder<any, any>(
           event.commits,
         );
-        this.nodes?.push(...newCommits);
+        this.commits?.push(...newCommits);
         this.onEvent(
           addInvalidRefsToAckEvent(
             {
@@ -42,11 +42,11 @@ class MockRemote implements Remote<any, any, any> {
     this.onEvent({ type: 'remote-state', connect: 'offline', read: 'offline' });
   }
 }
-export const getMockRemote = getMockRemoteForNodes();
+export const getMockRemote = getMockRemoteForCommits();
 
-export function getMockRemoteForNodes(
-  nodes?: Commit<any, any>[],
+export function getMockRemoteForCommits(
+  commits?: Commit<any, any>[],
 ): GetRemoteFn<any, any, any> {
   return (userId, remoteSyncInfo, onEvent) =>
-    new MockRemote(userId, remoteSyncInfo, onEvent, nodes);
+    new MockRemote(userId, remoteSyncInfo, onEvent, commits);
 }
