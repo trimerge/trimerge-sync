@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "classnames": "2.3.1",
-    "immer": "^9.0.5",
+    "immer": "^9.0.6",
     "material-color-hash": "^0.1.6",
     "project-name-generator": "^2.1.9",
     "react": "^17.0.2",
@@ -24,9 +24,15 @@
     "test-ci": "SKIP_PREFLIGHT_CHECK=true react-scripts test --coverage --passWithNoTests",
     "eject": "react-scripts eject"
   },
-  "eslintConfig": { "extends": "react-app" },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
   "browserslist": {
-    "production": [">0.2%", "not dead", "not op_mini all"],
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
     "development": [
       "last 1 chrome version",
       "last 1 firefox version",
@@ -35,16 +41,16 @@
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.14.1",
-    "@testing-library/react": "^12.0.0",
+    "@testing-library/react": "^12.1.0",
     "@testing-library/user-event": "^13.2.1",
-    "@types/jest": "26.0.24",
-    "@types/node": "^16.4.12",
+    "@types/jest": "27.0.1",
+    "@types/node": "^16.9.4",
     "@types/project-name-generator": "^2.1.1",
-    "@types/react": "^17.0.15",
+    "@types/react": "^17.0.22",
     "@types/react-dom": "^17.0.9",
     "@types/textarea-caret": "^3.0.1",
-    "@typescript-eslint/eslint-plugin": "^4.29.0",
-    "@typescript-eslint/parser": "^4.29.0",
+    "@typescript-eslint/eslint-plugin": "^4.31.2",
+    "@typescript-eslint/parser": "^4.31.2",
     "babel-eslint": "^10.0.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "8.3.0",
@@ -56,8 +62,8 @@
     "eslint-plugin-react-hooks": "^4.0.8",
     "jest": "27.0.6",
     "jest-watch-typeahead": "^0.6.4",
-    "prettier": "2.3.2",
-    "ts-jest": "27.0.4",
-    "typescript": "4.3.5"
+    "prettier": "2.4.1",
+    "ts-jest": "27.0.5",
+    "typescript": "4.4.3"
   }
 }
