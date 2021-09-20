@@ -6,6 +6,10 @@ import type { AuthenticateFn, Logger } from './types';
 import { LiveDoc } from './lib/docs';
 import { Connection } from './lib/connection';
 
+function getMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
 export class BasicServer {
   private readonly liveDocs = new Map<string, LiveDoc>();
 
@@ -68,16 +72,17 @@ export class BasicServer {
           liveDoc.add(conn);
         } catch (e) {
           logger.warn(`error starting connection: ${e}`, {
-            error: e.message,
+            error: getMessage(e),
           });
           ws.close();
         }
       } catch (e) {
-        this.serverLogger.warn(`invalid request ${e.message}`, {
+        const message = getMessage(e);
+        this.serverLogger.warn(`invalid request ${message}`, {
           remoteAddress: req.socket.remoteAddress,
           remotePort: req.socket.remotePort,
           remoteFamily: req.socket.remoteFamily,
-          error: e.message,
+          error: message,
         });
         ws.close();
       }

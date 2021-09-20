@@ -269,7 +269,10 @@ class IndexedDbBackend<
             await commitsDb.add({ syncId, remoteSyncId: '', ...node });
             refs.add(ref);
           } catch (e) {
-            refErrors[ref] = { code: 'storage-failure', message: e.message };
+            refErrors[ref] = {
+              code: 'storage-failure',
+              message: e instanceof Error ? e.message : String(e),
+            };
             console.warn(`error inserting node`, { node }, e);
           }
         })(),

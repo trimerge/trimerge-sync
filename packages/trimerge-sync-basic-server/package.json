@@ -17,39 +17,58 @@
     "type": "git",
     "url": "git+https://github.com/marcello3d/trimerge.git"
   },
-  "keywords": ["json", "three-way-merge", "diff", "diff3", "merge"],
+  "keywords": [
+    "json",
+    "three-way-merge",
+    "diff",
+    "diff3",
+    "merge"
+  ],
   "author": {
     "name": "Marcello Bastéa-Forte",
     "email": "marcello@cellosoft.com"
   },
   "license": "Zlib",
-  "bugs": { "url": "https://github.com/marcello3d/trimerge-sync/issues" },
+  "bugs": {
+    "url": "https://github.com/marcello3d/trimerge-sync/issues"
+  },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
   "dependencies": {
     "@types/ws": "^7.4.7",
     "fs-extra": "^10.0.0",
     "trimerge-sync": "0.11.1",
-    "ws": "^7.5.3"
+    "ws": "^8.2.2"
   },
-  "files": ["dist/**/*", "src/**/*"],
-  "peerDependencies": { "better-sqlite3": "^7.4.1" },
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
+  "peerDependencies": {
+    "better-sqlite3": "^7.4.1"
+  },
   "devDependencies": {
     "@rollup/plugin-commonjs": "20.0.0",
     "@rollup/plugin-node-resolve": "13.0.4",
-    "@types/better-sqlite3": "^5.4.3",
+    "@types/better-sqlite3": "^7.4.0",
     "@types/fs-extra": "^9.0.12",
     "better-sqlite3": "^7.4.3",
     "jest": "27.0.6",
-    "rollup": "2.56.0",
+    "rollup": "2.56.3",
     "rollup-plugin-typescript2": "0.30.0",
     "trimerge-sync": "0.11.1",
-    "ts-node": "^10.1.0",
+    "ts-node": "^10.2.1",
     "ts-node-dev": "^1.1.8",
-    "typescript": "4.3.5"
+    "typescript": "4.4.3"
   },
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "globals": { "ts-jest": { "diagnostics": { "warnOnly": true } } }
+    "globals": {
+      "ts-jest": {
+        "diagnostics": {
+          "warnOnly": true
+        }
+      }
+    }
   }
 }
