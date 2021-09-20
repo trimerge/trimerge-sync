@@ -1,8 +1,8 @@
 import {
-  AckNodesEvent,
-  DiffNode,
+  AckCommitsEvent,
+  Commit,
   ErrorCode,
-  NodesEvent,
+  CommitsEvent,
   OnEventFn,
   Remote,
   RemoteSyncInfo,
@@ -101,9 +101,9 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
     return (error: Error) => this.fail(error.message, code);
   }
   protected addNodes(
-    nodes: readonly DiffNode<EditMetadata, Delta>[],
-  ): Promise<AckNodesEvent> {
-    return this.store.addNodes(nodes);
+    nodes: readonly Commit<EditMetadata, Delta>[],
+  ): Promise<AckCommitsEvent> {
+    return this.store.addCommits(nodes);
   }
 
   protected async broadcast(
@@ -123,7 +123,7 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
 
   protected async *getNodes(
     lastSyncCursor: string | undefined,
-  ): AsyncIterableIterator<NodesEvent<EditMetadata, Delta, PresenceState>> {
-    yield await this.store.getLocalNodesEvent(lastSyncCursor);
+  ): AsyncIterableIterator<CommitsEvent<EditMetadata, Delta, PresenceState>> {
+    yield await this.store.getLocalCommitsEvent(lastSyncCursor);
   }
 }

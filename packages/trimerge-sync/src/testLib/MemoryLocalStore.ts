@@ -1,10 +1,10 @@
 import { AbstractLocalStore, BroadcastEvent } from '../AbstractLocalStore';
 import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
 import {
-  AckNodesEvent,
-  DiffNode,
+  AckCommitsEvent,
+  Commit,
   GetRemoteFn,
-  NodesEvent,
+  CommitsEvent,
   OnEventFn,
   RemoteSyncInfo,
 } from '../types';
@@ -42,14 +42,14 @@ export class MemoryLocalStore<
     this.initialize().catch(this.handleAsError('internal'));
   }
 
-  protected addNodes(
-    nodes: DiffNode<EditMetadata, Delta>[],
+  protected addCommits(
+    commits: Commit<EditMetadata, Delta>[],
     remoteSyncId?: string,
-  ): Promise<AckNodesEvent> {
-    return this.store.addNodes(nodes, remoteSyncId);
+  ): Promise<AckCommitsEvent> {
+    return this.store.addCommits(commits, remoteSyncId);
   }
 
-  protected async acknowledgeRemoteNodes(
+  protected async acknowledgeRemoteCommits(
     refs: readonly string[],
     remoteSyncId: string,
   ): Promise<void> {
@@ -65,16 +65,16 @@ export class MemoryLocalStore<
     await this.channel.postMessage(event);
   }
 
-  protected async *getLocalNodes(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, PresenceState>
+  protected async *getLocalCommits(): AsyncIterableIterator<
+    CommitsEvent<EditMetadata, Delta, PresenceState>
   > {
-    yield await this.store.getLocalNodesEvent();
+    yield await this.store.getLocalCommitsEvent();
   }
 
-  protected getNodesForRemote(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, PresenceState>
+  protected getCommitsForRemote(): AsyncIterableIterator<
+    CommitsEvent<EditMetadata, Delta, PresenceState>
   > {
-    return this.store.getNodesForRemote();
+    return this.store.getCommitsForRemote();
   }
 
   protected getRemoteSyncInfo(): Promise<RemoteSyncInfo> {

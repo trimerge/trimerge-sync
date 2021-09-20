@@ -49,7 +49,7 @@ function makeClient(
   clientId: string,
   store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
 ): TrimergeClient<TestState, TestEditMetadata, Delta, TestPresenceState> {
-  return new TrimergeClient(userId, clientId, store.getLocalStore, differ, 0);
+  return new TrimergeClient(userId, clientId, store.getLocalStore, differ);
 }
 
 function basicGraph(
@@ -62,7 +62,7 @@ function basicGraph(
   >,
 ) {
   return getBasicGraph(
-    store.getNodes(),
+    store.getCommits(),
     (node) => node.editMetadata,
     (node) => client1.getNodeState(node.ref).value,
   );

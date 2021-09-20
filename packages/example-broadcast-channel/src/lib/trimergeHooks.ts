@@ -48,7 +48,6 @@ function getCachedTrimergeClient<State, EditMetadata, Delta, PresenceState>(
         remoteId: 'localhost',
       }),
       differ,
-      100,
     );
   }
   return TRIMERGE_CLIENT_CACHE[key];
@@ -107,7 +106,7 @@ export function useTrimergeClientList<
   State,
   EditMetadata,
   Delta,
-  PresenceState
+  PresenceState,
 >(
   docId: string,
   userId: string,

@@ -27,7 +27,6 @@ function makeTrimergeClient(): {
       };
     },
     differ,
-    0,
   );
   if (!onEvent) {
     throw new Error('could not get onEvent');
@@ -49,7 +48,7 @@ describe('TrimergeClient', () => {
     expect(() =>
       onEvent({
         type: 'nodes',
-        nodes: [
+        commits: [
           {
             clientId: '',
             userId: '',
@@ -66,7 +65,7 @@ describe('TrimergeClient', () => {
     expect(() =>
       onEvent({
         type: 'nodes',
-        nodes: [
+        commits: [
           {
             clientId: '',
             userId: '',

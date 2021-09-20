@@ -1,4 +1,4 @@
-import { DiffNode } from '../types';
+import { Commit } from '../types';
 
 type BasicGraphItem = {
   graph: string;
@@ -6,9 +6,9 @@ type BasicGraphItem = {
   value: any;
 };
 export function getBasicGraph<EditMetadata>(
-  nodes: Iterable<DiffNode<EditMetadata, unknown>>,
-  getEditLabel: (node: DiffNode<EditMetadata, unknown>) => string,
-  getValue: (node: DiffNode<EditMetadata, unknown>) => any,
+  nodes: Iterable<Commit<EditMetadata, unknown>>,
+  getEditLabel: (node: Commit<EditMetadata, unknown>) => string,
+  getValue: (node: Commit<EditMetadata, unknown>) => any,
 ): BasicGraphItem[] {
   const result = [];
   for (const node of nodes) {
@@ -31,9 +31,9 @@ export function getBasicGraph<EditMetadata>(
 }
 
 export function getDotGraph<EditMetadata>(
-  nodes: Iterable<DiffNode<EditMetadata, unknown>>,
-  getEditLabel: (node: DiffNode<EditMetadata, any>) => string,
-  getValue: (node: DiffNode<EditMetadata, any>) => string,
+  nodes: Iterable<Commit<EditMetadata, unknown>>,
+  getEditLabel: (node: Commit<EditMetadata, any>) => string,
+  getValue: (node: Commit<EditMetadata, any>) => string,
 ): string {
   const lines: string[] = ['digraph {'];
   for (const node of nodes) {

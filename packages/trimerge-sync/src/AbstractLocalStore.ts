@@ -1,12 +1,12 @@
 import {
-  AckNodesEvent,
+  AckCommitsEvent,
   ClientInfo,
   ClientPresenceRef,
-  DiffNode,
+  Commit,
   ErrorCode,
   GetRemoteFn,
   LocalStore,
-  NodesEvent,
+  CommitsEvent,
   OnEventFn,
   Remote,
   RemoteStateEvent,
@@ -58,6 +58,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     read: 'offline',
   };
   private readonly unacknowledgedRefs = new Set<string>();
+  private readonly localQueue = new PromiseQueue();
   private readonly remoteQueue = new PromiseQueue();
   private leaderManager?: LeaderManager = undefined;
   private readonly networkSettings: NetworkSettings;
@@ -83,26 +84,26 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
   }
 
   /**
-   * Send to all *other* local nodes
+   * Send to all *other* local clients
    */
   protected abstract broadcastLocal(
     event: BroadcastEvent<EditMetadata, Delta, PresenceState>,
   ): Promise<void>;
 
-  protected abstract getLocalNodes(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, PresenceState>
+  protected abstract getLocalCommits(): AsyncIterableIterator<
+    CommitsEvent<EditMetadata, Delta, PresenceState>
   >;
 
-  protected abstract getNodesForRemote(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, PresenceState>
+  protected abstract getCommitsForRemote(): AsyncIterableIterator<
+    CommitsEvent<EditMetadata, Delta, PresenceState>
   >;
 
-  protected abstract addNodes(
-    nodes: readonly DiffNode<EditMetadata, Delta>[],
+  protected abstract addCommits(
+    commits: readonly Commit<EditMetadata, Delta>[],
     remoteSyncId?: string,
-  ): Promise<AckNodesEvent>;
+  ): Promise<AckCommitsEvent>;
 
-  protected abstract acknowledgeRemoteNodes(
+  protected abstract acknowledgeRemoteCommits(
     refs: readonly string[],
     remoteSyncId: string,
   ): Promise<void>;
@@ -161,15 +162,15 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         await this.setRemoteState({ type: 'remote-state', read: 'ready' });
         break;
 
-      case 'nodes':
+      case 'commits':
         if (origin === 'remote') {
-          await this.addNodes(event.nodes, event.syncId);
+          await this.addCommits(event.commits, event.syncId);
         }
         break;
 
       case 'ack':
         if (origin === 'remote') {
-          await this.acknowledgeRemoteNodes(event.refs, event.syncId);
+          await this.acknowledgeRemoteCommits(event.refs, event.syncId);
           for (const ref of event.refs) {
             this.unacknowledgedRefs.delete(ref);
           }
@@ -326,8 +327,8 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
           },
         );
         let saving = false;
-        for await (const event of this.getNodesForRemote()) {
-          for (const { ref } of event.nodes) {
+        for await (const event of this.getCommitsForRemote()) {
+          for (const { ref } of event.commits) {
             this.unacknowledgedRefs.add(ref);
           }
           if (!saving) {
@@ -432,48 +433,52 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
         },
         { local: true },
       );
-      for await (const event of this.getLocalNodes()) {
+      for await (const event of this.getLocalCommits()) {
         await this.sendEvent(event, { self: true });
       }
       await this.sendEvent({ type: 'ready' }, { self: true });
     })();
   }
   update(
-    newNodes: DiffNode<EditMetadata, Delta>[],
+    commits: Commit<EditMetadata, Delta>[],
     presence: ClientPresenceRef<PresenceState> | undefined,
   ): void {
     if (this.closed) {
       return;
     }
-    this.doUpdate(newNodes, presence).catch(
-      this.handleAsError('invalid-nodes'),
-    );
+    this.localQueue
+      .add(() =>
+        this.doUpdate(commits, presence).catch(
+          this.handleAsError('invalid-commits'),
+        ),
+      )
+      .catch(this.handleAsError('internal'));
   }
 
   private async doUpdate(
-    nodes: DiffNode<EditMetadata, Delta>[],
+    commits: Commit<EditMetadata, Delta>[],
     presenceRef: ClientPresenceRef<PresenceState> | undefined,
   ): Promise<void> {
     if (presenceRef) {
       this.presence = presenceRef;
     }
-    if (nodes.length > 0) {
+    if (commits.length > 0) {
       await this.setRemoteState({ type: 'remote-state', save: 'pending' });
     }
 
-    const ack = await this.addNodes(nodes);
+    const ack = await this.addCommits(commits);
     await this.sendEvent(ack, { self: true });
     const clientInfo: ClientInfo<PresenceState> | undefined = presenceRef && {
       ...presenceRef,
       userId: this.userId,
       clientId: this.clientId,
     };
-    if (nodes.length > 0) {
+    if (commits.length > 0) {
       await this.setRemoteState({ type: 'remote-state', save: 'saving' });
       await this.sendEvent(
         {
-          type: 'nodes',
-          nodes,
+          type: 'commits',
+          commits,
           syncId: ack.syncId,
           clientInfo,
         },

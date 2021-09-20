@@ -1,16 +1,16 @@
-import type { AckNodesEvent, DiffNode } from './types';
+import type { AckCommitsEvent, Commit } from './types';
 
 export type DiffNodeValidation<EditMetadata, Delta> = {
-  newNodes: readonly DiffNode<EditMetadata, Delta>[];
+  newNodes: readonly Commit<EditMetadata, Delta>[];
   invalidNodeRefs: Set<string>;
   referencedNodes: Set<string>;
 };
 
 export function validateDiffNodeOrder<EditMetadata, Delta>(
-  nodes: readonly DiffNode<EditMetadata, Delta>[],
+  nodes: readonly Commit<EditMetadata, Delta>[],
 ): DiffNodeValidation<EditMetadata, Delta> {
   const newNodeRefs = new Set<string>();
-  const newNodes: DiffNode<EditMetadata, Delta>[] = [];
+  const newNodes: Commit<EditMetadata, Delta>[] = [];
   const referencedNodes = new Set<string>();
   const invalidNodeRefs = new Set<string>();
   function addReferencedNode(ref?: string) {
@@ -33,9 +33,9 @@ export function validateDiffNodeOrder<EditMetadata, Delta>(
 }
 
 export function addInvalidNodesToAckEvent(
-  ack: AckNodesEvent,
+  ack: AckCommitsEvent,
   invalidNodeRefs: Set<string>,
-): AckNodesEvent {
+): AckCommitsEvent {
   if (invalidNodeRefs.size === 0) {
     return ack;
   }

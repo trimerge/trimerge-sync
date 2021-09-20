@@ -1,7 +1,7 @@
 import {
   ClientInfo,
   ClientList,
-  DiffNode,
+  Commit,
   GetLocalStoreFn,
   LocalClientInfo,
   LocalStore,
@@ -9,14 +9,13 @@ import {
   SyncStatus,
 } from './types';
 import { mergeHeadNodes } from './merge-nodes';
-import { Differ, NodeStateRef } from './differ';
+import { Differ, CommitStateRef } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
-import { timeout } from './lib/Timeout';
 
 export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
-  private current?: NodeStateRef<State, EditMetadata>;
-  private lastSyncId: string | undefined;
+  private current?: CommitStateRef<State, EditMetadata>;
+  private lastLocalSyncId: string | undefined;
 
   private stateSubs = new SubscriberList(() => this.state);
   private syncStateSubs = new SubscriberList(
@@ -33,12 +32,12 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private clientMap = new Map<string, LocalClientInfo<PresenceState>>();
   private clientList: ClientList<PresenceState> = [];
 
-  private nodes = new Map<string, DiffNode<EditMetadata, Delta>>();
-  private values = new Map<string, NodeStateRef<State, EditMetadata>>();
+  private commits = new Map<string, Commit<EditMetadata, Delta>>();
+  private values = new Map<string, CommitStateRef<State, EditMetadata>>();
   private headRefs = new Set<string>();
 
   private store: LocalStore<EditMetadata, Delta, PresenceState>;
-  private unsyncedNodes: DiffNode<EditMetadata, Delta>[] = [];
+  private unsyncedCommits: Commit<EditMetadata, Delta>[] = [];
 
   private selfFullId: string;
   private newPresenceState: ClientInfo<PresenceState> | undefined;
@@ -60,7 +59,6 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
       PresenceState
     >,
     private readonly differ: Differ<State, EditMetadata, Delta>,
-    private readonly bufferMs: number,
   ) {
     this.selfFullId = getFullId(userId, clientId);
     this.store = getLocalStore(userId, clientId, this.onEvent);
@@ -84,12 +82,12 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   }
   private onEvent: OnEventFn<EditMetadata, Delta, PresenceState> = (event) => {
     switch (event.type) {
-      case 'nodes': {
-        const { nodes, syncId, clientInfo } = event;
-        for (const node of nodes) {
-          this.addNode(node, false);
+      case 'commits': {
+        const { commits, syncId, clientInfo } = event;
+        for (const commit of commits) {
+          this.addCommit(commit, false);
         }
-        this.lastSyncId = syncId;
+        this.lastLocalSyncId = syncId;
         this.mergeHeads();
         this.stateSubs.emitChange();
         this.sync();
@@ -101,7 +99,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
       }
 
       case 'ack':
-        this.lastSyncId = event.syncId;
+        this.lastLocalSyncId = event.syncId;
         break;
 
       case 'client-leave':
@@ -172,7 +170,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     editMetadata: EditMetadata,
     presenceState?: PresenceState,
   ) {
-    const ref = this.addNewNode(value, editMetadata);
+    const ref = this.addNewCommit(value, editMetadata);
     this.setPresenceState(presenceState, ref);
     this.mergeHeads();
     this.stateSubs.emitChange();
@@ -194,7 +192,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     this.emitClientListChange();
   }
 
-  getNodeState(ref: string): NodeStateRef<State, EditMetadata> {
+  getNodeState(ref: string): CommitStateRef<State, EditMetadata> {
     const value = this.values.get(ref);
     if (value !== undefined) {
       return value;
@@ -203,7 +201,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     const baseValue = node.baseRef
       ? this.getNodeState(node.baseRef).value
       : undefined;
-    const valueState: NodeStateRef<State, EditMetadata> = {
+    const valueState: CommitStateRef<State, EditMetadata> = {
       ref: node.ref,
       value: this.differ.patch(baseValue, node.delta),
       editMetadata: node.editMetadata,
@@ -213,7 +211,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   }
 
   getNode = (ref: string) => {
-    const node = this.nodes.get(ref);
+    const node = this.commits.get(ref);
     if (node) {
       return node;
     }
@@ -234,69 +232,53 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
         const right = this.getNodeState(rightRef);
         // TODO: we likely need to normalize left/right
         const { value, editMetadata } = this.differ.merge(base, left, right);
-        return this.addNewNode(value, editMetadata, left, rightRef, baseRef);
+        return this.addNewCommit(value, editMetadata, left, rightRef, baseRef);
       },
     );
     // TODO: update PresenceState(s) based on this merge
     // TODO: can we clear out nodes we don't need anymore?
   }
 
-  private syncPromise: Promise<boolean> | undefined;
-
   private emitClientListChange() {
     this.clientList = Array.from(this.clientMap.values());
     this.clientListSubs.emitChange();
   }
-
-  private get needsSync(): boolean {
-    return this.unsyncedNodes.length > 0 || this.newPresenceState !== undefined;
-  }
   private sync(): void {
-    if (!this.syncPromise && this.needsSync) {
-      this.syncPromise = this.doSync();
+    const commits = this.unsyncedCommits;
+    if (commits.length > 0 || this.newPresenceState !== undefined) {
+      this.updateSyncState({ localSave: 'pending' });
+      this.unsyncedCommits = [];
+      this.updateSyncState({ localSave: 'saving' });
+      this.store.update(commits, this.newPresenceState);
+      this.newPresenceState = undefined;
     }
+    this.updateSyncState({ localSave: 'ready' });
   }
 
   private updateSyncState(update: Partial<SyncStatus>) {
     this.syncState = { ...this.syncState, ...update };
     this.syncStateSubs.emitChange();
   }
-
-  private async doSync() {
-    while (this.needsSync) {
-      this.updateSyncState({ localSave: 'pending' });
-      await timeout(this.bufferMs);
-      const nodes = this.unsyncedNodes;
-      this.unsyncedNodes = [];
-      this.updateSyncState({ localSave: 'saving' });
-      this.store.update(nodes, this.newPresenceState);
-      this.newPresenceState = undefined;
-    }
-    this.updateSyncState({ localSave: 'ready' });
-    this.syncPromise = undefined;
-    return true;
-  }
-
-  private addNode(
-    node: DiffNode<EditMetadata, Delta>,
+  private addCommit(
+    node: Commit<EditMetadata, Delta>,
     createdLocally: boolean,
   ): void {
     const { ref, baseRef, mergeRef } = node;
-    if (this.nodes.has(ref)) {
+    if (this.commits.has(ref)) {
       console.warn(
         `[TRIMERGE-SYNC] skipping add node ${ref}, base ${baseRef}, merge ${mergeRef} (createdLocally=${createdLocally})`,
       );
       return;
     }
-    this.nodes.set(ref, node);
+    this.commits.set(ref, node);
     if (baseRef !== undefined) {
-      if (!this.nodes.has(baseRef)) {
+      if (!this.commits.has(baseRef)) {
         throw new Error(`unknown baseRef node ${baseRef}`);
       }
       this.headRefs.delete(baseRef);
     }
     if (mergeRef !== undefined) {
-      if (!this.nodes.has(mergeRef)) {
+      if (!this.commits.has(mergeRef)) {
         throw new Error(`unknown mergeRef node ${mergeRef}`);
       }
       this.headRefs.delete(mergeRef);
@@ -307,22 +289,22 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
       this.current = this.getNodeState(node.ref);
     }
     if (createdLocally) {
-      this.unsyncedNodes.push(node);
+      this.unsyncedCommits.push(node);
     }
   }
 
-  private addNewNode(
-    value: State,
+  private addNewCommit(
+    newValue: State,
     editMetadata: EditMetadata,
-    base: NodeStateRef<State, EditMetadata> | undefined = this.current,
+    base: CommitStateRef<State, EditMetadata> | undefined = this.current,
     mergeRef?: string,
     mergeBaseRef?: string,
   ): string {
     const { userId, clientId } = this;
-    const delta = this.differ.diff(base?.value, value);
+    const delta = this.differ.diff(base?.value, newValue);
     const baseRef = base?.ref;
     const ref = this.differ.computeRef(baseRef, mergeRef, delta, editMetadata);
-    const diffNode: DiffNode<EditMetadata, Delta> = {
+    const commit: Commit<EditMetadata, Delta> = {
       userId,
       clientId,
       ref,
@@ -332,7 +314,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
       delta,
       editMetadata,
     };
-    this.addNode(diffNode, true);
+    this.addCommit(commit, true);
     return ref;
   }
 
