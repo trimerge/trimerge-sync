@@ -16,15 +16,15 @@ import { deleteDB, openDB } from 'idb';
 import { BroadcastChannel } from 'broadcast-channel';
 import { timeout } from './lib/timeout';
 
-const DIFF_NODE_PAGE_SIZE = 100;
+const COMMIT_PAGE_SIZE = 100;
 
 function getSyncCounter(
   commits: StoreValue<TrimergeSyncDbSchema, 'commits'>[],
 ): number {
   let syncCounter = 0;
-  for (const node of commits) {
-    if (syncCounter < node.syncId) {
-      syncCounter = node.syncId;
+  for (const commit of commits) {
+    if (syncCounter < commit.syncId) {
+      syncCounter = commit.syncId;
     }
   }
   return syncCounter;
@@ -81,10 +81,10 @@ export async function resetDocRemoteSyncData(docId: string): Promise<void> {
   const remotes = tx.objectStore('remotes');
   const commits = tx.objectStore('commits');
   await remotes.clear();
-  for (const node of await commits.getAll()) {
-    if (node.remoteSyncId) {
-      node.remoteSyncId = '';
-      await commits.put(node);
+  for (const commit of await commits.getAll()) {
+    if (commit.remoteSyncId) {
+      commit.remoteSyncId = '';
+      await commits.put(commit);
     }
   }
   await tx.done;
@@ -154,10 +154,10 @@ class IndexedDbBackend<
     if (unsentcommits.length > 0) {
       // Sort by syncId
       unsentcommits.sort((a, b) => a.syncId - b.syncId);
-      for (let i = 0; i < unsentcommits.length; i += DIFF_NODE_PAGE_SIZE) {
+      for (let i = 0; i < unsentcommits.length; i += COMMIT_PAGE_SIZE) {
         yield {
           type: 'commits',
-          commits: unsentcommits.slice(i, i + DIFF_NODE_PAGE_SIZE),
+          commits: unsentcommits.slice(i, i + COMMIT_PAGE_SIZE),
         };
       }
     }
@@ -169,10 +169,10 @@ class IndexedDbBackend<
   ): Promise<void> {
     const db = await this.db;
     for (const ref of refs) {
-      const node = await db.get('commits', ref);
-      if (node && !node.remoteSyncId) {
-        node.remoteSyncId = remoteSyncCursor;
-        await db.put('commits', node);
+      const commit = await db.get('commits', ref);
+      if (commit && !commit.remoteSyncId) {
+        commit.remoteSyncId = remoteSyncCursor;
+        await db.put('commits', commit);
       }
     }
     await this.upsertRemoteSyncInfo(remoteSyncCursor);
@@ -244,36 +244,36 @@ class IndexedDbBackend<
     const promises: Promise<unknown>[] = [];
     const refs = new Set<string>();
     const refErrors: AckRefErrors = {};
-    async function nodeExistsAlready(
-      node: Commit<unknown, unknown>,
+    async function commitExistsAlready(
+      commit: Commit<unknown, unknown>,
       error?: string,
     ): Promise<boolean> {
-      const existingNode = await commitsDb.get(node.ref);
-      if (existingNode) {
-        refs.add(node.ref);
-        console.warn(`already have node`, { node, existingNode, error });
+      const existingCommit = await commitsDb.get(commit.ref);
+      if (existingCommit) {
+        refs.add(commit.ref);
+        console.warn(`already have commit`, { commit, existingCommit, error });
         return true;
       }
       return false;
     }
 
-    for (const node of commits) {
+    for (const commit of commits) {
       const syncId = ++syncCounter;
-      const { ref, baseRef, mergeRef } = node;
+      const { ref, baseRef, mergeRef } = commit;
       promises.push(
         (async () => {
           try {
-            if (await nodeExistsAlready(node)) {
+            if (await commitExistsAlready(commit)) {
               return;
             }
-            await commitsDb.add({ syncId, remoteSyncId: '', ...node });
+            await commitsDb.add({ syncId, remoteSyncId: '', ...commit });
             refs.add(ref);
           } catch (e) {
             refErrors[ref] = {
               code: 'storage-failure',
               message: e instanceof Error ? e.message : String(e),
             };
-            console.warn(`error inserting node`, { node }, e);
+            console.warn(`error inserting commit`, { commit }, e);
           }
         })(),
       );

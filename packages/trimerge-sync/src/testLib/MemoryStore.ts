@@ -116,7 +116,7 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
       };
     });
   }
-  async acknowledgeNodes(
+  async acknowledgeCommits(
     refs: readonly string[],
     remoteSyncId: string,
   ): Promise<void> {

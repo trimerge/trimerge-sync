@@ -53,7 +53,7 @@ export class MemoryLocalStore<
     refs: readonly string[],
     remoteSyncId: string,
   ): Promise<void> {
-    await this.store.acknowledgeNodes(refs, remoteSyncId);
+    await this.store.acknowledgeCommits(refs, remoteSyncId);
   }
 
   protected async broadcastLocal(

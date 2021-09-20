@@ -37,7 +37,7 @@ export type RemoteReadStatus = 'offline' | 'loading' | 'ready';
 export type RemoteSaveStatus =
   | 'ready' /**  all local state has been synced to remote (though maybe local changes in memory) */
   | 'pending' /**  we have local state that hasn't been sent to remote yet (maybe offline) */
-  | 'saving' /**  we got an error back from remote when saving nodes  */
+  | 'saving' /**  we got an error back from remote when saving commits  */
   | 'error'; /**  we sent local state to remote, but haven't got `ack` yet */
 
 export type SyncStatus = {

@@ -13,7 +13,7 @@ export function validateCommitOrder<EditMetadata, Delta>(
   const newCommits: Commit<EditMetadata, Delta>[] = [];
   const referencedCommits = new Set<string>();
   const invalidRefs = new Set<string>();
-  function addReferencedNode(ref?: string) {
+  function addReferencedCommit(ref?: string) {
     if (ref !== undefined && !newCommitRefs.has(ref)) {
       referencedCommits.add(ref);
     }
@@ -24,9 +24,9 @@ export function validateCommitOrder<EditMetadata, Delta>(
     } else {
       newCommits.push(commit);
       newCommitRefs.add(commit.ref);
-      addReferencedNode(commit.baseRef);
-      addReferencedNode(commit.mergeRef);
-      addReferencedNode(commit.mergeBaseRef);
+      addReferencedCommit(commit.baseRef);
+      addReferencedCommit(commit.mergeRef);
+      addReferencedCommit(commit.mergeBaseRef);
     }
   }
   return { newCommits, invalidRefs, referencedCommits };

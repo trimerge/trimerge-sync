@@ -38,7 +38,7 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
     }
     switch (event.type) {
       case 'commits':
-        // FIXME: check for nodes with wrong userId
+        // FIXME: check for commits with wrong userId
         const ack = await this.addCommits(event.commits);
         await this.onEvent(ack);
         await this.broadcast({ ...event, syncId: ack.syncId });
@@ -101,9 +101,9 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
     return (error: Error) => this.fail(error.message, code);
   }
   protected addCommits(
-    nodes: readonly Commit<EditMetadata, Delta>[],
+    commits: readonly Commit<EditMetadata, Delta>[],
   ): Promise<AckCommitsEvent> {
-    return this.store.addCommits(nodes);
+    return this.store.addCommits(commits);
   }
 
   protected async broadcast(

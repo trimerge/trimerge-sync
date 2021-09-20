@@ -8,7 +8,7 @@ import {
   OnEventFn,
   SyncStatus,
 } from './types';
-import { mergeHeadNodes } from './merge-nodes';
+import { mergeHeads } from './merge-heads';
 import { Differ, CommitStateRef } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
@@ -192,51 +192,51 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     this.emitClientListChange();
   }
 
-  getNodeState(ref: string): CommitStateRef<State, EditMetadata> {
+  getCommitState(ref: string): CommitStateRef<State, EditMetadata> {
     const value = this.values.get(ref);
     if (value !== undefined) {
       return value;
     }
-    const node = this.getNode(ref);
-    const baseValue = node.baseRef
-      ? this.getNodeState(node.baseRef).value
+    const commit = this.getCommit(ref);
+    const baseValue = commit.baseRef
+      ? this.getCommitState(commit.baseRef).value
       : undefined;
     const valueState: CommitStateRef<State, EditMetadata> = {
-      ref: node.ref,
-      value: this.differ.patch(baseValue, node.delta),
-      editMetadata: node.editMetadata,
+      ref: commit.ref,
+      value: this.differ.patch(baseValue, commit.delta),
+      editMetadata: commit.editMetadata,
     };
     this.values.set(ref, valueState);
     return valueState;
   }
 
-  getNode = (ref: string) => {
-    const node = this.commits.get(ref);
-    if (node) {
-      return node;
+  getCommit = (ref: string) => {
+    const commit = this.commits.get(ref);
+    if (commit) {
+      return commit;
     }
-    throw new Error(`unknown node ref "${ref}"`);
+    throw new Error(`unknown ref "${ref}"`);
   };
 
   private mergeHeads() {
     if (this.headRefs.size <= 1) {
       return;
     }
-    mergeHeadNodes(
+    mergeHeads(
       Array.from(this.headRefs),
-      this.getNode,
+      this.getCommit,
       (baseRef, leftRef, rightRef) => {
         const base =
-          baseRef !== undefined ? this.getNodeState(baseRef) : undefined;
-        const left = this.getNodeState(leftRef);
-        const right = this.getNodeState(rightRef);
+          baseRef !== undefined ? this.getCommitState(baseRef) : undefined;
+        const left = this.getCommitState(leftRef);
+        const right = this.getCommitState(rightRef);
         // TODO: we likely need to normalize left/right
         const { value, editMetadata } = this.differ.merge(base, left, right);
         return this.addNewCommit(value, editMetadata, left, rightRef, baseRef);
       },
     );
     // TODO: update PresenceState(s) based on this merge
-    // TODO: can we clear out nodes we don't need anymore?
+    // TODO: can we clear out commits we don't need anymore?
   }
 
   private emitClientListChange() {
@@ -260,36 +260,36 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     this.syncStateSubs.emitChange();
   }
   private addCommit(
-    node: Commit<EditMetadata, Delta>,
+    commit: Commit<EditMetadata, Delta>,
     createdLocally: boolean,
   ): void {
-    const { ref, baseRef, mergeRef } = node;
+    const { ref, baseRef, mergeRef } = commit;
     if (this.commits.has(ref)) {
       console.warn(
-        `[TRIMERGE-SYNC] skipping add node ${ref}, base ${baseRef}, merge ${mergeRef} (createdLocally=${createdLocally})`,
+        `[TRIMERGE-SYNC] skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (createdLocally=${createdLocally})`,
       );
       return;
     }
-    this.commits.set(ref, node);
+    this.commits.set(ref, commit);
     if (baseRef !== undefined) {
       if (!this.commits.has(baseRef)) {
-        throw new Error(`unknown baseRef node ${baseRef}`);
+        throw new Error(`unknown baseRef ${baseRef}`);
       }
       this.headRefs.delete(baseRef);
     }
     if (mergeRef !== undefined) {
       if (!this.commits.has(mergeRef)) {
-        throw new Error(`unknown mergeRef node ${mergeRef}`);
+        throw new Error(`unknown mergeRef ${mergeRef}`);
       }
       this.headRefs.delete(mergeRef);
     }
     this.headRefs.add(ref);
     const currentRef = this.current?.ref;
-    if (currentRef === node.baseRef || currentRef === node.mergeRef) {
-      this.current = this.getNodeState(node.ref);
+    if (currentRef === commit.baseRef || currentRef === commit.mergeRef) {
+      this.current = this.getCommitState(commit.ref);
     }
     if (createdLocally) {
-      this.unsyncedCommits.push(node);
+      this.unsyncedCommits.push(commit);
     }
   }
 

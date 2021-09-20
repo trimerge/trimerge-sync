@@ -35,7 +35,7 @@ function makeTrimergeClient(): {
 }
 
 describe('TrimergeClient', () => {
-  it('handles bad getNode', async () => {
+  it('handles bad getCommit', async () => {
     const { client } = makeTrimergeClient();
     client.updateState('hello', 'hi');
     client.updateState('hello2', 'hi');
@@ -43,11 +43,11 @@ describe('TrimergeClient', () => {
     await timeout(100);
   });
 
-  it('handles event with invalid node baseRef', async () => {
+  it('handles event with invalid baseRef', async () => {
     const { onEvent } = makeTrimergeClient();
     expect(() =>
       onEvent({
-        type: 'nodes',
+        type: 'commits',
         commits: [
           {
             clientId: '',
@@ -58,13 +58,13 @@ describe('TrimergeClient', () => {
           },
         ],
       }),
-    ).toThrowErrorMatchingInlineSnapshot(`"unknown baseRef node unknown"`);
+    ).toThrowErrorMatchingInlineSnapshot(`"unknown baseRef unknown"`);
   });
-  it('handles event with invalid node mergeRef', async () => {
+  it('handles event with invalid mergeRef', async () => {
     const { onEvent } = makeTrimergeClient();
     expect(() =>
       onEvent({
-        type: 'nodes',
+        type: 'commits',
         commits: [
           {
             clientId: '',
@@ -75,7 +75,7 @@ describe('TrimergeClient', () => {
           },
         ],
       }),
-    ).toThrowErrorMatchingInlineSnapshot(`"unknown mergeRef node unknown"`);
+    ).toThrowErrorMatchingInlineSnapshot(`"unknown mergeRef unknown"`);
   });
 
   it('handles internal error', async () => {

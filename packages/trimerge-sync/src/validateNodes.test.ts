@@ -1,4 +1,7 @@
-import { addInvalidRefsToAckEvent, validateCommitOrder } from './validateNodes';
+import {
+  addInvalidRefsToAckEvent,
+  validateCommitOrder,
+} from './validateCommits';
 import type { AckCommitsEvent, Commit } from 'trimerge-sync';
 
 function simpleCommit(
@@ -225,7 +228,7 @@ describe('validateCommitOrder', () => {
   });
 });
 
-describe('addInvalidNodesToAckEvent', () => {
+describe('addInvalidRefsToAckEvent', () => {
   it('adds no commits', () => {
     const ack: AckCommitsEvent = { type: 'ack', syncId: '', refs: [] };
     expect(addInvalidRefsToAckEvent(ack, new Set())).toBe(ack);

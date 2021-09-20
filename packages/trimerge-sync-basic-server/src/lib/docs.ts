@@ -43,7 +43,7 @@ export class LiveDoc {
     return {
       commits: {
         type: 'commits',
-        // Only broadcast the acknowledged nodes
+        // Only broadcast the acknowledged commits
         commits: event.commits.filter(({ ref }) => acks.has(ref)),
         syncId: ack.syncId,
         clientInfo: event.clientInfo,
