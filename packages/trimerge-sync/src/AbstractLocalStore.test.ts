@@ -64,6 +64,16 @@ describe('AbstractLocalStore', () => {
     const fn = jest.fn();
     const store = new MockLocalStore(fn);
     await store.update([], undefined);
-    expect(fn.mock.calls).toMatchInlineSnapshot(`Array []`);
+    expect(fn.mock.calls).toMatchInlineSnapshot(`
+Array [
+  Array [
+    Object {
+      "refs": Array [],
+      "syncId": "",
+      "type": "ack",
+    },
+  ],
+]
+`);
   });
 });

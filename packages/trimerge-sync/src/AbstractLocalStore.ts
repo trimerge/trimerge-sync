@@ -446,13 +446,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, PresenceState>
     if (this.closed) {
       return;
     }
-    this.localQueue
-      .add(() =>
-        this.doUpdate(commits, presence).catch(
-          this.handleAsError('invalid-commits'),
-        ),
-      )
-      .catch(this.handleAsError('internal'));
+    this.doUpdate(commits, presence).catch(
+      this.handleAsError('invalid-commits'),
+    );
   }
 
   private async doUpdate(
