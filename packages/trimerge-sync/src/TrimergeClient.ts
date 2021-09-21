@@ -258,6 +258,12 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
       this.syncPromise = this.doSync();
     }
   }
+
+  private updateSyncState(update: Partial<SyncStatus>) {
+    this.syncState = { ...this.syncState, ...update };
+    this.syncStateSubs.emitChange();
+  }
+
   private async doSync() {
     while (this.needsSync) {
       this.updateSyncState({ localSave: 'pending' });
@@ -273,10 +279,6 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     return true;
   }
 
-  private updateSyncState(update: Partial<SyncStatus>) {
-    this.syncState = { ...this.syncState, ...update };
-    this.syncStateSubs.emitChange();
-  }
   private addCommit(
     commit: Commit<EditMetadata, Delta>,
     createdLocally: boolean,
