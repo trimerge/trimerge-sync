@@ -1,13 +1,13 @@
 export type ErrorCode =
   | 'invalid-sync-id'
-  | 'invalid-nodes'
+  | 'invalid-commits'
   | 'internal'
   | 'disconnected'
   | 'network'
   | 'bad-request'
   | 'unauthorized';
 
-export type DiffNode<EditMetadata, Delta> = {
+export type Commit<EditMetadata, Delta> = {
   userId: string;
   clientId: string;
   ref: string;
@@ -37,7 +37,7 @@ export type RemoteReadStatus = 'offline' | 'loading' | 'ready';
 export type RemoteSaveStatus =
   | 'ready' /**  all local state has been synced to remote (though maybe local changes in memory) */
   | 'pending' /**  we have local state that hasn't been sent to remote yet (maybe offline) */
-  | 'saving' /**  we got an error back from remote when saving nodes  */
+  | 'saving' /**  we got an error back from remote when saving commits  */
   | 'error'; /**  we sent local state to remote, but haven't got `ack` yet */
 
 export type SyncStatus = {
@@ -79,9 +79,9 @@ export type InitEvent =
       auth: unknown;
     };
 
-export type NodesEvent<EditMetadata, Delta, PresenceState> = {
-  type: 'nodes';
-  nodes: readonly DiffNode<EditMetadata, Delta>[];
+export type CommitsEvent<EditMetadata, Delta, PresenceState> = {
+  type: 'commits';
+  commits: readonly Commit<EditMetadata, Delta>[];
   clientInfo?: ClientInfo<PresenceState>;
   syncId?: string;
 };
@@ -89,18 +89,18 @@ export type ReadyEvent = {
   type: 'ready';
 };
 
-export type AckNodeErrorCode =
-  | 'invalid-node'
+export type AckCommitErrorCode =
+  | 'invalid'
   | 'unknown-ref'
   | 'storage-failure'
   | 'internal';
 
-export type AckNodeError = {
-  code: AckNodeErrorCode;
+export type AckCommitError = {
+  code: AckCommitErrorCode;
   message?: string;
 };
-export type AckRefErrors = Record<string, AckNodeError>;
-export type AckNodesEvent = {
+export type AckRefErrors = Record<string, AckCommitError>;
+export type AckCommitsEvent = {
   type: 'ack';
   refs: readonly string[];
   refErrors?: AckRefErrors;
@@ -140,10 +140,10 @@ export type LeaderEvent = {
 };
 export type SyncEvent<EditMetadata, Delta, PresenceState> = Readonly<
   | InitEvent
-  | NodesEvent<EditMetadata, Delta, PresenceState>
+  | CommitsEvent<EditMetadata, Delta, PresenceState>
   | ReadyEvent
   | LeaderEvent
-  | AckNodesEvent
+  | AckCommitsEvent
   | ClientJoinEvent<PresenceState>
   | ClientPresenceEvent<PresenceState>
   | ClientLeaveEvent
@@ -176,7 +176,7 @@ export type GetRemoteFn<EditMetadata, Delta, PresenceState> = (
 
 export interface LocalStore<EditMetadata, Delta, PresenceState> {
   update(
-    nodes: DiffNode<EditMetadata, Delta>[],
+    commits: Commit<EditMetadata, Delta>[],
     presence: ClientPresenceRef<PresenceState> | undefined,
   ): void;
   isRemoteLeader: boolean;

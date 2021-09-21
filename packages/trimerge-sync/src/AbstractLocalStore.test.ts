@@ -1,15 +1,20 @@
 import { AbstractLocalStore } from './AbstractLocalStore';
-import { AckNodesEvent, NodesEvent, OnEventFn, RemoteSyncInfo } from './types';
+import {
+  AckCommitsEvent,
+  CommitsEvent,
+  OnEventFn,
+  RemoteSyncInfo,
+} from './types';
 
 class MockLocalStore extends AbstractLocalStore<unknown, unknown, unknown> {
   constructor(onEvent: OnEventFn<unknown, unknown, unknown> = () => undefined) {
     super('', '', onEvent);
   }
-  async acknowledgeRemoteNodes(): Promise<void> {
+  async acknowledgeRemoteCommits(): Promise<void> {
     //
   }
 
-  async addNodes(): Promise<AckNodesEvent> {
+  async addCommits(): Promise<AckCommitsEvent> {
     return { type: 'ack', refs: [], syncId: '' };
   }
 
@@ -21,14 +26,14 @@ class MockLocalStore extends AbstractLocalStore<unknown, unknown, unknown> {
     return { localStoreId: '', lastSyncCursor: undefined };
   }
 
-  async *getLocalNodes(): AsyncIterableIterator<
-    NodesEvent<unknown, unknown, unknown>
+  async *getLocalCommits(): AsyncIterableIterator<
+    CommitsEvent<unknown, unknown, unknown>
   > {
     //
   }
 
-  async *getNodesForRemote(): AsyncIterableIterator<
-    NodesEvent<unknown, unknown, unknown>
+  async *getCommitsForRemote(): AsyncIterableIterator<
+    CommitsEvent<unknown, unknown, unknown>
   > {
     //
   }
@@ -60,15 +65,15 @@ describe('AbstractLocalStore', () => {
     const store = new MockLocalStore(fn);
     await store.update([], undefined);
     expect(fn.mock.calls).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Object {
-            "refs": Array [],
-            "syncId": "",
-            "type": "ack",
-          },
-        ],
-      ]
-    `);
+Array [
+  Array [
+    Object {
+      "refs": Array [],
+      "syncId": "",
+      "type": "ack",
+    },
+  ],
+]
+`);
   });
 });

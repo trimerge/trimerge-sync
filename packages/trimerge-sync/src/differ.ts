@@ -15,19 +15,19 @@ export type PatchFn<State, Delta> = (
   delta: Delta | undefined,
 ) => State;
 
-export type NodeState<State, EditMetadata> = {
+export type CommitState<State, EditMetadata> = {
   value: State;
   editMetadata: EditMetadata;
 };
-export type NodeStateRef<State, EditMetadata> = {
+export type CommitStateRef<State, EditMetadata> = {
   ref: string;
-} & NodeState<State, EditMetadata>;
+} & CommitState<State, EditMetadata>;
 
 export type MergeStateFn<State, EditMetadata> = (
-  base: NodeStateRef<State, EditMetadata> | undefined,
-  left: NodeStateRef<State, EditMetadata>,
-  right: NodeStateRef<State, EditMetadata>,
-) => NodeState<State, EditMetadata>;
+  base: CommitStateRef<State, EditMetadata> | undefined,
+  left: CommitStateRef<State, EditMetadata>,
+  right: CommitStateRef<State, EditMetadata>,
+) => CommitState<State, EditMetadata>;
 
 export interface Differ<State, EditMetadata, Delta> {
   /** Calculate the ref string for a given edit */

@@ -38,9 +38,9 @@ function basicGraph(
   >,
 ) {
   return getBasicGraph(
-    store.getNodes(),
-    (node) => node.editMetadata,
-    (node) => client1.getNodeState(node.ref).value,
+    store.getCommits(),
+    (commit) => commit.editMetadata,
+    (commit) => client1.getCommitState(commit.ref).value,
   );
 }
 
@@ -54,9 +54,9 @@ function dotGraph(
   >,
 ) {
   return getDotGraph(
-    store.getNodes(),
-    (node) => client1.getNodeState(node.ref).value,
-    (node) => node.editMetadata,
+    store.getCommits(),
+    (commit) => client1.getCommitState(commit.ref).value,
+    (commit) => commit.editMetadata,
   );
 }
 

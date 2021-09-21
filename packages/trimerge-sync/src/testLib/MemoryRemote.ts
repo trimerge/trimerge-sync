@@ -1,8 +1,8 @@
 import {
-  AckNodesEvent,
-  DiffNode,
+  AckCommitsEvent,
+  Commit,
   ErrorCode,
-  NodesEvent,
+  CommitsEvent,
   OnEventFn,
   Remote,
   RemoteSyncInfo,
@@ -37,9 +37,9 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
       return;
     }
     switch (event.type) {
-      case 'nodes':
-        // FIXME: check for nodes with wrong userId
-        const ack = await this.addNodes(event.nodes);
+      case 'commits':
+        // FIXME: check for commits with wrong userId
+        const ack = await this.addCommits(event.commits);
         await this.onEvent(ack);
         await this.broadcast({ ...event, syncId: ack.syncId });
         break;
@@ -72,7 +72,7 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
   ): Promise<void> {
     this.onEvent({ type: 'remote-state', connect: 'online' });
 
-    for await (const event of this.getNodes(lastSyncCursor)) {
+    for await (const event of this.getCommits(lastSyncCursor)) {
       this.onEvent(event);
     }
     this.onEvent({ type: 'ready' });
@@ -100,10 +100,10 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
   protected handleAsError(code: ErrorCode) {
     return (error: Error) => this.fail(error.message, code);
   }
-  protected addNodes(
-    nodes: readonly DiffNode<EditMetadata, Delta>[],
-  ): Promise<AckNodesEvent> {
-    return this.store.addNodes(nodes);
+  protected addCommits(
+    commits: readonly Commit<EditMetadata, Delta>[],
+  ): Promise<AckCommitsEvent> {
+    return this.store.addCommits(commits);
   }
 
   protected async broadcast(
@@ -121,9 +121,9 @@ export class MemoryRemote<EditMetadata, Delta, PresenceState>
     }
   }
 
-  protected async *getNodes(
+  protected async *getCommits(
     lastSyncCursor: string | undefined,
-  ): AsyncIterableIterator<NodesEvent<EditMetadata, Delta, PresenceState>> {
-    yield await this.store.getLocalNodesEvent(lastSyncCursor);
+  ): AsyncIterableIterator<CommitsEvent<EditMetadata, Delta, PresenceState>> {
+    yield await this.store.getLocalCommitsEvent(lastSyncCursor);
   }
 }

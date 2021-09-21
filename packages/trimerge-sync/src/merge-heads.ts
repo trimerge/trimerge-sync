@@ -1,4 +1,4 @@
-export type MergableNode = {
+export type MergableCommit = {
   ref: string;
   baseRef?: string;
   mergeRef?: string;
@@ -10,7 +10,7 @@ type Visitor = {
   seenRefs: Set<string>;
 };
 
-export type MergeNodeFn = (
+export type MergeCommitsFn = (
   baseRef: string | undefined,
   leftRef: string,
   rightRef: string,
@@ -18,16 +18,16 @@ export type MergeNodeFn = (
 ) => string;
 
 /**
- * This function walks up the tree starting at the nodes in a breadth-first manner, merging nodes as common ancestors are found.
+ * This function walks up the tree starting at the commits in a breadth-first manner, merging commits as common ancestors are found.
  *
- * Those merged nodes then continue to be merged together until there is just one head node left.
+ * Those merged commits then continue to be merged together until there is just one head commit left.
  *
- * If there are completely un-connected nodes, these will be merged with base === undefined
+ * If there are completely un-connected commits, these will be merged with base === undefined
  */
-export function mergeHeadNodes<N extends MergableNode>(
+export function mergeHeads<N extends MergableCommit>(
   refs: string[],
-  getNode: (ref: string) => N,
-  merge: MergeNodeFn,
+  getCommit: (ref: string) => N,
+  merge: MergeCommitsFn,
 ): string | undefined {
   refs.sort();
   const visitors = refs.map(
@@ -61,39 +61,39 @@ export function mergeHeadNodes<N extends MergableNode>(
 
   // Use inner function because we want to be able to break out of 3 levels of for loop
   function iterate(): boolean {
-    let hasNodes = false;
+    let hasCommits = false;
     for (let i = 0; i < visitors.length; i++) {
       const leaf = visitors[i];
-      const nextNodeRefs = new Set<string>();
-      for (const nodeRef of leaf.current) {
+      const nextCommitRefs = new Set<string>();
+      for (const commitRef of leaf.current) {
         for (let j = 0; j < visitors.length; j++) {
-          if (j !== i && visitors[j].seenRefs.has(nodeRef)) {
-            mergeVisitors(i, j, nodeRef);
+          if (j !== i && visitors[j].seenRefs.has(commitRef)) {
+            mergeVisitors(i, j, commitRef);
             return true;
           }
         }
-        const { baseRef, mergeRef } = getNode(nodeRef);
+        const { baseRef, mergeRef } = getCommit(commitRef);
         if (baseRef !== undefined) {
-          nextNodeRefs.add(baseRef);
+          nextCommitRefs.add(baseRef);
           leaf.seenRefs.add(baseRef);
-          hasNodes = true;
+          hasCommits = true;
         }
         if (mergeRef !== undefined) {
-          nextNodeRefs.add(mergeRef);
+          nextCommitRefs.add(mergeRef);
           leaf.seenRefs.add(mergeRef);
-          hasNodes = true;
+          hasCommits = true;
         }
-        leaf.current = nextNodeRefs;
+        leaf.current = nextCommitRefs;
       }
     }
     depth++;
-    return hasNodes;
+    return hasCommits;
   }
 
   while (iterate());
 
   if (visitors.length > 1) {
-    // If we still have multiple visitors, we have unconnected root nodes (undefined baseRef)
+    // If we still have multiple visitors, we have unconnected root commits (undefined baseRef)
     // Sort them deterministically and merge from left to right: e.g. merge(merge(merge(0,1),2),3)
     visitors.sort((a, b) => (a.ref < b.ref ? -1 : 1));
     while (visitors.length > 1) {

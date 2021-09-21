@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 
-import type { DiffNode, GetRemoteFn } from 'trimerge-sync';
+import type { Commit, GetRemoteFn } from 'trimerge-sync';
 import { TrimergeClient } from 'trimerge-sync';
 import {
   createIndexedDbBackendFactory,
@@ -9,7 +9,7 @@ import {
 } from './trimerge-indexed-db';
 import { differ } from './testLib/BasicDiffer';
 import { timeout } from './lib/timeout';
-import { getMockRemote, getMockRemoteForNodes } from './testLib/MockRemote';
+import { getMockRemote, getMockRemoteForCommits } from './testLib/MockRemote';
 import { dumpDatabase, getIdbDatabases } from './testLib/IndexedDB';
 
 function makeTestClient(
@@ -56,46 +56,46 @@ describe('createIndexedDbBackendFactory', () => {
     await client.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-      Object {
-        "heads": Array [
-          Object {
-            "ref": "r4VLd8ne",
-          },
-        ],
-        "nodes": Array [
-          Object {
-            "baseRef": undefined,
-            "clientId": "1",
-            "delta": Array [
-              "hello",
-            ],
-            "editMetadata": "",
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
-            "ref": "W04IBhus",
-            "remoteSyncId": "",
-            "syncId": 1,
-            "userId": "test",
-          },
-          Object {
-            "baseRef": "W04IBhus",
-            "clientId": "1",
-            "delta": Array [
-              "hello",
-              "hello there",
-            ],
-            "editMetadata": "",
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
-            "ref": "r4VLd8ne",
-            "remoteSyncId": "",
-            "syncId": 2,
-            "userId": "test",
-          },
-        ],
-        "remotes": Array [],
-      }
-    `);
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": undefined,
+      "clientId": "1",
+      "delta": Array [
+        "hello",
+      ],
+      "editMetadata": "",
+      "mergeBaseRef": undefined,
+      "mergeRef": undefined,
+      "ref": "W04IBhus",
+      "remoteSyncId": "",
+      "syncId": 1,
+      "userId": "test",
+    },
+    Object {
+      "baseRef": "W04IBhus",
+      "clientId": "1",
+      "delta": Array [
+        "hello",
+        "hello there",
+      ],
+      "editMetadata": "",
+      "mergeBaseRef": undefined,
+      "mergeRef": undefined,
+      "ref": "r4VLd8ne",
+      "remoteSyncId": "",
+      "syncId": 2,
+      "userId": "test",
+    },
+  ],
+  "heads": Array [
+    Object {
+      "ref": "r4VLd8ne",
+    },
+  ],
+  "remotes": Array [],
+}
+`);
   });
 
   it('creates indexed db and can read it', async () => {
@@ -147,94 +147,94 @@ describe('createIndexedDbBackendFactory', () => {
     await client2.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-      Object {
-        "heads": Array [
-          Object {
-            "ref": "3vmxbFmH",
-          },
-        ],
-        "nodes": Array [
-          Object {
-            "baseRef": "JvrfzM9e",
-            "clientId": "2",
-            "delta": Array [
-              "hello there",
-              "oh hello there",
-            ],
-            "editMetadata": Object {
-              "message": "merge",
-              "ref": "(JvrfzM9e+Rofed6go)",
-            },
-            "mergeBaseRef": "GhP0VPg5",
-            "mergeRef": "Rofed6go",
-            "ref": "3vmxbFmH",
-            "remoteSyncId": "",
-            "syncId": 5,
-            "userId": "test",
-          },
-          Object {
-            "baseRef": "W04IBhus",
-            "clientId": "1",
-            "delta": Array [
-              "hello",
-              "hello world",
-            ],
-            "editMetadata": "",
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
-            "ref": "GhP0VPg5",
-            "remoteSyncId": "",
-            "syncId": 2,
-            "userId": "test",
-          },
-          Object {
-            "baseRef": "GhP0VPg5",
-            "clientId": "1",
-            "delta": Array [
-              "hello world",
-              "hello there",
-            ],
-            "editMetadata": "",
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
-            "ref": "JvrfzM9e",
-            "remoteSyncId": "",
-            "syncId": 3,
-            "userId": "test",
-          },
-          Object {
-            "baseRef": "GhP0VPg5",
-            "clientId": "2",
-            "delta": Array [
-              "hello world",
-              "oh hello",
-            ],
-            "editMetadata": "",
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
-            "ref": "Rofed6go",
-            "remoteSyncId": "",
-            "syncId": 4,
-            "userId": "test",
-          },
-          Object {
-            "baseRef": undefined,
-            "clientId": "1",
-            "delta": Array [
-              "hello",
-            ],
-            "editMetadata": "",
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
-            "ref": "W04IBhus",
-            "remoteSyncId": "",
-            "syncId": 1,
-            "userId": "test",
-          },
-        ],
-        "remotes": Array [],
-      }
-    `);
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": "JvrfzM9e",
+      "clientId": "2",
+      "delta": Array [
+        "hello there",
+        "oh hello there",
+      ],
+      "editMetadata": Object {
+        "message": "merge",
+        "ref": "(JvrfzM9e+Rofed6go)",
+      },
+      "mergeBaseRef": "GhP0VPg5",
+      "mergeRef": "Rofed6go",
+      "ref": "3vmxbFmH",
+      "remoteSyncId": "",
+      "syncId": 5,
+      "userId": "test",
+    },
+    Object {
+      "baseRef": "W04IBhus",
+      "clientId": "1",
+      "delta": Array [
+        "hello",
+        "hello world",
+      ],
+      "editMetadata": "",
+      "mergeBaseRef": undefined,
+      "mergeRef": undefined,
+      "ref": "GhP0VPg5",
+      "remoteSyncId": "",
+      "syncId": 2,
+      "userId": "test",
+    },
+    Object {
+      "baseRef": "GhP0VPg5",
+      "clientId": "1",
+      "delta": Array [
+        "hello world",
+        "hello there",
+      ],
+      "editMetadata": "",
+      "mergeBaseRef": undefined,
+      "mergeRef": undefined,
+      "ref": "JvrfzM9e",
+      "remoteSyncId": "",
+      "syncId": 3,
+      "userId": "test",
+    },
+    Object {
+      "baseRef": "GhP0VPg5",
+      "clientId": "2",
+      "delta": Array [
+        "hello world",
+        "oh hello",
+      ],
+      "editMetadata": "",
+      "mergeBaseRef": undefined,
+      "mergeRef": undefined,
+      "ref": "Rofed6go",
+      "remoteSyncId": "",
+      "syncId": 4,
+      "userId": "test",
+    },
+    Object {
+      "baseRef": undefined,
+      "clientId": "1",
+      "delta": Array [
+        "hello",
+      ],
+      "editMetadata": "",
+      "mergeBaseRef": undefined,
+      "mergeRef": undefined,
+      "ref": "W04IBhus",
+      "remoteSyncId": "",
+      "syncId": 1,
+      "userId": "test",
+    },
+  ],
+  "heads": Array [
+    Object {
+      "ref": "3vmxbFmH",
+    },
+  ],
+  "remotes": Array [],
+}
+`);
   });
 
   it('deletes indexed db with deleteDocDatabase', async () => {
@@ -301,63 +301,63 @@ describe('createIndexedDbBackendFactory', () => {
     await client1.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-      Object {
-        "heads": Array [
-          Object {
-            "ref": "lIKnl-vc",
-          },
-        ],
-        "nodes": Array [
-          Object {
-            "baseRef": undefined,
-            "clientId": "1",
-            "delta": Array [
-              "hello remote",
-            ],
-            "editMetadata": "",
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
-            "ref": "lIKnl-vc",
-            "remoteSyncId": "foo",
-            "syncId": 1,
-            "userId": "test",
-          },
-        ],
-        "remotes": Array [
-          Object {
-            "lastSyncCursor": "foo",
-            "localStoreId": "test-doc-store",
-          },
-        ],
-      }
-    `);
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": undefined,
+      "clientId": "1",
+      "delta": Array [
+        "hello remote",
+      ],
+      "editMetadata": "",
+      "mergeBaseRef": undefined,
+      "mergeRef": undefined,
+      "ref": "lIKnl-vc",
+      "remoteSyncId": "foo",
+      "syncId": 1,
+      "userId": "test",
+    },
+  ],
+  "heads": Array [
+    Object {
+      "ref": "lIKnl-vc",
+    },
+  ],
+  "remotes": Array [
+    Object {
+      "lastSyncCursor": "foo",
+      "localStoreId": "test-doc-store",
+    },
+  ],
+}
+`);
     await resetDocRemoteSyncData(docId);
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-      Object {
-        "heads": Array [
-          Object {
-            "ref": "lIKnl-vc",
-          },
-        ],
-        "nodes": Array [
-          Object {
-            "baseRef": undefined,
-            "clientId": "1",
-            "delta": Array [
-              "hello remote",
-            ],
-            "editMetadata": "",
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
-            "ref": "lIKnl-vc",
-            "remoteSyncId": "",
-            "syncId": 1,
-            "userId": "test",
-          },
-        ],
-        "remotes": Array [],
-      }
-    `);
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": undefined,
+      "clientId": "1",
+      "delta": Array [
+        "hello remote",
+      ],
+      "editMetadata": "",
+      "mergeBaseRef": undefined,
+      "mergeRef": undefined,
+      "ref": "lIKnl-vc",
+      "remoteSyncId": "",
+      "syncId": 1,
+      "userId": "test",
+    },
+  ],
+  "heads": Array [
+    Object {
+      "ref": "lIKnl-vc",
+    },
+  ],
+  "remotes": Array [],
+}
+`);
 
     const client2 = makeTestClient(
       'test',
@@ -371,36 +371,36 @@ describe('createIndexedDbBackendFactory', () => {
     expect(client2.state).toEqual('hello remote');
     await client2.shutdown();
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-      Object {
-        "heads": Array [
-          Object {
-            "ref": "lIKnl-vc",
-          },
-        ],
-        "nodes": Array [
-          Object {
-            "baseRef": undefined,
-            "clientId": "1",
-            "delta": Array [
-              "hello remote",
-            ],
-            "editMetadata": "",
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
-            "ref": "lIKnl-vc",
-            "remoteSyncId": "foo",
-            "syncId": 1,
-            "userId": "test",
-          },
-        ],
-        "remotes": Array [
-          Object {
-            "lastSyncCursor": "foo",
-            "localStoreId": "test-doc-store",
-          },
-        ],
-      }
-    `);
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": undefined,
+      "clientId": "1",
+      "delta": Array [
+        "hello remote",
+      ],
+      "editMetadata": "",
+      "mergeBaseRef": undefined,
+      "mergeRef": undefined,
+      "ref": "lIKnl-vc",
+      "remoteSyncId": "foo",
+      "syncId": 1,
+      "userId": "test",
+    },
+  ],
+  "heads": Array [
+    Object {
+      "ref": "lIKnl-vc",
+    },
+  ],
+  "remotes": Array [
+    Object {
+      "lastSyncCursor": "foo",
+      "localStoreId": "test-doc-store",
+    },
+  ],
+}
+`);
   });
 
   it('works offline then with remote', async () => {
@@ -428,51 +428,51 @@ describe('createIndexedDbBackendFactory', () => {
     await client2.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-      Object {
-        "heads": Array [
-          Object {
-            "ref": "_btn0pve",
-          },
-        ],
-        "nodes": Array [
-          Object {
-            "baseRef": "axg0ZCUR",
-            "clientId": "2",
-            "delta": Array [
-              "hello offline remote",
-              "hello online remote",
-            ],
-            "editMetadata": "",
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
-            "ref": "_btn0pve",
-            "remoteSyncId": "foo",
-            "syncId": 2,
-            "userId": "test",
-          },
-          Object {
-            "baseRef": undefined,
-            "clientId": "1",
-            "delta": Array [
-              "hello offline remote",
-            ],
-            "editMetadata": "",
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
-            "ref": "axg0ZCUR",
-            "remoteSyncId": "foo",
-            "syncId": 1,
-            "userId": "test",
-          },
-        ],
-        "remotes": Array [
-          Object {
-            "lastSyncCursor": "foo",
-            "localStoreId": "test-doc-store",
-          },
-        ],
-      }
-    `);
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": "axg0ZCUR",
+      "clientId": "2",
+      "delta": Array [
+        "hello offline remote",
+        "hello online remote",
+      ],
+      "editMetadata": "",
+      "mergeBaseRef": undefined,
+      "mergeRef": undefined,
+      "ref": "_btn0pve",
+      "remoteSyncId": "foo",
+      "syncId": 2,
+      "userId": "test",
+    },
+    Object {
+      "baseRef": undefined,
+      "clientId": "1",
+      "delta": Array [
+        "hello offline remote",
+      ],
+      "editMetadata": "",
+      "mergeBaseRef": undefined,
+      "mergeRef": undefined,
+      "ref": "axg0ZCUR",
+      "remoteSyncId": "foo",
+      "syncId": 1,
+      "userId": "test",
+    },
+  ],
+  "heads": Array [
+    Object {
+      "ref": "_btn0pve",
+    },
+  ],
+  "remotes": Array [
+    Object {
+      "lastSyncCursor": "foo",
+      "localStoreId": "test-doc-store",
+    },
+  ],
+}
+`);
   });
 
   it('works offline then with remote 2', async () => {
@@ -489,13 +489,13 @@ describe('createIndexedDbBackendFactory', () => {
     await timeout(100);
     await client.shutdown();
 
-    const nodes: DiffNode<any, any>[] = [];
+    const commits: Commit<any, any>[] = [];
     const client2 = makeTestClient(
       'test',
       '2',
       docId,
       'test-doc-store',
-      getMockRemoteForNodes(nodes),
+      getMockRemoteForCommits(commits),
     );
     // Wait for write
     await timeout(100);
@@ -513,7 +513,7 @@ Object {
 
     await client2.shutdown();
 
-    expect(nodes).toMatchInlineSnapshot(`
+    expect(commits).toMatchInlineSnapshot(`
 Array [
   Object {
     "baseRef": undefined,

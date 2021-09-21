@@ -23,12 +23,12 @@ function makeSqliteStore(docId: string) {
 describe('SqliteDocStore', () => {
   it('is created', async () => {
     const store = new SqliteDocStore('create_test', testDir);
-    expect(store.getNodesEvent().nodes).toEqual([]);
+    expect(store.getCommitsEvent().commits).toEqual([]);
   });
 
   it('is deleted', async () => {
     const store = new SqliteDocStore('delete_test', testDir);
-    expect(store.getNodesEvent().nodes).toEqual([]);
+    expect(store.getCommitsEvent().commits).toEqual([]);
     const filename = join(testDir, 'delete_test.sqlite');
     await expect(pathExists(filename)).resolves.toBe(true);
     await store.delete();
@@ -87,9 +87,9 @@ describe('SqliteDocStore', () => {
       }
     `);
 
-    expect(store.getNodesEvent()).toMatchInlineSnapshot(`
+    expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
       Object {
-        "nodes": Array [
+        "commits": Array [
           Object {
             "baseRef": undefined,
             "clientId": "client-1",
@@ -131,14 +131,14 @@ describe('SqliteDocStore', () => {
           },
         ],
         "syncId": "1970-01-01T00:00:00.001Z",
-        "type": "nodes",
+        "type": "commits",
       }
     `);
 
-    expect(store.getNodesEvent('1970-01-01T00:00:00.000Z'))
+    expect(store.getCommitsEvent('1970-01-01T00:00:00.000Z'))
       .toMatchInlineSnapshot(`
       Object {
-        "nodes": Array [
+        "commits": Array [
           Object {
             "baseRef": undefined,
             "clientId": "client-1",
@@ -152,7 +152,7 @@ describe('SqliteDocStore', () => {
           },
         ],
         "syncId": "1970-01-01T00:00:00.001Z",
-        "type": "nodes",
+        "type": "commits",
       }
     `);
   });

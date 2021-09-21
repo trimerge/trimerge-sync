@@ -1,15 +1,15 @@
-import type { AckNodesEvent, DiffNode, NodesEvent } from 'trimerge-sync';
+import type { AckCommitsEvent, Commit, CommitsEvent } from 'trimerge-sync';
+
+type PromiseOrValue<T> = Promise<T> | T;
 
 export interface DocStore {
-  getNodesEvent(
+  getCommitsEvent(
     lastSyncId?: string,
-  ):
-    | Promise<NodesEvent<unknown, unknown, unknown>>
-    | NodesEvent<unknown, unknown, unknown>;
+  ): PromiseOrValue<CommitsEvent<unknown, unknown, unknown>>;
 
   add(
-    nodes: readonly DiffNode<unknown, unknown>[],
-  ): Promise<AckNodesEvent> | AckNodesEvent;
+    commits: readonly Commit<unknown, unknown>[],
+  ): PromiseOrValue<AckCommitsEvent>;
 
   close(): void;
 }

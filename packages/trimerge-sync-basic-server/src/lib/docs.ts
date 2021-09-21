@@ -1,9 +1,6 @@
 import { Connection } from './connection';
-import type { AckNodesEvent, NodesEvent } from 'trimerge-sync';
-import {
-  addInvalidNodesToAckEvent,
-  validateDiffNodeOrder,
-} from 'trimerge-sync';
+import type { AckCommitsEvent, CommitsEvent } from 'trimerge-sync';
+import { validateCommitOrder, addInvalidRefsToAckEvent } from 'trimerge-sync';
 import { DocStore } from '../DocStore';
 
 export class LiveDoc {
@@ -33,21 +30,21 @@ export class LiveDoc {
     this.store.close();
   }
 
-  async addNodes(event: NodesEvent<unknown, unknown, unknown>): Promise<{
-    nodes: NodesEvent<unknown, unknown, unknown>;
-    ack: AckNodesEvent;
+  async addCommits(event: CommitsEvent<unknown, unknown, unknown>): Promise<{
+    commits: CommitsEvent<unknown, unknown, unknown>;
+    ack: AckCommitsEvent;
   }> {
-    const { newNodes, invalidNodeRefs } = validateDiffNodeOrder(event.nodes);
-    const ack = addInvalidNodesToAckEvent(
-      await this.store.add(newNodes),
-      invalidNodeRefs,
+    const { newCommits, invalidRefs } = validateCommitOrder(event.commits);
+    const ack = addInvalidRefsToAckEvent(
+      await this.store.add(newCommits),
+      invalidRefs,
     );
     const acks = new Set(ack.refs);
     return {
-      nodes: {
-        type: 'nodes',
-        // Only broadcast the acknowledged nodes
-        nodes: event.nodes.filter(({ ref }) => acks.has(ref)),
+      commits: {
+        type: 'commits',
+        // Only broadcast the acknowledged commits
+        commits: event.commits.filter(({ ref }) => acks.has(ref)),
         syncId: ack.syncId,
         clientInfo: event.clientInfo,
       },

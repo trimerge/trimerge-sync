@@ -1,26 +1,26 @@
-import { MergableNode, mergeHeadNodes, MergeNodeFn } from './merge-nodes';
+import { MergableCommit, mergeHeads, MergeCommitsFn } from './merge-heads';
 
-const basicMerge: MergeNodeFn = (baseRef, leftRef, rightRef) => {
+const basicMerge: MergeCommitsFn = (baseRef, leftRef, rightRef) => {
   return `(${baseRef ?? '-'}:${leftRef}+${rightRef})`;
 };
 
-function makeGetNodeFn(nodes: MergableNode[]) {
-  const map = new Map<string, MergableNode>();
-  for (const node of nodes) {
-    map.set(node.ref, node);
+function makeGetCommitFn(commits: MergableCommit[]) {
+  const map = new Map<string, MergableCommit>();
+  for (const commit of commits) {
+    map.set(commit.ref, commit);
   }
   return (ref: string) => {
-    const node = map.get(ref);
-    if (!node) {
+    const commit = map.get(ref);
+    if (!commit) {
       throw new Error('unknown ref ' + ref);
     }
-    return node;
+    return commit;
   };
 }
 
-describe('mergeHeadNodes()', () => {
-  it('find no common parent for two nodes', () => {
-    const getNode = makeGetNodeFn([
+describe('mergeHeads()', () => {
+  it('find no common parent for two commits', () => {
+    const getCommit = makeGetCommitFn([
       { ref: 'foo' },
       { ref: 'foo1', baseRef: 'foo' },
       { ref: 'foo2', baseRef: 'foo1' },
@@ -31,20 +31,20 @@ describe('mergeHeadNodes()', () => {
       { ref: 'bar3', baseRef: 'bar2' },
     ]);
     const mergeFn = jest.fn(basicMerge);
-    expect(mergeHeadNodes(['foo3', 'bar3'], getNode, mergeFn)).toEqual(
+    expect(mergeHeads(['foo3', 'bar3'], getCommit, mergeFn)).toEqual(
       '(-:bar3+foo3)',
     );
     expect(mergeFn.mock.calls).toEqual([[undefined, 'bar3', 'foo3', 4]]);
   });
 
-  it('find no common parent for three nodes', () => {
-    const getNode = makeGetNodeFn([
+  it('find no common parent for three commits', () => {
+    const getCommit = makeGetCommitFn([
       { ref: 'foo' },
       { ref: 'bar' },
       { ref: 'baz' },
     ]);
     const mergeFn = jest.fn(basicMerge);
-    expect(mergeHeadNodes(['foo', 'bar', 'baz'], getNode, mergeFn)).toEqual(
+    expect(mergeHeads(['foo', 'bar', 'baz'], getCommit, mergeFn)).toEqual(
       '(-:(-:bar+baz)+foo)',
     );
     expect(mergeFn.mock.calls).toEqual([
@@ -53,15 +53,15 @@ describe('mergeHeadNodes()', () => {
     ]);
   });
 
-  it('find no common parent for two trees, requiring a vistor sort', () => {
-    const getNode = makeGetNodeFn([
+  it('find no common parent for two trees, requiring a visitor sort', () => {
+    const getCommit = makeGetCommitFn([
       { ref: 'foo' },
       { ref: 'fooA', baseRef: 'bar' },
       { ref: 'fooB', baseRef: 'bar' },
       { ref: 'bar' },
     ]);
     const mergeFn = jest.fn(basicMerge);
-    expect(mergeHeadNodes(['fooA', 'fooB', 'foo'], getNode, mergeFn)).toEqual(
+    expect(mergeHeads(['fooA', 'fooB', 'foo'], getCommit, mergeFn)).toEqual(
       '(-:(bar:fooA+fooB)+foo)',
     );
     expect(mergeFn.mock.calls).toEqual([
@@ -71,42 +71,42 @@ describe('mergeHeadNodes()', () => {
   });
 
   it('basic merge', () => {
-    const getNode = makeGetNodeFn([
+    const getCommit = makeGetCommitFn([
       { ref: 'root' },
       { ref: 'foo', baseRef: 'root' },
       { ref: 'bar', baseRef: 'root' },
     ]);
     const mergeFn = jest.fn(basicMerge);
-    expect(mergeHeadNodes(['foo', 'bar'], getNode, mergeFn)).toEqual(
+    expect(mergeHeads(['foo', 'bar'], getCommit, mergeFn)).toEqual(
       '(root:bar+foo)',
     );
     expect(mergeFn.mock.calls).toEqual([['root', 'bar', 'foo', 1]]);
   });
 
   it('invalid merge with base as merge', () => {
-    const getNode = makeGetNodeFn([
+    const getCommit = makeGetCommitFn([
       { ref: 'root' },
       { ref: 'foo', baseRef: 'root' },
     ]);
     const mergeFn = jest.fn(basicMerge);
     expect(() =>
-      mergeHeadNodes(['root', 'foo'], getNode, mergeFn),
+      mergeHeads(['root', 'foo'], getCommit, mergeFn),
     ).toThrowErrorMatchingInlineSnapshot(
       `"unexpected merge with base === left/right"`,
     );
   });
 
-  it('handles no head nodes', () => {
-    const getNode = makeGetNodeFn([
+  it('handles no head commits', () => {
+    const getCommit = makeGetCommitFn([
       { ref: 'root' },
       { ref: 'foo', baseRef: 'root' },
     ]);
     const mergeFn = jest.fn(basicMerge);
-    expect(mergeHeadNodes([], getNode, mergeFn)).toBeUndefined();
+    expect(mergeHeads([], getCommit, mergeFn)).toBeUndefined();
   });
 
   it('find common parent on v split', () => {
-    const getNode = makeGetNodeFn([
+    const getCommit = makeGetCommitFn([
       { ref: 'root' },
       { ref: 'foo', baseRef: 'root' },
       { ref: 'foo1', baseRef: 'foo' },
@@ -116,7 +116,7 @@ describe('mergeHeadNodes()', () => {
       { ref: 'bar2', baseRef: 'bar1' },
     ]);
     const mergeFn = jest.fn(basicMerge);
-    expect(mergeHeadNodes(['foo2', 'bar2'], getNode, mergeFn)).toEqual(
+    expect(mergeHeads(['foo2', 'bar2'], getCommit, mergeFn)).toEqual(
       '(root:bar2+foo2)',
     );
     expect(mergeFn.mock.calls).toEqual([['root', 'bar2', 'foo2', 3]]);
@@ -126,9 +126,9 @@ describe('mergeHeadNodes()', () => {
     const foo = { ref: 'foo', baseRef: 'root' };
     const bar = { ref: 'bar', baseRef: 'root' };
     const baz = { ref: 'baz', baseRef: 'root' };
-    const getNode = makeGetNodeFn([root, foo, bar, baz]);
+    const getCommit = makeGetCommitFn([root, foo, bar, baz]);
     const mergeFn = jest.fn(basicMerge);
-    expect(mergeHeadNodes(['foo', 'bar', 'baz'], getNode, mergeFn)).toEqual(
+    expect(mergeHeads(['foo', 'bar', 'baz'], getCommit, mergeFn)).toEqual(
       '(root:(root:bar+baz)+foo)',
     );
     expect(mergeFn.mock.calls).toEqual([
@@ -137,7 +137,7 @@ describe('mergeHeadNodes()', () => {
     ]);
   });
   it('find common parent on staggered three-way split', () => {
-    const getNode = makeGetNodeFn([
+    const getCommit = makeGetCommitFn([
       { ref: 'root' },
       { ref: 'foo', baseRef: 'root' },
       { ref: 'bar', baseRef: 'root' },
@@ -145,7 +145,7 @@ describe('mergeHeadNodes()', () => {
       { ref: 'baz1', baseRef: 'baz' },
     ]);
     const mergeFn = jest.fn(basicMerge);
-    expect(mergeHeadNodes(['foo', 'bar', 'baz1'], getNode, mergeFn)).toEqual(
+    expect(mergeHeads(['foo', 'bar', 'baz1'], getCommit, mergeFn)).toEqual(
       '(root:(root:bar+foo)+baz1)',
     );
     expect(mergeFn.mock.calls).toEqual([
@@ -154,7 +154,7 @@ describe('mergeHeadNodes()', () => {
     ]);
   });
   it('find common parent on staggered threeway split 2', () => {
-    const getNode = makeGetNodeFn([
+    const getCommit = makeGetCommitFn([
       { ref: 'root' },
       { ref: 'foo', baseRef: 'root' },
       { ref: 'foo1', baseRef: 'foo' },
@@ -163,7 +163,7 @@ describe('mergeHeadNodes()', () => {
       { ref: 'baz', baseRef: 'bar' },
     ]);
     const mergeFn = jest.fn(basicMerge);
-    expect(mergeHeadNodes(['foo', 'bar1', 'baz'], getNode, mergeFn)).toEqual(
+    expect(mergeHeads(['foo', 'bar1', 'baz'], getCommit, mergeFn)).toEqual(
       '(root:(bar:bar1+baz)+foo)',
     );
     expect(mergeFn.mock.calls).toEqual([

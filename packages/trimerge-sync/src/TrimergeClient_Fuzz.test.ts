@@ -28,22 +28,6 @@ function makeClient(
   return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
 }
 
-function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
-  clientA: TrimergeClient<
-    TestState,
-    TestEditMetadata,
-    Delta,
-    TestPresenceState
-  >,
-) {
-  return getBasicGraph(
-    store.getNodes(),
-    (node) => node.editMetadata.message,
-    (node) => clientA.getNodeState(node.ref).value,
-  );
-}
-
 describe('TrimergeClient Fuzz', () => {
   it('simultaneous edit', async () => {
     const store = newStore();

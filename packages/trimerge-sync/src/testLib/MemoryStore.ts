@@ -1,9 +1,9 @@
 import {
-  AckNodesEvent,
-  DiffNode,
+  AckCommitsEvent,
+  Commit,
   GetLocalStoreFn,
   GetRemoteFn,
-  NodesEvent,
+  CommitsEvent,
   RemoteSyncInfo,
 } from '../types';
 import generate from 'project-name-generator';
@@ -22,9 +22,9 @@ function randomId() {
 export class MemoryStore<EditMetadata, Delta, PresenceState> {
   public readonly remotes: MemoryRemote<EditMetadata, Delta, PresenceState>[] =
     [];
-  private nodes: DiffNode<EditMetadata, Delta>[] = [];
-  private localNodeRefs = new Set<string>();
-  private syncedNodes = new Set<string>();
+  private commits: Commit<EditMetadata, Delta>[] = [];
+  private localCommitRefs = new Set<string>();
+  private syncedCommits = new Set<string>();
   private readonly localStoreId = randomId();
   private lastRemoteSyncCursor: string | undefined;
   private queue = new PromiseQueue();
@@ -46,12 +46,12 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     public online = true,
   ) {}
 
-  public getNodes(): readonly DiffNode<EditMetadata, Delta>[] {
-    return this.nodes;
+  public getCommits(): readonly Commit<EditMetadata, Delta>[] {
+    return this.commits;
   }
 
   private get syncCursor(): string {
-    return this.nodes.length.toString(36);
+    return this.commits.length.toString(36);
   }
 
   public set localNetworkPaused(paused: boolean) {
@@ -89,23 +89,23 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     return be;
   };
 
-  addNodes(
-    nodes: readonly DiffNode<EditMetadata, Delta>[],
+  addCommits(
+    commits: readonly Commit<EditMetadata, Delta>[],
     remoteSyncId?: string,
-  ): Promise<AckNodesEvent> {
+  ): Promise<AckCommitsEvent> {
     return this.queue.add(async () => {
       const refs = new Set<string>();
-      for (const node of nodes) {
-        const { ref } = node;
-        if (!this.localNodeRefs.has(ref)) {
-          this.nodes.push(node);
-          this.localNodeRefs.add(ref);
+      for (const commit of commits) {
+        const { ref } = commit;
+        if (!this.localCommitRefs.has(ref)) {
+          this.commits.push(commit);
+          this.localCommitRefs.add(ref);
         }
         refs.add(ref);
       }
       if (remoteSyncId !== undefined) {
-        for (const { ref } of nodes) {
-          this.syncedNodes.add(ref);
+        for (const { ref } of commits) {
+          this.syncedCommits.add(ref);
         }
         this.lastRemoteSyncCursor = remoteSyncId;
       }
@@ -116,27 +116,27 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
       };
     });
   }
-  async acknowledgeNodes(
+  async acknowledgeCommits(
     refs: readonly string[],
     remoteSyncId: string,
   ): Promise<void> {
     return this.queue.add(async () => {
       for (const ref of refs) {
-        this.syncedNodes.add(ref);
+        this.syncedCommits.add(ref);
       }
       this.lastRemoteSyncCursor = remoteSyncId;
     });
   }
 
-  getLocalNodesEvent(
+  getLocalCommitsEvent(
     startSyncCursor?: string,
-  ): Promise<NodesEvent<EditMetadata, Delta, PresenceState>> {
+  ): Promise<CommitsEvent<EditMetadata, Delta, PresenceState>> {
     return this.queue.add(async () => ({
-      type: 'nodes',
-      nodes:
+      type: 'commits',
+      commits:
         startSyncCursor !== undefined
-          ? this.nodes.slice(getSyncCounter(startSyncCursor))
-          : this.nodes,
+          ? this.commits.slice(getSyncCounter(startSyncCursor))
+          : this.commits,
       syncId: this.syncCursor,
     }));
   }
@@ -147,17 +147,17 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     }));
   }
 
-  async *getNodesForRemote(): AsyncIterableIterator<
-    NodesEvent<EditMetadata, Delta, PresenceState>
+  async *getCommitsForRemote(): AsyncIterableIterator<
+    CommitsEvent<EditMetadata, Delta, PresenceState>
   > {
-    const nodes = await this.queue.add(async () =>
-      this.nodes.filter(({ ref }) => !this.syncedNodes.has(ref)),
+    const commits = await this.queue.add(async () =>
+      this.commits.filter(({ ref }) => !this.syncedCommits.has(ref)),
     );
     const BATCH_SIZE = 5;
-    for (let i = 0; i < nodes.length; i += BATCH_SIZE) {
+    for (let i = 0; i < commits.length; i += BATCH_SIZE) {
       yield {
-        type: 'nodes',
-        nodes: nodes.slice(i, i + BATCH_SIZE),
+        type: 'commits',
+        commits: commits.slice(i, i + BATCH_SIZE),
       };
     }
   }
