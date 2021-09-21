@@ -26,7 +26,7 @@ function makeClient(
   userId: string,
   store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
 ): TrimergeClient<TestState, TestEditMetadata, Delta, TestPresenceState> {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, differ);
+  return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
 }
 
 function basicGraph(

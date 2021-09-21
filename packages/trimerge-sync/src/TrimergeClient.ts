@@ -12,6 +12,7 @@ import { mergeHeads } from './merge-heads';
 import { Differ, CommitStateRef } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
+import { timeout } from './lib/Timeout';
 
 export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
   private current?: CommitStateRef<State, EditMetadata>;
@@ -59,6 +60,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
       PresenceState
     >,
     private readonly differ: Differ<State, EditMetadata, Delta>,
+    private readonly bufferMs: number,
   ) {
     this.selfFullId = getFullId(userId, clientId);
     this.store = getLocalStore(userId, clientId, this.onEvent);
@@ -239,20 +241,36 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
     // TODO: can we clear out commits we don't need anymore?
   }
 
+  private syncPromise: Promise<boolean> | undefined;
+
   private emitClientListChange() {
     this.clientList = Array.from(this.clientMap.values());
     this.clientListSubs.emitChange();
   }
+
+  private get needsSync(): boolean {
+    return (
+      this.unsyncedCommits.length > 0 || this.newPresenceState !== undefined
+    );
+  }
   private sync(): void {
-    const commits = this.unsyncedCommits;
-    if (commits.length > 0 || this.newPresenceState !== undefined) {
+    if (!this.syncPromise && this.needsSync) {
+      this.syncPromise = this.doSync();
+    }
+  }
+  private async doSync() {
+    while (this.needsSync) {
       this.updateSyncState({ localSave: 'pending' });
+      await timeout(this.bufferMs);
+      const commits = this.unsyncedCommits;
       this.unsyncedCommits = [];
       this.updateSyncState({ localSave: 'saving' });
       this.store.update(commits, this.newPresenceState);
       this.newPresenceState = undefined;
     }
     this.updateSyncState({ localSave: 'ready' });
+    this.syncPromise = undefined;
+    return true;
   }
 
   private updateSyncState(update: Partial<SyncStatus>) {

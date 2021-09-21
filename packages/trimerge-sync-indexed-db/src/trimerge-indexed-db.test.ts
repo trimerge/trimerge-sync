@@ -35,6 +35,7 @@ function makeTestClient(
       },
     }),
     differ,
+    0,
   );
 }
 
@@ -150,7 +151,7 @@ Object {
   "commits": Array [
     Object {
       "baseRef": "JvrfzM9e",
-      "clientId": "1",
+      "clientId": "2",
       "delta": Array [
         "hello there",
         "oh hello there",
