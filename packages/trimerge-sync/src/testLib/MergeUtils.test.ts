@@ -1,4 +1,4 @@
-import { diff, patch } from './MergeUtils';
+import { diff, migrate, patch } from './MergeUtils';
 
 const A = { a: '1' };
 const B = { a: '2', b: true };
@@ -17,5 +17,12 @@ describe('patch', () => {
   });
   it('patches immutably', () => {
     expect(patch(A, undefined)).toBe(A);
+  });
+});
+
+describe('migrate', () => {
+  it('does nothing', () => {
+    const x = {};
+    expect(migrate(x)).toBe(x);
   });
 });

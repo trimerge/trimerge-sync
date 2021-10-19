@@ -7,7 +7,7 @@ import { migrate } from './testLib/MergeUtils';
 const differ: Differ<any, any, any, any> = {
   migrate,
   diff: () => null,
-  merge: () => ({ value: undefined, editMetadata: undefined }),
+  merge: () => ({ state: undefined, editMetadata: undefined }),
   patch: () => null,
   computeRef: () => 'hash',
 };
