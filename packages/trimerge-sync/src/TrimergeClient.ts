@@ -14,7 +14,13 @@ import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { timeout } from './lib/Timeout';
 
-export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
+export class TrimergeClient<
+  SavedState,
+  State extends SavedState,
+  EditMetadata,
+  Delta,
+  PresenceState,
+> {
   private current?: CommitStateRef<State, EditMetadata>;
   private lastLocalSyncId: string | undefined;
 
@@ -59,7 +65,7 @@ export class TrimergeClient<State, EditMetadata, Delta, PresenceState> {
       Delta,
       PresenceState
     >,
-    private readonly differ: Differ<State, EditMetadata, Delta>,
+    private readonly differ: Differ<SavedState, State, EditMetadata, Delta>,
     private readonly bufferMs: number,
   ) {
     this.selfFullId = getFullId(userId, clientId);

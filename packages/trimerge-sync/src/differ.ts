@@ -29,7 +29,18 @@ export type MergeStateFn<State, EditMetadata> = (
   right: CommitStateRef<State, EditMetadata>,
 ) => CommitState<State, EditMetadata>;
 
-export interface Differ<State, EditMetadata, Delta> {
+export type MigrateStateFn<SavedState, State extends SavedState> = (
+  state: SavedState | State,
+) => State;
+
+export interface Differ<
+  SavedState,
+  State extends SavedState,
+  EditMetadata,
+  Delta,
+> {
+  readonly migrate: MigrateStateFn<SavedState, State>;
+
   /** Calculate the ref string for a given edit */
   readonly computeRef: ComputeRefFn<Delta, EditMetadata>;
 

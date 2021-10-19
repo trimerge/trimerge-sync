@@ -13,6 +13,7 @@ jobs:
       - run: yarn --frozen-lockfile
       - run: yarn lint
       - run: yarn build-all
+      - run: yarn typecheck
       - run: yarn test-ci
         timeout-minutes: 5
       - run: yarn codecov

@@ -35,6 +35,11 @@ export function diff<T>(left: T, right: T) {
   return jdp.diff(left, right);
 }
 
+// Simple no-op migration for unit tests
+export function migrate<State>(state: State): State {
+  return state;
+}
+
 export function computeRef(
   baseRef: string | undefined,
   mergeRef: string | undefined,

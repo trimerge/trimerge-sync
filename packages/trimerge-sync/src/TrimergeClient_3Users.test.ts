@@ -2,14 +2,21 @@ import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
-import { diff, merge, patch } from './testLib/MergeUtils';
+import { diff, merge, migrate, patch } from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 
 type TestEditMetadata = { ref: string; message: string };
+type TestSavedState = any;
 type TestState = any;
 type TestPresenceState = any;
 
-const differ: Differ<TestState, TestEditMetadata, TestPresenceState> = {
+const differ: Differ<
+  TestSavedState,
+  TestState,
+  TestEditMetadata,
+  TestPresenceState
+> = {
+  migrate,
   diff,
   patch,
   computeRef: (baseRef, mergeRef, delta, editMetadata) => editMetadata.ref,
@@ -23,7 +30,13 @@ function newStore() {
 function makeClient(
   userId: string,
   store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
-): TrimergeClient<TestState, TestEditMetadata, Delta, TestPresenceState> {
+): TrimergeClient<
+  TestSavedState,
+  TestState,
+  TestEditMetadata,
+  Delta,
+  TestPresenceState
+> {
   return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
 }
 
@@ -34,6 +47,7 @@ function timeout() {
 function basicGraph(
   store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
   clientA: TrimergeClient<
+    TestSavedState,
     TestState,
     TestEditMetadata,
     Delta,

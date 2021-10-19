@@ -46,10 +46,17 @@ export function computeRef(
 }
 
 type TestEditMetadata = string;
+type TestSavedState = any;
 type TestState = any;
 type TestPresenceState = any;
 
-export const differ: Differ<TestState, TestEditMetadata, TestPresenceState> = {
+export const differ: Differ<
+  TestSavedState,
+  TestState,
+  TestEditMetadata,
+  TestPresenceState
+> = {
+  migrate: (state) => state,
   diff,
   patch,
   computeRef,

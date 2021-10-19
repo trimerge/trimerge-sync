@@ -34,10 +34,10 @@
   },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
   "dependencies": {
-    "@types/ws": "^7.4.7",
+    "@types/ws": "^8.2.0",
     "fs-extra": "^10.0.0",
     "trimerge-sync": "0.11.1",
-    "ws": "^8.2.2"
+    "ws": "^8.2.3"
   },
   "files": [
     "dist/**/*",
@@ -47,18 +47,18 @@
     "better-sqlite3": "^7.4.1"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "20.0.0",
-    "@rollup/plugin-node-resolve": "13.0.4",
+    "@rollup/plugin-commonjs": "21.0.0",
+    "@rollup/plugin-node-resolve": "13.0.6",
     "@types/better-sqlite3": "^7.4.0",
-    "@types/fs-extra": "^9.0.12",
+    "@types/fs-extra": "^9.0.13",
     "better-sqlite3": "^7.4.3",
     "jest": "27.0.6",
-    "rollup": "2.56.3",
+    "rollup": "2.58.0",
     "rollup-plugin-typescript2": "0.30.0",
     "trimerge-sync": "0.11.1",
-    "ts-node": "^10.2.1",
+    "ts-node": "^10.3.0",
     "ts-node-dev": "^1.1.8",
-    "typescript": "4.4.3"
+    "typescript": "4.4.4"
   },
   "jest": {
     "preset": "ts-jest",

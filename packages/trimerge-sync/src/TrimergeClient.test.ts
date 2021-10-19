@@ -2,8 +2,10 @@ import { TrimergeClient } from './TrimergeClient';
 import { timeout } from './lib/Timeout';
 import { OnEventFn, SyncEvent } from './types';
 import { Differ } from './differ';
+import { migrate } from './testLib/MergeUtils';
 
-const differ: Differ<any, any, any> = {
+const differ: Differ<any, any, any, any> = {
+  migrate,
   diff: () => null,
   merge: () => ({ value: undefined, editMetadata: undefined }),
   patch: () => null,
@@ -11,11 +13,11 @@ const differ: Differ<any, any, any> = {
 };
 
 function makeTrimergeClient(): {
-  client: TrimergeClient<any, any, any, any>;
+  client: TrimergeClient<any, any, any, any, any>;
   onEvent: OnEventFn<any, any, any>;
 } {
   let onEvent: OnEventFn<any, any, any> | undefined;
-  const client = new TrimergeClient<any, any, any, any>(
+  const client = new TrimergeClient(
     '',
     '',
     (userId, clientId, _onEvent) => {
