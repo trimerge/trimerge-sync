@@ -29,7 +29,7 @@ export const defaultState = {
 };
 
 export const differ: Differ<SavedState, AppState, string, Delta> = {
-  migrate: (state) => state,
+  migrate: (state, editMetadata) => ({ state, editMetadata }),
   diff,
   patch: (priorOrNext, delta) => patch(priorOrNext, delta) ?? defaultState,
   computeRef,

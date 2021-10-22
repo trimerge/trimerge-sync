@@ -6,7 +6,7 @@ import {
   trimergeString,
 } from 'trimerge';
 import { create, Delta } from 'jsondiffpatch';
-import { MergeStateFn } from '../differ';
+import { MergeStateFn, StateAndMetadata } from '../differ';
 import { produce } from 'immer';
 import { computeRef as computeShaRef } from 'trimerge-sync-hash';
 
@@ -36,8 +36,11 @@ export function diff<T>(left: T, right: T) {
 }
 
 // Simple no-op migration for unit tests
-export function migrate<State>(state: State): State {
-  return state;
+export function migrate<State, EditMetadata>(
+  state: State,
+  editMetadata: EditMetadata,
+): StateAndMetadata<State, EditMetadata> {
+  return { state, editMetadata };
 }
 
 export function computeRef(

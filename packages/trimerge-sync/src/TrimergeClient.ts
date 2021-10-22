@@ -237,17 +237,15 @@ export class TrimergeClient<
   private migrateCommit(
     commit: CommitState<SavedState, EditMetadata>,
   ): CommitState<State, EditMetadata> {
-    const migrated = this.differ.migrate(commit);
-    if (commit === migrated) {
-      return migrated;
-    }
-    const ref = this.addNewCommit(
-      migrated.state,
-      migrated.editMetadata,
-      true,
-      commit,
+    const { state, editMetadata } = this.differ.migrate(
+      commit.state,
+      commit.editMetadata,
     );
-    return { ref, ...migrated };
+    if (commit.state === state) {
+      return { ...commit, state };
+    }
+    const ref = this.addNewCommit(state, editMetadata, true, commit);
+    return { ref, state, editMetadata };
   }
 
   private mergeHeads() {

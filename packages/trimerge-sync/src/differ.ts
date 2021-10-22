@@ -38,8 +38,9 @@ export type MigrateStateFn<
   State extends SavedState,
   EditMetadata,
 > = (
-  state: CommitState<SavedState, EditMetadata>,
-) => CommitState<State, EditMetadata> | StateAndMetadata<State, EditMetadata>;
+  state: SavedState,
+  editMetadata: EditMetadata,
+) => StateAndMetadata<State, EditMetadata>;
 
 export interface Differ<
   SavedState,
