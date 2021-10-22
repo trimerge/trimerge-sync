@@ -57,7 +57,7 @@ export const differ: Differ<
   TestEditMetadata,
   TestPresenceState
 > = {
-  migrate: (state) => state,
+  migrate: (state, editMetadata) => ({ state, editMetadata }),
   diff,
   patch,
   computeRef,
