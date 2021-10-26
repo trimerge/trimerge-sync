@@ -23,7 +23,7 @@ describe('merge', () => {
           "message": "merge",
           "ref": "(1+2)",
         },
-        "value": "hithere",
+        "state": "hithere",
       }
     `);
   });
@@ -40,7 +40,7 @@ describe('merge', () => {
           "message": "merge",
           "ref": "(2+3)",
         },
-        "value": "h thereello",
+        "state": "h thereello",
       }
     `);
   });

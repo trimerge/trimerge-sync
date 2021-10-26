@@ -22,7 +22,6 @@ export const merge: MergeStateFn<any, any> = (base, left, right) => ({
     ref: `(${left.ref}+${right.ref})`,
     message: `merge`,
   },
-  lazy: false,
 });
 export const jdp = create({ textDiff: { minLength: 20 } });
 
