@@ -123,6 +123,8 @@ Array [
     client2.updateState({ v: 2, field: '456' }, 'update field');
     expect(client2.state).toEqual({ v: 2, field: '456' });
 
+    await timeout();
+
     expect(basicGraph(store, client2)).toMatchInlineSnapshot(`
 Array [
   Object {
@@ -131,6 +133,22 @@ Array [
     "value": Object {
       "field": 123,
       "v": 1,
+    },
+  },
+  Object {
+    "graph": "Z-zhYWBg -> wjdpLZeO",
+    "step": "User a: migrated to v2",
+    "value": Object {
+      "field": "123",
+      "v": 2,
+    },
+  },
+  Object {
+    "graph": "wjdpLZeO -> UzG9E1u9",
+    "step": "User a: update field",
+    "value": Object {
+      "field": "456",
+      "v": 2,
     },
   },
 ]

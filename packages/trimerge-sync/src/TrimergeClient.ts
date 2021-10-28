@@ -354,8 +354,23 @@ export class TrimergeClient<
         this.lazyCommits.set(commit.ref, commit);
         break;
       case 'local':
+        this.promoteLazyCommit(baseRef);
+        this.promoteLazyCommit(mergeRef);
         this.unsyncedCommits.push(commit);
         break;
+    }
+  }
+
+  private promoteLazyCommit(ref?: string) {
+    if (!ref) {
+      return;
+    }
+    const commit = this.lazyCommits.get(ref);
+    if (commit) {
+      this.promoteLazyCommit(commit.baseRef);
+      this.promoteLazyCommit(commit.mergeRef);
+      this.lazyCommits.delete(ref);
+      this.unsyncedCommits.push(commit);
     }
   }
 
