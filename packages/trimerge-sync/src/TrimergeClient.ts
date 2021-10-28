@@ -25,7 +25,7 @@ export class TrimergeClient<
   private currentDoc?: CommitDoc<Doc, EditMetadata>;
   private lastLocalSyncId: string | undefined;
 
-  private stateSubs = new SubscriberList(() => this.state);
+  private docSubs = new SubscriberList(() => this.doc);
   private syncStateSubs = new SubscriberList(
     () => this.syncState,
     (a, b) =>
@@ -99,7 +99,7 @@ export class TrimergeClient<
         }
         this.lastLocalSyncId = syncId;
         this.mergeHeads();
-        this.stateSubs.emitChange();
+        this.docSubs.emitChange();
         this.sync();
         if (clientInfo) {
           this.setClientInfo(clientInfo);
@@ -153,7 +153,7 @@ export class TrimergeClient<
     }
   };
 
-  get state(): Doc | undefined {
+  get doc(): Doc | undefined {
     if (this.currentSaved === undefined) {
       return undefined;
     }
@@ -169,8 +169,8 @@ export class TrimergeClient<
     return this.clientList;
   }
 
-  subscribeState(onChange: OnChangeFn<Doc | undefined>) {
-    return this.stateSubs.subscribe(onChange);
+  subscribeDoc(onChange: OnChangeFn<Doc | undefined>) {
+    return this.docSubs.subscribe(onChange);
   }
 
   subscribeSyncStatus(onChange: OnChangeFn<SyncStatus>) {
@@ -185,7 +185,7 @@ export class TrimergeClient<
     const ref = this.addNewCommit(doc, editMetadata, false);
     this.setPresence(presence, ref);
     this.mergeHeads();
-    this.stateSubs.emitChange();
+    this.docSubs.emitChange();
     this.sync();
   }
 

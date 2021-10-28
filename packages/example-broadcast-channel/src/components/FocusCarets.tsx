@@ -17,9 +17,9 @@ export function FocusCarets<Presence extends FocusPresence>({
   return (
     <>
       {dom &&
-        clients.map(({ userId, clientId, state }) => {
-          const selectionStart = state?.selectionStart;
-          const selectionEnd = state?.selectionEnd;
+        clients.map(({ userId, clientId, presence }) => {
+          const selectionStart = presence?.selectionStart;
+          const selectionEnd = presence?.selectionEnd;
           if (selectionStart === undefined || selectionEnd === undefined) {
             return null;
           }

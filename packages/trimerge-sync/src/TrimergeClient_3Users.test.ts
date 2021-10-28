@@ -68,18 +68,18 @@ describe('TrimergeClient: 3 users', () => {
     await timeout();
 
     // Synchronized
-    expect(clientA.state).toEqual({ text: '' });
-    expect(clientB.state).toEqual({ text: '' });
-    expect(clientC.state).toEqual({ text: '' });
+    expect(clientA.doc).toEqual({ text: '' });
+    expect(clientB.doc).toEqual({ text: '' });
+    expect(clientC.doc).toEqual({ text: '' });
 
     clientA.updateDoc({ text: 'a' }, { ref: 'a1', message: 'set text' });
     clientB.updateDoc({ text: 'b' }, { ref: 'b1', message: 'set text' });
     clientC.updateDoc({ text: 'c' }, { ref: 'c1', message: 'set text' });
 
     // Now client 1 and client 2 have different changes
-    expect(clientA.state).toEqual({ text: 'a' });
-    expect(clientB.state).toEqual({ text: 'b' });
-    expect(clientC.state).toEqual({ text: 'c' });
+    expect(clientA.doc).toEqual({ text: 'a' });
+    expect(clientB.doc).toEqual({ text: 'b' });
+    expect(clientC.doc).toEqual({ text: 'c' });
 
     await timeout();
 
@@ -138,9 +138,9 @@ describe('TrimergeClient: 3 users', () => {
     `);
 
     //  Now they should all have trimerged changes
-    expect(clientA.state).toEqual({ text: 'abc' });
-    expect(clientB.state).toEqual({ text: 'abc' });
-    expect(clientC.state).toEqual({ text: 'abc' });
+    expect(clientA.doc).toEqual({ text: 'abc' });
+    expect(clientB.doc).toEqual({ text: 'abc' });
+    expect(clientC.doc).toEqual({ text: 'abc' });
 
     await clientA.shutdown();
     await clientB.shutdown();
@@ -164,18 +164,18 @@ describe('TrimergeClient: 3 users', () => {
     );
 
     // Now client 1 and client 2 have different changes
-    expect(clientA.state).toEqual({ hello: 'vorld' });
-    expect(clientB.state).toEqual({ world: 'vorld' });
+    expect(clientA.doc).toEqual({ hello: 'vorld' });
+    expect(clientB.doc).toEqual({ world: 'vorld' });
 
     const clientC = makeClient('c', store);
-    expect(clientC.state).toEqual(undefined);
+    expect(clientC.doc).toEqual(undefined);
 
     await timeout();
 
     //  Now they should all have the trimerged state
-    expect(clientA.state).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(clientB.state).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(clientC.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(clientA.doc).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(clientB.doc).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(clientC.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
     clientC.updateDoc(
       { hello: 'world', world: 'vorld' },

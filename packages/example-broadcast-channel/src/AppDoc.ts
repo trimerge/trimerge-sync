@@ -3,7 +3,7 @@ import { Delta } from 'jsondiffpatch';
 import {
   useTrimergeClientList,
   useTrimergeDeleteDatabase,
-  useTrimergeState,
+  useTrimergeDoc,
   useTrimergeStateShutdown,
   useTrimergeSyncStatus,
 } from './lib/trimergeHooks';
@@ -39,7 +39,7 @@ export const differ: Differ<SavedAppDoc, AppDoc, string, Delta> = {
 const DEMO_DOC_ID = 'demo';
 const DEMO_USER_ID = 'local';
 export function useDemoAppDoc() {
-  return useTrimergeState<SavedAppDoc, AppDoc, string, Delta>(
+  return useTrimergeDoc<SavedAppDoc, AppDoc, string, Delta>(
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,

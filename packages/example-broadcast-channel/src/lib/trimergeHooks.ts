@@ -95,7 +95,7 @@ export function useTrimergeDeleteDatabase<
   }, [client, docId]);
 }
 
-export function useTrimergeState<
+export function useTrimergeDoc<
   SavedDoc,
   Doc extends SavedDoc,
   EditMetadata,
@@ -107,13 +107,13 @@ export function useTrimergeState<
   differ: Differ<SavedDoc, Doc, EditMetadata, Delta>,
 ): [Doc, UpdateDocFn<Doc, EditMetadata>] {
   const client = getCachedTrimergeClient(docId, userId, clientId, differ);
-  const [state, setState] = useState(client.state);
+  const [doc, setDoc] = useState(client.doc);
 
-  const updateState = useMemo(() => client.updateState.bind(client), [client]);
+  const updateState = useMemo(() => client.updateDoc.bind(client), [client]);
 
-  useEffect(() => client.subscribeState(setState), [client]);
+  useEffect(() => client.subscribeState(setDoc), [client]);
 
-  return [state, updateState];
+  return [doc, updateState];
 }
 
 export function useTrimergeClientList<

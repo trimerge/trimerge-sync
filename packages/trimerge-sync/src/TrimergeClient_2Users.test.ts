@@ -87,7 +87,7 @@ describe('TrimergeClient: 2 users', () => {
     client.updateDoc({ hello: 'world' }, 'add hello');
     client.updateDoc({ hello: 'vorld' }, 'change hello');
 
-    expect(client.state).toEqual({ hello: 'vorld' });
+    expect(client.doc).toEqual({ hello: 'vorld' });
   });
 
   it('tracks non-edits', async () => {
@@ -95,7 +95,7 @@ describe('TrimergeClient: 2 users', () => {
     const client = makeClient('a', store);
 
     const onStateChange = jest.fn();
-    const unsub = client.subscribeState(onStateChange);
+    const unsub = client.subscribeDoc(onStateChange);
     client.updateDoc(undefined, 'initialize');
     await timeout();
     client.updateDoc(undefined, 'initialize');
@@ -120,20 +120,20 @@ describe('TrimergeClient: 2 users', () => {
     await timeout();
 
     expect(onStateChange.mock.calls.slice(-1)).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Array [
-            Object {
-              "clientId": "test",
-              "ref": undefined,
-              "self": true,
-              "state": "blah",
-              "userId": "a",
-            },
-          ],
-        ],
-      ]
-    `);
+Array [
+  Array [
+    Array [
+      Object {
+        "clientId": "test",
+        "presence": "blah",
+        "ref": undefined,
+        "self": true,
+        "userId": "a",
+      },
+    ],
+  ],
+]
+`);
     unsub();
   });
 
@@ -143,14 +143,14 @@ describe('TrimergeClient: 2 users', () => {
     const client2 = makeClient('b', store);
 
     // No values
-    expect(client1.state).toBe(undefined);
-    expect(client2.state).toBe(undefined);
+    expect(client1.doc).toBe(undefined);
+    expect(client2.doc).toBe(undefined);
 
     client1.updateDoc({}, 'initialize');
 
     // Client 1 is updated, but not client2
-    expect(client1.state).toEqual({});
-    expect(client2.state).toBe(undefined);
+    expect(client1.doc).toEqual({});
+    expect(client2.doc).toBe(undefined);
 
     await timeout();
 
@@ -181,8 +181,8 @@ describe('TrimergeClient: 2 users', () => {
     );
 
     // Client2 is updated now
-    expect(client1.state).toEqual({});
-    expect(client2.state).toEqual({});
+    expect(client1.doc).toEqual({});
+    expect(client2.doc).toEqual({});
   });
 
   it('sends presence information correctly', async () => {
@@ -353,13 +353,13 @@ describe('TrimergeClient: 2 users', () => {
         clientId: 'test',
         ref: undefined,
         self: true,
-        state: 'hello',
+        presence: 'hello',
         userId: 'a',
       },
       {
         clientId: 'test',
         ref: undefined,
-        state: undefined,
+        presence: undefined,
         userId: 'b',
       },
     ]);
@@ -367,14 +367,14 @@ describe('TrimergeClient: 2 users', () => {
       {
         clientId: 'test',
         ref: undefined,
-        state: 'hello',
+        presence: 'hello',
         userId: 'a',
       },
       {
         clientId: 'test',
         ref: undefined,
         self: true,
-        state: undefined,
+        presence: undefined,
         userId: 'b',
       },
     ]);
@@ -389,12 +389,12 @@ describe('TrimergeClient: 2 users', () => {
     client1.updateDoc({ edit: true }, 'edit');
 
     // Client 1 is updated, but not client2
-    expect(client1.state).toEqual({ edit: true });
-    expect(client2.state).toBe(undefined);
+    expect(client1.doc).toEqual({ edit: true });
+    expect(client2.doc).toBe(undefined);
 
     await timeout();
 
-    expect(client2.state).toEqual({ edit: true });
+    expect(client2.doc).toEqual({ edit: true });
   });
 
   it('edit syncs back and forth with two clients', async () => {
@@ -408,20 +408,20 @@ describe('TrimergeClient: 2 users', () => {
 
     await timeout();
 
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld' });
 
     client2.updateDoc({ hello: 'vorld', world: 'world' }, 'add world');
     client2.updateDoc({ hello: 'vorld', world: 'vorld' }, 'change world');
 
     // Now client 2 is updated but not client 1
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
     await timeout();
 
-    expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
   });
 
   it('automatic merging if two clients edit simultaneously', async () => {
@@ -432,12 +432,12 @@ describe('TrimergeClient: 2 users', () => {
     client1.updateDoc({}, 'initialize');
 
     // Synchronized
-    expect(client1.state).toEqual({});
-    expect(client2.state).toEqual(undefined);
+    expect(client1.doc).toEqual({});
+    expect(client2.doc).toEqual(undefined);
 
     await timeout();
 
-    expect(client2.state).toEqual({});
+    expect(client2.doc).toEqual({});
 
     client1.updateDoc({ hello: 'world' }, 'add hello');
     client1.updateDoc({ hello: 'vorld' }, 'change hello');
@@ -446,20 +446,20 @@ describe('TrimergeClient: 2 users', () => {
     client2.updateDoc({ world: 'vorld' }, 'change world');
 
     // Now client 1 and client 2 have different changes
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual({ world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual({ world: 'vorld' });
 
     await timeout();
 
     //  Now they should both have trimerged changes
-    expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
     await timeout();
 
     // Should be the same
-    expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
     await client1.shutdown();
     await client2.shutdown();
@@ -523,10 +523,10 @@ describe('TrimergeClient: 2 users', () => {
 
     const client2 = makeClient('b', store);
 
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual(undefined);
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual(undefined);
     await timeout();
-    expect(client2.state).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld' });
 
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
       Array [
@@ -558,7 +558,7 @@ describe('TrimergeClient: 2 users', () => {
     const client1 = makeClient('a', store);
     const subscribeFn = jest.fn();
 
-    const unsubscribeFn = client1.subscribeState(subscribeFn);
+    const unsubscribeFn = client1.subscribeDoc(subscribeFn);
 
     client1.updateDoc({}, 'initialize');
     client1.updateDoc({ hello: 'world' }, 'add hello');
@@ -568,8 +568,8 @@ describe('TrimergeClient: 2 users', () => {
 
     const client2 = makeClient('b', store);
 
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual(undefined);
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual(undefined);
 
     await timeout();
 

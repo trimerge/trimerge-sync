@@ -19,11 +19,11 @@ describe('merge', () => {
       ),
     ).toMatchInlineSnapshot(`
       Object {
+        "doc": "hithere",
         "editMetadata": Object {
           "message": "merge",
           "ref": "(1+2)",
         },
-        "state": "hithere",
       }
     `);
   });
@@ -36,11 +36,11 @@ describe('merge', () => {
       ),
     ).toMatchInlineSnapshot(`
       Object {
+        "doc": "h thereello",
         "editMetadata": Object {
           "message": "merge",
           "ref": "(2+3)",
         },
-        "state": "h thereello",
       }
     `);
   });

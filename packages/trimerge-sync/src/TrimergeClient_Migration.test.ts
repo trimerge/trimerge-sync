@@ -23,7 +23,7 @@ function makeClientV1(
     'test',
     store.getLocalStore,
     {
-      migrate: (state, editMetadata) => ({ doc, editMetadata }),
+      migrate: (doc, editMetadata) => ({ doc, editMetadata }),
       diff,
       patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
       computeRef,
@@ -41,11 +41,11 @@ function makeClientV2(
     'test',
     store.getLocalStore,
     {
-      migrate: (state, editMetadata) => {
-        switch (state.v) {
+      migrate: (doc, editMetadata) => {
+        switch (doc.v) {
           case 1:
             return {
-              doc: { v: 2, field: String(state.field) },
+              doc: { v: 2, field: String(doc.field) },
               editMetadata: 'migrated to v2',
             };
           case 2:
@@ -78,7 +78,7 @@ describe('TrimergeClient: Migration', () => {
 
     const client1 = makeClientV1('a', store);
     client1.updateDoc({ v: 1, field: 123 }, 'initialize');
-    expect(client1.state).toEqual({ v: 1, field: 123 });
+    expect(client1.doc).toEqual({ v: 1, field: 123 });
 
     await timeout();
 
@@ -99,7 +99,7 @@ Array [
 
     await timeout();
 
-    expect(client2.state).toEqual({ v: 2, field: '123' });
+    expect(client2.doc).toEqual({ v: 2, field: '123' });
 
     expect(basicGraph(store, client2)).toMatchInlineSnapshot(`
 Array [
@@ -115,7 +115,7 @@ Array [
 `);
 
     client2.updateDoc({ v: 2, field: '456' }, 'update field');
-    expect(client2.state).toEqual({ v: 2, field: '456' });
+    expect(client2.doc).toEqual({ v: 2, field: '456' });
 
     await timeout();
 

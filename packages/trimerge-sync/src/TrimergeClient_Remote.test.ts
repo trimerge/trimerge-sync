@@ -86,7 +86,7 @@ function basicClients(
 ): Record<string, TestPresence> {
   const obj: Record<string, TestPresence> = {};
   for (const client of client1.clients) {
-    obj[`${client.userId}:${client.clientId}`] = client.state;
+    obj[`${client.userId}:${client.clientId}`] = client.presence;
   }
   return obj;
 }
@@ -444,9 +444,9 @@ Array [
     const client2 = makeClient('test', 'b', localStore);
 
     const states1: TestDoc[] = [];
-    client1.subscribeState((state) => states1.push(state));
+    client1.subscribeDoc((state) => states1.push(state));
     const states2: TestDoc[] = [];
-    client2.subscribeState((state) => states2.push(state));
+    client2.subscribeDoc((state) => states2.push(state));
 
     client1.updateDoc({}, 'initialize');
     client1.updateDoc({ hello: 'world' }, 'add hello');
@@ -799,25 +799,25 @@ Array [
     client1.updateDoc({ hello: 'world' }, 'add hello');
     client1.updateDoc({ hello: 'vorld' }, 'change hello');
 
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual(undefined);
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual(undefined);
 
     await timeout();
 
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld' });
 
     client2.updateDoc({ hello: 'vorld', world: 'world' }, 'add world');
     client2.updateDoc({ hello: 'vorld', world: 'vorld' }, 'change world');
 
     // Now client 2 is updated but not client 1
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
     await timeout();
 
-    expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
     const graph1 = basicGraph(store1, client1);
     const graph2 = basicGraph(store2, client1);

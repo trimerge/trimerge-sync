@@ -5,7 +5,7 @@ import {
   trimergeObject,
   trimergeString,
 } from 'trimerge';
-import { MergeStateFn } from 'trimerge-sync';
+import { MergeDocFn } from 'trimerge-sync';
 import { create, Delta } from 'jsondiffpatch';
 import { produce } from 'immer';
 import { trimergeNumber } from './trimergeNumber';
@@ -17,8 +17,8 @@ const trimergeObjects = combineMergers(
   trimergeNumber,
 );
 
-export const merge: MergeStateFn<any, string> = (base, left, right) => ({
-  doc: trimergeObjects(base?.state, left.state, right.state),
+export const merge: MergeDocFn<any, string> = (base, left, right) => ({
+  doc: trimergeObjects(base?.doc, left.doc, right.doc),
   editMetadata: `merge`,
 });
 

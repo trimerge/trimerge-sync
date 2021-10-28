@@ -115,7 +115,7 @@ Object {
 
     // Wait for read
     await timeout(100);
-    expect(client2.state).toEqual('hello world');
+    expect(client2.doc).toEqual('hello world');
 
     await client2.shutdown();
   });
@@ -132,7 +132,7 @@ Object {
 
     // Wait for read
     await timeout(100);
-    expect(client2.state).toEqual('hello world');
+    expect(client2.doc).toEqual('hello world');
 
     client1.updateDoc('hello there', '');
     await timeout();
@@ -140,8 +140,8 @@ Object {
 
     // Wait for read
     await timeout(100);
-    expect(client1.state).toEqual('oh hello there');
-    expect(client2.state).toEqual('oh hello there');
+    expect(client1.doc).toEqual('oh hello there');
+    expect(client2.doc).toEqual('oh hello there');
 
     await client1.shutdown();
     await client2.shutdown();
@@ -282,7 +282,7 @@ Object {
     );
     // Wait for write
     await timeout(100);
-    expect(client2.state).toEqual('hello remote');
+    expect(client2.doc).toEqual('hello remote');
     await client2.shutdown();
   });
 
@@ -368,7 +368,7 @@ Object {
     );
     // Wait for write
     await timeout(100);
-    expect(client2.state).toEqual('hello remote');
+    expect(client2.doc).toEqual('hello remote');
     await client2.shutdown();
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
 Object {
@@ -420,7 +420,7 @@ Object {
     );
     // Wait for write
     await timeout(100);
-    expect(client2.state).toEqual('hello offline remote');
+    expect(client2.doc).toEqual('hello offline remote');
 
     client2.updateDoc('hello online remote', '');
     await timeout(100);
@@ -500,14 +500,14 @@ Object {
     // Wait for write
     await timeout(100);
 
-    expect(client2.state).toEqual(6);
+    expect(client2.doc).toEqual(6);
     expect(client2.syncStatus).toMatchInlineSnapshot(`
 Object {
   "localRead": "ready",
   "localSave": "ready",
   "remoteConnect": "online",
   "remoteRead": "ready",
-  "remoteSave": "ready",
+  "remoteSave": "saving",
 }
 `);
 
