@@ -7,16 +7,11 @@ import { getBasicGraph, getDotGraph } from './GraphVisualizers';
 import { timeout } from '../lib/Timeout';
 
 type TestEditMetadata = string;
-type TestSavedState = any;
-type TestState = any;
-type TestPresenceState = any;
+type TestSavedDoc = any;
+type TestDoc = any;
+type TestPresence = any;
 
-const differ: Differ<
-  TestSavedState,
-  TestState,
-  TestEditMetadata,
-  TestPresenceState
-> = {
+const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
   migrate,
   diff,
   patch,
@@ -25,52 +20,52 @@ const differ: Differ<
 };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestPresenceState>();
+  return new MemoryStore<TestEditMetadata, Delta, TestPresence>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<
-  TestSavedState,
-  TestState,
+  TestSavedDoc,
+  TestDoc,
   TestEditMetadata,
   Delta,
-  TestPresenceState
+  TestPresence
 > {
   return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
   client1: TrimergeClient<
-    TestSavedState,
-    TestState,
+    TestSavedDoc,
+    TestDoc,
     TestEditMetadata,
     Delta,
-    TestPresenceState
+    TestPresence
   >,
 ) {
   return getBasicGraph(
     store.getCommits(),
     (commit) => commit.editMetadata,
-    (commit) => client1.getCommitState(commit.ref).state,
+    (commit) => client1.getCommitDoc(commit.ref).doc,
   );
 }
 
 function dotGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
   client1: TrimergeClient<
-    TestSavedState,
-    TestState,
+    TestSavedDoc,
+    TestDoc,
     TestEditMetadata,
     Delta,
-    TestPresenceState
+    TestPresence
   >,
 ) {
   return getDotGraph(
     store.getCommits(),
-    (commit) => client1.getCommitState(commit.ref).state,
+    (commit) => client1.getCommitDoc(commit.ref).doc,
     (commit) => commit.editMetadata,
   );
 }
@@ -80,9 +75,9 @@ describe('GraphVisualizers', () => {
     const store = newStore();
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
-    client1.updateState({ hello: '1' }, 'initialize');
-    client2.updateState({ world: '2' }, 'initialize');
-    client2.updateState({ world: '3' }, 'initialize');
+    client1.updateDoc({ hello: '1' }, 'initialize');
+    client2.updateDoc({ world: '2' }, 'initialize');
+    client2.updateDoc({ world: '3' }, 'initialize');
     await timeout();
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
       Array [

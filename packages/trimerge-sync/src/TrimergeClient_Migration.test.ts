@@ -8,22 +8,22 @@ import { timeout } from './lib/Timeout';
 type TestEditMetadata = string;
 type DocV1 = { v: 1; field: number };
 type DocV2 = { v: 2; field: string };
-type TestPresenceState = any;
+type TestPresence = any;
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestPresenceState>();
+  return new MemoryStore<TestEditMetadata, Delta, TestPresence>();
 }
 
 function makeClientV1(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
-): TrimergeClient<DocV1, DocV1, TestEditMetadata, Delta, TestPresenceState> {
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
+): TrimergeClient<DocV1, DocV1, TestEditMetadata, Delta, TestPresence> {
   return new TrimergeClient(
     userId,
     'test',
     store.getLocalStore,
     {
-      migrate: (state, editMetadata) => ({ state, editMetadata }),
+      migrate: (state, editMetadata) => ({ doc, editMetadata }),
       diff,
       patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
       computeRef,
@@ -34,14 +34,8 @@ function makeClientV1(
 }
 function makeClientV2(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
-): TrimergeClient<
-  DocV1 | DocV2,
-  DocV2,
-  TestEditMetadata,
-  Delta,
-  TestPresenceState
-> {
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
+): TrimergeClient<DocV1 | DocV2, DocV2, TestEditMetadata, Delta, TestPresence> {
   return new TrimergeClient(
     userId,
     'test',
@@ -51,11 +45,11 @@ function makeClientV2(
         switch (state.v) {
           case 1:
             return {
-              state: { v: 2, field: String(state.field) },
+              doc: { v: 2, field: String(state.field) },
               editMetadata: 'migrated to v2',
             };
           case 2:
-            return { state, editMetadata };
+            return { doc, editMetadata };
         }
       },
       diff,
@@ -68,13 +62,13 @@ function makeClientV2(
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
   client1: TrimergeClient<any, any, any, any, any>,
 ) {
   return getBasicGraph(
     store.getCommits(),
     (commit) => commit.editMetadata,
-    (commit) => client1.getCommitState(commit.ref).state,
+    (commit) => client1.getCommitDoc(commit.ref).doc,
   );
 }
 
@@ -83,7 +77,7 @@ describe('TrimergeClient: Migration', () => {
     const store = newStore();
 
     const client1 = makeClientV1('a', store);
-    client1.updateState({ v: 1, field: 123 }, 'initialize');
+    client1.updateDoc({ v: 1, field: 123 }, 'initialize');
     expect(client1.state).toEqual({ v: 1, field: 123 });
 
     await timeout();
@@ -120,7 +114,7 @@ Array [
 ]
 `);
 
-    client2.updateState({ v: 2, field: '456' }, 'update field');
+    client2.updateDoc({ v: 2, field: '456' }, 'update field');
     expect(client2.state).toEqual({ v: 2, field: '456' });
 
     await timeout();

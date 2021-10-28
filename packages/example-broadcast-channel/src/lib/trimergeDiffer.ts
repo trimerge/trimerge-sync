@@ -18,7 +18,7 @@ const trimergeObjects = combineMergers(
 );
 
 export const merge: MergeStateFn<any, string> = (base, left, right) => ({
-  state: trimergeObjects(base?.state, left.state, right.state),
+  doc: trimergeObjects(base?.state, left.state, right.state),
   editMetadata: `merge`,
 });
 

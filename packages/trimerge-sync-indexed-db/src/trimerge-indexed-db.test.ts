@@ -48,8 +48,8 @@ describe('createIndexedDbBackendFactory', () => {
   it('creates indexed db', async () => {
     const docId = 'test-doc-create';
     const client = makeTestClient('test', '1', docId, 'test-doc-store');
-    client.updateState('hello', '');
-    client.updateState('hello there', '');
+    client.updateDoc('hello', '');
+    client.updateDoc('hello there', '');
 
     // Wait for write
     await timeout(100);
@@ -101,9 +101,9 @@ Object {
   it('creates indexed db and can read it', async () => {
     const docId = 'test-doc-read';
     const client = makeTestClient('test', '1', docId, 'test-doc-store');
-    client.updateState('hello', '');
-    client.updateState('hello there', '');
-    client.updateState('hello world', '');
+    client.updateDoc('hello', '');
+    client.updateDoc('hello there', '');
+    client.updateDoc('hello world', '');
     // Wait for write
     await timeout(100);
     await client.shutdown();
@@ -123,8 +123,8 @@ Object {
   it('collaboration works', async () => {
     const docId = 'test-doc-collab';
     const client1 = makeTestClient('test', '1', docId, 'test-doc-store');
-    client1.updateState('hello', '');
-    client1.updateState('hello world', '');
+    client1.updateDoc('hello', '');
+    client1.updateDoc('hello world', '');
     // Wait for write
     await timeout(100);
 
@@ -134,9 +134,9 @@ Object {
     await timeout(100);
     expect(client2.state).toEqual('hello world');
 
-    client1.updateState('hello there', '');
+    client1.updateDoc('hello there', '');
     await timeout();
-    client2.updateState('oh hello', '');
+    client2.updateDoc('oh hello', '');
 
     // Wait for read
     await timeout(100);
@@ -240,7 +240,7 @@ Object {
   it('deletes indexed db with deleteDocDatabase', async () => {
     const docId = 'test-doc-delete';
     const client1 = makeTestClient('test', '1', docId, 'test-doc-store');
-    client1.updateState('hello world', '');
+    client1.updateDoc('hello world', '');
     // Wait for write
     await timeout(1000);
     await client1.shutdown();
@@ -268,7 +268,7 @@ Object {
       'test-doc-store',
       getMockRemote,
     );
-    client1.updateState('hello remote', '');
+    client1.updateDoc('hello remote', '');
     // Wait for write
     await timeout(100);
     await client1.shutdown();
@@ -295,7 +295,7 @@ Object {
       'test-doc-store',
       getMockRemote,
     );
-    client1.updateState('hello remote', '');
+    client1.updateDoc('hello remote', '');
     // Wait for write
     await timeout(100);
     await client1.shutdown();
@@ -406,7 +406,7 @@ Object {
   it('works offline then with remote', async () => {
     const docId = 'test-doc-remote2';
     const client = makeTestClient('test', '1', docId, 'test-doc-store');
-    client.updateState('hello offline remote', '');
+    client.updateDoc('hello offline remote', '');
     // Wait for write
     await timeout(100);
     await client.shutdown();
@@ -422,7 +422,7 @@ Object {
     await timeout(100);
     expect(client2.state).toEqual('hello offline remote');
 
-    client2.updateState('hello online remote', '');
+    client2.updateDoc('hello online remote', '');
     await timeout(100);
 
     await client2.shutdown();
@@ -478,12 +478,12 @@ Object {
   it('works offline then with remote 2', async () => {
     const docId = 'test-doc-remote2';
     const client = makeTestClient('test', '1', docId, 'test-doc-store');
-    client.updateState(1, '');
-    client.updateState(2, '');
-    client.updateState(3, '');
-    client.updateState(4, '');
-    client.updateState(5, '');
-    client.updateState(6, '');
+    client.updateDoc(1, '');
+    client.updateDoc(2, '');
+    client.updateDoc(3, '');
+    client.updateDoc(4, '');
+    client.updateDoc(5, '');
+    client.updateDoc(6, '');
 
     // Wait for write
     await timeout(100);

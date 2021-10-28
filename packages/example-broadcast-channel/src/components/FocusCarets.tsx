@@ -2,16 +2,16 @@ import getCaretCoordinates from 'textarea-caret';
 import materialColorHash from 'material-color-hash';
 import React, { useMemo } from 'react';
 import { ClientList } from 'trimerge-sync';
-import { FocusPresenceState } from '../lib/FocusPresenceState';
+import { FocusPresence } from '../lib/FocusPresence';
 import styles from './Focus.module.css';
 
-export function FocusCarets<PresenceState extends FocusPresenceState>({
+export function FocusCarets<Presence extends FocusPresence>({
   dom,
   clients,
   includeNames = false,
 }: {
   dom: HTMLInputElement | HTMLTextAreaElement | null;
-  clients: ClientList<PresenceState>;
+  clients: ClientList<Presence>;
   includeNames?: boolean;
 }) {
   return (

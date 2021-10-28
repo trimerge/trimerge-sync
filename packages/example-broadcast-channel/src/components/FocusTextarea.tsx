@@ -5,7 +5,7 @@ import { FocusCarets } from './FocusCarets';
 import { UpdatePresenceFn } from '../lib/trimergeHooks';
 import { useFocusInfo, useSelectionListen } from './focusHooks';
 import { ClientList } from 'trimerge-sync';
-import { FocusPresenceState } from '../lib/FocusPresenceState';
+import { FocusPresence } from '../lib/FocusPresence';
 
 export function FocusTextarea({
   id,
@@ -16,8 +16,8 @@ export function FocusTextarea({
 }: {
   id: string;
   value: string;
-  clients: ClientList<FocusPresenceState>;
-  updatePresence: UpdatePresenceFn<FocusPresenceState>;
+  clients: ClientList<FocusPresence>;
+  updatePresence: UpdatePresenceFn<FocusPresence>;
 } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const { style, otherClients } = useFocusInfo(id, clients);
   const ref = useRef<HTMLTextAreaElement>(null);

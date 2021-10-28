@@ -4,18 +4,18 @@ describe('migrate type tests', () => {
   it('migrates', () => {
     type DocV1 = { version: 1; a: number };
     type DocV2 = { version: 2; b: number };
-    type SavedState = DocV1 | DocV2;
+    type SavedDoc = DocV1 | DocV2;
     type State = DocV2;
-    const migrate: MigrateStateFn<SavedState, State, string> = (
+    const migrate: MigrateStateFn<SavedDoc, State, string> = (
       state,
       editMetadata,
     ) => {
       switch (state.version) {
         case 1:
-          return { state: { version: 2, b: state.a }, editMetadata: 'migrate' };
+          return { doc: { version: 2, b: state.a }, editMetadata: 'migrate' };
         case 2:
           // Up to date
-          return { state, editMetadata };
+          return { doc, editMetadata };
       }
     };
     const v1Doc: DocV1 = { version: 1, a: 12 };
@@ -24,26 +24,26 @@ describe('migrate type tests', () => {
       state: v2Doc,
       editMetadata: 'migrate',
     });
-    expect(migrate(v2Doc, 'v2').state).toBe(v2Doc);
+    expect(migrate(v2Doc, 'v2').doc).toBe(v2Doc);
 
     // @ts-expect-error invalid initial doc type
     expect(migrate({})).toBeUndefined();
   });
 
   it('valid type', () => {
-    type SavedState = { version: number };
+    type SavedDoc = { version: number };
     type State = { version: 2 };
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    type Migrate = MigrateStateFn<SavedState, State, any>;
+    type Migrate = MigrateStateFn<SavedDoc, State, any>;
   });
 
   it('invalid type', () => {
     type DocV1 = { version: 1 };
     type DocV2 = { version: 2 };
-    type SavedState = DocV1;
+    type SavedDoc = DocV1;
     type State = DocV2;
-    // @ts-expect-error State needs to be assignable to SavedState
+    // @ts-expect-error State needs to be assignable to SavedDoc
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    type Migrate = MigrateStateFn<SavedState, State, any>;
+    type Migrate = MigrateStateFn<SavedDoc, State, any>;
   });
 });

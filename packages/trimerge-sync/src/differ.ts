@@ -5,59 +5,50 @@ export type ComputeRefFn<Delta, EditMetadata> = (
   editMetadata: EditMetadata,
 ) => string;
 
-export type DiffFn<SavedState, Delta> = (
-  prior: SavedState | undefined,
-  state: SavedState,
+export type DiffFn<SavedDoc, Delta> = (
+  prior: SavedDoc | undefined,
+  doc: SavedDoc,
 ) => Delta | undefined;
 
-export type PatchFn<SavedState, Delta> = (
-  priorOrNext: SavedState | undefined,
+export type PatchFn<SavedDoc, Delta> = (
+  priorOrNext: SavedDoc | undefined,
   delta: Delta | undefined,
-) => SavedState;
+) => SavedDoc;
 
-export type StateAndMetadata<State, EditMetadata> = {
-  state: State;
+export type DocAndMetadata<Doc, EditMetadata> = {
+  doc: Doc;
   editMetadata: EditMetadata;
 };
-export type CommitState<State, EditMetadata> = {
+export type CommitDoc<Doc, EditMetadata> = {
   ref: string;
-} & StateAndMetadata<State, EditMetadata>;
+} & DocAndMetadata<Doc, EditMetadata>;
 
-export type MergeResult<State, EditMetadata> = {
+export type MergeResult<Doc, EditMetadata> = {
   lazy?: boolean;
-} & StateAndMetadata<State, EditMetadata>;
+} & DocAndMetadata<Doc, EditMetadata>;
 
-export type MergeStateFn<State, EditMetadata> = (
-  base: CommitState<State, EditMetadata> | undefined,
-  left: CommitState<State, EditMetadata>,
-  right: CommitState<State, EditMetadata>,
-) => MergeResult<State, EditMetadata>;
+export type MergeDocFn<Doc, EditMetadata> = (
+  base: CommitDoc<Doc, EditMetadata> | undefined,
+  left: CommitDoc<Doc, EditMetadata>,
+  right: CommitDoc<Doc, EditMetadata>,
+) => MergeResult<Doc, EditMetadata>;
 
-export type MigrateStateFn<
-  SavedState,
-  State extends SavedState,
-  EditMetadata,
-> = (
-  state: SavedState,
+export type MigrateDocFn<SavedDoc, Doc extends SavedDoc, EditMetadata> = (
+  doc: SavedDoc,
   editMetadata: EditMetadata,
-) => StateAndMetadata<State, EditMetadata>;
+) => DocAndMetadata<Doc, EditMetadata>;
 
-export interface Differ<
-  SavedState,
-  State extends SavedState,
-  EditMetadata,
-  Delta,
-> {
-  readonly migrate: MigrateStateFn<SavedState, State, EditMetadata>;
+export interface Differ<SavedDoc, Doc extends SavedDoc, EditMetadata, Delta> {
+  readonly migrate: MigrateDocFn<SavedDoc, Doc, EditMetadata>;
 
   /** Calculate the ref string for a given edit */
   readonly computeRef: ComputeRefFn<Delta, EditMetadata>;
 
-  /** Computed the difference between two States */
-  readonly diff: DiffFn<SavedState, Delta>;
-  /** Apply a patch from one state to another */
-  readonly patch: PatchFn<SavedState, Delta>;
+  /** Computed the difference between two Docs */
+  readonly diff: DiffFn<SavedDoc, Delta>;
+  /** Apply a patch from one Doc to another */
+  readonly patch: PatchFn<SavedDoc, Delta>;
 
-  /** Trimerge three states */
-  readonly merge: MergeStateFn<State, EditMetadata>;
+  /** Three-way-merge function */
+  readonly merge: MergeDocFn<Doc, EditMetadata>;
 }

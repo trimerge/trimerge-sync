@@ -6,16 +6,11 @@ import { diff, merge, migrate, patch } from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 
 type TestEditMetadata = { ref: string; message: string };
-type TestSavedState = any;
-type TestState = any;
-type TestPresenceState = any;
+type TestSavedDoc = any;
+type TestDoc = any;
+type TestPresence = any;
 
-const differ: Differ<
-  TestSavedState,
-  TestState,
-  TestEditMetadata,
-  TestPresenceState
-> = {
+const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
   migrate,
   diff,
   patch,
@@ -24,18 +19,18 @@ const differ: Differ<
 };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestPresenceState>();
+  return new MemoryStore<TestEditMetadata, Delta, TestPresence>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<
-  TestSavedState,
-  TestState,
+  TestSavedDoc,
+  TestDoc,
   TestEditMetadata,
   Delta,
-  TestPresenceState
+  TestPresence
 > {
   return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
 }
@@ -45,19 +40,19 @@ function timeout() {
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
   clientA: TrimergeClient<
-    TestSavedState,
-    TestState,
+    TestSavedDoc,
+    TestDoc,
     TestEditMetadata,
     Delta,
-    TestPresenceState
+    TestPresence
   >,
 ) {
   return getBasicGraph(
     store.getCommits(),
     (commit) => commit.editMetadata.message,
-    (commit) => clientA.getCommitState(commit.ref).state,
+    (commit) => clientA.getCommitDoc(commit.ref).doc,
   );
 }
 
@@ -68,7 +63,7 @@ describe('TrimergeClient: 3 users', () => {
     const clientB = makeClient('b', store);
     const clientC = makeClient('c', store);
 
-    clientA.updateState({ text: '' }, { ref: 'ROOT', message: 'init' });
+    clientA.updateDoc({ text: '' }, { ref: 'ROOT', message: 'init' });
 
     await timeout();
 
@@ -77,9 +72,9 @@ describe('TrimergeClient: 3 users', () => {
     expect(clientB.state).toEqual({ text: '' });
     expect(clientC.state).toEqual({ text: '' });
 
-    clientA.updateState({ text: 'a' }, { ref: 'a1', message: 'set text' });
-    clientB.updateState({ text: 'b' }, { ref: 'b1', message: 'set text' });
-    clientC.updateState({ text: 'c' }, { ref: 'c1', message: 'set text' });
+    clientA.updateDoc({ text: 'a' }, { ref: 'a1', message: 'set text' });
+    clientB.updateDoc({ text: 'b' }, { ref: 'b1', message: 'set text' });
+    clientC.updateDoc({ text: 'c' }, { ref: 'c1', message: 'set text' });
 
     // Now client 1 and client 2 have different changes
     expect(clientA.state).toEqual({ text: 'a' });
@@ -157,19 +152,13 @@ describe('TrimergeClient: 3 users', () => {
     const clientA = makeClient('a', store);
     const clientB = makeClient('b', store);
 
-    clientA.updateState(
-      { hello: 'world' },
-      { ref: 'a1', message: 'add hello' },
-    );
-    clientA.updateState(
+    clientA.updateDoc({ hello: 'world' }, { ref: 'a1', message: 'add hello' });
+    clientA.updateDoc(
       { hello: 'vorld' },
       { ref: 'a2', message: 'change hello' },
     );
-    clientB.updateState(
-      { world: 'world' },
-      { ref: 'b1', message: 'add world' },
-    );
-    clientB.updateState(
+    clientB.updateDoc({ world: 'world' }, { ref: 'b1', message: 'add world' });
+    clientB.updateDoc(
       { world: 'vorld' },
       { ref: 'b2', message: 'change world' },
     );
@@ -188,7 +177,7 @@ describe('TrimergeClient: 3 users', () => {
     expect(clientB.state).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(clientC.state).toEqual({ hello: 'vorld', world: 'vorld' });
 
-    clientC.updateState(
+    clientC.updateDoc(
       { hello: 'world', world: 'vorld' },
       { ref: 'c1', message: 'change hello' },
     );

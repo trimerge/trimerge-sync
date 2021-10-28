@@ -2,16 +2,17 @@ import styles from './Focus.module.css';
 import materialColorHash from 'material-color-hash';
 import React, { useMemo } from 'react';
 import { ClientList } from 'trimerge-sync';
-import { FocusPresenceState } from '../lib/FocusPresenceState';
+import { FocusPresence } from '../lib/FocusPresence';
 
-export function FocusBorders<PresenceState extends FocusPresenceState>({
+export function FocusBorders<Presence extends FocusPresence>({
   clients,
 }: {
-  clients: ClientList<PresenceState>;
+  clients: ClientList<Presence>;
 }) {
-  const style = useMemo(() => ({ left: `${-2 * clients.length}px` }), [
-    clients.length,
-  ]);
+  const style = useMemo(
+    () => ({ left: `${-2 * clients.length}px` }),
+    [clients.length],
+  );
   if (clients.length === 0) {
     return <></>;
   }

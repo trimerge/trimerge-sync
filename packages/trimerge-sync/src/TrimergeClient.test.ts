@@ -7,7 +7,7 @@ import { migrate } from './testLib/MergeUtils';
 const differ: Differ<any, any, any, any> = {
   migrate,
   diff: () => null,
-  merge: () => ({ state: undefined, editMetadata: undefined }),
+  merge: () => ({ doc: undefined, editMetadata: undefined }),
   patch: () => null,
   computeRef: () => 'hash',
 };
@@ -40,9 +40,9 @@ function makeTrimergeClient(): {
 describe('TrimergeClient', () => {
   it('handles bad getCommit', async () => {
     const { client } = makeTrimergeClient();
-    client.updateState('hello', 'hi');
-    client.updateState('hello2', 'hi');
-    client.updateState('hello3', 'hi');
+    client.updateDoc('hello', 'hi');
+    client.updateDoc('hello2', 'hi');
+    client.updateDoc('hello3', 'hi');
     await timeout(100);
   });
 

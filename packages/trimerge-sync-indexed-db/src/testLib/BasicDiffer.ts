@@ -17,7 +17,7 @@ const trimergeObjects = combineMergers(
   trimergeObject,
 );
 export const merge: MergeStateFn<any, any> = (base, left, right) => ({
-  state: trimergeObjects(base?.state, left.state, right.state),
+  doc: trimergeObjects(base?.state, left.state, right.state),
   editMetadata: {
     ref: `(${left.ref}+${right.ref})`,
     message: `merge`,
@@ -46,17 +46,17 @@ export function computeRef(
 }
 
 type TestEditMetadata = string;
-type TestSavedState = any;
-type TestState = any;
-type TestPresenceState = any;
+type TestSavedDoc = any;
+type TestDoc = any;
+type TestPresence = any;
 
 export const differ: Differ<
-  TestSavedState,
-  TestState,
+  TestSavedDoc,
+  TestDoc,
   TestEditMetadata,
-  TestPresenceState
+  TestPresence
 > = {
-  migrate: (state, editMetadata) => ({ state, editMetadata }),
+  migrate: (state, editMetadata) => ({ doc, editMetadata }),
   diff,
   patch,
   computeRef,

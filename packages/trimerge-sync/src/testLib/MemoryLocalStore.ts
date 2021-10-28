@@ -13,19 +13,19 @@ import { MemoryStore } from './MemoryStore';
 export class MemoryLocalStore<
   EditMetadata,
   Delta,
-  PresenceState,
-> extends AbstractLocalStore<EditMetadata, Delta, PresenceState> {
+  Presence,
+> extends AbstractLocalStore<EditMetadata, Delta, Presence> {
   private _closed = false;
   public readonly channel: MemoryBroadcastChannel<
-    BroadcastEvent<EditMetadata, Delta, PresenceState>
+    BroadcastEvent<EditMetadata, Delta, Presence>
   >;
 
   constructor(
-    private readonly store: MemoryStore<EditMetadata, Delta, PresenceState>,
+    private readonly store: MemoryStore<EditMetadata, Delta, Presence>,
     userId: string,
     clientId: string,
-    onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
-    getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>,
+    onEvent: OnEventFn<EditMetadata, Delta, Presence>,
+    getRemote?: GetRemoteFn<EditMetadata, Delta, Presence>,
   ) {
     super(userId, clientId, onEvent, getRemote, {
       initialDelayMs: 0,
@@ -57,7 +57,7 @@ export class MemoryLocalStore<
   }
 
   protected async broadcastLocal(
-    event: BroadcastEvent<EditMetadata, Delta, PresenceState>,
+    event: BroadcastEvent<EditMetadata, Delta, Presence>,
   ): Promise<void> {
     if (this._closed) {
       return;
@@ -66,13 +66,13 @@ export class MemoryLocalStore<
   }
 
   protected async *getLocalCommits(): AsyncIterableIterator<
-    CommitsEvent<EditMetadata, Delta, PresenceState>
+    CommitsEvent<EditMetadata, Delta, Presence>
   > {
     yield await this.store.getLocalCommitsEvent();
   }
 
   protected getCommitsForRemote(): AsyncIterableIterator<
-    CommitsEvent<EditMetadata, Delta, PresenceState>
+    CommitsEvent<EditMetadata, Delta, Presence>
   > {
     return this.store.getCommitsForRemote();
   }
