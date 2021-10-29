@@ -111,7 +111,7 @@ export function useTrimergeDoc<
 
   const updateState = useMemo(() => client.updateDoc.bind(client), [client]);
 
-  useEffect(() => client.subscribeState(setDoc), [client]);
+  useEffect(() => client.subscribeDoc(setDoc), [client]);
 
   return [doc, updateState];
 }
