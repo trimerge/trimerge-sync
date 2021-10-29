@@ -141,6 +141,25 @@ describe('TrimergeClient: 2 users', () => {
     `);
     unsub();
   });
+  it('updates presence', async () => {
+    const store = newStore();
+    const client = makeClient('a', store);
+
+    client.updateState({ hello: 'world' }, 'init');
+    client.updatePresence('blah');
+    await timeout();
+    expect(sortedClients(client)).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "clientId": "test",
+    "ref": "4AC3Kqag",
+    "self": true,
+    "state": "blah",
+    "userId": "a",
+  },
+]
+`);
+  });
 
   it('edit syncs across two clients', async () => {
     const store = newStore();

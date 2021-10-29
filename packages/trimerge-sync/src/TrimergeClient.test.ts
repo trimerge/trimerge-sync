@@ -44,6 +44,7 @@ describe('TrimergeClient', () => {
     client.updateState('hello2', 'hi');
     client.updateState('hello3', 'hi');
     await timeout(100);
+    expect(() => client.getCommit('xxx')).toThrowError(`unknown ref "xxx"`);
   });
 
   it('handles event with invalid baseRef', async () => {

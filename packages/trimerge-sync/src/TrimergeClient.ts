@@ -14,6 +14,14 @@ import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { timeout } from './lib/Timeout';
 
+type AddCommitType =
+  // Added from this client
+  | 'local'
+  // Added from outside the client (e.g. a store)
+  | 'external'
+  // Added from this client, but don't sync to store
+  | 'lazy';
+
 export class TrimergeClient<
   SavedState,
   State extends SavedState,
@@ -21,7 +29,7 @@ export class TrimergeClient<
   Delta,
   PresenceState,
 > {
-  private currentSaved?: CommitState<SavedState, EditMetadata>;
+  private latestSaved?: CommitState<SavedState, EditMetadata>;
   private currentState?: CommitState<State, EditMetadata>;
   private lastLocalSyncId: string | undefined;
 
@@ -95,7 +103,7 @@ export class TrimergeClient<
       case 'commits': {
         const { commits, syncId, clientInfo } = event;
         for (const commit of commits) {
-          this.addCommit(commit, 'remote');
+          this.addCommit(commit, 'external');
         }
         this.lastLocalSyncId = syncId;
         this.mergeHeads();
@@ -154,11 +162,11 @@ export class TrimergeClient<
   };
 
   get state(): State | undefined {
-    if (this.currentSaved === undefined) {
+    if (this.latestSaved === undefined) {
       return undefined;
     }
     if (this.currentState === undefined) {
-      this.currentState = this.migrateCommit(this.currentSaved);
+      this.currentState = this.migrateCommit(this.latestSaved);
     }
     return this.currentState.state;
   }
@@ -200,7 +208,7 @@ export class TrimergeClient<
 
   private setPresenceState(
     state: PresenceState | undefined,
-    ref = this.currentSaved?.ref,
+    ref = this.latestSaved?.ref,
   ) {
     const { userId, clientId } = this;
     this.newPresenceState = { userId, clientId, ref, state };
@@ -321,13 +329,18 @@ export class TrimergeClient<
 
   private addCommit(
     commit: Commit<EditMetadata, Delta>,
-    type: 'local' | 'remote' | 'lazy',
+    type: AddCommitType,
   ): void {
     const { ref, baseRef, mergeRef } = commit;
     if (this.commits.has(ref)) {
-      console.warn(
-        `[TRIMERGE-SYNC] skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (type=${type})`,
-      );
+      // Promote lazy commit
+      if (type === 'external') {
+        this.lazyCommits.delete(ref);
+      } else {
+        console.warn(
+          `[TRIMERGE-SYNC] skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (type=${type})`,
+        );
+      }
       return;
     }
     this.commits.set(ref, commit);
@@ -344,9 +357,9 @@ export class TrimergeClient<
       this.headRefs.delete(mergeRef);
     }
     this.headRefs.add(ref);
-    const currentRef = this.currentSaved?.ref;
+    const currentRef = this.latestSaved?.ref;
     if (currentRef === commit.baseRef || currentRef === commit.mergeRef) {
-      this.currentSaved = this.getCommitState(commit.ref);
+      this.latestSaved = this.getCommitState(commit.ref);
       this.currentState = undefined;
     }
     switch (type) {
@@ -378,7 +391,7 @@ export class TrimergeClient<
     newValue: State,
     editMetadata: EditMetadata,
     lazy: boolean,
-    base: CommitState<SavedState, EditMetadata> | undefined = this.currentSaved,
+    base: CommitState<SavedState, EditMetadata> | undefined = this.latestSaved,
     mergeRef?: string,
     mergeBaseRef?: string,
   ): string {

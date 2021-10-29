@@ -88,6 +88,8 @@ describe('TrimergeClient: Migration', () => {
 
     await timeout();
 
+    await client1.shutdown();
+
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
 Array [
   Object {
@@ -153,5 +155,36 @@ Array [
   },
 ]
 `);
+
+    await client2.shutdown();
+  });
+  it('handles promotion of lazy commit that comes in externally', async () => {
+    const store = newStore();
+
+    const client1 = makeClientV1('a', store);
+    client1.updateState({ v: 1, field: 123 }, 'initialize');
+    expect(client1.state).toEqual({ v: 1, field: 123 });
+
+    await timeout();
+
+    await client1.shutdown();
+
+    const client2 = makeClientV2('a', store);
+    const client3 = makeClientV2('b', store);
+
+    await timeout();
+
+    expect(client2.state).toEqual({ v: 2, field: '123' });
+    expect(client3.state).toEqual({ v: 2, field: '123' });
+
+    client2.updateState({ v: 2, field: '456' }, 'update field');
+
+    await timeout();
+
+    expect(client2.state).toEqual({ v: 2, field: '456' });
+    expect(client3.state).toEqual({ v: 2, field: '456' });
+
+    await client2.shutdown();
+    await client3.shutdown();
   });
 });
