@@ -19,7 +19,7 @@ function makeTestClient(
   storeId: string,
   getRemote?: GetRemoteFn<any, any, any>,
 ) {
-  return new TrimergeClient<any, any, any, any>(
+  return new TrimergeClient(
     userId,
     clientId,
     createIndexedDbBackendFactory(docId, {

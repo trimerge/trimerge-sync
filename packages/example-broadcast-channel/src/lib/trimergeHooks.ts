@@ -17,23 +17,23 @@ export type UpdatePresenceFn<PresenceState> = (
 
 const TRIMERGE_CLIENT_CACHE: Record<
   string,
-  TrimergeClient<any, any, any, any>
+  TrimergeClient<any, any, any, any, any>
 > = {};
 
-function getCachedTrimergeClient<State, EditMetadata, Delta, PresenceState>(
+function getCachedTrimergeClient<
+  SavedState,
+  State extends SavedState,
+  EditMetadata,
+  Delta,
+>(
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<State, EditMetadata, Delta>,
+  differ: Differ<SavedState, State, EditMetadata, Delta>,
 ) {
   const key = `${docId}:${userId}:${clientId}`;
   if (!TRIMERGE_CLIENT_CACHE[key]) {
-    TRIMERGE_CLIENT_CACHE[key] = new TrimergeClient<
-      State,
-      EditMetadata,
-      Delta,
-      PresenceState
-    >(
+    TRIMERGE_CLIENT_CACHE[key] = new TrimergeClient(
       userId,
       clientId,
       createIndexedDbBackendFactory(docId, {
@@ -54,11 +54,16 @@ function getCachedTrimergeClient<State, EditMetadata, Delta, PresenceState>(
   return TRIMERGE_CLIENT_CACHE[key];
 }
 
-export function useTrimergeStateShutdown<State, EditMetadata, Delta>(
+export function useTrimergeStateShutdown<
+  SavedState,
+  State extends SavedState,
+  EditMetadata,
+  Delta,
+>(
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<State, EditMetadata, Delta>,
+  differ: Differ<SavedState, State, EditMetadata, Delta>,
 ): void {
   const client = getCachedTrimergeClient(docId, userId, clientId, differ);
 
@@ -70,11 +75,16 @@ export function useTrimergeStateShutdown<State, EditMetadata, Delta>(
   }, [client]);
 }
 
-export function useTrimergeDeleteDatabase<State, EditMetadata, Delta>(
+export function useTrimergeDeleteDatabase<
+  SavedState,
+  State extends SavedState,
+  EditMetadata,
+  Delta,
+>(
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<State, EditMetadata, Delta>,
+  differ: Differ<SavedState, State, EditMetadata, Delta>,
 ): () => Promise<void> {
   const client = getCachedTrimergeClient(docId, userId, clientId, differ);
 
@@ -87,11 +97,16 @@ export function useTrimergeDeleteDatabase<State, EditMetadata, Delta>(
   }, [client, docId]);
 }
 
-export function useTrimergeState<State, EditMetadata, Delta>(
+export function useTrimergeState<
+  SavedState,
+  State extends SavedState,
+  EditMetadata,
+  Delta,
+>(
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<State, EditMetadata, Delta>,
+  differ: Differ<SavedState, State, EditMetadata, Delta>,
 ): [State, UpdateStateFn<State, EditMetadata>] {
   const client = getCachedTrimergeClient(docId, userId, clientId, differ);
   const [state, setState] = useState(client.state);
@@ -104,7 +119,8 @@ export function useTrimergeState<State, EditMetadata, Delta>(
 }
 
 export function useTrimergeClientList<
-  State,
+  SavedState,
+  State extends SavedState,
   EditMetadata,
   Delta,
   PresenceState,
@@ -112,7 +128,7 @@ export function useTrimergeClientList<
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<State, EditMetadata, Delta>,
+  differ: Differ<SavedState, State, EditMetadata, Delta>,
 ): [ClientList<PresenceState>, UpdatePresenceFn<PresenceState>] {
   const client = getCachedTrimergeClient(docId, userId, clientId, differ);
   const [clients, setClients] = useState(client.clients);
@@ -127,11 +143,16 @@ export function useTrimergeClientList<
   return [clients, updatePresenceState];
 }
 
-export function useTrimergeSyncStatus<State, EditMetadata, Delta>(
+export function useTrimergeSyncStatus<
+  SavedState,
+  State extends SavedState,
+  EditMetadata,
+  Delta,
+>(
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<State, EditMetadata, Delta>,
+  differ: Differ<SavedState, State, EditMetadata, Delta>,
 ): SyncStatus {
   const client = getCachedTrimergeClient(docId, userId, clientId, differ);
   const [status, setStatus] = useState(client.syncStatus);

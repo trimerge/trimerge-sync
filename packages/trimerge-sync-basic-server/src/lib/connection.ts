@@ -23,11 +23,12 @@ export class Connection {
       this.logger.info('socket closed', {});
       this.queueExec(async () => this.onClosed());
     });
-    ws.on('message', (message) => {
-      if (typeof message !== 'string') {
+    ws.on('message', (data, isBinary) => {
+      if (isBinary) {
         this.closeWithCode(UnsupportedData, 'bad-request', 'unsupported data');
         return;
       }
+      const message = data.toString();
       if (message.length > 1_000_000) {
         this.closeWithCode(MessageTooBig, 'bad-request', 'payload too big');
         return;

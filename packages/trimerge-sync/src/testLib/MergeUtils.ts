@@ -6,7 +6,7 @@ import {
   trimergeString,
 } from 'trimerge';
 import { create, Delta } from 'jsondiffpatch';
-import { MergeStateFn } from '../differ';
+import { MergeStateFn, StateAndMetadata } from '../differ';
 import { produce } from 'immer';
 import { computeRef as computeShaRef } from 'trimerge-sync-hash';
 
@@ -16,7 +16,7 @@ const trimergeObjects = combineMergers(
   trimergeObject,
 );
 export const merge: MergeStateFn<any, any> = (base, left, right) => ({
-  value: trimergeObjects(base?.value, left.value, right.value),
+  state: trimergeObjects(base?.state, left.state, right.state),
   editMetadata: {
     ref: `(${left.ref}+${right.ref})`,
     message: `merge`,
@@ -33,6 +33,14 @@ export function patch<T>(base: T, delta: Delta | undefined): T {
 
 export function diff<T>(left: T, right: T) {
   return jdp.diff(left, right);
+}
+
+// Simple no-op migration for unit tests
+export function migrate<State, EditMetadata>(
+  state: State,
+  editMetadata: EditMetadata,
+): StateAndMetadata<State, EditMetadata> {
+  return { state, editMetadata };
 }
 
 export function computeRef(

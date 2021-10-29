@@ -5,38 +5,58 @@ export type ComputeRefFn<Delta, EditMetadata> = (
   editMetadata: EditMetadata,
 ) => string;
 
-export type DiffFn<State, Delta> = (
-  prior: State | undefined,
-  state: State,
+export type DiffFn<SavedState, Delta> = (
+  prior: SavedState | undefined,
+  state: SavedState,
 ) => Delta | undefined;
 
-export type PatchFn<State, Delta> = (
-  priorOrNext: State | undefined,
+export type PatchFn<SavedState, Delta> = (
+  priorOrNext: SavedState | undefined,
   delta: Delta | undefined,
-) => State;
+) => SavedState;
 
-export type CommitState<State, EditMetadata> = {
-  value: State;
+export type StateAndMetadata<State, EditMetadata> = {
+  state: State;
   editMetadata: EditMetadata;
 };
-export type CommitStateRef<State, EditMetadata> = {
+export type CommitState<State, EditMetadata> = {
   ref: string;
-} & CommitState<State, EditMetadata>;
+} & StateAndMetadata<State, EditMetadata>;
+
+export type MergeResult<State, EditMetadata> = {
+  lazy?: boolean;
+} & StateAndMetadata<State, EditMetadata>;
 
 export type MergeStateFn<State, EditMetadata> = (
-  base: CommitStateRef<State, EditMetadata> | undefined,
-  left: CommitStateRef<State, EditMetadata>,
-  right: CommitStateRef<State, EditMetadata>,
-) => CommitState<State, EditMetadata>;
+  base: CommitState<State, EditMetadata> | undefined,
+  left: CommitState<State, EditMetadata>,
+  right: CommitState<State, EditMetadata>,
+) => MergeResult<State, EditMetadata>;
 
-export interface Differ<State, EditMetadata, Delta> {
+export type MigrateStateFn<
+  SavedState,
+  State extends SavedState,
+  EditMetadata,
+> = (
+  state: SavedState,
+  editMetadata: EditMetadata,
+) => StateAndMetadata<State, EditMetadata>;
+
+export interface Differ<
+  SavedState,
+  State extends SavedState,
+  EditMetadata,
+  Delta,
+> {
+  readonly migrate: MigrateStateFn<SavedState, State, EditMetadata>;
+
   /** Calculate the ref string for a given edit */
   readonly computeRef: ComputeRefFn<Delta, EditMetadata>;
 
   /** Computed the difference between two States */
-  readonly diff: DiffFn<State, Delta>;
+  readonly diff: DiffFn<SavedState, Delta>;
   /** Apply a patch from one state to another */
-  readonly patch: PatchFn<State, Delta>;
+  readonly patch: PatchFn<SavedState, Delta>;
 
   /** Trimerge three states */
   readonly merge: MergeStateFn<State, EditMetadata>;

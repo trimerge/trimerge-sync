@@ -14,8 +14,8 @@ describe('merge', () => {
     expect(
       merge(
         undefined,
-        { ref: '1', value: 'hi', editMetadata: '' },
-        { ref: '2', value: 'there', editMetadata: '' },
+        { ref: '1', state: 'hi', editMetadata: '' },
+        { ref: '2', state: 'there', editMetadata: '' },
       ),
     ).toMatchInlineSnapshot(`
       Object {
@@ -23,16 +23,16 @@ describe('merge', () => {
           "message": "merge",
           "ref": "(1+2)",
         },
-        "value": "hithere",
+        "state": "hithere",
       }
     `);
   });
   it('merges with base', () => {
     expect(
       merge(
-        { ref: '1', value: 'hi', editMetadata: '' },
-        { ref: '2', value: 'hi there', editMetadata: '' },
-        { ref: '3', value: 'hello', editMetadata: '' },
+        { ref: '1', state: 'hi', editMetadata: '' },
+        { ref: '2', state: 'hi there', editMetadata: '' },
+        { ref: '3', state: 'hello', editMetadata: '' },
       ),
     ).toMatchInlineSnapshot(`
       Object {
@@ -40,7 +40,7 @@ describe('merge', () => {
           "message": "merge",
           "ref": "(2+3)",
         },
-        "value": "h thereello",
+        "state": "h thereello",
       }
     `);
   });

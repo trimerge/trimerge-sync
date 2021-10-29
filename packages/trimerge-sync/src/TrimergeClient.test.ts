@@ -2,20 +2,22 @@ import { TrimergeClient } from './TrimergeClient';
 import { timeout } from './lib/Timeout';
 import { OnEventFn, SyncEvent } from './types';
 import { Differ } from './differ';
+import { migrate } from './testLib/MergeUtils';
 
-const differ: Differ<any, any, any> = {
+const differ: Differ<any, any, any, any> = {
+  migrate,
   diff: () => null,
-  merge: () => ({ value: undefined, editMetadata: undefined }),
+  merge: () => ({ state: undefined, editMetadata: undefined }),
   patch: () => null,
   computeRef: () => 'hash',
 };
 
 function makeTrimergeClient(): {
-  client: TrimergeClient<any, any, any, any>;
+  client: TrimergeClient<any, any, any, any, any>;
   onEvent: OnEventFn<any, any, any>;
 } {
   let onEvent: OnEventFn<any, any, any> | undefined;
-  const client = new TrimergeClient<any, any, any, any>(
+  const client = new TrimergeClient(
     '',
     '',
     (userId, clientId, _onEvent) => {
@@ -42,6 +44,7 @@ describe('TrimergeClient', () => {
     client.updateState('hello2', 'hi');
     client.updateState('hello3', 'hi');
     await timeout(100);
+    expect(() => client.getCommit('xxx')).toThrowError(`unknown ref "xxx"`);
   });
 
   it('handles event with invalid baseRef', async () => {
