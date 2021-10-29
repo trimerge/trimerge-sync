@@ -23,23 +23,28 @@ export type CommitDoc<Doc, EditMetadata> = {
   ref: string;
 } & DocAndMetadata<Doc, EditMetadata>;
 
-export type MergeResult<Doc, EditMetadata> = {
+export type MergeResult<LatestDoc, EditMetadata> = {
   lazy?: boolean;
-} & DocAndMetadata<Doc, EditMetadata>;
+} & DocAndMetadata<LatestDoc, EditMetadata>;
 
-export type MergeDocFn<Doc, EditMetadata> = (
-  base: CommitDoc<Doc, EditMetadata> | undefined,
-  left: CommitDoc<Doc, EditMetadata>,
-  right: CommitDoc<Doc, EditMetadata>,
-) => MergeResult<Doc, EditMetadata>;
+export type MergeDocFn<LatestDoc, EditMetadata> = (
+  base: CommitDoc<LatestDoc, EditMetadata> | undefined,
+  left: CommitDoc<LatestDoc, EditMetadata>,
+  right: CommitDoc<LatestDoc, EditMetadata>,
+) => MergeResult<LatestDoc, EditMetadata>;
 
-export type MigrateDocFn<SavedDoc, Doc extends SavedDoc, EditMetadata> = (
+export type MigrateDocFn<SavedDoc, LatestDoc extends SavedDoc, EditMetadata> = (
   doc: SavedDoc,
   editMetadata: EditMetadata,
-) => DocAndMetadata<Doc, EditMetadata>;
+) => DocAndMetadata<LatestDoc, EditMetadata>;
 
-export interface Differ<SavedDoc, Doc extends SavedDoc, EditMetadata, Delta> {
-  readonly migrate: MigrateDocFn<SavedDoc, Doc, EditMetadata>;
+export interface Differ<
+  SavedDoc,
+  LatestDoc extends SavedDoc,
+  EditMetadata,
+  Delta,
+> {
+  readonly migrate: MigrateDocFn<SavedDoc, LatestDoc, EditMetadata>;
 
   /** Calculate the ref string for a given edit */
   readonly computeRef: ComputeRefFn<Delta, EditMetadata>;
@@ -50,5 +55,5 @@ export interface Differ<SavedDoc, Doc extends SavedDoc, EditMetadata, Delta> {
   readonly patch: PatchFn<SavedDoc, Delta>;
 
   /** Three-way-merge function */
-  readonly merge: MergeDocFn<Doc, EditMetadata>;
+  readonly merge: MergeDocFn<LatestDoc, EditMetadata>;
 }

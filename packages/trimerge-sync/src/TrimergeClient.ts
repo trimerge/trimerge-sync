@@ -14,15 +14,23 @@ import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { timeout } from './lib/Timeout';
 
+type AddCommitType =
+  // Added from this client
+  | 'local'
+  // Added from outside the client (e.g. a store)
+  | 'external'
+  // Added from this client, but don't sync to store
+  | 'lazy';
+
 export class TrimergeClient<
   SavedDoc,
-  Doc extends SavedDoc,
+  LatestDoc extends SavedDoc,
   EditMetadata,
   Delta,
   Presence,
 > {
-  private currentSaved?: CommitDoc<SavedDoc, EditMetadata>;
-  private currentDoc?: CommitDoc<Doc, EditMetadata>;
+  private lastSaved?: CommitDoc<SavedDoc, EditMetadata>;
+  private latestDoc?: CommitDoc<LatestDoc, EditMetadata>;
   private lastLocalSyncId: string | undefined;
 
   private docSubs = new SubscriberList(() => this.doc);
@@ -67,7 +75,7 @@ export class TrimergeClient<
       Delta,
       Presence
     >,
-    private readonly differ: Differ<SavedDoc, Doc, EditMetadata, Delta>,
+    private readonly differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
     private readonly bufferMs: number,
   ) {
     this.selfFullId = getFullId(userId, clientId);
@@ -95,7 +103,7 @@ export class TrimergeClient<
       case 'commits': {
         const { commits, syncId, clientInfo } = event;
         for (const commit of commits) {
-          this.addCommit(commit, 'remote');
+          this.addCommit(commit, 'external');
         }
         this.lastLocalSyncId = syncId;
         this.mergeHeads();
@@ -153,14 +161,14 @@ export class TrimergeClient<
     }
   };
 
-  get doc(): Doc | undefined {
-    if (this.currentSaved === undefined) {
+  get doc(): LatestDoc | undefined {
+    if (this.lastSaved === undefined) {
       return undefined;
     }
-    if (this.currentDoc === undefined) {
-      this.currentDoc = this.migrateCommit(this.currentSaved);
+    if (this.latestDoc === undefined) {
+      this.latestDoc = this.migrateCommit(this.lastSaved);
     }
-    return this.currentDoc.doc;
+    return this.latestDoc.doc;
   }
   get syncStatus(): SyncStatus {
     return this.syncState;
@@ -169,7 +177,7 @@ export class TrimergeClient<
     return this.clientList;
   }
 
-  subscribeDoc(onChange: OnChangeFn<Doc | undefined>) {
+  subscribeDoc(onChange: OnChangeFn<LatestDoc | undefined>) {
     return this.docSubs.subscribe(onChange);
   }
 
@@ -181,7 +189,7 @@ export class TrimergeClient<
     return this.clientListSubs.subscribe(onChange);
   }
 
-  updateDoc(doc: Doc, editMetadata: EditMetadata, presence?: Presence) {
+  updateDoc(doc: LatestDoc, editMetadata: EditMetadata, presence?: Presence) {
     const ref = this.addNewCommit(doc, editMetadata, false);
     this.setPresence(presence, ref);
     this.mergeHeads();
@@ -196,7 +204,7 @@ export class TrimergeClient<
 
   private setPresence(
     presence: Presence | undefined,
-    ref = this.currentSaved?.ref,
+    ref = this.lastSaved?.ref,
   ) {
     const { userId, clientId } = this;
     this.newPresence = { userId, clientId, ref, presence };
@@ -232,7 +240,7 @@ export class TrimergeClient<
 
   private migrateCommit(
     commit: CommitDoc<SavedDoc, EditMetadata>,
-  ): CommitDoc<Doc, EditMetadata> {
+  ): CommitDoc<LatestDoc, EditMetadata> {
     const { doc, editMetadata } = this.differ.migrate(
       commit.doc,
       commit.editMetadata,
@@ -315,13 +323,18 @@ export class TrimergeClient<
 
   private addCommit(
     commit: Commit<EditMetadata, Delta>,
-    type: 'local' | 'remote' | 'lazy',
+    type: AddCommitType,
   ): void {
     const { ref, baseRef, mergeRef } = commit;
     if (this.commits.has(ref)) {
-      console.warn(
-        `[TRIMERGE-SYNC] skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (type=${type})`,
-      );
+      // Promote lazy commit
+      if (type === 'external') {
+        this.lazyCommits.delete(ref);
+      } else {
+        console.warn(
+          `[TRIMERGE-SYNC] skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (type=${type})`,
+        );
+      }
       return;
     }
     this.commits.set(ref, commit);
@@ -338,10 +351,10 @@ export class TrimergeClient<
       this.headRefs.delete(mergeRef);
     }
     this.headRefs.add(ref);
-    const currentRef = this.currentSaved?.ref;
+    const currentRef = this.lastSaved?.ref;
     if (currentRef === commit.baseRef || currentRef === commit.mergeRef) {
-      this.currentSaved = this.getCommitDoc(commit.ref);
-      this.currentDoc = undefined;
+      this.lastSaved = this.getCommitDoc(commit.ref);
+      this.latestDoc = undefined;
     }
     switch (type) {
       case 'lazy':
@@ -369,10 +382,10 @@ export class TrimergeClient<
   }
 
   private addNewCommit(
-    newDoc: Doc,
+    newDoc: LatestDoc,
     editMetadata: EditMetadata,
     lazy: boolean,
-    base: CommitDoc<SavedDoc, EditMetadata> | undefined = this.currentSaved,
+    base: CommitDoc<SavedDoc, EditMetadata> | undefined = this.lastSaved,
     mergeRef?: string,
     mergeBaseRef?: string,
   ): string {

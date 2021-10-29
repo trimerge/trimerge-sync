@@ -7,8 +7,8 @@ import {
 import { WebsocketRemote } from 'trimerge-sync-basic-client';
 import { randomId } from './randomId';
 
-export type UpdateDocFn<Doc, EditMetadata> = (
-  doc: Doc,
+export type UpdateDocFn<LatestDoc, EditMetadata> = (
+  doc: LatestDoc,
   editMetadata: EditMetadata,
 ) => void;
 export type UpdatePresenceFn<Presence> = (newPresence: Presence) => void;
@@ -20,14 +20,14 @@ const TRIMERGE_CLIENT_CACHE: Record<
 
 function getCachedTrimergeClient<
   SavedDoc,
-  Doc extends SavedDoc,
+  LatestDoc extends SavedDoc,
   EditMetadata,
   Delta,
 >(
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<SavedDoc, Doc, EditMetadata, Delta>,
+  differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
 ) {
   const key = `${docId}:${userId}:${clientId}`;
   if (!TRIMERGE_CLIENT_CACHE[key]) {
@@ -54,14 +54,14 @@ function getCachedTrimergeClient<
 
 export function useTrimergeStateShutdown<
   SavedDoc,
-  Doc extends SavedDoc,
+  LatestDoc extends SavedDoc,
   EditMetadata,
   Delta,
 >(
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<SavedDoc, Doc, EditMetadata, Delta>,
+  differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
 ): void {
   const client = getCachedTrimergeClient(docId, userId, clientId, differ);
 
@@ -75,14 +75,14 @@ export function useTrimergeStateShutdown<
 
 export function useTrimergeDeleteDatabase<
   SavedDoc,
-  Doc extends SavedDoc,
+  LatestDoc extends SavedDoc,
   EditMetadata,
   Delta,
 >(
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<SavedDoc, Doc, EditMetadata, Delta>,
+  differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
 ): () => Promise<void> {
   const client = getCachedTrimergeClient(docId, userId, clientId, differ);
 
@@ -97,15 +97,15 @@ export function useTrimergeDeleteDatabase<
 
 export function useTrimergeDoc<
   SavedDoc,
-  Doc extends SavedDoc,
+  LatestDoc extends SavedDoc,
   EditMetadata,
   Delta,
 >(
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<SavedDoc, Doc, EditMetadata, Delta>,
-): [Doc, UpdateDocFn<Doc, EditMetadata>] {
+  differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
+): [LatestDoc, UpdateDocFn<LatestDoc, EditMetadata>] {
   const client = getCachedTrimergeClient(docId, userId, clientId, differ);
   const [doc, setDoc] = useState(client.doc);
 
@@ -118,7 +118,7 @@ export function useTrimergeDoc<
 
 export function useTrimergeClientList<
   SavedDoc,
-  Doc extends SavedDoc,
+  LatestDoc extends SavedDoc,
   EditMetadata,
   Delta,
   Presence,
@@ -126,7 +126,7 @@ export function useTrimergeClientList<
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<SavedDoc, Doc, EditMetadata, Delta>,
+  differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
 ): [ClientList<Presence>, UpdatePresenceFn<Presence>] {
   const client = getCachedTrimergeClient(docId, userId, clientId, differ);
   const [clients, setClients] = useState(client.clients);
@@ -143,14 +143,14 @@ export function useTrimergeClientList<
 
 export function useTrimergeSyncStatus<
   SavedDoc,
-  Doc extends SavedDoc,
+  LatestDoc extends SavedDoc,
   EditMetadata,
   Delta,
 >(
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<SavedDoc, Doc, EditMetadata, Delta>,
+  differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
 ): SyncStatus {
   const client = getCachedTrimergeClient(docId, userId, clientId, differ);
   const [status, setStatus] = useState(client.syncStatus);

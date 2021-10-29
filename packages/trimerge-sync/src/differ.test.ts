@@ -6,7 +6,7 @@ describe('migrate type tests', () => {
     type DocV2 = { version: 2; b: number };
     type SavedDoc = DocV1 | DocV2;
     type Doc = DocV2;
-    const migrate: MigrateDocFn<SavedDoc, Doc, string> = (
+    const migrate: MigrateDocFn<SavedDoc, LatestDoc, string> = (
       doc,
       editMetadata,
     ) => {
@@ -34,7 +34,7 @@ describe('migrate type tests', () => {
     type SavedDoc = { version: number };
     type Doc = { version: 2 };
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    type Migrate = MigrateDocFn<SavedDoc, Doc, any>;
+    type Migrate = MigrateDocFn<SavedDoc, LatestDoc, any>;
   });
 
   it('invalid type', () => {
@@ -44,6 +44,6 @@ describe('migrate type tests', () => {
     type Doc = DocV2;
     // @ts-expect-error State needs to be assignable to SavedDoc
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    type Migrate = MigrateDocFn<SavedDoc, Doc, any>;
+    type Migrate = MigrateDocFn<SavedDoc, LatestDoc, any>;
   });
 });

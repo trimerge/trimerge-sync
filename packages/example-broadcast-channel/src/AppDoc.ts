@@ -20,7 +20,7 @@ type AppStateV1 = {
 };
 type SavedAppDoc = AppStateV1;
 
-export type AppDoc = AppStateV1;
+export type LatestAppDoc = AppStateV1;
 
 export const defaultDoc = {
   title: '',
@@ -28,7 +28,7 @@ export const defaultDoc = {
   slider: 0,
 };
 
-export const differ: Differ<SavedAppDoc, AppDoc, string, Delta> = {
+export const differ: Differ<SavedAppDoc, LatestAppDoc, string, Delta> = {
   migrate: (doc, editMetadata) => ({ doc, editMetadata }),
   diff,
   patch: (priorOrNext, delta) => patch(priorOrNext, delta) ?? defaultDoc,
@@ -39,7 +39,7 @@ export const differ: Differ<SavedAppDoc, AppDoc, string, Delta> = {
 const DEMO_DOC_ID = 'demo';
 const DEMO_USER_ID = 'local';
 export function useDemoAppDoc() {
-  return useTrimergeDoc<SavedAppDoc, AppDoc, string, Delta>(
+  return useTrimergeDoc<SavedAppDoc, LatestAppDoc, string, Delta>(
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,
@@ -59,14 +59,14 @@ export function useDemoAppDeleteDatabase() {
 export function useDemoAppClientList() {
   return useTrimergeClientList<
     SavedAppDoc,
-    AppDoc,
+    LatestAppDoc,
     string,
     Delta,
     FocusPresence
   >(DEMO_DOC_ID, DEMO_USER_ID, currentTabId, differ);
 }
 export function useDemoAppSyncStatus() {
-  return useTrimergeSyncStatus<SavedAppDoc, AppDoc, string, Delta>(
+  return useTrimergeSyncStatus<SavedAppDoc, LatestAppDoc, string, Delta>(
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,
@@ -74,7 +74,7 @@ export function useDemoAppSyncStatus() {
   );
 }
 export function useDemoAppShutdown() {
-  return useTrimergeStateShutdown<SavedAppDoc, AppDoc, string, Delta>(
+  return useTrimergeStateShutdown<SavedAppDoc, LatestAppDoc, string, Delta>(
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,
