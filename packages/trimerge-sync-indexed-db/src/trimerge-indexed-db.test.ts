@@ -507,7 +507,7 @@ Object {
   "localSave": "ready",
   "remoteConnect": "online",
   "remoteRead": "ready",
-  "remoteSave": "saving",
+  "remoteSave": "ready",
 }
 `);
 
