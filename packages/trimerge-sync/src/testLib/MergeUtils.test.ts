@@ -23,6 +23,6 @@ describe('patch', () => {
 describe('migrate', () => {
   it('does nothing', () => {
     const x = {};
-    expect(migrate(x, '').state).toBe(x);
+    expect(migrate(x, '').doc).toBe(x);
   });
 });

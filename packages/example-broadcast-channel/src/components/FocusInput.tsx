@@ -6,7 +6,7 @@ import { UpdatePresenceFn } from '../lib/trimergeHooks';
 import { useFocusInfo, useSelectionListen } from './focusHooks';
 import { FocusBorders } from './FocusBorders';
 import { FocusCarets } from './FocusCarets';
-import { FocusPresenceState } from '../lib/FocusPresenceState';
+import { FocusPresence } from '../lib/FocusPresence';
 import { ClientList } from 'trimerge-sync';
 
 export function FocusInput({
@@ -18,8 +18,8 @@ export function FocusInput({
 }: {
   id: string;
   value: string;
-  clients: ClientList<FocusPresenceState>;
-  updatePresence: UpdatePresenceFn<FocusPresenceState>;
+  clients: ClientList<FocusPresence>;
+  updatePresence: UpdatePresenceFn<FocusPresence>;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   const { style, otherClients } = useFocusInfo(id, clients);
   const ref = useRef<HTMLInputElement>(null);

@@ -48,21 +48,20 @@ export type SyncStatus = {
   remoteSave: RemoteSaveStatus;
 };
 
-export type ClientPresenceRef<PresenceState> = {
+export type ClientPresenceRef<Presence> = {
   ref: string | undefined;
-  state: PresenceState | undefined;
+  presence: Presence | undefined;
 };
 
-export type ClientInfo<PresenceState> = ClientPresenceRef<PresenceState> & {
+export type ClientInfo<Presence> = ClientPresenceRef<Presence> & {
   userId: string;
   clientId: string;
 };
 
-export type LocalClientInfo<PresenceState> = ClientInfo<PresenceState> & {
+export type LocalClientInfo<Presence> = ClientInfo<Presence> & {
   self?: true;
 };
-export type ClientList<PresenceState> =
-  readonly LocalClientInfo<PresenceState>[];
+export type ClientList<Presence> = readonly LocalClientInfo<Presence>[];
 
 export type InitEvent =
   | {
@@ -79,10 +78,10 @@ export type InitEvent =
       auth: unknown;
     };
 
-export type CommitsEvent<EditMetadata, Delta, PresenceState> = {
+export type CommitsEvent<EditMetadata, Delta, Presence> = {
   type: 'commits';
   commits: readonly Commit<EditMetadata, Delta>[];
-  clientInfo?: ClientInfo<PresenceState>;
+  clientInfo?: ClientInfo<Presence>;
   syncId?: string;
 };
 export type ReadyEvent = {
@@ -106,13 +105,13 @@ export type AckCommitsEvent = {
   refErrors?: AckRefErrors;
   syncId: string;
 };
-export type ClientJoinEvent<PresenceState> = {
+export type ClientJoinEvent<Presence> = {
   type: 'client-join';
-  info: ClientInfo<PresenceState>;
+  info: ClientInfo<Presence>;
 };
-export type ClientPresenceEvent<PresenceState> = {
+export type ClientPresenceEvent<Presence> = {
   type: 'client-presence';
-  info: ClientInfo<PresenceState>;
+  info: ClientInfo<Presence>;
 };
 export type ClientLeaveEvent = {
   type: 'client-leave';
@@ -138,53 +137,53 @@ export type LeaderEvent = {
   action: 'request' | 'current' | 'accept' | 'withdraw';
   clientId: string;
 };
-export type SyncEvent<EditMetadata, Delta, PresenceState> = Readonly<
+export type SyncEvent<EditMetadata, Delta, Presence> = Readonly<
   | InitEvent
-  | CommitsEvent<EditMetadata, Delta, PresenceState>
+  | CommitsEvent<EditMetadata, Delta, Presence>
   | ReadyEvent
   | LeaderEvent
   | AckCommitsEvent
-  | ClientJoinEvent<PresenceState>
-  | ClientPresenceEvent<PresenceState>
+  | ClientJoinEvent<Presence>
+  | ClientPresenceEvent<Presence>
   | ClientLeaveEvent
   | RemoteStateEvent
   | ErrorEvent
 >;
 
-export type OnEventFn<EditMetadata, Delta, PresenceState> = (
-  event: SyncEvent<EditMetadata, Delta, PresenceState>,
+export type OnEventFn<EditMetadata, Delta, Presence> = (
+  event: SyncEvent<EditMetadata, Delta, Presence>,
 ) => void;
 
-export type GetLocalStoreFn<EditMetadata, Delta, PresenceState> = (
+export type GetLocalStoreFn<EditMetadata, Delta, Presence> = (
   userId: string,
   clientId: string,
-  onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
-) => LocalStore<EditMetadata, Delta, PresenceState>;
+  onEvent: OnEventFn<EditMetadata, Delta, Presence>,
+) => LocalStore<EditMetadata, Delta, Presence>;
 
 export type RemoteSyncInfo = {
   localStoreId: string;
   lastSyncCursor: string | undefined;
 };
 
-export type GetRemoteFn<EditMetadata, Delta, PresenceState> = (
+export type GetRemoteFn<EditMetadata, Delta, Presence> = (
   userId: string,
   remoteSyncInfo: RemoteSyncInfo,
-  onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
+  onEvent: OnEventFn<EditMetadata, Delta, Presence>,
 ) =>
-  | Remote<EditMetadata, Delta, PresenceState>
-  | Promise<Remote<EditMetadata, Delta, PresenceState>>;
+  | Remote<EditMetadata, Delta, Presence>
+  | Promise<Remote<EditMetadata, Delta, Presence>>;
 
-export interface LocalStore<EditMetadata, Delta, PresenceState> {
+export interface LocalStore<EditMetadata, Delta, Presence> {
   update(
     commits: Commit<EditMetadata, Delta>[],
-    presence: ClientPresenceRef<PresenceState> | undefined,
+    presence: ClientPresenceRef<Presence> | undefined,
   ): void;
   isRemoteLeader: boolean;
   shutdown(): void | Promise<void>;
 }
 
-export interface Remote<EditMetadata, Delta, PresenceState> {
-  send(event: SyncEvent<EditMetadata, Delta, PresenceState>): void;
+export interface Remote<EditMetadata, Delta, Presence> {
+  send(event: SyncEvent<EditMetadata, Delta, Presence>): void;
   shutdown(): void | Promise<void>;
 }
 

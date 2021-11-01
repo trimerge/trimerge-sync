@@ -19,9 +19,8 @@ function randomId() {
   return generate({ words: 3, alliterative: true }).dashed;
 }
 
-export class MemoryStore<EditMetadata, Delta, PresenceState> {
-  public readonly remotes: MemoryRemote<EditMetadata, Delta, PresenceState>[] =
-    [];
+export class MemoryStore<EditMetadata, Delta, Presence> {
+  public readonly remotes: MemoryRemote<EditMetadata, Delta, Presence>[] = [];
   private commits: Commit<EditMetadata, Delta>[] = [];
   private localCommitRefs = new Set<string>();
   private syncedCommits = new Set<string>();
@@ -31,18 +30,14 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
   private readonly localStores: MemoryLocalStore<
     EditMetadata,
     Delta,
-    PresenceState
+    Presence
   >[] = [];
 
   public writeErrorMode = false;
 
   constructor(
     public readonly channelName: string = randomId(),
-    private readonly getRemoteFn?: GetRemoteFn<
-      EditMetadata,
-      Delta,
-      PresenceState
-    >,
+    private readonly getRemoteFn?: GetRemoteFn<EditMetadata, Delta, Presence>,
     public online = true,
   ) {}
 
@@ -60,7 +55,7 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     }
   }
 
-  getLocalStore: GetLocalStoreFn<EditMetadata, Delta, PresenceState> = (
+  getLocalStore: GetLocalStoreFn<EditMetadata, Delta, Presence> = (
     userId,
     clientId,
     onEvent,
@@ -76,7 +71,7 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
     return store;
   };
 
-  getRemote: GetRemoteFn<EditMetadata, Delta, PresenceState> = (
+  getRemote: GetRemoteFn<EditMetadata, Delta, Presence> = (
     userId: string,
     remoteSyncInfo,
     onEvent,
@@ -130,7 +125,7 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
 
   getLocalCommitsEvent(
     startSyncCursor?: string,
-  ): Promise<CommitsEvent<EditMetadata, Delta, PresenceState>> {
+  ): Promise<CommitsEvent<EditMetadata, Delta, Presence>> {
     return this.queue.add(async () => ({
       type: 'commits',
       commits:
@@ -148,7 +143,7 @@ export class MemoryStore<EditMetadata, Delta, PresenceState> {
   }
 
   async *getCommitsForRemote(): AsyncIterableIterator<
-    CommitsEvent<EditMetadata, Delta, PresenceState>
+    CommitsEvent<EditMetadata, Delta, Presence>
   > {
     const commits = await this.queue.add(async () =>
       this.commits.filter(({ ref }) => !this.syncedCommits.has(ref)),

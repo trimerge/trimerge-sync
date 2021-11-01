@@ -8,16 +8,11 @@ import { ClientInfo } from './types';
 import { timeout } from './lib/Timeout';
 
 type TestEditMetadata = string;
-type TestSavedState = any;
-type TestState = any;
-type TestPresenceState = any;
+type TestSavedDoc = any;
+type TestDoc = any;
+type TestPresence = any;
 
-const differ: Differ<
-  TestSavedState,
-  TestState,
-  TestEditMetadata,
-  TestPresenceState
-> = {
+const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
   migrate,
   diff,
   patch,
@@ -26,53 +21,53 @@ const differ: Differ<
 };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestPresenceState>();
+  return new MemoryStore<TestEditMetadata, Delta, TestPresence>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<
-  TestSavedState,
-  TestState,
+  TestSavedDoc,
+  TestDoc,
   TestEditMetadata,
   Delta,
-  TestPresenceState
+  TestPresence
 > {
   return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
   client1: TrimergeClient<
-    TestSavedState,
-    TestState,
+    TestSavedDoc,
+    TestDoc,
     TestEditMetadata,
     Delta,
-    TestPresenceState
+    TestPresence
   >,
 ) {
   return getBasicGraph(
     store.getCommits(),
     (commit) => commit.editMetadata,
-    (commit) => client1.getCommitState(commit.ref).state,
+    (commit) => client1.getCommitDoc(commit.ref).doc,
   );
 }
 
 function sortedClients(
   client: TrimergeClient<
-    TestSavedState,
-    TestState,
+    TestSavedDoc,
+    TestDoc,
     TestEditMetadata,
     Delta,
-    TestPresenceState
+    TestPresence
   >,
 ) {
   return Array.from(client.clients).sort(clientSort);
 }
 function clientSort(
-  a: ClientInfo<TestPresenceState>,
-  b: ClientInfo<TestPresenceState>,
+  a: ClientInfo<TestPresence>,
+  b: ClientInfo<TestPresence>,
 ): -1 | 1 | 0 {
   if (a.userId !== b.userId) {
     return a.userId < b.userId ? -1 : 1;
@@ -88,11 +83,11 @@ describe('TrimergeClient: 2 users', () => {
     const store = newStore();
     const client = makeClient('a', store);
 
-    client.updateState({}, 'initialize');
-    client.updateState({ hello: 'world' }, 'add hello');
-    client.updateState({ hello: 'vorld' }, 'change hello');
+    client.updateDoc({}, 'initialize');
+    client.updateDoc({ hello: 'world' }, 'add hello');
+    client.updateDoc({ hello: 'vorld' }, 'change hello');
 
-    expect(client.state).toEqual({ hello: 'vorld' });
+    expect(client.doc).toEqual({ hello: 'vorld' });
   });
 
   it('tracks non-edits', async () => {
@@ -100,10 +95,10 @@ describe('TrimergeClient: 2 users', () => {
     const client = makeClient('a', store);
 
     const onStateChange = jest.fn();
-    const unsub = client.subscribeState(onStateChange);
-    client.updateState(undefined, 'initialize');
+    const unsub = client.subscribeDoc(onStateChange);
+    client.updateDoc(undefined, 'initialize');
     await timeout();
-    client.updateState(undefined, 'initialize');
+    client.updateDoc(undefined, 'initialize');
     await timeout();
 
     expect(onStateChange.mock.calls).toMatchInlineSnapshot(`
@@ -125,40 +120,21 @@ describe('TrimergeClient: 2 users', () => {
     await timeout();
 
     expect(onStateChange.mock.calls.slice(-1)).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Array [
-            Object {
-              "clientId": "test",
-              "ref": undefined,
-              "self": true,
-              "state": "blah",
-              "userId": "a",
-            },
-          ],
-        ],
-      ]
-    `);
-    unsub();
-  });
-  it('updates presence', async () => {
-    const store = newStore();
-    const client = makeClient('a', store);
-
-    client.updateState({ hello: 'world' }, 'init');
-    client.updatePresence('blah');
-    await timeout();
-    expect(sortedClients(client)).toMatchInlineSnapshot(`
 Array [
-  Object {
-    "clientId": "test",
-    "ref": "4AC3Kqag",
-    "self": true,
-    "state": "blah",
-    "userId": "a",
-  },
+  Array [
+    Array [
+      Object {
+        "clientId": "test",
+        "presence": "blah",
+        "ref": undefined,
+        "self": true,
+        "userId": "a",
+      },
+    ],
+  ],
 ]
 `);
+    unsub();
   });
 
   it('edit syncs across two clients', async () => {
@@ -167,14 +143,14 @@ Array [
     const client2 = makeClient('b', store);
 
     // No values
-    expect(client1.state).toBe(undefined);
-    expect(client2.state).toBe(undefined);
+    expect(client1.doc).toBe(undefined);
+    expect(client2.doc).toBe(undefined);
 
-    client1.updateState({}, 'initialize');
+    client1.updateDoc({}, 'initialize');
 
     // Client 1 is updated, but not client2
-    expect(client1.state).toEqual({});
-    expect(client2.state).toBe(undefined);
+    expect(client1.doc).toEqual({});
+    expect(client2.doc).toBe(undefined);
 
     await timeout();
 
@@ -205,8 +181,8 @@ Array [
     );
 
     // Client2 is updated now
-    expect(client1.state).toEqual({});
-    expect(client2.state).toEqual({});
+    expect(client1.doc).toEqual({});
+    expect(client2.doc).toEqual({});
   });
 
   it('sends presence information correctly', async () => {
@@ -377,13 +353,13 @@ Array [
         clientId: 'test',
         ref: undefined,
         self: true,
-        state: 'hello',
+        presence: 'hello',
         userId: 'a',
       },
       {
         clientId: 'test',
         ref: undefined,
-        state: undefined,
+        presence: undefined,
         userId: 'b',
       },
     ]);
@@ -391,14 +367,14 @@ Array [
       {
         clientId: 'test',
         ref: undefined,
-        state: 'hello',
+        presence: 'hello',
         userId: 'a',
       },
       {
         clientId: 'test',
         ref: undefined,
         self: true,
-        state: undefined,
+        presence: undefined,
         userId: 'b',
       },
     ]);
@@ -409,16 +385,16 @@ Array [
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
 
-    client1.updateState({}, 'initialize');
-    client1.updateState({ edit: true }, 'edit');
+    client1.updateDoc({}, 'initialize');
+    client1.updateDoc({ edit: true }, 'edit');
 
     // Client 1 is updated, but not client2
-    expect(client1.state).toEqual({ edit: true });
-    expect(client2.state).toBe(undefined);
+    expect(client1.doc).toEqual({ edit: true });
+    expect(client2.doc).toBe(undefined);
 
     await timeout();
 
-    expect(client2.state).toEqual({ edit: true });
+    expect(client2.doc).toEqual({ edit: true });
   });
 
   it('edit syncs back and forth with two clients', async () => {
@@ -426,26 +402,26 @@ Array [
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
 
-    client1.updateState({}, 'initialize');
-    client1.updateState({ hello: 'world' }, 'add hello');
-    client1.updateState({ hello: 'vorld' }, 'change hello');
+    client1.updateDoc({}, 'initialize');
+    client1.updateDoc({ hello: 'world' }, 'add hello');
+    client1.updateDoc({ hello: 'vorld' }, 'change hello');
 
     await timeout();
 
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld' });
 
-    client2.updateState({ hello: 'vorld', world: 'world' }, 'add world');
-    client2.updateState({ hello: 'vorld', world: 'vorld' }, 'change world');
+    client2.updateDoc({ hello: 'vorld', world: 'world' }, 'add world');
+    client2.updateDoc({ hello: 'vorld', world: 'vorld' }, 'change world');
 
     // Now client 2 is updated but not client 1
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
     await timeout();
 
-    expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
   });
 
   it('automatic merging if two clients edit simultaneously', async () => {
@@ -453,37 +429,37 @@ Array [
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
 
-    client1.updateState({}, 'initialize');
+    client1.updateDoc({}, 'initialize');
 
     // Synchronized
-    expect(client1.state).toEqual({});
-    expect(client2.state).toEqual(undefined);
+    expect(client1.doc).toEqual({});
+    expect(client2.doc).toEqual(undefined);
 
     await timeout();
 
-    expect(client2.state).toEqual({});
+    expect(client2.doc).toEqual({});
 
-    client1.updateState({ hello: 'world' }, 'add hello');
-    client1.updateState({ hello: 'vorld' }, 'change hello');
+    client1.updateDoc({ hello: 'world' }, 'add hello');
+    client1.updateDoc({ hello: 'vorld' }, 'change hello');
 
-    client2.updateState({ world: 'world' }, 'add world');
-    client2.updateState({ world: 'vorld' }, 'change world');
+    client2.updateDoc({ world: 'world' }, 'add world');
+    client2.updateDoc({ world: 'vorld' }, 'change world');
 
     // Now client 1 and client 2 have different changes
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual({ world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual({ world: 'vorld' });
 
     await timeout();
 
     //  Now they should both have trimerged changes
-    expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
     await timeout();
 
     // Should be the same
-    expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
     await client1.shutdown();
     await client2.shutdown();
@@ -539,18 +515,18 @@ Array [
     const store = newStore();
     const client1 = makeClient('a', store);
 
-    client1.updateState({}, 'initialize');
-    client1.updateState({ hello: 'world' }, 'add hello');
-    client1.updateState({ hello: 'vorld' }, 'change hello');
+    client1.updateDoc({}, 'initialize');
+    client1.updateDoc({ hello: 'world' }, 'add hello');
+    client1.updateDoc({ hello: 'vorld' }, 'change hello');
 
     await timeout();
 
     const client2 = makeClient('b', store);
 
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual(undefined);
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual(undefined);
     await timeout();
-    expect(client2.state).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld' });
 
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
       Array [
@@ -582,22 +558,22 @@ Array [
     const client1 = makeClient('a', store);
     const subscribeFn = jest.fn();
 
-    const unsubscribeFn = client1.subscribeState(subscribeFn);
+    const unsubscribeFn = client1.subscribeDoc(subscribeFn);
 
-    client1.updateState({}, 'initialize');
-    client1.updateState({ hello: 'world' }, 'add hello');
-    client1.updateState({ hello: 'vorld' }, 'change hello');
+    client1.updateDoc({}, 'initialize');
+    client1.updateDoc({ hello: 'world' }, 'add hello');
+    client1.updateDoc({ hello: 'vorld' }, 'change hello');
 
     await timeout();
 
     const client2 = makeClient('b', store);
 
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual(undefined);
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual(undefined);
 
     await timeout();
 
-    client1.updateState({ hello: 'there' }, 'change hello again');
+    client1.updateDoc({ hello: 'there' }, 'change hello again');
 
     await timeout();
 
@@ -647,44 +623,38 @@ Array [
     const store = newStore();
     const client1 = makeClient('a', store);
 
-    client1.updateState({}, 'initialize');
-    client1.updateState({ hello: 'world' }, 'add hello');
-    client1.updateState({ hello: 'world. t' }, 'typing');
-    client1.updateState({ hello: 'world. th' }, 'typing');
-    client1.updateState({ hello: 'world. thi' }, 'typing');
-    client1.updateState({ hello: 'world. this' }, 'typing');
-    client1.updateState({ hello: 'world. this ' }, 'typing');
-    client1.updateState({ hello: 'world. this i' }, 'typing');
-    client1.updateState({ hello: 'world. this is' }, 'typing');
-    client1.updateState({ hello: 'world. this is ' }, 'typing');
-    client1.updateState({ hello: 'world. this is a' }, 'typing');
-    client1.updateState({ hello: 'world. this is a t' }, 'typing');
-    client1.updateState({ hello: 'world. this is a te' }, 'typing');
-    client1.updateState({ hello: 'world. this is a tes' }, 'typing');
-    client1.updateState({ hello: 'world. this is a test' }, 'typing');
-    client1.updateState({ hello: 'world. this is a test ' }, 'typing');
-    client1.updateState({ hello: 'world. this is a test o' }, 'typing');
-    client1.updateState({ hello: 'world. this is a test of' }, 'typing');
-    client1.updateState({ hello: 'world. this is a test of ' }, 'typing');
-    client1.updateState({ hello: 'world. this is a test of c' }, 'typing');
-    client1.updateState({ hello: 'world. this is a test of ch' }, 'typing');
-    client1.updateState({ hello: 'world. this is a test of cha' }, 'typing');
-    client1.updateState({ hello: 'world. this is a test of char' }, 'typing');
-    client1.updateState({ hello: 'world. this is a test of chara' }, 'typing');
-    client1.updateState({ hello: 'world. this is a test of charac' }, 'typing');
-    client1.updateState(
-      { hello: 'world. this is a test of charact' },
-      'typing',
-    );
-    client1.updateState(
-      { hello: 'world. this is a test of characte' },
-      'typing',
-    );
-    client1.updateState(
+    client1.updateDoc({}, 'initialize');
+    client1.updateDoc({ hello: 'world' }, 'add hello');
+    client1.updateDoc({ hello: 'world. t' }, 'typing');
+    client1.updateDoc({ hello: 'world. th' }, 'typing');
+    client1.updateDoc({ hello: 'world. thi' }, 'typing');
+    client1.updateDoc({ hello: 'world. this' }, 'typing');
+    client1.updateDoc({ hello: 'world. this ' }, 'typing');
+    client1.updateDoc({ hello: 'world. this i' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is ' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a t' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a te' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a tes' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test ' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test o' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test of' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test of ' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test of c' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test of ch' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test of cha' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test of char' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test of chara' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test of charac' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test of charact' }, 'typing');
+    client1.updateDoc({ hello: 'world. this is a test of characte' }, 'typing');
+    client1.updateDoc(
       { hello: 'world. this is a test of character' },
       'typing',
     );
-    client1.updateState(
+    client1.updateDoc(
       { hello: 'world. this is a test of character.' },
       'typing',
     );

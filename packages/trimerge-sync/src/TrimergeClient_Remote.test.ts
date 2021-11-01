@@ -9,16 +9,11 @@ import { timeout } from './lib/Timeout';
 import { resetAll } from './testLib/MemoryBroadcastChannel';
 
 type TestEditMetadata = string;
-type TestSavedState = any;
-type TestState = any;
-type TestPresenceState = any;
+type TestSavedDoc = any;
+type TestDoc = any;
+type TestPresence = any;
 
-const differ: Differ<
-  TestSavedState,
-  TestState,
-  TestEditMetadata,
-  TestPresenceState
-> = {
+const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
   migrate,
   diff,
   patch,
@@ -26,9 +21,7 @@ const differ: Differ<
   merge,
 };
 
-const stores = new Set<
-  MemoryStore<TestEditMetadata, Delta, TestPresenceState>
->();
+const stores = new Set<MemoryStore<TestEditMetadata, Delta, TestPresence>>();
 
 afterEach(async () => {
   for (const store of stores) {
@@ -39,10 +32,10 @@ afterEach(async () => {
 });
 
 function newStore(
-  remote?: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  remote?: MemoryStore<TestEditMetadata, Delta, TestPresence>,
   online?: boolean,
 ) {
-  const store = new MemoryStore<TestEditMetadata, Delta, TestPresenceState>(
+  const store = new MemoryStore<TestEditMetadata, Delta, TestPresence>(
     undefined,
     remote?.getRemote,
     online,
@@ -54,46 +47,46 @@ function newStore(
 function makeClient(
   userId: string,
   clientId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<
-  TestSavedState,
-  TestState,
+  TestSavedDoc,
+  TestDoc,
   TestEditMetadata,
   Delta,
-  TestPresenceState
+  TestPresence
 > {
   return new TrimergeClient(userId, clientId, store.getLocalStore, differ, 0);
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
   client1: TrimergeClient<
-    TestSavedState,
-    TestState,
+    TestSavedDoc,
+    TestDoc,
     TestEditMetadata,
     Delta,
-    TestPresenceState
+    TestPresence
   >,
 ) {
   return getBasicGraph(
     store.getCommits(),
     (commit) => commit.editMetadata,
-    (commit) => client1.getCommitState(commit.ref).state,
+    (commit) => client1.getCommitDoc(commit.ref).doc,
   );
 }
 
 function basicClients(
   client1: TrimergeClient<
-    TestSavedState,
-    TestState,
+    TestSavedDoc,
+    TestDoc,
     TestEditMetadata,
     Delta,
-    TestPresenceState
+    TestPresence
   >,
-): Record<string, TestPresenceState> {
-  const obj: Record<string, TestPresenceState> = {};
+): Record<string, TestPresence> {
+  const obj: Record<string, TestPresence> = {};
   for (const client of client1.clients) {
-    obj[`${client.userId}:${client.clientId}`] = client.state;
+    obj[`${client.userId}:${client.clientId}`] = client.presence;
   }
   return obj;
 }
@@ -111,8 +104,8 @@ describe('Remote sync', () => {
     const syncUpdates: SyncStatus[] = [];
     client.subscribeSyncStatus((state) => syncUpdates.push(state));
 
-    client.updateState({}, 'initialize');
-    client.updateState({ hello: 'world' }, 'add hello');
+    client.updateDoc({}, 'initialize');
+    client.updateDoc({ hello: 'world' }, 'add hello');
 
     await timeout();
 
@@ -229,15 +222,15 @@ Array [
     const remoteStore = newRemoteStore(false);
     const localStore = newStore(remoteStore);
     const client = makeClient('a', 'test', localStore);
-    client.updateState({}, 'initialize');
-    client.updateState({ hello: 'world' }, 'add hello');
-    client.updateState({ hello: 'world 2' }, 'edit hello');
-    client.updateState({ hello: 'world 3' }, 'edit hello');
-    client.updateState({ hello: 'world 4' }, 'edit hello');
-    client.updateState({ hello: 'world 5' }, 'edit hello');
-    client.updateState({ hello: 'world 6' }, 'edit hello');
-    client.updateState({ hello: 'world 7' }, 'edit hello');
-    client.updateState({ hello: 'world 8' }, 'edit hello');
+    client.updateDoc({}, 'initialize');
+    client.updateDoc({ hello: 'world' }, 'add hello');
+    client.updateDoc({ hello: 'world 2' }, 'edit hello');
+    client.updateDoc({ hello: 'world 3' }, 'edit hello');
+    client.updateDoc({ hello: 'world 4' }, 'edit hello');
+    client.updateDoc({ hello: 'world 5' }, 'edit hello');
+    client.updateDoc({ hello: 'world 6' }, 'edit hello');
+    client.updateDoc({ hello: 'world 7' }, 'edit hello');
+    client.updateDoc({ hello: 'world 8' }, 'edit hello');
 
     await timeout();
 
@@ -324,8 +317,8 @@ Array [
     const syncUpdates1: SyncStatus[] = [];
     client1.subscribeSyncStatus((state) => syncUpdates1.push(state));
 
-    client1.updateState({}, 'initialize');
-    client1.updateState({ hello: 'world' }, 'add hello');
+    client1.updateDoc({}, 'initialize');
+    client1.updateDoc({ hello: 'world' }, 'add hello');
 
     await timeout();
 
@@ -450,13 +443,13 @@ Array [
     const client1 = makeClient('test', 'a', localStore);
     const client2 = makeClient('test', 'b', localStore);
 
-    const states1: TestState[] = [];
-    client1.subscribeState((state) => states1.push(state));
-    const states2: TestState[] = [];
-    client2.subscribeState((state) => states2.push(state));
+    const states1: TestDoc[] = [];
+    client1.subscribeDoc((state) => states1.push(state));
+    const states2: TestDoc[] = [];
+    client2.subscribeDoc((state) => states2.push(state));
 
-    client1.updateState({}, 'initialize');
-    client1.updateState({ hello: 'world' }, 'add hello');
+    client1.updateDoc({}, 'initialize');
+    client1.updateDoc({ hello: 'world' }, 'add hello');
 
     await timeout();
 
@@ -482,7 +475,7 @@ Array [
 
     await timeout();
 
-    client2.updateState({ hello: 'world', world: 'hello' }, 'add world');
+    client2.updateDoc({ hello: 'world', world: 'hello' }, 'add world');
 
     await timeout(100);
 
@@ -547,16 +540,16 @@ Array [
     const syncUpdates: SyncStatus[] = [];
     client.subscribeSyncStatus((state) => syncUpdates.push(state));
 
-    client.updateState({}, 'initialize');
-    client.updateState({ hello: 'world' }, 'add hello');
+    client.updateDoc({}, 'initialize');
+    client.updateDoc({ hello: 'world' }, 'add hello');
 
     await timeout();
 
     // Kill the "connection"
     remoteStore.remotes[0].fail('testing', 'network');
 
-    client.updateState({ hello: 'vorld' }, 'change hello');
-    client.updateState({ hello: 'borld' }, 'change hello');
+    client.updateDoc({ hello: 'vorld' }, 'change hello');
+    client.updateDoc({ hello: 'borld' }, 'change hello');
 
     const localGraph2 = basicGraph(localStore, client);
     const remoteGraph2 = basicGraph(remoteStore, client);
@@ -802,29 +795,29 @@ Array [
     client1.subscribeSyncStatus((state) => syncUpdates1.push(state));
     client2.subscribeSyncStatus((state) => syncUpdates2.push(state));
 
-    client1.updateState({}, 'initialize');
-    client1.updateState({ hello: 'world' }, 'add hello');
-    client1.updateState({ hello: 'vorld' }, 'change hello');
+    client1.updateDoc({}, 'initialize');
+    client1.updateDoc({ hello: 'world' }, 'add hello');
+    client1.updateDoc({ hello: 'vorld' }, 'change hello');
 
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual(undefined);
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual(undefined);
 
     await timeout();
 
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld' });
 
-    client2.updateState({ hello: 'vorld', world: 'world' }, 'add world');
-    client2.updateState({ hello: 'vorld', world: 'vorld' }, 'change world');
+    client2.updateDoc({ hello: 'vorld', world: 'world' }, 'add world');
+    client2.updateDoc({ hello: 'vorld', world: 'vorld' }, 'change world');
 
     // Now client 2 is updated but not client 1
-    expect(client1.state).toEqual({ hello: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
     await timeout();
 
-    expect(client1.state).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(client2.state).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
     const graph1 = basicGraph(store1, client1);
     const graph2 = basicGraph(store2, client1);

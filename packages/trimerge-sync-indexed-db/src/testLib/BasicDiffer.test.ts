@@ -14,33 +14,33 @@ describe('merge', () => {
     expect(
       merge(
         undefined,
-        { ref: '1', state: 'hi', editMetadata: '' },
-        { ref: '2', state: 'there', editMetadata: '' },
+        { ref: '1', doc: 'hi', editMetadata: '' },
+        { ref: '2', doc: 'there', editMetadata: '' },
       ),
     ).toMatchInlineSnapshot(`
       Object {
+        "doc": "hithere",
         "editMetadata": Object {
           "message": "merge",
           "ref": "(1+2)",
         },
-        "state": "hithere",
       }
     `);
   });
   it('merges with base', () => {
     expect(
       merge(
-        { ref: '1', state: 'hi', editMetadata: '' },
-        { ref: '2', state: 'hi there', editMetadata: '' },
-        { ref: '3', state: 'hello', editMetadata: '' },
+        { ref: '1', doc: 'hi', editMetadata: '' },
+        { ref: '2', doc: 'hi there', editMetadata: '' },
+        { ref: '3', doc: 'hello', editMetadata: '' },
       ),
     ).toMatchInlineSnapshot(`
       Object {
+        "doc": "h thereello",
         "editMetadata": Object {
           "message": "merge",
           "ref": "(2+3)",
         },
-        "state": "h thereello",
       }
     `);
   });

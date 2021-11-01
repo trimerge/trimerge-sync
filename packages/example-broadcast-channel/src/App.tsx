@@ -5,13 +5,13 @@ import { enableMapSet, produce } from 'immer';
 import styles from './App.module.css';
 
 import {
-  defaultState,
+  defaultDoc,
   useDemoAppClientList,
   useDemoAppDeleteDatabase,
   useDemoAppShutdown,
-  useDemoAppState,
+  useDemoAppDoc,
   useDemoAppSyncStatus,
-} from './AppState';
+} from './AppDoc';
 import { FocusInput } from './components/FocusInput';
 import { FocusTextarea } from './components/FocusTextarea';
 import { currentTabId } from './lib/currentTabId';
@@ -20,7 +20,7 @@ import { getPresenceStyle } from './components/ClientColor';
 enableMapSet();
 
 export function App() {
-  const [state = defaultState, updateState] = useDemoAppState();
+  const [doc = defaultDoc, updateDoc] = useDemoAppDoc();
   const [clients, updatePresence] = useDemoAppClientList();
   const deleteDatabase = useDemoAppDeleteDatabase();
   const syncStatus = useDemoAppSyncStatus();
@@ -55,35 +55,35 @@ export function App() {
 
   const onChangeTitle = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) =>
-      updateState?.(
-        produce(state, (draft) => {
+      updateDoc?.(
+        produce(doc, (draft) => {
           draft.title = event.target.value;
         }),
         'edit title',
       ),
-    [state, updateState],
+    [doc, updateDoc],
   );
 
   const onChangeSlider = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) =>
-      updateState?.(
-        produce(state, (draft) => {
+      updateDoc?.(
+        produce(doc, (draft) => {
           draft.slider = parseInt(event.target.value, 10);
         }),
         'edit slider',
       ),
-    [state, updateState],
+    [doc, updateDoc],
   );
 
   const onChangeText = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) =>
-      updateState?.(
-        produce(state, (draft) => {
+      updateDoc?.(
+        produce(doc, (draft) => {
           draft.text = event.target.value;
         }),
         'edit text',
       ),
-    [state, updateState],
+    [doc, updateDoc],
   );
 
   return (
@@ -97,7 +97,7 @@ export function App() {
           Title:{' '}
           <FocusInput
             id="title"
-            value={state.title}
+            value={doc.title}
             onChange={onChangeTitle}
             clients={clients}
             updatePresence={updatePresence}
@@ -110,16 +110,16 @@ export function App() {
             type="range"
             min="0"
             max="1000"
-            value={String(state.slider)}
+            value={String(doc.slider)}
             onChange={onChangeSlider}
             clients={clients}
             updatePresence={updatePresence}
           />{' '}
-          ({state.slider})
+          ({doc.slider})
         </div>
         <FocusTextarea
           id="text"
-          value={state.text}
+          value={doc.text}
           onChange={onChangeText}
           rows={10}
           clients={clients}
@@ -127,7 +127,7 @@ export function App() {
         />
         <button onClick={deleteDatabase}>Delete Database…</button>
         Sync Status: <pre>{JSON.stringify(syncStatus, undefined, 2)}</pre>
-        Raw State: <pre>{JSON.stringify(state, undefined, 2)}</pre>
+        Raw State: <pre>{JSON.stringify(doc, undefined, 2)}</pre>
         Raw Clients: <pre>{JSON.stringify(clients, undefined, 2)}</pre>
       </div>
     </div>

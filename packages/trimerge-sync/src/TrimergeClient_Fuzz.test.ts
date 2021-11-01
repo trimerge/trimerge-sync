@@ -7,16 +7,11 @@ import { getBasicGraph } from './testLib/GraphVisualizers';
 import { timeout } from './lib/Timeout';
 
 type TestEditMetadata = any;
-type TestSavedState = any;
-type TestState = any;
-type TestPresenceState = any;
+type TestSavedDoc = any;
+type TestDoc = any;
+type TestPresence = any;
 
-const differ: Differ<
-  TestSavedState,
-  TestState,
-  TestEditMetadata,
-  TestPresenceState
-> = {
+const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
   migrate,
   diff,
   patch,
@@ -25,18 +20,18 @@ const differ: Differ<
 };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestPresenceState>();
+  return new MemoryStore<TestEditMetadata, Delta, TestPresence>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestPresenceState>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<
-  TestSavedState,
-  TestState,
+  TestSavedDoc,
+  TestDoc,
   TestEditMetadata,
   Delta,
-  TestPresenceState
+  TestPresence
 > {
   return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
 }
@@ -48,13 +43,13 @@ describe('TrimergeClient Fuzz', () => {
     const clientB = makeClient('b', store);
     const clientC = makeClient('c', store);
 
-    clientA.updateState('', { ref: 'ROOT', message: 'init' });
+    clientA.updateDoc('', { ref: 'ROOT', message: 'init' });
 
     await timeout();
 
-    expect(clientA.state).toEqual('');
-    expect(clientB.state).toEqual('');
-    expect(clientC.state).toEqual('');
+    expect(clientA.doc).toEqual('');
+    expect(clientB.doc).toEqual('');
+    expect(clientC.doc).toEqual('');
     let aCount = 0;
     let bCount = 0;
     let cCount = 0;
@@ -62,15 +57,15 @@ describe('TrimergeClient Fuzz', () => {
     for (let i = 0; i < 1000; i++) {
       switch (Math.floor(Math.random() * 4)) {
         case 0:
-          clientA.updateState(clientA.state + 'A', '');
+          clientA.updateDoc(clientA.doc + 'A', '');
           aCount++;
           break;
         case 1:
-          clientB.updateState(clientB.state + 'B', '');
+          clientB.updateDoc(clientB.doc + 'B', '');
           bCount++;
           break;
         case 2:
-          clientC.updateState(clientC.state + 'C', '');
+          clientC.updateDoc(clientC.doc + 'C', '');
           cCount++;
           break;
         case 3:
@@ -80,13 +75,13 @@ describe('TrimergeClient Fuzz', () => {
     }
     await timeout(100);
     // Synchronized
-    expect(clientA.state).toEqual(clientB.state);
-    expect(clientA.state).toEqual(clientC.state);
+    expect(clientA.doc).toEqual(clientB.doc);
+    expect(clientA.doc).toEqual(clientC.doc);
 
     let aCount2 = 0;
     let bCount2 = 0;
     let cCount2 = 0;
-    for (const letter of clientA.state) {
+    for (const letter of clientA.doc) {
       switch (letter) {
         case 'A':
           aCount2++;

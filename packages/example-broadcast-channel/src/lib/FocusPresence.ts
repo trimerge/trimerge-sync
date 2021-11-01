@@ -1,4 +1,4 @@
-export type FocusPresenceState = {
+export type FocusPresence = {
   focusId?: string;
   selectedItem?: string;
   selectionStart?: number;

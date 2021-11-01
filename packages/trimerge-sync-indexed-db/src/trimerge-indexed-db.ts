@@ -38,21 +38,17 @@ function toSyncNumber(syncId: string | undefined): number {
 }
 
 type LocalIdGeneratorFn = () => Promise<string> | string;
-export type IndexedDbBackendOptions<EditMetadata, Delta, PresenceState> = {
-  getRemote?: GetRemoteFn<EditMetadata, Delta, PresenceState>;
+export type IndexedDbBackendOptions<EditMetadata, Delta, Presence> = {
+  getRemote?: GetRemoteFn<EditMetadata, Delta, Presence>;
   networkSettings?: Partial<NetworkSettings>;
   remoteId?: string;
   localIdGenerator: LocalIdGeneratorFn;
 };
 
-export function createIndexedDbBackendFactory<
-  EditMetadata,
-  Delta,
-  PresenceState,
->(
+export function createIndexedDbBackendFactory<EditMetadata, Delta, Presence>(
   docId: string,
-  options: IndexedDbBackendOptions<EditMetadata, Delta, PresenceState>,
-): GetLocalStoreFn<EditMetadata, Delta, PresenceState> {
+  options: IndexedDbBackendOptions<EditMetadata, Delta, Presence>,
+): GetLocalStoreFn<EditMetadata, Delta, Presence> {
   return (userId, clientId, onEvent) =>
     new IndexedDbBackend(docId, userId, clientId, onEvent, options);
 }
@@ -99,12 +95,12 @@ export function getIDBPDatabase(
 class IndexedDbBackend<
   EditMetadata,
   Delta,
-  PresenceState,
-> extends AbstractLocalStore<EditMetadata, Delta, PresenceState> {
+  Presence,
+> extends AbstractLocalStore<EditMetadata, Delta, Presence> {
   private readonly dbName: string;
   private db: Promise<IDBPDatabase<TrimergeSyncDbSchema>>;
   private readonly channel: BroadcastChannel<
-    BroadcastEvent<EditMetadata, Delta, PresenceState>
+    BroadcastEvent<EditMetadata, Delta, Presence>
   >;
   private remoteId: string;
   private localIdGenerator: LocalIdGeneratorFn;
@@ -113,13 +109,13 @@ class IndexedDbBackend<
     private readonly docId: string,
     userId: string,
     clientId: string,
-    onEvent: OnEventFn<EditMetadata, Delta, PresenceState>,
+    onEvent: OnEventFn<EditMetadata, Delta, Presence>,
     {
       getRemote,
       networkSettings,
       remoteId = 'origin',
       localIdGenerator,
-    }: IndexedDbBackendOptions<EditMetadata, Delta, PresenceState>,
+    }: IndexedDbBackendOptions<EditMetadata, Delta, Presence>,
   ) {
     super(userId, clientId, onEvent, getRemote, networkSettings);
     this.remoteId = remoteId;
@@ -137,13 +133,13 @@ class IndexedDbBackend<
   }
 
   protected broadcastLocal(
-    event: BroadcastEvent<EditMetadata, Delta, PresenceState>,
+    event: BroadcastEvent<EditMetadata, Delta, Presence>,
   ): Promise<void> {
     return this.channel.postMessage(event).catch(this.handleAsError('network'));
   }
 
   protected async *getCommitsForRemote(): AsyncIterableIterator<
-    CommitsEvent<EditMetadata, Delta, PresenceState>
+    CommitsEvent<EditMetadata, Delta, Presence>
   > {
     const db = await this.db;
     const unsentcommits = await db.getAllFromIndex(
@@ -311,7 +307,7 @@ class IndexedDbBackend<
   }
 
   protected async *getLocalCommits(): AsyncIterableIterator<
-    CommitsEvent<EditMetadata, Delta, PresenceState>
+    CommitsEvent<EditMetadata, Delta, Presence>
   > {
     const lastSyncCounter = toSyncNumber(undefined);
     const db = await this.db;

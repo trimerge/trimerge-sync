@@ -2,12 +2,12 @@ import { CSSProperties, useEffect, useMemo } from 'react';
 import { ClientList } from 'trimerge-sync';
 import { UpdatePresenceFn } from '../lib/trimergeHooks';
 import { getPresenceStyle } from './ClientColor';
-import { FocusPresenceState } from '../lib/FocusPresenceState';
+import { FocusPresence } from '../lib/FocusPresence';
 
 export function useSelectionListen(
   focusId: string,
   ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>,
-  updatePresence: UpdatePresenceFn<FocusPresenceState>,
+  updatePresence: UpdatePresenceFn<FocusPresence>,
 ) {
   useEffect(() => {
     const listener = () => {
@@ -28,16 +28,16 @@ export function useSelectionListen(
   }, [focusId, ref, updatePresence]);
 }
 
-export function useFocusInfo<PresenceState extends FocusPresenceState>(
+export function useFocusInfo<Presence extends FocusPresence>(
   id: string,
-  cursors: ClientList<PresenceState>,
+  cursors: ClientList<Presence>,
 ): {
   style: CSSProperties;
-  otherClients: ClientList<PresenceState>;
+  otherClients: ClientList<Presence>;
 } {
   return useMemo(() => {
     const otherClients = cursors.filter(
-      ({ state, self }) => !self && state?.focusId === id,
+      ({ presence, self }) => !self && presence?.focusId === id,
     );
     const boxShadow = otherClients
       .map(
