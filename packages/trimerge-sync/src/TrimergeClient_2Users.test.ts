@@ -34,7 +34,7 @@ function makeClient(
   Delta,
   TestPresence
 > {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
+  return new TrimergeClient(userId, 'test', store.getLocalStore, differ);
 }
 
 function basicGraph(
@@ -580,35 +580,35 @@ Array [
     unsubscribeFn();
 
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "graph": "undefined -> DuQe--Vh",
-          "step": "User a: initialize",
-          "value": Object {},
-        },
-        Object {
-          "graph": "DuQe--Vh -> u0wBto6f",
-          "step": "User a: add hello",
-          "value": Object {
-            "hello": "world",
-          },
-        },
-        Object {
-          "graph": "u0wBto6f -> YYUSBDXS",
-          "step": "User a: change hello",
-          "value": Object {
-            "hello": "vorld",
-          },
-        },
-        Object {
-          "graph": "YYUSBDXS -> iSZbPHuf",
-          "step": "User a: change hello again",
-          "value": Object {
-            "hello": "there",
-          },
-        },
-      ]
-    `);
+Array [
+  Object {
+    "graph": "DuQe--Vh -> u0wBto6f",
+    "step": "User a: add hello",
+    "value": Object {
+      "hello": "world",
+    },
+  },
+  Object {
+    "graph": "u0wBto6f -> YYUSBDXS",
+    "step": "User a: change hello",
+    "value": Object {
+      "hello": "vorld",
+    },
+  },
+  Object {
+    "graph": "undefined -> DuQe--Vh",
+    "step": "User a: initialize",
+    "value": Object {},
+  },
+  Object {
+    "graph": "YYUSBDXS -> iSZbPHuf",
+    "step": "User a: change hello again",
+    "value": Object {
+      "hello": "there",
+    },
+  },
+]
+`);
 
     expect(subscribeFn.mock.calls).toEqual([
       [undefined],
@@ -662,209 +662,209 @@ Array [
     await timeout();
 
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "graph": "undefined -> DuQe--Vh",
-          "step": "User a: initialize",
-          "value": Object {},
-        },
-        Object {
-          "graph": "DuQe--Vh -> u0wBto6f",
-          "step": "User a: add hello",
-          "value": Object {
-            "hello": "world",
-          },
-        },
-        Object {
-          "graph": "u0wBto6f -> VS2jghNi",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. t",
-          },
-        },
-        Object {
-          "graph": "VS2jghNi -> 0fvI2ESx",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. th",
-          },
-        },
-        Object {
-          "graph": "0fvI2ESx -> Jz2-R6rz",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. thi",
-          },
-        },
-        Object {
-          "graph": "Jz2-R6rz -> -bTKiTst",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this",
-          },
-        },
-        Object {
-          "graph": "-bTKiTst -> GaWb8t2f",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this ",
-          },
-        },
-        Object {
-          "graph": "GaWb8t2f -> 9J_xBqJ4",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this i",
-          },
-        },
-        Object {
-          "graph": "9J_xBqJ4 -> SYH3X4jm",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is",
-          },
-        },
-        Object {
-          "graph": "SYH3X4jm -> Nl0PNGuX",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is ",
-          },
-        },
-        Object {
-          "graph": "Nl0PNGuX -> vlZhl6Vh",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a",
-          },
-        },
-        Object {
-          "graph": "vlZhl6Vh -> YxT5Gm6R",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a t",
-          },
-        },
-        Object {
-          "graph": "YxT5Gm6R -> F0g2iLQv",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a te",
-          },
-        },
-        Object {
-          "graph": "F0g2iLQv -> vKey2nks",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a tes",
-          },
-        },
-        Object {
-          "graph": "vKey2nks -> C9Ub6hg6",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test",
-          },
-        },
-        Object {
-          "graph": "C9Ub6hg6 -> ObcwRxBk",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test ",
-          },
-        },
-        Object {
-          "graph": "ObcwRxBk -> Y8mdIN_L",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test o",
-          },
-        },
-        Object {
-          "graph": "Y8mdIN_L -> L000b_2W",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test of",
-          },
-        },
-        Object {
-          "graph": "L000b_2W -> tYpujZ6D",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test of ",
-          },
-        },
-        Object {
-          "graph": "tYpujZ6D -> -SKX2OVN",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test of c",
-          },
-        },
-        Object {
-          "graph": "-SKX2OVN -> ffe6ZCmD",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test of ch",
-          },
-        },
-        Object {
-          "graph": "ffe6ZCmD -> 8PtNr3hx",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test of cha",
-          },
-        },
-        Object {
-          "graph": "8PtNr3hx -> oLFFrO2p",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test of char",
-          },
-        },
-        Object {
-          "graph": "oLFFrO2p -> 8Xt-akSw",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test of chara",
-          },
-        },
-        Object {
-          "graph": "8Xt-akSw -> UU5J3Qq2",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test of charac",
-          },
-        },
-        Object {
-          "graph": "UU5J3Qq2 -> Oo2NTgQE",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test of charact",
-          },
-        },
-        Object {
-          "graph": "Oo2NTgQE -> ci7d46HK",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test of characte",
-          },
-        },
-        Object {
-          "graph": "ci7d46HK -> 7_amDpeg",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test of character",
-          },
-        },
-        Object {
-          "graph": "7_amDpeg -> dKj2TVjC",
-          "step": "User a: typing",
-          "value": Object {
-            "hello": "world. this is a test of character.",
-          },
-        },
-      ]
-    `);
+Array [
+  Object {
+    "graph": "DuQe--Vh -> u0wBto6f",
+    "step": "User a: add hello",
+    "value": Object {
+      "hello": "world",
+    },
+  },
+  Object {
+    "graph": "u0wBto6f -> VS2jghNi",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. t",
+    },
+  },
+  Object {
+    "graph": "VS2jghNi -> 0fvI2ESx",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. th",
+    },
+  },
+  Object {
+    "graph": "0fvI2ESx -> Jz2-R6rz",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. thi",
+    },
+  },
+  Object {
+    "graph": "Jz2-R6rz -> -bTKiTst",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this",
+    },
+  },
+  Object {
+    "graph": "-bTKiTst -> GaWb8t2f",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this ",
+    },
+  },
+  Object {
+    "graph": "GaWb8t2f -> 9J_xBqJ4",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this i",
+    },
+  },
+  Object {
+    "graph": "9J_xBqJ4 -> SYH3X4jm",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is",
+    },
+  },
+  Object {
+    "graph": "SYH3X4jm -> Nl0PNGuX",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is ",
+    },
+  },
+  Object {
+    "graph": "Nl0PNGuX -> vlZhl6Vh",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a",
+    },
+  },
+  Object {
+    "graph": "vlZhl6Vh -> YxT5Gm6R",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a t",
+    },
+  },
+  Object {
+    "graph": "YxT5Gm6R -> F0g2iLQv",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a te",
+    },
+  },
+  Object {
+    "graph": "F0g2iLQv -> vKey2nks",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a tes",
+    },
+  },
+  Object {
+    "graph": "vKey2nks -> C9Ub6hg6",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test",
+    },
+  },
+  Object {
+    "graph": "C9Ub6hg6 -> ObcwRxBk",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test ",
+    },
+  },
+  Object {
+    "graph": "ObcwRxBk -> Y8mdIN_L",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test o",
+    },
+  },
+  Object {
+    "graph": "Y8mdIN_L -> L000b_2W",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test of",
+    },
+  },
+  Object {
+    "graph": "L000b_2W -> tYpujZ6D",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test of ",
+    },
+  },
+  Object {
+    "graph": "tYpujZ6D -> -SKX2OVN",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test of c",
+    },
+  },
+  Object {
+    "graph": "-SKX2OVN -> ffe6ZCmD",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test of ch",
+    },
+  },
+  Object {
+    "graph": "ffe6ZCmD -> 8PtNr3hx",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test of cha",
+    },
+  },
+  Object {
+    "graph": "8PtNr3hx -> oLFFrO2p",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test of char",
+    },
+  },
+  Object {
+    "graph": "oLFFrO2p -> 8Xt-akSw",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test of chara",
+    },
+  },
+  Object {
+    "graph": "8Xt-akSw -> UU5J3Qq2",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test of charac",
+    },
+  },
+  Object {
+    "graph": "UU5J3Qq2 -> Oo2NTgQE",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test of charact",
+    },
+  },
+  Object {
+    "graph": "Oo2NTgQE -> ci7d46HK",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test of characte",
+    },
+  },
+  Object {
+    "graph": "ci7d46HK -> 7_amDpeg",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test of character",
+    },
+  },
+  Object {
+    "graph": "7_amDpeg -> dKj2TVjC",
+    "step": "User a: typing",
+    "value": Object {
+      "hello": "world. this is a test of character.",
+    },
+  },
+  Object {
+    "graph": "undefined -> DuQe--Vh",
+    "step": "User a: initialize",
+    "value": Object {},
+  },
+]
+`);
   });
 });

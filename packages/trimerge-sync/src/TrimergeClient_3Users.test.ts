@@ -32,7 +32,7 @@ function makeClient(
   Delta,
   TestPresence
 > {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
+  return new TrimergeClient(userId, 'test', store.getLocalStore, differ);
 }
 
 function timeout() {
@@ -84,58 +84,65 @@ describe('TrimergeClient: 3 users', () => {
     await timeout();
 
     expect(basicGraph(store, clientA)).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "graph": "undefined -> ROOT",
-          "step": "User a: init",
-          "value": Object {
-            "text": "",
-          },
-        },
-        Object {
-          "graph": "ROOT -> a1",
-          "step": "User a: set text",
-          "value": Object {
-            "text": "a",
-          },
-        },
-        Object {
-          "graph": "ROOT -> b1",
-          "step": "User b: set text",
-          "value": Object {
-            "text": "b",
-          },
-        },
-        Object {
-          "graph": "(a1 + b1) w/ base=ROOT -> (a1+b1)",
-          "step": "User b: merge",
-          "value": Object {
-            "text": "ab",
-          },
-        },
-        Object {
-          "graph": "ROOT -> c1",
-          "step": "User c: set text",
-          "value": Object {
-            "text": "c",
-          },
-        },
-        Object {
-          "graph": "(a1 + c1) w/ base=ROOT -> (a1+c1)",
-          "step": "User c: merge",
-          "value": Object {
-            "text": "ac",
-          },
-        },
-        Object {
-          "graph": "((a1+b1) + (a1+c1)) w/ base=a1 -> ((a1+b1)+(a1+c1))",
-          "step": "User c: merge",
-          "value": Object {
-            "text": "abc",
-          },
-        },
-      ]
-    `);
+Array [
+  Object {
+    "graph": "undefined -> ROOT",
+    "step": "User a: init",
+    "value": Object {
+      "text": "",
+    },
+  },
+  Object {
+    "graph": "ROOT -> a1",
+    "step": "User a: set text",
+    "value": Object {
+      "text": "a",
+    },
+  },
+  Object {
+    "graph": "ROOT -> b1",
+    "step": "User b: set text",
+    "value": Object {
+      "text": "b",
+    },
+  },
+  Object {
+    "graph": "ROOT -> c1",
+    "step": "User c: set text",
+    "value": Object {
+      "text": "c",
+    },
+  },
+  Object {
+    "graph": "((a1+b1) + c1) w/ base=ROOT -> ((a1+b1)+c1)",
+    "step": "User a: merge",
+    "value": Object {
+      "text": "abc",
+    },
+  },
+  Object {
+    "graph": "((a1+c1) + b1) w/ base=ROOT -> ((a1+c1)+b1)",
+    "step": "User c: merge",
+    "value": Object {
+      "text": "acb",
+    },
+  },
+  Object {
+    "graph": "(a1 + b1) w/ base=ROOT -> (a1+b1)",
+    "step": "User b: merge",
+    "value": Object {
+      "text": "ab",
+    },
+  },
+  Object {
+    "graph": "(a1 + c1) w/ base=ROOT -> (a1+c1)",
+    "step": "User c: merge",
+    "value": Object {
+      "text": "ac",
+    },
+  },
+]
+`);
 
     //  Now they should all have trimerged changes
     expect(clientA.doc).toEqual({ text: 'abc' });

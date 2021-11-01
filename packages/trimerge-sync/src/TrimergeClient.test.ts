@@ -29,7 +29,6 @@ function makeTrimergeClient(): {
       };
     },
     differ,
-    0,
   );
   if (!onEvent) {
     throw new Error('could not get onEvent');

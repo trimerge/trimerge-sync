@@ -18,47 +18,35 @@ function makeClientV1(
   userId: string,
   store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1, DocV1, TestEditMetadata, Delta, TestPresence> {
-  return new TrimergeClient(
-    userId,
-    'test',
-    store.getLocalStore,
-    {
-      migrate: (doc, editMetadata) => ({ doc, editMetadata }),
-      diff,
-      patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
-      computeRef,
-      merge,
-    },
-    0,
-  );
+  return new TrimergeClient(userId, 'test', store.getLocalStore, {
+    migrate: (doc, editMetadata) => ({ doc, editMetadata }),
+    diff,
+    patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
+    computeRef,
+    merge,
+  });
 }
 function makeClientV2(
   userId: string,
   store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1 | DocV2, DocV2, TestEditMetadata, Delta, TestPresence> {
-  return new TrimergeClient(
-    userId,
-    'test',
-    store.getLocalStore,
-    {
-      migrate: (doc, editMetadata) => {
-        switch (doc.v) {
-          case 1:
-            return {
-              doc: { v: 2, field: String(doc.field) },
-              editMetadata: 'migrated to v2',
-            };
-          case 2:
-            return { doc, editMetadata };
-        }
-      },
-      diff,
-      patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
-      computeRef,
-      merge,
+  return new TrimergeClient(userId, 'test', store.getLocalStore, {
+    migrate: (doc, editMetadata) => {
+      switch (doc.v) {
+        case 1:
+          return {
+            doc: { v: 2, field: String(doc.field) },
+            editMetadata: 'migrated to v2',
+          };
+        case 2:
+          return { doc, editMetadata };
+      }
     },
-    0,
-  );
+    diff,
+    patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
+    computeRef,
+    merge,
+  });
 }
 
 function basicGraph(

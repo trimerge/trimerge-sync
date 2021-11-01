@@ -35,7 +35,6 @@ function makeTestClient(
       },
     }),
     differ,
-    0,
   );
 }
 

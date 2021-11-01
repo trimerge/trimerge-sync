@@ -33,7 +33,7 @@ function makeClient(
   Delta,
   TestPresence
 > {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
+  return new TrimergeClient(userId, 'test', store.getLocalStore, differ);
 }
 
 function basicGraph(

@@ -9,10 +9,9 @@ import {
   SyncStatus,
 } from './types';
 import { mergeHeads } from './merge-heads';
-import { Differ, CommitDoc } from './differ';
+import { CommitDoc, Differ } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
-import { timeout } from './lib/Timeout';
 
 type AddCommitType =
   // Added from this client
@@ -76,7 +75,6 @@ export class TrimergeClient<
       Presence
     >,
     private readonly differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
-    private readonly bufferMs: number,
   ) {
     this.selfFullId = getFullId(userId, clientId);
     this.store = getLocalStore(userId, clientId, this.onEvent);
@@ -285,31 +283,12 @@ export class TrimergeClient<
     // TODO: can we clear out commits we don't need anymore?
   }
 
-  private syncPromise: Promise<boolean> | undefined;
-
   private emitClientListChange() {
     this.clientList = Array.from(this.clientMap.values());
     this.clientListSubs.emitChange();
   }
-
-  private get needsSync(): boolean {
-    return this.unsyncedCommits.length > 0 || this.newPresence !== undefined;
-  }
   private sync(): void {
-    if (!this.syncPromise && this.needsSync) {
-      this.syncPromise = this.doSync();
-    }
-  }
-
-  private updateSyncState(update: Partial<SyncStatus>) {
-    this.syncState = { ...this.syncState, ...update };
-    this.syncStateSubs.emitChange();
-  }
-
-  private async doSync() {
-    while (this.needsSync) {
-      this.updateSyncState({ localSave: 'pending' });
-      await timeout(this.bufferMs);
+    if (this.unsyncedCommits.length > 0 || this.newPresence !== undefined) {
       const commits = this.unsyncedCommits;
       this.unsyncedCommits = [];
       this.updateSyncState({ localSave: 'saving' });
@@ -317,10 +296,12 @@ export class TrimergeClient<
       this.newPresence = undefined;
     }
     this.updateSyncState({ localSave: 'ready' });
-    this.syncPromise = undefined;
-    return true;
   }
 
+  private updateSyncState(update: Partial<SyncStatus>): void {
+    this.syncState = { ...this.syncState, ...update };
+    this.syncStateSubs.emitChange();
+  }
   private addCommit(
     commit: Commit<EditMetadata, Delta>,
     type: AddCommitType,
