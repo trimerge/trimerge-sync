@@ -88,6 +88,32 @@ describe('TrimergeClient: 2 users', () => {
     client.updateDoc({ hello: 'vorld' }, 'change hello');
 
     expect(client.doc).toEqual({ hello: 'vorld' });
+
+    await timeout();
+
+    expect(basicGraph(store, client)).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "graph": "undefined -> DuQe--Vh",
+    "step": "User a: initialize",
+    "value": Object {},
+  },
+  Object {
+    "graph": "DuQe--Vh -> u0wBto6f",
+    "step": "User a: add hello",
+    "value": Object {
+      "hello": "world",
+    },
+  },
+  Object {
+    "graph": "u0wBto6f -> YYUSBDXS",
+    "step": "User a: change hello",
+    "value": Object {
+      "hello": "vorld",
+    },
+  },
+]
+`);
   });
 
   it('tracks non-edits', async () => {

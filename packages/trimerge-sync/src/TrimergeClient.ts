@@ -288,8 +288,8 @@ export class TrimergeClient<
     this.clientListSubs.emitChange();
   }
   private sync(): void {
-    if (this.unsyncedCommits.length > 0 || this.newPresence !== undefined) {
-      const commits = this.unsyncedCommits;
+    const commits = this.unsyncedCommits;
+    if (commits.length > 0 || this.newPresence !== undefined) {
       this.unsyncedCommits = [];
       this.updateSyncState({ localSave: 'saving' });
       this.store.update(commits, this.newPresence);

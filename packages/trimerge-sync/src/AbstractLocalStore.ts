@@ -421,7 +421,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
       );
     }
     // Do only this part async
-    return (async () => {
+    return this.localQueue.add(async () => {
       await this.sendEvent(
         {
           type: 'client-join',
@@ -433,7 +433,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
         await this.sendEvent(event, { self: true });
       }
       await this.sendEvent({ type: 'ready' }, { self: true });
-    })();
+    });
   }
   update(
     commits: Commit<EditMetadata, Delta>[],
@@ -442,9 +442,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
     if (this.closed) {
       return;
     }
-    this.doUpdate(commits, presence).catch(
-      this.handleAsError('invalid-commits'),
-    );
+    this.localQueue
+      .add(() => this.doUpdate(commits, presence))
+      .catch(this.handleAsError('invalid-commits'));
   }
 
   private async doUpdate(
