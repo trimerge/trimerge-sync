@@ -229,9 +229,11 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
     event,
     remoteOrigin,
   }: BroadcastEvent<EditMetadata, Delta, Presence>): void => {
-    this.processEvent(event, remoteOrigin ? 'remote-via-local' : 'local').catch(
-      this.handleAsError('network'),
-    );
+    this.localQueue
+      .add(() =>
+        this.processEvent(event, remoteOrigin ? 'remote-via-local' : 'local'),
+      )
+      .catch(this.handleAsError('network'));
   };
 
   async shutdown(): Promise<void> {

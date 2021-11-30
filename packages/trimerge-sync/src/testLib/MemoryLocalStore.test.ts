@@ -31,14 +31,6 @@ describe('MemoryLocalStore', () => {
 Array [
   Array [
     Object {
-      "connect": "offline",
-      "read": "offline",
-      "save": "pending",
-      "type": "remote-state",
-    },
-  ],
-  Array [
-    Object {
       "commits": Array [
         Object {
           "clientId": "test",
@@ -53,16 +45,24 @@ Array [
   ],
   Array [
     Object {
+      "type": "ready",
+    },
+  ],
+  Array [
+    Object {
+      "connect": "offline",
+      "read": "offline",
+      "save": "pending",
+      "type": "remote-state",
+    },
+  ],
+  Array [
+    Object {
       "refs": Array [
         "test1",
       ],
       "syncId": "1",
       "type": "ack",
-    },
-  ],
-  Array [
-    Object {
-      "type": "ready",
     },
   ],
   Array [
@@ -92,14 +92,6 @@ Array [
 Array [
   Array [
     Object {
-      "connect": "offline",
-      "read": "offline",
-      "save": "pending",
-      "type": "remote-state",
-    },
-  ],
-  Array [
-    Object {
       "commits": Array [
         Object {
           "clientId": "test",
@@ -114,16 +106,24 @@ Array [
   ],
   Array [
     Object {
+      "type": "ready",
+    },
+  ],
+  Array [
+    Object {
+      "connect": "offline",
+      "read": "offline",
+      "save": "pending",
+      "type": "remote-state",
+    },
+  ],
+  Array [
+    Object {
       "refs": Array [
         "test1",
       ],
       "syncId": "1",
       "type": "ack",
-    },
-  ],
-  Array [
-    Object {
-      "type": "ready",
     },
   ],
   Array [

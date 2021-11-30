@@ -462,10 +462,10 @@ Array [
     "remoteSave": "ready",
   },
   Object {
-    "localRead": "loading",
+    "localRead": "ready",
     "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
+    "remoteConnect": "offline",
+    "remoteRead": "offline",
     "remoteSave": "ready",
   },
   Object {

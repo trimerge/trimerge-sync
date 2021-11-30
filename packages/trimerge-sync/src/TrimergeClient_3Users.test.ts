@@ -113,34 +113,6 @@ Array [
       "text": "c",
     },
   },
-  Object {
-    "graph": "((a1+b1) + c1) w/ base=ROOT -> ((a1+b1)+c1)",
-    "step": "User a: merge",
-    "value": Object {
-      "text": "abc",
-    },
-  },
-  Object {
-    "graph": "((a1+c1) + b1) w/ base=ROOT -> ((a1+c1)+b1)",
-    "step": "User c: merge",
-    "value": Object {
-      "text": "acb",
-    },
-  },
-  Object {
-    "graph": "(a1 + b1) w/ base=ROOT -> (a1+b1)",
-    "step": "User b: merge",
-    "value": Object {
-      "text": "ab",
-    },
-  },
-  Object {
-    "graph": "(a1 + c1) w/ base=ROOT -> (a1+c1)",
-    "step": "User c: merge",
-    "value": Object {
-      "text": "ac",
-    },
-  },
 ]
 `);
 
@@ -192,52 +164,68 @@ Array [
     await timeout();
 
     expect(basicGraph(store, clientA)).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "graph": "undefined -> a1",
-          "step": "User a: add hello",
-          "value": Object {
-            "hello": "world",
-          },
-        },
-        Object {
-          "graph": "a1 -> a2",
-          "step": "User a: change hello",
-          "value": Object {
-            "hello": "vorld",
-          },
-        },
-        Object {
-          "graph": "undefined -> b1",
-          "step": "User b: add world",
-          "value": Object {
-            "world": "world",
-          },
-        },
-        Object {
-          "graph": "b1 -> b2",
-          "step": "User b: change world",
-          "value": Object {
-            "world": "vorld",
-          },
-        },
-        Object {
-          "graph": "(a2 + b2) w/ base=undefined -> (a2+b2)",
-          "step": "User b: merge",
-          "value": Object {
-            "hello": "vorld",
-            "world": "vorld",
-          },
-        },
-        Object {
-          "graph": "(a2+b2) -> c1",
-          "step": "User c: change hello",
-          "value": Object {
-            "hello": "world",
-            "world": "vorld",
-          },
-        },
-      ]
-    `);
+Array [
+  Object {
+    "graph": "undefined -> a1",
+    "step": "User a: add hello",
+    "value": Object {
+      "hello": "world",
+    },
+  },
+  Object {
+    "graph": "undefined -> b1",
+    "step": "User b: add world",
+    "value": Object {
+      "world": "world",
+    },
+  },
+  Object {
+    "graph": "a1 -> a2",
+    "step": "User a: change hello",
+    "value": Object {
+      "hello": "vorld",
+    },
+  },
+  Object {
+    "graph": "b1 -> b2",
+    "step": "User b: change world",
+    "value": Object {
+      "world": "vorld",
+    },
+  },
+  Object {
+    "graph": "(a1 + b1) w/ base=undefined -> (a1+b1)",
+    "step": "User c: merge",
+    "value": Object {
+      "hello": "world",
+      "world": "world",
+    },
+  },
+  Object {
+    "graph": "((a1+b1) + a2) w/ base=a1 -> ((a1+b1)+a2)",
+    "step": "User c: merge",
+    "value": Object {
+      "hello": "vorld",
+      "world": "world",
+    },
+  },
+  Object {
+    "graph": "(((a1+b1)+a2) + b2) w/ base=b1 -> (((a1+b1)+a2)+b2)",
+    "step": "User c: merge",
+    "value": Object {
+      "hello": "vorld",
+      "world": "vorld",
+    },
+  },
+  Object {
+    "graph": "(((a1+b1)+a2)+b2) -> c1",
+    "step": "User c: change hello",
+    "value": Object {
+      "hello": "world",
+      "world": "vorld",
+    },
+  },
+]
+`);
   });
 });

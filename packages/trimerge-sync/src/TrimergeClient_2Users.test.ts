@@ -491,50 +491,42 @@ Array [
     await client2.shutdown();
 
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "graph": "undefined -> DuQe--Vh",
-          "step": "User a: initialize",
-          "value": Object {},
-        },
-        Object {
-          "graph": "DuQe--Vh -> u0wBto6f",
-          "step": "User a: add hello",
-          "value": Object {
-            "hello": "world",
-          },
-        },
-        Object {
-          "graph": "u0wBto6f -> YYUSBDXS",
-          "step": "User a: change hello",
-          "value": Object {
-            "hello": "vorld",
-          },
-        },
-        Object {
-          "graph": "DuQe--Vh -> SU0_JahJ",
-          "step": "User b: add world",
-          "value": Object {
-            "world": "world",
-          },
-        },
-        Object {
-          "graph": "SU0_JahJ -> ZiYUF2m8",
-          "step": "User b: change world",
-          "value": Object {
-            "world": "vorld",
-          },
-        },
-        Object {
-          "graph": "(YYUSBDXS + ZiYUF2m8) w/ base=DuQe--Vh -> kT9Dv92V",
-          "step": "User b: merge",
-          "value": Object {
-            "hello": "vorld",
-            "world": "vorld",
-          },
-        },
-      ]
-    `);
+Array [
+  Object {
+    "graph": "undefined -> DuQe--Vh",
+    "step": "User a: initialize",
+    "value": Object {},
+  },
+  Object {
+    "graph": "DuQe--Vh -> u0wBto6f",
+    "step": "User a: add hello",
+    "value": Object {
+      "hello": "world",
+    },
+  },
+  Object {
+    "graph": "DuQe--Vh -> SU0_JahJ",
+    "step": "User b: add world",
+    "value": Object {
+      "world": "world",
+    },
+  },
+  Object {
+    "graph": "u0wBto6f -> YYUSBDXS",
+    "step": "User a: change hello",
+    "value": Object {
+      "hello": "vorld",
+    },
+  },
+  Object {
+    "graph": "SU0_JahJ -> ZiYUF2m8",
+    "step": "User b: change world",
+    "value": Object {
+      "world": "vorld",
+    },
+  },
+]
+`);
   });
 
   it('sync up when second client comes in later', async () => {
@@ -608,6 +600,11 @@ Array [
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
 Array [
   Object {
+    "graph": "undefined -> DuQe--Vh",
+    "step": "User a: initialize",
+    "value": Object {},
+  },
+  Object {
     "graph": "DuQe--Vh -> u0wBto6f",
     "step": "User a: add hello",
     "value": Object {
@@ -620,11 +617,6 @@ Array [
     "value": Object {
       "hello": "vorld",
     },
-  },
-  Object {
-    "graph": "undefined -> DuQe--Vh",
-    "step": "User a: initialize",
-    "value": Object {},
   },
   Object {
     "graph": "YYUSBDXS -> iSZbPHuf",
@@ -689,6 +681,11 @@ Array [
 
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
 Array [
+  Object {
+    "graph": "undefined -> DuQe--Vh",
+    "step": "User a: initialize",
+    "value": Object {},
+  },
   Object {
     "graph": "DuQe--Vh -> u0wBto6f",
     "step": "User a: add hello",
@@ -884,11 +881,6 @@ Array [
     "value": Object {
       "hello": "world. this is a test of character.",
     },
-  },
-  Object {
-    "graph": "undefined -> DuQe--Vh",
-    "step": "User a: initialize",
-    "value": Object {},
   },
 ]
 `);

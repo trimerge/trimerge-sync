@@ -80,49 +80,37 @@ describe('GraphVisualizers', () => {
     client2.updateDoc({ world: '3' }, 'initialize');
     await timeout();
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "graph": "undefined -> 9m0LhHdt",
-          "step": "User a: initialize",
-          "value": Object {
-            "hello": "1",
-          },
-        },
-        Object {
-          "graph": "undefined -> E2BlVX80",
-          "step": "User b: initialize",
-          "value": Object {
-            "world": "2",
-          },
-        },
-        Object {
-          "graph": "E2BlVX80 -> yxbBldSG",
-          "step": "User b: initialize",
-          "value": Object {
-            "world": "3",
-          },
-        },
-        Object {
-          "graph": "(9m0LhHdt + yxbBldSG) w/ base=undefined -> BAsEHbZm",
-          "step": "User b: merge",
-          "value": Object {
-            "hello": "1",
-            "world": "3",
-          },
-        },
-      ]
-    `);
+Array [
+  Object {
+    "graph": "undefined -> 9m0LhHdt",
+    "step": "User a: initialize",
+    "value": Object {
+      "hello": "1",
+    },
+  },
+  Object {
+    "graph": "undefined -> E2BlVX80",
+    "step": "User b: initialize",
+    "value": Object {
+      "world": "2",
+    },
+  },
+  Object {
+    "graph": "E2BlVX80 -> yxbBldSG",
+    "step": "User b: initialize",
+    "value": Object {
+      "world": "3",
+    },
+  },
+]
+`);
     expect(dotGraph(store, client1)).toMatchInlineSnapshot(`
-      "digraph {
-      \\"9m0LhHdt\\" [shape=ellipse, label=\\"initialize\\"]
-      \\"E2BlVX80\\" [shape=ellipse, label=\\"initialize\\"]
-      \\"yxbBldSG\\" [shape=ellipse, label=\\"initialize\\"]
-      \\"E2BlVX80\\" -> \\"yxbBldSG\\" [label=\\"User b: [object Object]\\"]
-      \\"BAsEHbZm\\" [shape=rectangle, label={\\"ref\\":\\"(9m0LhHdt+yxbBldSG)\\",\\"message\\":\\"merge\\"}]
-      \\"9m0LhHdt\\" -> \\"BAsEHbZm\\" [label=left]
-      \\"undefined\\" -> \\"BAsEHbZm\\" [style=dashed, label=base]
-      \\"yxbBldSG\\" -> \\"BAsEHbZm\\" [label=right]
-      }"
-    `);
+"digraph {
+\\"9m0LhHdt\\" [shape=ellipse, label=\\"initialize\\"]
+\\"E2BlVX80\\" [shape=ellipse, label=\\"initialize\\"]
+\\"yxbBldSG\\" [shape=ellipse, label=\\"initialize\\"]
+\\"E2BlVX80\\" -> \\"yxbBldSG\\" [label=\\"User b: [object Object]\\"]
+}"
+`);
   });
 });

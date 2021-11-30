@@ -267,7 +267,7 @@ export class TrimergeClient<
         const {
           doc,
           editMetadata,
-          lazy = false,
+          lazy = true,
         } = this.differ.merge(base, left, right);
         return this.addNewCommit(
           doc,
