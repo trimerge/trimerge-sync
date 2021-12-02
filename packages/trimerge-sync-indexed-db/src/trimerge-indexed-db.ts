@@ -1,4 +1,4 @@
-import type {
+import {
   AckCommitsEvent,
   AckRefErrors,
   BroadcastEvent,
@@ -9,6 +9,8 @@ import type {
   CommitsEvent,
   OnEventFn,
   RemoteSyncInfo,
+  ServerCommit,
+  isMergeCommit,
 } from 'trimerge-sync';
 import { AbstractLocalStore } from 'trimerge-sync';
 import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
@@ -255,7 +257,11 @@ class IndexedDbBackend<
 
     for (const commit of commits) {
       const syncId = ++syncCounter;
-      const { ref, baseRef, mergeRef } = commit;
+      const { ref, baseRef, } = commit;
+      let mergeRef: string | undefined;
+      if (isMergeCommit(commit)) {
+        mergeRef = commit.mergeRef;
+      }
       promises.push(
         (async () => {
           try {

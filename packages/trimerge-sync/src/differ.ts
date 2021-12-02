@@ -51,6 +51,7 @@ export interface Differ<
 
   /** Computed the difference between two Docs */
   readonly diff: DiffFn<SavedDoc, Delta>;
+
   /** Apply a patch from one Doc to another */
   readonly patch: PatchFn<SavedDoc, Delta>;
 

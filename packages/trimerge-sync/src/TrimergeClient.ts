@@ -2,9 +2,11 @@ import {
   ClientInfo,
   ClientList,
   Commit,
+  EditCommit,
   GetLocalStoreFn,
   LocalClientInfo,
   LocalStore,
+  MergeCommit,
   OnEventFn,
   SyncStatus,
 } from './types';
@@ -13,6 +15,7 @@ import { Differ, CommitDoc } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { timeout } from './lib/Timeout';
+import { refs } from './lib/Commits';
 
 type AddCommitType =
   // Added from this client
@@ -325,7 +328,7 @@ export class TrimergeClient<
     commit: Commit<EditMetadata, Delta>,
     type: AddCommitType,
   ): void {
-    const { ref, baseRef, mergeRef } = commit;
+    const { ref, baseRef, mergeRef } = refs(commit);
     if (this.commits.has(ref)) {
       // Promote lazy commit
       if (type === 'external') {
@@ -352,7 +355,7 @@ export class TrimergeClient<
     }
     this.headRefs.add(ref);
     const currentRef = this.lastSaved?.ref;
-    if (currentRef === commit.baseRef || currentRef === commit.mergeRef) {
+    if (currentRef === baseRef || currentRef === mergeRef) {
       this.lastSaved = this.getCommitDoc(commit.ref);
       this.latestDoc = undefined;
     }
@@ -374,8 +377,9 @@ export class TrimergeClient<
     }
     const commit = this.lazyCommits.get(ref);
     if (commit) {
-      this.promoteLazyCommit(commit.baseRef);
-      this.promoteLazyCommit(commit.mergeRef);
+      const {baseRef, mergeRef} = refs(commit);
+      this.promoteLazyCommit(baseRef);
+      this.promoteLazyCommit(mergeRef);
       this.lazyCommits.delete(ref);
       this.unsyncedCommits.push(commit);
     }
@@ -393,7 +397,7 @@ export class TrimergeClient<
     const delta = this.differ.diff(base?.doc, newDoc);
     const baseRef = base?.ref;
     const ref = this.differ.computeRef(baseRef, mergeRef, delta, editMetadata);
-    const commit: Commit<EditMetadata, Delta> = {
+    const commit: Commit<EditMetadata, Delta> = mergeRef !== undefined ? {
       userId,
       clientId,
       ref,
@@ -402,7 +406,16 @@ export class TrimergeClient<
       mergeBaseRef,
       delta,
       editMetadata,
-    };
+    } as MergeCommit<EditMetadata, Delta> : 
+      {
+        userId,
+        clientId,
+        ref,
+        baseRef,
+        delta,
+        editMetadata,
+      } as EditCommit<EditMetadata, Delta>
+    ;
     this.addCommit(commit, lazy ? 'lazy' : 'local');
     return ref;
   }

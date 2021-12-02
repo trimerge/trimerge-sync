@@ -7,17 +7,42 @@ export type ErrorCode =
   | 'bad-request'
   | 'unauthorized';
 
-export type Commit<EditMetadata, Delta> = {
+export type BaseCommit<EditMetadata, Delta> = {
   userId: string;
-  clientId: string;
   ref: string;
-  baseRef?: string;
-  mergeRef?: string;
-  mergeBaseRef?: string;
+  
+  // the delta itself
   delta?: Delta;
+
+  // application specific metadata about the commit
   editMetadata: EditMetadata;
-  remoteSyncId?: string;
-};
+}
+
+export type EditCommit<EditMetadata, Delta> = BaseCommit<EditMetadata, Delta> & {
+  // The ref of the commit that this commit is based on
+  baseRef?: string;
+}
+
+export type MergeCommit<EditMetadata, Delta> = BaseCommit<EditMetadata, Delta> & {
+  // primary parent of the merge commit
+  baseRef: string;
+  // secondary parent of the merge commit
+  mergeRef: string;
+
+  // the most recent common ancestor of the baseRef and mergeRef,
+  // can be undefined if multiple clients are editing the same new document.
+  mergeBaseRef?: string;
+}
+
+export function isMergeCommit(commit: Commit<unknown, unknown>): commit is MergeCommit<unknown, unknown> {
+  return (commit as MergeCommit<unknown, unknown>).mergeRef !== undefined;
+}
+
+export function isEditCommit(commit: Commit<unknown, unknown>): commit is EditCommit<unknown, unknown> {
+  return (commit as MergeCommit<unknown, unknown>).mergeRef === undefined;
+}
+
+export type Commit<EditMetadata, Delta> = MergeCommit<EditMetadata, Delta> | EditCommit<EditMetadata, Delta>;
 
 export type LocalReadStatus =
   | 'loading' /** reading state from disk */
@@ -78,12 +103,20 @@ export type InitEvent =
       auth: unknown;
     };
 
+export type CommitAck = {
+  ref: string;
+  main: boolean;
+}
+
+export type ServerCommit<EditMetadata, Delta> = Commit<EditMetadata, Delta> & CommitAck;
+
 export type CommitsEvent<EditMetadata, Delta, Presence> = {
   type: 'commits';
-  commits: readonly Commit<EditMetadata, Delta>[];
+  commits: readonly (ServerCommit<EditMetadata, Delta> | Commit<EditMetadata, Delta>)[];
   clientInfo?: ClientInfo<Presence>;
   syncId?: string;
 };
+
 export type ReadyEvent = {
   type: 'ready';
 };
