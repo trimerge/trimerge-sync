@@ -40,7 +40,6 @@ Array [
     Object {
       "commits": Array [
         Object {
-          "clientId": "test",
           "editMetadata": undefined,
           "ref": "test1",
           "userId": "test",
@@ -100,7 +99,6 @@ Array [
     Object {
       "commits": Array [
         Object {
-          "clientId": "test",
           "editMetadata": undefined,
           "ref": "test1",
           "userId": "test",
