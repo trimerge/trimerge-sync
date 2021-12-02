@@ -2,12 +2,10 @@ import {
   addInvalidRefsToAckEvent,
   validateCommitOrder,
 } from './validateCommits';
-import type { AckCommitsEvent, Commit, MergeCommit } from 'trimerge-sync';
+import type { AckCommitsEvent, Commit } from 'trimerge-sync';
 import { CommitRefs } from './lib/Commits';
 
-function simpleCommit(
-  args: CommitRefs,
-): Commit<unknown, unknown> {
+function simpleCommit(args: CommitRefs): Commit<unknown, unknown> {
   return {
     ...args,
     userId: 'x',
@@ -33,7 +31,6 @@ describe('validateCommitOrder', () => {
         "invalidRefs": Set {},
         "newCommits": Array [
           Object {
-            "clientId": "x",
             "editMetadata": undefined,
             "ref": "1",
             "userId": "x",
@@ -56,21 +53,18 @@ describe('validateCommitOrder', () => {
         "invalidRefs": Set {},
         "newCommits": Array [
           Object {
-            "clientId": "x",
             "editMetadata": undefined,
             "ref": "1",
             "userId": "x",
           },
           Object {
             "baseRef": "1",
-            "clientId": "x",
             "editMetadata": undefined,
             "ref": "2",
             "userId": "x",
           },
           Object {
             "baseRef": "2",
-            "clientId": "x",
             "editMetadata": undefined,
             "ref": "3",
             "userId": "x",
@@ -93,14 +87,12 @@ describe('validateCommitOrder', () => {
         "newCommits": Array [
           Object {
             "baseRef": "1",
-            "clientId": "x",
             "editMetadata": undefined,
             "ref": "2",
             "userId": "x",
           },
           Object {
             "baseRef": "2",
-            "clientId": "x",
             "editMetadata": undefined,
             "ref": "3",
             "userId": "x",
@@ -131,28 +123,24 @@ describe('validateCommitOrder', () => {
         "invalidRefs": Set {},
         "newCommits": Array [
           Object {
-            "clientId": "x",
             "editMetadata": undefined,
             "ref": "1",
             "userId": "x",
           },
           Object {
             "baseRef": "1",
-            "clientId": "x",
             "editMetadata": undefined,
             "ref": "2",
             "userId": "x",
           },
           Object {
             "baseRef": "1",
-            "clientId": "x",
             "editMetadata": undefined,
             "ref": "3",
             "userId": "x",
           },
           Object {
             "baseRef": "2",
-            "clientId": "x",
             "editMetadata": undefined,
             "mergeBaseRef": "1",
             "mergeRef": "3",
@@ -182,14 +170,12 @@ describe('validateCommitOrder', () => {
         "newCommits": Array [
           Object {
             "baseRef": "1",
-            "clientId": "x",
             "editMetadata": undefined,
             "ref": "3",
             "userId": "x",
           },
           Object {
             "baseRef": "2",
-            "clientId": "x",
             "editMetadata": undefined,
             "mergeBaseRef": "1",
             "mergeRef": "3",
