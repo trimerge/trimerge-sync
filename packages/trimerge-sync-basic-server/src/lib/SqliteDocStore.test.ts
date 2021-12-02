@@ -42,13 +42,11 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          clientId: 'client-1',
           userId: 'client-2',
           editMetadata: { hello: 'world' },
         },
         {
           ref: 'hello2',
-          clientId: 'client-1',
           userId: 'client-2',
           editMetadata: { hello: 'world' },
           baseRef: 'hello1',
@@ -71,7 +69,6 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello3',
-          clientId: 'client-1',
           userId: 'client-2',
           editMetadata: undefined,
         },
@@ -92,39 +89,33 @@ describe('SqliteDocStore', () => {
         "commits": Array [
           Object {
             "baseRef": undefined,
-            "clientId": "client-1",
             "delta": undefined,
             "editMetadata": Object {
               "hello": "world",
             },
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
+            "main": 1,
             "ref": "hello1",
             "remoteSyncId": "1970-01-01T00:00:00.000Z",
             "userId": "client-2",
           },
           Object {
             "baseRef": "hello1",
-            "clientId": "client-1",
             "delta": Object {
               "delta": "format",
             },
             "editMetadata": Object {
               "hello": "world",
             },
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
+            "main": 1,
             "ref": "hello2",
             "remoteSyncId": "1970-01-01T00:00:00.000Z",
             "userId": "client-2",
           },
           Object {
             "baseRef": undefined,
-            "clientId": "client-1",
             "delta": undefined,
             "editMetadata": undefined,
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
+            "main": 0,
             "ref": "hello3",
             "remoteSyncId": "1970-01-01T00:00:00.001Z",
             "userId": "client-2",
@@ -141,11 +132,9 @@ describe('SqliteDocStore', () => {
         "commits": Array [
           Object {
             "baseRef": undefined,
-            "clientId": "client-1",
             "delta": undefined,
             "editMetadata": undefined,
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
+            "main": 0,
             "ref": "hello3",
             "remoteSyncId": "1970-01-01T00:00:00.001Z",
             "userId": "client-2",
@@ -164,13 +153,11 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          clientId: 'client-1',
           userId: 'client-2',
           editMetadata: { hello: 'world' },
         },
         {
           ref: 'hello1',
-          clientId: 'client-1',
           userId: 'client-2',
           editMetadata: { hello: 'world' },
         },
@@ -194,21 +181,18 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          clientId: 'client-1',
           userId: 'client-2',
           baseRef: 'unknown',
           editMetadata: { hello: 'world' },
         },
         {
           ref: 'hello2',
-          clientId: 'client-1',
           userId: 'client-2',
           mergeRef: 'unknown',
           editMetadata: { hello: 'world' },
         },
         {
           ref: 'hello3',
-          clientId: 'client-1',
           userId: 'client-2',
           mergeBaseRef: 'unknown',
           editMetadata: { hello: 'world' },
@@ -244,7 +228,6 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          clientId: 'client-1',
           userId: 'client-2',
           baseRef: 'unknown',
           editMetadata: { hello: 'world' },
@@ -252,7 +235,6 @@ describe('SqliteDocStore', () => {
 
         {
           ref: 'hello2',
-          clientId: 'client-1',
           userId: 'client-2',
           baseRef: 'hello1',
           editMetadata: { hello: 'world' },
