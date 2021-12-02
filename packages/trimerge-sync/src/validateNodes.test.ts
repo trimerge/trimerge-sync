@@ -2,18 +2,15 @@ import {
   addInvalidRefsToAckEvent,
   validateCommitOrder,
 } from './validateCommits';
-import type { AckCommitsEvent, Commit } from 'trimerge-sync';
+import type { AckCommitsEvent, Commit, MergeCommit } from 'trimerge-sync';
+import { CommitRefs } from './lib/Commits';
 
 function simpleCommit(
-  args: Pick<
-    Commit<unknown, unknown>,
-    'ref' | 'baseRef' | 'mergeRef' | 'mergeBaseRef'
-  >,
+  args: CommitRefs,
 ): Commit<unknown, unknown> {
   return {
     ...args,
     userId: 'x',
-    clientId: 'x',
     editMetadata: undefined,
   };
 }

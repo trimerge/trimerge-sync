@@ -16,7 +16,6 @@ describe('MemoryLocalStore', () => {
       [
         {
           userId: 'test',
-          clientId: 'test',
           ref: 'test1',
           editMetadata: undefined,
         },
@@ -81,7 +80,6 @@ Array [
       [
         {
           userId: 'test',
-          clientId: 'test',
           ref: 'test2',
           editMetadata: undefined,
         },
