@@ -52,7 +52,9 @@ Array [
   Array [
     Object {
       "refs": Array [
-        "test1",
+        Object {
+          "ref": "test1",
+        },
       ],
       "syncId": "1",
       "type": "ack",
@@ -111,7 +113,9 @@ Array [
   Array [
     Object {
       "refs": Array [
-        "test1",
+        Object {
+          "ref": "test1",
+        },
       ],
       "syncId": "1",
       "type": "ack",

@@ -38,10 +38,6 @@ export function isMergeCommit(commit: Commit<unknown, unknown>): commit is Merge
   return (commit as MergeCommit<unknown, unknown>).mergeRef !== undefined;
 }
 
-export function isEditCommit(commit: Commit<unknown, unknown>): commit is EditCommit<unknown, unknown> {
-  return (commit as MergeCommit<unknown, unknown>).mergeRef === undefined;
-}
-
 export type Commit<EditMetadata, Delta> = MergeCommit<EditMetadata, Delta> | EditCommit<EditMetadata, Delta>;
 
 export type LocalReadStatus =
@@ -105,7 +101,10 @@ export type InitEvent =
 
 export type CommitAck = {
   ref: string;
-  main: boolean;
+  
+  // If the remote acking this commit is authoritative, main will indicate if this
+  // commit is on the mainline or not, otherwise it will be undefined.
+  main?: boolean;
 }
 
 export type ServerCommit<EditMetadata, Delta> = Commit<EditMetadata, Delta> & CommitAck;
@@ -134,7 +133,7 @@ export type AckCommitError = {
 export type AckRefErrors = Record<string, AckCommitError>;
 export type AckCommitsEvent = {
   type: 'ack';
-  refs: readonly string[];
+  refs: readonly CommitAck[];
   refErrors?: AckRefErrors;
   syncId: string;
 };

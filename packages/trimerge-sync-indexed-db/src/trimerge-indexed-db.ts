@@ -220,7 +220,7 @@ class IndexedDbBackend<
   }
 
   protected async addCommits(
-    commits: readonly Commit<EditMetadata, Delta>[],
+    commits: readonly ServerCommit<EditMetadata, Delta>[],
     lastSyncCursor: string | undefined,
   ): Promise<AckCommitsEvent> {
     const db = await this.db;
@@ -240,7 +240,7 @@ class IndexedDbBackend<
     const headsToDelete = new Set<string>();
     const headsToAdd = new Set<string>();
     const promises: Promise<unknown>[] = [];
-    const refs = new Set<string>();
+    const refs = new Map<string, boolean>();
     const refErrors: AckRefErrors = {};
     async function commitExistsAlready(
       commit: Commit<unknown, unknown>,
@@ -248,7 +248,7 @@ class IndexedDbBackend<
     ): Promise<boolean> {
       const existingCommit = await commitsDb.get(commit.ref);
       if (existingCommit) {
-        refs.add(commit.ref);
+        refs.set(commit.ref, existingCommit.main);
         console.warn(`already have commit`, { commit, existingCommit, error });
         return true;
       }
@@ -269,7 +269,10 @@ class IndexedDbBackend<
               return;
             }
             await commitsDb.add({ syncId, remoteSyncId: '', ...commit });
-            refs.add(ref);
+            const ackedCommit = await commitsDb.get(commit.ref);
+            if (ackedCommit) {
+              refs.set(ref, ackedCommit.main);
+            }
           } catch (e) {
             refErrors[ref] = {
               code: 'storage-failure',
@@ -306,7 +309,7 @@ class IndexedDbBackend<
 
     return {
       type: 'ack',
-      refs: Array.from(refs),
+      refs: Array.from(refs, ([ref, main]) => ({ ref, main })),
       refErrors,
       syncId: toSyncId(syncCounter),
     };
@@ -353,7 +356,7 @@ interface TrimergeSyncDbSchema extends DBSchema {
   };
   commits: {
     key: string;
-    value: Commit<any, any> & {
+    value: ServerCommit<any, any> & {
       syncId: number;
       remoteSyncId: string;
     };

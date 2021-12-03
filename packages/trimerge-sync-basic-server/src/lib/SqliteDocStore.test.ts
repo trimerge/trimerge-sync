@@ -45,6 +45,7 @@ describe('SqliteDocStore', () => {
           userId: 'client-2',
           editMetadata: { hello: 'world' },
         },
+
         {
           ref: 'hello2',
           userId: 'client-2',
@@ -57,8 +58,14 @@ describe('SqliteDocStore', () => {
       Object {
         "refErrors": Object {},
         "refs": Array [
-          "hello1",
-          "hello2",
+          Object {
+            "main": true,
+            "ref": "hello1",
+          },
+          Object {
+            "main": true,
+            "ref": "hello2",
+          },
         ],
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
@@ -77,7 +84,10 @@ describe('SqliteDocStore', () => {
       Object {
         "refErrors": Object {},
         "refs": Array [
-          "hello3",
+          Object {
+            "main": false,
+            "ref": "hello3",
+          },
         ],
         "syncId": "1970-01-01T00:00:00.001Z",
         "type": "ack",
@@ -156,6 +166,7 @@ describe('SqliteDocStore', () => {
           userId: 'client-2',
           editMetadata: { hello: 'world' },
         },
+
         {
           ref: 'hello1',
           userId: 'client-2',
@@ -166,7 +177,10 @@ describe('SqliteDocStore', () => {
       Object {
         "refErrors": Object {},
         "refs": Array [
-          "hello1",
+          Object {
+            "main": true,
+            "ref": "hello1",
+          },
         ],
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
@@ -253,6 +267,54 @@ describe('SqliteDocStore', () => {
           },
         },
         "refs": Array [],
+        "syncId": "1970-01-01T00:00:00.000Z",
+        "type": "ack",
+      }
+    `);
+  });
+
+  it('adds merge commits successfully', async () => {
+    const store = makeSqliteStore('merge_commits');
+
+    expect(
+      store.add([
+        {
+          ref: 'hello1',
+          userId: 'client-2',
+          editMetadata: { hello: 'world' },
+        },
+
+        {
+          ref: 'hello2',
+          userId: 'client-2',
+          editMetadata: { hello: 'mars' },
+        },
+
+        {
+          ref: 'hello3',
+          userId: 'client-2',
+          baseRef: 'hello1',
+          mergeRef: 'hello2',
+          editMetadata: { hello: 'wmoarrlsd' },
+        },
+      ]),
+    ).toMatchInlineSnapshot(`
+      Object {
+        "refErrors": Object {},
+        "refs": Array [
+          Object {
+            "main": true,
+            "ref": "hello1",
+          },
+          Object {
+            "main": false,
+            "ref": "hello2",
+          },
+          Object {
+            "main": true,
+            "ref": "hello3",
+          },
+        ],
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }

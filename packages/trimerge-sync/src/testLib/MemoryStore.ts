@@ -5,6 +5,7 @@ import {
   GetRemoteFn,
   CommitsEvent,
   RemoteSyncInfo,
+  CommitAck,
 } from '../types';
 import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
@@ -106,18 +107,18 @@ export class MemoryStore<EditMetadata, Delta, Presence> {
       }
       return {
         type: 'ack',
-        refs: Array.from(refs),
+        refs: Array.from(refs, (ref) => ({ ref })),
         syncId: this.syncCursor,
       };
     });
   }
   async acknowledgeCommits(
-    refs: readonly string[],
+    acks: readonly CommitAck[],
     remoteSyncId: string,
   ): Promise<void> {
     return this.queue.add(async () => {
-      for (const ref of refs) {
-        this.syncedCommits.add(ref);
+      for (const ack of acks) {
+        this.syncedCommits.add(ack.ref);
       }
       this.lastRemoteSyncCursor = remoteSyncId;
     });
