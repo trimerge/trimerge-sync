@@ -194,23 +194,7 @@ Array [
     },
   },
   Object {
-    "graph": "(a1 + b1) w/ base=undefined -> (a1+b1)",
-    "step": "User c: merge",
-    "value": Object {
-      "hello": "world",
-      "world": "world",
-    },
-  },
-  Object {
-    "graph": "((a1+b1) + a2) w/ base=a1 -> ((a1+b1)+a2)",
-    "step": "User c: merge",
-    "value": Object {
-      "hello": "vorld",
-      "world": "world",
-    },
-  },
-  Object {
-    "graph": "(((a1+b1)+a2) + b2) w/ base=b1 -> (((a1+b1)+a2)+b2)",
+    "graph": "(a2 + b2) w/ base=undefined -> (a2+b2)",
     "step": "User c: merge",
     "value": Object {
       "hello": "vorld",
@@ -218,7 +202,7 @@ Array [
     },
   },
   Object {
-    "graph": "(((a1+b1)+a2)+b2) -> c1",
+    "graph": "(a2+b2) -> c1",
     "step": "User c: change hello",
     "value": Object {
       "hello": "world",

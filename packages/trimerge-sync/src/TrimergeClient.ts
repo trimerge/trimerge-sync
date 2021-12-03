@@ -29,6 +29,7 @@ export class TrimergeClient<
   Presence,
 > {
   private lastSaved?: CommitDoc<SavedDoc, EditMetadata>;
+  private lastNonLazy?: CommitDoc<SavedDoc, EditMetadata>;
   private latestDoc?: CommitDoc<LatestDoc, EditMetadata>;
   private lastLocalSyncId: string | undefined;
 
@@ -302,6 +303,24 @@ export class TrimergeClient<
     this.syncState = { ...this.syncState, ...update };
     this.syncStateSubs.emitChange();
   }
+
+  private rollbackLazyCommits() {
+    for (const { ref, baseRef, mergeRef } of this.lazyCommits.values()) {
+      if (this.headRefs.has(ref)) {
+        this.headRefs.delete(ref);
+        if (baseRef) {
+          this.headRefs.add(baseRef);
+        }
+        if (mergeRef) {
+          this.headRefs.add(mergeRef);
+        }
+      }
+      this.commits.delete(ref);
+      this.docs.delete(ref);
+    }
+    this.lazyCommits.clear();
+  }
+
   private addCommit(
     commit: Commit<EditMetadata, Delta>,
     type: AddCommitType,
@@ -318,6 +337,17 @@ export class TrimergeClient<
       }
       return;
     }
+
+    if (type === 'external') {
+      // Roll back to non-lazy commit
+      if (this.lastSaved !== this.lastNonLazy) {
+        this.lastSaved = this.lastNonLazy;
+        this.latestDoc = undefined;
+      }
+      // Remove all lazy commits
+      this.rollbackLazyCommits();
+    }
+
     this.commits.set(ref, commit);
     if (baseRef !== undefined) {
       if (!this.commits.has(baseRef)) {
@@ -335,6 +365,9 @@ export class TrimergeClient<
     const currentRef = this.lastSaved?.ref;
     if (currentRef === commit.baseRef || currentRef === commit.mergeRef) {
       this.lastSaved = this.getCommitDoc(commit.ref);
+      if (type !== 'lazy') {
+        this.lastNonLazy = this.lastSaved;
+      }
       this.latestDoc = undefined;
     }
     switch (type) {
@@ -359,6 +392,9 @@ export class TrimergeClient<
       this.promoteLazyCommit(commit.mergeRef);
       this.lazyCommits.delete(ref);
       this.unsyncedCommits.push(commit);
+    }
+    if (this.lastSaved?.ref === ref) {
+      this.lastNonLazy = this.lastSaved;
     }
   }
 
