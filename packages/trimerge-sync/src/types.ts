@@ -107,7 +107,9 @@ export type CommitAck = {
   main?: boolean;
 }
 
-export type ServerCommit<EditMetadata, Delta> = Commit<EditMetadata, Delta> & CommitAck;
+export type ServerCommitAck = Required<CommitAck>;
+
+export type ServerCommit<EditMetadata, Delta> = Commit<EditMetadata, Delta> & ServerCommitAck;
 
 export type CommitsEvent<EditMetadata, Delta, Presence> = {
   type: 'commits';

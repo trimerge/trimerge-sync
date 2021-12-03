@@ -11,6 +11,7 @@ import {
   RemoteSyncInfo,
   ServerCommit,
   isMergeCommit,
+  CommitAck,
 } from 'trimerge-sync';
 import { AbstractLocalStore } from 'trimerge-sync';
 import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
@@ -162,12 +163,12 @@ class IndexedDbBackend<
   }
 
   protected async acknowledgeRemoteCommits(
-    refs: readonly string[],
+    acks: readonly CommitAck[],
     remoteSyncCursor: string,
   ): Promise<void> {
     const db = await this.db;
-    for (const ref of refs) {
-      const commit = await db.get('commits', ref);
+    for (const ack of acks) {
+      const commit = await db.get('commits', ack.ref);
       if (commit && !commit.remoteSyncId) {
         commit.remoteSyncId = remoteSyncCursor;
         await db.put('commits', commit);

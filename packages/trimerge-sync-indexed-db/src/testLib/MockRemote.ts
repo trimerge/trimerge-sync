@@ -29,7 +29,7 @@ class MockRemote implements Remote<any, any, any> {
           addInvalidRefsToAckEvent(
             {
               type: 'ack',
-              refs: newCommits.map(({ ref }) => ref),
+              refs: newCommits.map(({ ref }) => ({ref})),
               syncId: 'foo',
             },
             invalidRefs,
