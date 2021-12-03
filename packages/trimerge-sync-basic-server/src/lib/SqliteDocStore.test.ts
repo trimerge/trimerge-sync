@@ -320,47 +320,47 @@ describe('SqliteDocStore', () => {
       }
     `);
     expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
-Object {
-  "commits": Array [
-    Object {
-      "baseRef": undefined,
-      "delta": undefined,
-      "editMetadata": Object {
-        "hello": "world",
-      },
-      "main": 1,
-      "ref": "hello1",
-      "remoteSyncId": "1970-01-01T00:00:00.000Z",
-      "userId": "client-2",
-    },
-    Object {
-      "baseRef": undefined,
-      "delta": undefined,
-      "editMetadata": Object {
-        "hello": "mars",
-      },
-      "main": 0,
-      "ref": "hello2",
-      "remoteSyncId": "1970-01-01T00:00:00.000Z",
-      "userId": "client-2",
-    },
-    Object {
-      "baseRef": "hello1",
-      "delta": undefined,
-      "editMetadata": Object {
-        "hello": "wmoarrlsd",
-      },
-      "main": 1,
-      "mergeBaseRef": undefined,
-      "mergeRef": "hello2",
-      "ref": "hello3",
-      "remoteSyncId": "1970-01-01T00:00:00.000Z",
-      "userId": "client-2",
-    },
-  ],
-  "syncId": "1970-01-01T00:00:00.000Z",
-  "type": "commits",
-}
-`);
+      Object {
+        "commits": Array [
+          Object {
+            "baseRef": undefined,
+            "delta": undefined,
+            "editMetadata": Object {
+              "hello": "world",
+            },
+            "main": 1,
+            "ref": "hello1",
+            "remoteSyncId": "1970-01-01T00:00:00.000Z",
+            "userId": "client-2",
+          },
+          Object {
+            "baseRef": undefined,
+            "delta": undefined,
+            "editMetadata": Object {
+              "hello": "mars",
+            },
+            "main": 0,
+            "ref": "hello2",
+            "remoteSyncId": "1970-01-01T00:00:00.000Z",
+            "userId": "client-2",
+          },
+          Object {
+            "baseRef": "hello1",
+            "delta": undefined,
+            "editMetadata": Object {
+              "hello": "wmoarrlsd",
+            },
+            "main": 1,
+            "mergeBaseRef": undefined,
+            "mergeRef": "hello2",
+            "ref": "hello3",
+            "remoteSyncId": "1970-01-01T00:00:00.000Z",
+            "userId": "client-2",
+          },
+        ],
+        "syncId": "1970-01-01T00:00:00.000Z",
+        "type": "commits",
+      }
+    `);
   });
 });
