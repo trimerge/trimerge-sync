@@ -250,67 +250,90 @@ Array [
     await timeout();
 
     // Client2 is updated now
-    expect(sortedClients(client1)).toEqual([
-      {
-        clientId: 'test',
-        ref: undefined,
-        self: true,
-        state: undefined,
-        userId: 'a',
-      },
-      {
-        clientId: 'test',
-        ref: undefined,
-        state: undefined,
-        userId: 'b',
-      },
-    ]);
-    expect(sortedClients(client2)).toEqual([
-      {
-        clientId: 'test',
-        ref: undefined,
-        state: undefined,
-        userId: 'a',
-      },
-      {
-        clientId: 'test',
-        ref: undefined,
-        self: true,
-        state: undefined,
-        userId: 'b',
-      },
-    ]);
+    expect(sortedClients(client1)).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "clientId": "test",
+    "presence": undefined,
+    "ref": undefined,
+    "self": true,
+    "userId": "a",
+  },
+  Object {
+    "clientId": "test",
+    "presence": undefined,
+    "ref": undefined,
+    "userId": "b",
+  },
+]
+`);
+    expect(sortedClients(client2)).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "clientId": "test",
+    "presence": undefined,
+    "ref": undefined,
+    "userId": "a",
+  },
+  Object {
+    "clientId": "test",
+    "presence": undefined,
+    "ref": undefined,
+    "self": true,
+    "userId": "b",
+  },
+]
+`);
 
-    expect(client1Sub.mock.calls).toEqual([
-      [
-        [
-          {
-            clientId: 'test',
-            ref: undefined,
-            self: true,
-            state: undefined,
-            userId: 'a',
-          },
-        ],
-      ],
-      [
-        [
-          {
-            clientId: 'test',
-            ref: undefined,
-            self: true,
-            state: undefined,
-            userId: 'a',
-          },
-          {
-            clientId: 'test',
-            ref: undefined,
-            state: undefined,
-            userId: 'b',
-          },
-        ],
-      ],
-    ]);
+    expect(client1Sub.mock.calls).toMatchInlineSnapshot(`
+Array [
+  Array [
+    Array [
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "a",
+      },
+    ],
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "a",
+      },
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "b",
+      },
+    ],
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "a",
+      },
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "b",
+      },
+    ],
+  ],
+]
+`);
     client1Unsub();
   });
 
