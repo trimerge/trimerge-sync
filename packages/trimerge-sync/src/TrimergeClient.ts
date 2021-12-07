@@ -227,7 +227,7 @@ export class TrimergeClient<
     const commitDoc: CommitDoc<SavedDoc, EditMetadata> = {
       ref: commit.ref,
       doc: this.differ.patch(baseValue, commit.delta),
-      editMetadata: commit.editMetadata,
+      editMetadata: commit.metadata,
     };
     this.docs.set(ref, commitDoc);
     return commitDoc;
@@ -405,7 +405,7 @@ export class TrimergeClient<
       mergeRef,
       mergeBaseRef,
       delta,
-      editMetadata,
+      metadata: editMetadata,
     } as MergeCommit<EditMetadata, Delta> : 
       {
         userId,
@@ -413,7 +413,7 @@ export class TrimergeClient<
         ref,
         baseRef,
         delta,
-        editMetadata,
+        metadata: editMetadata,
       } as EditCommit<EditMetadata, Delta>
     ;
     this.addCommit(commit, lazy ? 'lazy' : 'local');

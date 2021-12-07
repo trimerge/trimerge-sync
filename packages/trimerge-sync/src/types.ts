@@ -15,7 +15,7 @@ export type BaseCommit<EditMetadata, Delta> = {
   delta?: Delta;
 
   // application specific metadata about the commit
-  editMetadata: EditMetadata;
+  metadata: EditMetadata;
 }
 
 export type EditCommit<EditMetadata, Delta> = BaseCommit<EditMetadata, Delta> & {

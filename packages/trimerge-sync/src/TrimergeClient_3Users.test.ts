@@ -51,7 +51,7 @@ function basicGraph(
 ) {
   return getBasicGraph(
     store.getCommits(),
-    (commit) => commit.editMetadata.message,
+    (commit) => commit.metadata.message,
     (commit) => clientA.getCommitDoc(commit.ref).doc,
   );
 }
