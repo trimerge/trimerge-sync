@@ -9,6 +9,7 @@
   "scripts": {
     "test": "jest --watch",
     "test-ci": "jest --coverage --passWithNoTests --reporters=@descript/jest-github-reporter",
+    "test:update-snapshots": "jest --updateSnapshot --passWithNoTests",
     "build": "rollup -c",
     "watch": "rollup -c -w",
     "start": "ts-node-dev --respawn --transpile-only src/sample-server.ts",

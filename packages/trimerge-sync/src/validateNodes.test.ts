@@ -9,7 +9,7 @@ function simpleCommit(args: CommitRefs): Commit<unknown, unknown> {
   return {
     ...args,
     userId: 'x',
-    editMetadata: undefined,
+    metadata: undefined,
   };
 }
 
@@ -31,7 +31,7 @@ describe('validateCommitOrder', () => {
         "invalidRefs": Set {},
         "newCommits": Array [
           Object {
-            "editMetadata": undefined,
+            "metadata": undefined,
             "ref": "1",
             "userId": "x",
           },
@@ -53,19 +53,19 @@ describe('validateCommitOrder', () => {
         "invalidRefs": Set {},
         "newCommits": Array [
           Object {
-            "editMetadata": undefined,
+            "metadata": undefined,
             "ref": "1",
             "userId": "x",
           },
           Object {
             "baseRef": "1",
-            "editMetadata": undefined,
+            "metadata": undefined,
             "ref": "2",
             "userId": "x",
           },
           Object {
             "baseRef": "2",
-            "editMetadata": undefined,
+            "metadata": undefined,
             "ref": "3",
             "userId": "x",
           },
@@ -87,13 +87,13 @@ describe('validateCommitOrder', () => {
         "newCommits": Array [
           Object {
             "baseRef": "1",
-            "editMetadata": undefined,
+            "metadata": undefined,
             "ref": "2",
             "userId": "x",
           },
           Object {
             "baseRef": "2",
-            "editMetadata": undefined,
+            "metadata": undefined,
             "ref": "3",
             "userId": "x",
           },
@@ -123,27 +123,27 @@ describe('validateCommitOrder', () => {
         "invalidRefs": Set {},
         "newCommits": Array [
           Object {
-            "editMetadata": undefined,
+            "metadata": undefined,
             "ref": "1",
             "userId": "x",
           },
           Object {
             "baseRef": "1",
-            "editMetadata": undefined,
+            "metadata": undefined,
             "ref": "2",
             "userId": "x",
           },
           Object {
             "baseRef": "1",
-            "editMetadata": undefined,
+            "metadata": undefined,
             "ref": "3",
             "userId": "x",
           },
           Object {
             "baseRef": "2",
-            "editMetadata": undefined,
             "mergeBaseRef": "1",
             "mergeRef": "3",
+            "metadata": undefined,
             "ref": "4",
             "userId": "x",
           },
@@ -170,15 +170,15 @@ describe('validateCommitOrder', () => {
         "newCommits": Array [
           Object {
             "baseRef": "1",
-            "editMetadata": undefined,
+            "metadata": undefined,
             "ref": "3",
             "userId": "x",
           },
           Object {
             "baseRef": "2",
-            "editMetadata": undefined,
             "mergeBaseRef": "1",
             "mergeRef": "3",
+            "metadata": undefined,
             "ref": "4",
             "userId": "x",
           },
