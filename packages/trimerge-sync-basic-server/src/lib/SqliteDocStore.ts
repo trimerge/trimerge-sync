@@ -202,7 +202,7 @@ export class SqliteDocStore implements DocStore {
             mergeBaseRef,
             mergeRef,
             delta: JSON.stringify(delta),
-            editMetadata: JSON.stringify(metadata),
+            metadata: JSON.stringify(metadata),
             remoteSyncId,
             remoteSyncIndex,
             main: isMain ? 1 : 0,
