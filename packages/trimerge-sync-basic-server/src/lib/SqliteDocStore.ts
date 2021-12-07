@@ -21,7 +21,7 @@ type SqliteCommitType = {
   mergeRef?: string;
   mergeBaseRef?: string;
   delta?: string;
-  editMetadata?: string;
+  metadata?: string;
 
   // Indicates whether this commit is on the "mainline"
   main: boolean;
@@ -48,7 +48,7 @@ export class SqliteDocStore implements DocStore {
         mergeRef TEXT,
         mergeBaseRef TEXT,
         delta TEXT,
-        editMetadata TEXT,
+        metadata TEXT,
         main BOOLEAN
       );
       CREATE INDEX IF NOT EXISTS remoteSyncIdIndex ON commits (remoteSyncId, remoteSyncIndex);
@@ -84,7 +84,7 @@ export class SqliteDocStore implements DocStore {
           mergeRef,
           mergeBaseRef,
           delta,
-          editMetadata,
+          metadata,
           main,
         } = commit;
 
@@ -101,7 +101,7 @@ export class SqliteDocStore implements DocStore {
             mergeRef: mergeRef || undefined,
             mergeBaseRef: mergeBaseRef || undefined,
             delta: delta ? JSON.parse(delta) : undefined,
-            editMetadata: editMetadata ? JSON.parse(editMetadata) : undefined,
+            metadata: metadata ? JSON.parse(metadata) : undefined,
             main,
           } as ServerCommit<unknown, unknown>;
         } else {
@@ -111,7 +111,7 @@ export class SqliteDocStore implements DocStore {
             userId,
             baseRef: baseRef || undefined,
             delta: delta ? JSON.parse(delta) : undefined,
-            editMetadata: editMetadata ? JSON.parse(editMetadata) : undefined,
+            metadata: metadata ? JSON.parse(metadata) : undefined,
             main,
           } as ServerCommit<unknown, unknown>;
         }
@@ -128,8 +128,8 @@ export class SqliteDocStore implements DocStore {
     const remoteSyncId = this.syncIdCreator();
     const insert = this.db.prepare(
       `
-        INSERT INTO commits (ref, remoteSyncId, remoteSyncIndex, userId, baseRef, mergeRef, mergeBaseRef, delta, editMetadata, main) 
-        VALUES (@ref, @remoteSyncId, @remoteSyncIndex, @userId, @baseRef, @mergeRef, @mergeBaseRef, @delta, @editMetadata, @main)
+        INSERT INTO commits (ref, remoteSyncId, remoteSyncIndex, userId, baseRef, mergeRef, mergeBaseRef, delta, metadata, main) 
+        VALUES (@ref, @remoteSyncId, @remoteSyncIndex, @userId, @baseRef, @mergeRef, @mergeBaseRef, @delta, @metadata, @main)
         ON CONFLICT DO NOTHING`,
     );
     const refs = new Map<string, boolean>();
@@ -166,7 +166,7 @@ export class SqliteDocStore implements DocStore {
           ref,
           baseRef,
           delta,
-          editMetadata,
+          metadata,
         } = commit;
 
         let mergeRef: string | undefined;
@@ -202,7 +202,7 @@ export class SqliteDocStore implements DocStore {
             mergeBaseRef,
             mergeRef,
             delta: JSON.stringify(delta),
-            editMetadata: JSON.stringify(editMetadata),
+            editMetadata: JSON.stringify(metadata),
             remoteSyncId,
             remoteSyncIndex,
             main: isMain ? 1 : 0,

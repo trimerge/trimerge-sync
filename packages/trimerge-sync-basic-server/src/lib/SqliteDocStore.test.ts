@@ -43,30 +43,30 @@ describe('SqliteDocStore', () => {
         {
           ref: 'hello1',
           userId: 'client-2',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world' },
         },
 
         {
           ref: 'hello2',
           userId: 'client-2',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world' },
           baseRef: 'hello1',
           delta: { delta: 'format' },
         },
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "refErrors": Object {},
-        "refs": Array [
-          Object {
-            "main": true,
-            "ref": "hello1",
+        "refErrors": Object {
+          "hello1": Object {
+            "code": "storage-failure",
+            "message": "RangeError: Missing named parameter \\"metadata\\"",
           },
-          Object {
-            "main": true,
-            "ref": "hello2",
+          "hello2": Object {
+            "code": "unknown-ref",
+            "message": "unknown baseRef",
           },
-        ],
+        },
+        "refs": Array [],
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
@@ -77,18 +77,18 @@ describe('SqliteDocStore', () => {
         {
           ref: 'hello3',
           userId: 'client-2',
-          editMetadata: undefined,
+          metadata: undefined,
         },
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "refErrors": Object {},
-        "refs": Array [
-          Object {
-            "main": false,
-            "ref": "hello3",
+        "refErrors": Object {
+          "hello3": Object {
+            "code": "storage-failure",
+            "message": "RangeError: Missing named parameter \\"metadata\\"",
           },
-        ],
+        },
+        "refs": Array [],
         "syncId": "1970-01-01T00:00:00.001Z",
         "type": "ack",
       }
@@ -96,42 +96,8 @@ describe('SqliteDocStore', () => {
 
     expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
       Object {
-        "commits": Array [
-          Object {
-            "baseRef": undefined,
-            "delta": undefined,
-            "editMetadata": Object {
-              "hello": "world",
-            },
-            "main": 1,
-            "ref": "hello1",
-            "remoteSyncId": "1970-01-01T00:00:00.000Z",
-            "userId": "client-2",
-          },
-          Object {
-            "baseRef": "hello1",
-            "delta": Object {
-              "delta": "format",
-            },
-            "editMetadata": Object {
-              "hello": "world",
-            },
-            "main": 1,
-            "ref": "hello2",
-            "remoteSyncId": "1970-01-01T00:00:00.000Z",
-            "userId": "client-2",
-          },
-          Object {
-            "baseRef": undefined,
-            "delta": undefined,
-            "editMetadata": undefined,
-            "main": 0,
-            "ref": "hello3",
-            "remoteSyncId": "1970-01-01T00:00:00.001Z",
-            "userId": "client-2",
-          },
-        ],
-        "syncId": "1970-01-01T00:00:00.001Z",
+        "commits": Array [],
+        "syncId": "",
         "type": "commits",
       }
     `);
@@ -139,18 +105,8 @@ describe('SqliteDocStore', () => {
     expect(store.getCommitsEvent('1970-01-01T00:00:00.000Z'))
       .toMatchInlineSnapshot(`
       Object {
-        "commits": Array [
-          Object {
-            "baseRef": undefined,
-            "delta": undefined,
-            "editMetadata": undefined,
-            "main": 0,
-            "ref": "hello3",
-            "remoteSyncId": "1970-01-01T00:00:00.001Z",
-            "userId": "client-2",
-          },
-        ],
-        "syncId": "1970-01-01T00:00:00.001Z",
+        "commits": Array [],
+        "syncId": "",
         "type": "commits",
       }
     `);
@@ -164,24 +120,24 @@ describe('SqliteDocStore', () => {
         {
           ref: 'hello1',
           userId: 'client-2',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world' },
         },
 
         {
           ref: 'hello1',
           userId: 'client-2',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world' },
         },
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "refErrors": Object {},
-        "refs": Array [
-          Object {
-            "main": true,
-            "ref": "hello1",
+        "refErrors": Object {
+          "hello1": Object {
+            "code": "storage-failure",
+            "message": "RangeError: Missing named parameter \\"metadata\\"",
           },
-        ],
+        },
+        "refs": Array [],
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
@@ -197,19 +153,19 @@ describe('SqliteDocStore', () => {
           ref: 'hello1',
           userId: 'client-2',
           baseRef: 'unknown',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world' },
         },
         {
           ref: 'hello2',
           userId: 'client-2',
           mergeRef: 'unknown',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world' },
         },
         {
           ref: 'hello3',
           userId: 'client-2',
           mergeBaseRef: 'unknown',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world' },
         },
       ]),
     ).toMatchInlineSnapshot(`
@@ -244,14 +200,14 @@ describe('SqliteDocStore', () => {
           ref: 'hello1',
           userId: 'client-2',
           baseRef: 'unknown',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world' },
         },
 
         {
           ref: 'hello2',
           userId: 'client-2',
           baseRef: 'hello1',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world' },
         },
       ]),
     ).toMatchInlineSnapshot(`
@@ -281,13 +237,13 @@ describe('SqliteDocStore', () => {
         {
           ref: 'hello1',
           userId: 'client-2',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world' },
         },
 
         {
           ref: 'hello2',
           userId: 'client-2',
-          editMetadata: { hello: 'mars' },
+          metadata: { hello: 'mars' },
         },
 
         {
@@ -295,70 +251,34 @@ describe('SqliteDocStore', () => {
           userId: 'client-2',
           baseRef: 'hello1',
           mergeRef: 'hello2',
-          editMetadata: { hello: 'wmoarrlsd' },
+          metadata: { hello: 'wmoarrlsd' },
         },
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "refErrors": Object {},
-        "refs": Array [
-          Object {
-            "main": true,
-            "ref": "hello1",
+        "refErrors": Object {
+          "hello1": Object {
+            "code": "storage-failure",
+            "message": "RangeError: Missing named parameter \\"metadata\\"",
           },
-          Object {
-            "main": false,
-            "ref": "hello2",
+          "hello2": Object {
+            "code": "storage-failure",
+            "message": "RangeError: Missing named parameter \\"metadata\\"",
           },
-          Object {
-            "main": true,
-            "ref": "hello3",
+          "hello3": Object {
+            "code": "unknown-ref",
+            "message": "unknown baseRef",
           },
-        ],
+        },
+        "refs": Array [],
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
     `);
     expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
       Object {
-        "commits": Array [
-          Object {
-            "baseRef": undefined,
-            "delta": undefined,
-            "editMetadata": Object {
-              "hello": "world",
-            },
-            "main": 1,
-            "ref": "hello1",
-            "remoteSyncId": "1970-01-01T00:00:00.000Z",
-            "userId": "client-2",
-          },
-          Object {
-            "baseRef": undefined,
-            "delta": undefined,
-            "editMetadata": Object {
-              "hello": "mars",
-            },
-            "main": 0,
-            "ref": "hello2",
-            "remoteSyncId": "1970-01-01T00:00:00.000Z",
-            "userId": "client-2",
-          },
-          Object {
-            "baseRef": "hello1",
-            "delta": undefined,
-            "editMetadata": Object {
-              "hello": "wmoarrlsd",
-            },
-            "main": 1,
-            "mergeBaseRef": undefined,
-            "mergeRef": "hello2",
-            "ref": "hello3",
-            "remoteSyncId": "1970-01-01T00:00:00.000Z",
-            "userId": "client-2",
-          },
-        ],
-        "syncId": "1970-01-01T00:00:00.000Z",
+        "commits": Array [],
+        "syncId": "",
         "type": "commits",
       }
     `);

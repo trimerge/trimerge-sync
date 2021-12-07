@@ -40,7 +40,7 @@ Array [
     Object {
       "commits": Array [
         Object {
-          "editMetadata": undefined,
+          "metadata": undefined,
           "ref": "test1",
           "userId": "test",
         },
@@ -101,7 +101,7 @@ Array [
     Object {
       "commits": Array [
         Object {
-          "editMetadata": undefined,
+          "metadata": undefined,
           "ref": "test1",
           "userId": "test",
         },
