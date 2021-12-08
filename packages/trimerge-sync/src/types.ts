@@ -135,7 +135,7 @@ export type AckCommitError = {
 export type AckRefErrors = Record<string, AckCommitError>;
 export type AckCommitsEvent = {
   type: 'ack';
-  refs: readonly CommitAck[];
+  acks: readonly CommitAck[];
   refErrors?: AckRefErrors;
   syncId: string;
 };

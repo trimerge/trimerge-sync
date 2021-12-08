@@ -56,8 +56,7 @@ describe('SqliteDocStore', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "refErrors": Object {},
-        "refs": Array [
+        "acks": Array [
           Object {
             "main": true,
             "ref": "hello1",
@@ -67,6 +66,7 @@ describe('SqliteDocStore', () => {
             "ref": "hello2",
           },
         ],
+        "refErrors": Object {},
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
@@ -82,13 +82,13 @@ describe('SqliteDocStore', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "refErrors": Object {},
-        "refs": Array [
+        "acks": Array [
           Object {
             "main": false,
             "ref": "hello3",
           },
         ],
+        "refErrors": Object {},
         "syncId": "1970-01-01T00:00:00.001Z",
         "type": "ack",
       }
@@ -105,7 +105,6 @@ describe('SqliteDocStore', () => {
               "hello": "world",
             },
             "ref": "hello1",
-            "remoteSyncId": "1970-01-01T00:00:00.000Z",
             "userId": "client-2",
           },
           Object {
@@ -118,7 +117,6 @@ describe('SqliteDocStore', () => {
               "hello": "world",
             },
             "ref": "hello2",
-            "remoteSyncId": "1970-01-01T00:00:00.000Z",
             "userId": "client-2",
           },
           Object {
@@ -127,7 +125,6 @@ describe('SqliteDocStore', () => {
             "main": 0,
             "metadata": undefined,
             "ref": "hello3",
-            "remoteSyncId": "1970-01-01T00:00:00.001Z",
             "userId": "client-2",
           },
         ],
@@ -146,7 +143,6 @@ describe('SqliteDocStore', () => {
             "main": 0,
             "metadata": undefined,
             "ref": "hello3",
-            "remoteSyncId": "1970-01-01T00:00:00.001Z",
             "userId": "client-2",
           },
         ],
@@ -175,13 +171,13 @@ describe('SqliteDocStore', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "refErrors": Object {},
-        "refs": Array [
+        "acks": Array [
           Object {
             "main": true,
             "ref": "hello1",
           },
         ],
+        "refErrors": Object {},
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
@@ -199,12 +195,14 @@ describe('SqliteDocStore', () => {
           baseRef: 'unknown',
           metadata: { hello: 'world' },
         },
+
         {
           ref: 'hello2',
           userId: 'client-2',
           mergeRef: 'unknown',
           metadata: { hello: 'world' },
         },
+
         {
           ref: 'hello3',
           userId: 'client-2',
@@ -214,6 +212,7 @@ describe('SqliteDocStore', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
+        "acks": Array [],
         "refErrors": Object {
           "hello1": Object {
             "code": "unknown-ref",
@@ -228,7 +227,6 @@ describe('SqliteDocStore', () => {
             "message": "unknown mergeBaseRef",
           },
         },
-        "refs": Array [],
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
@@ -256,6 +254,7 @@ describe('SqliteDocStore', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
+        "acks": Array [],
         "refErrors": Object {
           "hello1": Object {
             "code": "unknown-ref",
@@ -266,7 +265,6 @@ describe('SqliteDocStore', () => {
             "message": "unknown baseRef",
           },
         },
-        "refs": Array [],
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
@@ -300,8 +298,7 @@ describe('SqliteDocStore', () => {
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "refErrors": Object {},
-        "refs": Array [
+        "acks": Array [
           Object {
             "main": true,
             "ref": "hello1",
@@ -315,6 +312,7 @@ describe('SqliteDocStore', () => {
             "ref": "hello3",
           },
         ],
+        "refErrors": Object {},
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
@@ -330,7 +328,6 @@ describe('SqliteDocStore', () => {
               "hello": "world",
             },
             "ref": "hello1",
-            "remoteSyncId": "1970-01-01T00:00:00.000Z",
             "userId": "client-2",
           },
           Object {
@@ -341,7 +338,6 @@ describe('SqliteDocStore', () => {
               "hello": "mars",
             },
             "ref": "hello2",
-            "remoteSyncId": "1970-01-01T00:00:00.000Z",
             "userId": "client-2",
           },
           Object {
@@ -354,7 +350,6 @@ describe('SqliteDocStore', () => {
               "hello": "wmoarrlsd",
             },
             "ref": "hello3",
-            "remoteSyncId": "1970-01-01T00:00:00.000Z",
             "userId": "client-2",
           },
         ],

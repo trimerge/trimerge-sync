@@ -107,7 +107,7 @@ export class MemoryStore<EditMetadata, Delta, Presence> {
       }
       return {
         type: 'ack',
-        refs: Array.from(refs, (ref) => ({ ref })),
+        acks: Array.from(refs, (ref) => ({ ref })),
         syncId: this.syncCursor,
       };
     });

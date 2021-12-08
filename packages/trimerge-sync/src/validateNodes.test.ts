@@ -213,20 +213,20 @@ describe('validateCommitOrder', () => {
 
 describe('addInvalidRefsToAckEvent', () => {
   it('adds no commits', () => {
-    const ack: AckCommitsEvent = { type: 'ack', syncId: '', refs: [] };
+    const ack: AckCommitsEvent = { type: 'ack', syncId: '', acks: [] };
     expect(addInvalidRefsToAckEvent(ack, new Set())).toBe(ack);
   });
   it('adds 1 commit', () => {
-    const ack: AckCommitsEvent = { type: 'ack', syncId: '', refs: [] };
+    const ack: AckCommitsEvent = { type: 'ack', syncId: '', acks: [] };
     expect(addInvalidRefsToAckEvent(ack, new Set(['hi'])))
       .toMatchInlineSnapshot(`
       Object {
+        "acks": Array [],
         "refErrors": Object {
           "hi": Object {
             "code": "unknown-ref",
           },
         },
-        "refs": Array [],
         "syncId": "",
         "type": "ack",
       }
@@ -236,12 +236,13 @@ describe('addInvalidRefsToAckEvent', () => {
     const ack: AckCommitsEvent = {
       type: 'ack',
       syncId: '',
-      refs: [],
+      acks: [],
       refErrors: { yo: { code: 'internal' } },
     };
     expect(addInvalidRefsToAckEvent(ack, new Set(['hi', 'there'])))
       .toMatchInlineSnapshot(`
       Object {
+        "acks": Array [],
         "refErrors": Object {
           "hi": Object {
             "code": "unknown-ref",
@@ -253,7 +254,6 @@ describe('addInvalidRefsToAckEvent', () => {
             "code": "internal",
           },
         },
-        "refs": Array [],
         "syncId": "",
         "type": "ack",
       }
@@ -263,7 +263,7 @@ describe('addInvalidRefsToAckEvent', () => {
     const ack: AckCommitsEvent = {
       type: 'ack',
       syncId: '',
-      refs: [],
+      acks: [],
       refErrors: { hi: { code: 'internal' } },
     };
     expect(addInvalidRefsToAckEvent(ack, new Set(['hi']))).toEqual(ack);

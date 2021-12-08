@@ -310,7 +310,7 @@ class IndexedDbBackend<
 
     return {
       type: 'ack',
-      refs: Array.from(refs, ([ref, main]) => ({ ref, main })),
+      acks: Array.from(refs, ([ref, main]) => ({ ref, main })),
       refErrors,
       syncId: toSyncId(syncCounter),
     };

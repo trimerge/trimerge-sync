@@ -167,8 +167,8 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
 
       case 'ack':
         if (origin === 'remote') {
-          await this.acknowledgeRemoteCommits(event.refs, event.syncId);
-          for (const ref of event.refs) {
+          await this.acknowledgeRemoteCommits(event.acks, event.syncId);
+          for (const ref of event.acks) {
             this.unacknowledgedRefs.delete(ref.ref);
           }
           if (event.refErrors && Object.keys(event.refErrors).length > 0) {

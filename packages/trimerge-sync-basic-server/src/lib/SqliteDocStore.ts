@@ -93,27 +93,28 @@ export class SqliteDocStore implements DocStore {
         }
 
         if (mergeRef) {
+          if (!baseRef) {
+            throw new Error('Merge commit without base ref');
+          }
           return {
             ref,
-            remoteSyncId,
             userId,
-            baseRef: baseRef || undefined,
-            mergeRef: mergeRef || undefined,
+            baseRef,
+            mergeRef,
             mergeBaseRef: mergeBaseRef || undefined,
             delta: delta ? JSON.parse(delta) : undefined,
             metadata: metadata ? JSON.parse(metadata) : undefined,
             main,
-          } as ServerCommit<unknown, unknown>;
+          }
         } else {
           return {
             ref,
-            remoteSyncId,
             userId,
             baseRef: baseRef || undefined,
             delta: delta ? JSON.parse(delta) : undefined,
             metadata: metadata ? JSON.parse(metadata) : undefined,
             main,
-          } as ServerCommit<unknown, unknown>;
+          };
         }
       },
     );
@@ -223,7 +224,7 @@ export class SqliteDocStore implements DocStore {
     })();
     return {
       type: 'ack',
-      refs: Array.from(refs, ([ref, main]) => ({ ref, main })),
+      acks: Array.from(refs, ([ref, main]) => ({ ref, main })),
       refErrors,
       syncId: remoteSyncId,
     };
