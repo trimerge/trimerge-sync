@@ -299,7 +299,7 @@ Object {
       ],
       "metadata": "",
       "ref": "lIKnl-vc",
-      "remoteSyncId": "",
+      "remoteSyncId": "foo",
       "syncId": 1,
       "userId": "test",
     },
@@ -311,6 +311,7 @@ Object {
   ],
   "remotes": Array [
     Object {
+      "lastSyncCursor": "foo",
       "localStoreId": "test-doc-store",
     },
   ],
@@ -364,7 +365,7 @@ Object {
       ],
       "metadata": "",
       "ref": "lIKnl-vc",
-      "remoteSyncId": "",
+      "remoteSyncId": "foo",
       "syncId": 1,
       "userId": "test",
     },
@@ -376,6 +377,7 @@ Object {
   ],
   "remotes": Array [
     Object {
+      "lastSyncCursor": "foo",
       "localStoreId": "test-doc-store",
     },
   ],
@@ -411,6 +413,19 @@ Object {
 Object {
   "commits": Array [
     Object {
+      "baseRef": "axg0ZCUR",
+      "clientId": "2",
+      "delta": Array [
+        "hello offline remote",
+        "hello online remote",
+      ],
+      "metadata": "",
+      "ref": "_btn0pve",
+      "remoteSyncId": "foo",
+      "syncId": 2,
+      "userId": "test",
+    },
+    Object {
       "baseRef": undefined,
       "clientId": "1",
       "delta": Array [
@@ -418,18 +433,19 @@ Object {
       ],
       "metadata": "",
       "ref": "axg0ZCUR",
-      "remoteSyncId": "",
+      "remoteSyncId": "foo",
       "syncId": 1,
       "userId": "test",
     },
   ],
   "heads": Array [
     Object {
-      "ref": "axg0ZCUR",
+      "ref": "_btn0pve",
     },
   ],
   "remotes": Array [
     Object {
+      "lastSyncCursor": "foo",
       "localStoreId": "test-doc-store",
     },
   ],
@@ -465,11 +481,11 @@ Object {
     expect(client2.doc).toEqual(6);
     expect(client2.syncStatus).toMatchInlineSnapshot(`
 Object {
-  "localRead": "error",
+  "localRead": "ready",
   "localSave": "ready",
-  "remoteConnect": "offline",
-  "remoteRead": "offline",
-  "remoteSave": "saving",
+  "remoteConnect": "online",
+  "remoteRead": "ready",
+  "remoteSave": "ready",
 }
 `);
 

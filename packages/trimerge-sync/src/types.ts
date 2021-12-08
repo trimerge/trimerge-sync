@@ -10,20 +10,26 @@ export type ErrorCode =
 export type BaseCommit<EditMetadata, Delta> = {
   userId: string;
   ref: string;
-  
+
   // the delta itself
   delta?: Delta;
 
   // application specific metadata about the commit
   metadata: EditMetadata;
-}
+};
 
-export type EditCommit<EditMetadata, Delta> = BaseCommit<EditMetadata, Delta> & {
+export type EditCommit<EditMetadata, Delta> = BaseCommit<
+  EditMetadata,
+  Delta
+> & {
   // The ref of the commit that this commit is based on
   baseRef?: string;
-}
+};
 
-export type MergeCommit<EditMetadata, Delta> = BaseCommit<EditMetadata, Delta> & {
+export type MergeCommit<EditMetadata, Delta> = BaseCommit<
+  EditMetadata,
+  Delta
+> & {
   // primary parent of the merge commit
   baseRef: string;
   // secondary parent of the merge commit
@@ -32,13 +38,17 @@ export type MergeCommit<EditMetadata, Delta> = BaseCommit<EditMetadata, Delta> &
   // the most recent common ancestor of the baseRef and mergeRef,
   // can be undefined if multiple clients are editing the same new document.
   mergeBaseRef?: string;
-}
+};
 
-export function isMergeCommit(commit: Commit<unknown, unknown>): commit is MergeCommit<unknown, unknown> {
+export function isMergeCommit(
+  commit: Commit<unknown, unknown>,
+): commit is MergeCommit<unknown, unknown> {
   return (commit as MergeCommit<unknown, unknown>).mergeRef !== undefined;
 }
 
-export type Commit<EditMetadata, Delta> = MergeCommit<EditMetadata, Delta> | EditCommit<EditMetadata, Delta>;
+export type Commit<EditMetadata, Delta> =
+  | MergeCommit<EditMetadata, Delta>
+  | EditCommit<EditMetadata, Delta>;
 
 export type LocalReadStatus =
   | 'loading' /** reading state from disk */
@@ -101,19 +111,23 @@ export type InitEvent =
 
 export type CommitAck = {
   ref: string;
-  
+
   // If the remote acking this commit is authoritative, main will indicate if this
   // commit is on the mainline or not, otherwise it will be undefined.
   main?: boolean;
-}
+};
 
 export type ServerCommitAck = Required<CommitAck>;
 
-export type ServerCommit<EditMetadata, Delta> = Commit<EditMetadata, Delta> & ServerCommitAck;
+export type ServerCommit<EditMetadata, Delta> = Commit<EditMetadata, Delta> &
+  ServerCommitAck;
 
 export type CommitsEvent<EditMetadata, Delta, Presence> = {
   type: 'commits';
-  commits: readonly (ServerCommit<EditMetadata, Delta> | Commit<EditMetadata, Delta>)[];
+  commits: readonly (
+    | ServerCommit<EditMetadata, Delta>
+    | Commit<EditMetadata, Delta>
+  )[];
   clientInfo?: ClientInfo<Presence>;
   syncId?: string;
 };

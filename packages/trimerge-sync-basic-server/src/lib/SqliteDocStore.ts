@@ -57,7 +57,9 @@ export class SqliteDocStore implements DocStore {
       `SELECT ref FROM commits ORDER BY remoteSyncId, remoteSyncIndex`,
     );
     const sqliteCommits: Pick<SqliteCommitType, 'ref' | 'main'>[] = stmt.all();
-    this.seenRefs = new Map(sqliteCommits.map(({ ref, main }) => [ref, main ?? false]));
+    this.seenRefs = new Map(
+      sqliteCommits.map(({ ref, main }) => [ref, main ?? false]),
+    );
   }
 
   getCommitsEvent(
@@ -66,11 +68,11 @@ export class SqliteDocStore implements DocStore {
     const stmt =
       lastSyncId === undefined
         ? this.db.prepare(
-          `SELECT * FROM commits ORDER BY remoteSyncId, remoteSyncIndex`,
-        )
+            `SELECT * FROM commits ORDER BY remoteSyncId, remoteSyncIndex`,
+          )
         : this.db.prepare(
-          `SELECT * FROM commits WHERE remoteSyncId > @lastSyncId ORDER BY remoteSyncId, remoteSyncIndex`,
-        );
+            `SELECT * FROM commits WHERE remoteSyncId > @lastSyncId ORDER BY remoteSyncId, remoteSyncIndex`,
+          );
 
     const sqliteCommits: SqliteCommitType[] = stmt.all({ lastSyncId });
     let syncId = '';
@@ -105,7 +107,7 @@ export class SqliteDocStore implements DocStore {
             delta: delta ? JSON.parse(delta) : undefined,
             metadata: metadata ? JSON.parse(metadata) : undefined,
             main,
-          }
+          };
         } else {
           return {
             ref,
@@ -121,7 +123,7 @@ export class SqliteDocStore implements DocStore {
     return {
       type: 'commits',
       commits,
-      syncId: syncId,
+      syncId,
     };
   }
 
@@ -153,22 +155,18 @@ export class SqliteDocStore implements DocStore {
 
     const computeIsMain = (commit: Commit<unknown, unknown>) => {
       if (isMergeCommit(commit)) {
-        return (commit.mergeRef === this.headRef || commit.baseRef === this.headRef);
+        return (
+          commit.mergeRef === this.headRef || commit.baseRef === this.headRef
+        );
       } else {
         return commit.baseRef === this.headRef;
       }
-    }
+    };
 
     this.db.transaction(() => {
       let remoteSyncIndex = 0;
       for (const commit of commits) {
-        const {
-          userId,
-          ref,
-          baseRef,
-          delta,
-          metadata,
-        } = commit;
+        const { userId, ref, baseRef, delta, metadata } = commit;
 
         let mergeRef: string | undefined;
         let mergeBaseRef: string | undefined;
