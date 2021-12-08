@@ -377,7 +377,7 @@ export class TrimergeClient<
     }
     const commit = this.lazyCommits.get(ref);
     if (commit) {
-      const {baseRef, mergeRef} = refs(commit);
+      const { baseRef, mergeRef } = refs(commit);
       this.promoteLazyCommit(baseRef);
       this.promoteLazyCommit(mergeRef);
       this.lazyCommits.delete(ref);
@@ -393,29 +393,31 @@ export class TrimergeClient<
     mergeRef?: string,
     mergeBaseRef?: string,
   ): string {
+    // TODO(matt): decide what we want to do here with clientId.
+    // Is it users responsibility to attach that to the editMetadata? do
+    // wrap their editMetadata in a new object?
     const { userId, clientId } = this;
     const delta = this.differ.diff(base?.doc, newDoc);
     const baseRef = base?.ref;
     const ref = this.differ.computeRef(baseRef, mergeRef, delta, editMetadata);
-    const commit: Commit<EditMetadata, Delta> = mergeRef !== undefined ? {
-      userId,
-      clientId,
-      ref,
-      baseRef,
-      mergeRef,
-      mergeBaseRef,
-      delta,
-      metadata: editMetadata,
-    } as MergeCommit<EditMetadata, Delta> : 
-      {
-        userId,
-        clientId,
-        ref,
-        baseRef,
-        delta,
-        metadata: editMetadata,
-      } as EditCommit<EditMetadata, Delta>
-    ;
+    const commit: Commit<EditMetadata, Delta> =
+      mergeRef !== undefined
+        ? {
+            userId,
+            ref,
+            baseRef,
+            mergeRef,
+            mergeBaseRef,
+            delta,
+            metadata: editMetadata,
+          }
+        : {
+            userId,
+            ref,
+            baseRef,
+            delta,
+            metadata: editMetadata,
+          };
     this.addCommit(commit, lazy ? 'lazy' : 'local');
     return ref;
   }

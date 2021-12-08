@@ -6,8 +6,8 @@ import {
   Commit,
   CommitsEvent,
   MergeCommit,
-  isMergeCommit,
   ServerCommit,
+  isMergeCommit,
 } from 'trimerge-sync';
 import { unlink } from 'fs-extra';
 import { DocStore } from '../DocStore';
@@ -95,9 +95,6 @@ export class SqliteDocStore implements DocStore {
         }
 
         if (mergeRef) {
-          if (!baseRef) {
-            throw new Error('Merge commit without base ref');
-          }
           return {
             ref,
             userId,
@@ -106,7 +103,7 @@ export class SqliteDocStore implements DocStore {
             mergeBaseRef: mergeBaseRef || undefined,
             delta: delta ? JSON.parse(delta) : undefined,
             metadata: metadata ? JSON.parse(metadata) : undefined,
-            main,
+            main: Boolean(main),
           };
         } else {
           return {
@@ -115,7 +112,7 @@ export class SqliteDocStore implements DocStore {
             baseRef: baseRef || undefined,
             delta: delta ? JSON.parse(delta) : undefined,
             metadata: metadata ? JSON.parse(metadata) : undefined,
-            main,
+            main: Boolean(main),
           };
         }
       },

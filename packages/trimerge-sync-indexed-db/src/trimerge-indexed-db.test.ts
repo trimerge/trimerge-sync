@@ -60,7 +60,6 @@ Object {
   "commits": Array [
     Object {
       "baseRef": undefined,
-      "clientId": "1",
       "delta": Array [
         "hello",
       ],
@@ -72,7 +71,6 @@ Object {
     },
     Object {
       "baseRef": "W04IBhus",
-      "clientId": "1",
       "delta": Array [
         "hello",
         "hello there",
@@ -147,7 +145,6 @@ Object {
   "commits": Array [
     Object {
       "baseRef": "JvrfzM9e",
-      "clientId": "2",
       "delta": Array [
         "hello there",
         "oh hello there",
@@ -165,7 +162,6 @@ Object {
     },
     Object {
       "baseRef": "W04IBhus",
-      "clientId": "1",
       "delta": Array [
         "hello",
         "hello world",
@@ -178,7 +174,6 @@ Object {
     },
     Object {
       "baseRef": "GhP0VPg5",
-      "clientId": "1",
       "delta": Array [
         "hello world",
         "hello there",
@@ -191,7 +186,6 @@ Object {
     },
     Object {
       "baseRef": "GhP0VPg5",
-      "clientId": "2",
       "delta": Array [
         "hello world",
         "oh hello",
@@ -204,7 +198,6 @@ Object {
     },
     Object {
       "baseRef": undefined,
-      "clientId": "1",
       "delta": Array [
         "hello",
       ],
@@ -293,7 +286,6 @@ Object {
   "commits": Array [
     Object {
       "baseRef": undefined,
-      "clientId": "1",
       "delta": Array [
         "hello remote",
       ],
@@ -323,7 +315,6 @@ Object {
   "commits": Array [
     Object {
       "baseRef": undefined,
-      "clientId": "1",
       "delta": Array [
         "hello remote",
       ],
@@ -359,7 +350,6 @@ Object {
   "commits": Array [
     Object {
       "baseRef": undefined,
-      "clientId": "1",
       "delta": Array [
         "hello remote",
       ],
@@ -414,7 +404,6 @@ Object {
   "commits": Array [
     Object {
       "baseRef": "axg0ZCUR",
-      "clientId": "2",
       "delta": Array [
         "hello offline remote",
         "hello online remote",
@@ -427,7 +416,6 @@ Object {
     },
     Object {
       "baseRef": undefined,
-      "clientId": "1",
       "delta": Array [
         "hello offline remote",
       ],
@@ -495,7 +483,6 @@ Object {
 Array [
   Object {
     "baseRef": undefined,
-    "clientId": "1",
     "delta": Array [
       1,
     ],
@@ -507,7 +494,6 @@ Array [
   },
   Object {
     "baseRef": "f_zx0amC",
-    "clientId": "1",
     "delta": Array [
       1,
       2,
@@ -520,7 +506,6 @@ Array [
   },
   Object {
     "baseRef": "MN9DSWRy",
-    "clientId": "1",
     "delta": Array [
       2,
       3,
@@ -533,7 +518,6 @@ Array [
   },
   Object {
     "baseRef": "ghfnnw_t",
-    "clientId": "1",
     "delta": Array [
       3,
       4,
@@ -546,7 +530,6 @@ Array [
   },
   Object {
     "baseRef": "donKeCF-",
-    "clientId": "1",
     "delta": Array [
       4,
       5,
@@ -559,7 +542,6 @@ Array [
   },
   Object {
     "baseRef": "pb34uqhZ",
-    "clientId": "1",
     "delta": Array [
       5,
       6,

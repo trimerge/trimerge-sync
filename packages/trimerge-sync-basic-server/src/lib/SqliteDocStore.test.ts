@@ -42,14 +42,20 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          userId: 'client-2',
-          metadata: { hello: 'world' },
+          userId: 'user-2',
+          metadata: {
+            clientId: 'client-1',
+            hello: 'world',
+          },
         },
 
         {
           ref: 'hello2',
-          userId: 'client-2',
-          metadata: { hello: 'world' },
+          userId: 'user-2',
+          metadata: {
+            clientId: 'client-1',
+            hello: 'world',
+          },
           baseRef: 'hello1',
           delta: { delta: 'format' },
         },
@@ -100,29 +106,31 @@ describe('SqliteDocStore', () => {
           Object {
             "baseRef": undefined,
             "delta": undefined,
-            "main": 1,
+            "main": true,
             "metadata": Object {
+              "clientId": "client-1",
               "hello": "world",
             },
             "ref": "hello1",
-            "userId": "client-2",
+            "userId": "user-2",
           },
           Object {
             "baseRef": "hello1",
             "delta": Object {
               "delta": "format",
             },
-            "main": 1,
+            "main": true,
             "metadata": Object {
+              "clientId": "client-1",
               "hello": "world",
             },
             "ref": "hello2",
-            "userId": "client-2",
+            "userId": "user-2",
           },
           Object {
             "baseRef": undefined,
             "delta": undefined,
-            "main": 0,
+            "main": false,
             "metadata": undefined,
             "ref": "hello3",
             "userId": "client-2",
@@ -140,7 +148,7 @@ describe('SqliteDocStore', () => {
           Object {
             "baseRef": undefined,
             "delta": undefined,
-            "main": 0,
+            "main": false,
             "metadata": undefined,
             "ref": "hello3",
             "userId": "client-2",
@@ -160,13 +168,13 @@ describe('SqliteDocStore', () => {
         {
           ref: 'hello1',
           userId: 'client-2',
-          metadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-1' },
         },
 
         {
           ref: 'hello1',
           userId: 'client-2',
-          metadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-1' },
         },
       ]),
     ).toMatchInlineSnapshot(`
@@ -278,14 +286,14 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          userId: 'client-2',
-          metadata: { hello: 'world' },
+          userId: 'user-2',
+          metadata: { hello: 'world', clientId: 'client-1' },
         },
 
         {
           ref: 'hello2',
-          userId: 'client-2',
-          metadata: { hello: 'mars' },
+          userId: 'user-2',
+          metadata: { hello: 'mars', clientId: 'client-2' },
         },
 
         {
@@ -293,7 +301,7 @@ describe('SqliteDocStore', () => {
           userId: 'client-2',
           baseRef: 'hello1',
           mergeRef: 'hello2',
-          metadata: { hello: 'wmoarrlsd' },
+          metadata: { hello: 'wmoarrlsd', clientId: 'client-1' },
         },
       ]),
     ).toMatchInlineSnapshot(`
@@ -318,44 +326,47 @@ describe('SqliteDocStore', () => {
       }
     `);
     expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
-      Object {
-        "commits": Array [
-          Object {
-            "baseRef": undefined,
-            "delta": undefined,
-            "main": 1,
-            "metadata": Object {
-              "hello": "world",
-            },
-            "ref": "hello1",
-            "userId": "client-2",
-          },
-          Object {
-            "baseRef": undefined,
-            "delta": undefined,
-            "main": 0,
-            "metadata": Object {
-              "hello": "mars",
-            },
-            "ref": "hello2",
-            "userId": "client-2",
-          },
-          Object {
-            "baseRef": "hello1",
-            "delta": undefined,
-            "main": 1,
-            "mergeBaseRef": undefined,
-            "mergeRef": "hello2",
-            "metadata": Object {
-              "hello": "wmoarrlsd",
-            },
-            "ref": "hello3",
-            "userId": "client-2",
-          },
-        ],
-        "syncId": "1970-01-01T00:00:00.000Z",
-        "type": "commits",
-      }
-    `);
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": undefined,
+      "delta": undefined,
+      "main": true,
+      "metadata": Object {
+        "clientId": "client-1",
+        "hello": "world",
+      },
+      "ref": "hello1",
+      "userId": "user-2",
+    },
+    Object {
+      "baseRef": undefined,
+      "delta": undefined,
+      "main": false,
+      "metadata": Object {
+        "clientId": "client-2",
+        "hello": "mars",
+      },
+      "ref": "hello2",
+      "userId": "user-2",
+    },
+    Object {
+      "baseRef": "hello1",
+      "delta": undefined,
+      "main": true,
+      "mergeBaseRef": undefined,
+      "mergeRef": "hello2",
+      "metadata": Object {
+        "clientId": "client-1",
+        "hello": "wmoarrlsd",
+      },
+      "ref": "hello3",
+      "userId": "client-2",
+    },
+  ],
+  "syncId": "1970-01-01T00:00:00.000Z",
+  "type": "commits",
+}
+`);
   });
 });
