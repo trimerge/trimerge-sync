@@ -39,7 +39,7 @@ export class LiveDoc {
       await this.store.add(newCommits),
       invalidRefs,
     );
-    const acks = new Set(ack.refs.map((ref)=>ref.ref));
+    const acks = new Set(ack.acks.map((ref) => ref.ref));
     return {
       commits: {
         type: 'commits',
