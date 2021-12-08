@@ -3,9 +3,13 @@ import {
   validateCommitOrder,
 } from './validateCommits';
 import type { AckCommitsEvent, Commit } from 'trimerge-sync';
-import { CommitRefs } from './lib/Commits';
 
-function simpleCommit(args: CommitRefs): Commit<unknown, unknown> {
+function simpleCommit(args: {
+  ref: string;
+  baseRef?: string;
+  mergeRef?: string;
+  mergeBaseRef?: string;
+}): Commit<unknown, unknown> {
   return {
     ...args,
     userId: 'x',

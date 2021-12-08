@@ -7,7 +7,7 @@ export type ErrorCode =
   | 'bad-request'
   | 'unauthorized';
 
-export type BaseCommit<EditMetadata, Delta> = {
+export type Commit<EditMetadata, Delta> = {
   userId: string;
   ref: string;
 
@@ -16,39 +16,17 @@ export type BaseCommit<EditMetadata, Delta> = {
 
   // application specific metadata about the commit
   metadata: EditMetadata;
-};
 
-export type EditCommit<EditMetadata, Delta> = BaseCommit<
-  EditMetadata,
-  Delta
-> & {
   // The ref of the commit that this commit is based on
   baseRef?: string;
-};
 
-export type MergeCommit<EditMetadata, Delta> = BaseCommit<
-  EditMetadata,
-  Delta
-> & {
-  // primary parent of the merge commit
-  baseRef: string;
   // secondary parent of the merge commit
-  mergeRef: string;
+  mergeRef?: string;
 
   // the most recent common ancestor of the baseRef and mergeRef,
   // can be undefined if multiple clients are editing the same new document.
   mergeBaseRef?: string;
 };
-
-export function isMergeCommit(
-  commit: Commit<unknown, unknown>,
-): commit is MergeCommit<unknown, unknown> {
-  return (commit as MergeCommit<unknown, unknown>).mergeRef !== undefined;
-}
-
-export type Commit<EditMetadata, Delta> =
-  | MergeCommit<EditMetadata, Delta>
-  | EditCommit<EditMetadata, Delta>;
 
 export type LocalReadStatus =
   | 'loading' /** reading state from disk */

@@ -1,4 +1,3 @@
-import { refs } from './lib/Commits';
 import type { AckCommitsEvent, Commit } from './types';
 
 export type CommitValidation<EditMetadata, Delta> = {
@@ -25,7 +24,7 @@ export function validateCommitOrder<EditMetadata, Delta>(
     } else {
       newCommits.push(commit);
       newCommitRefs.add(commit.ref);
-      const {baseRef, mergeRef, mergeBaseRef} = refs(commit);
+      const { baseRef, mergeRef, mergeBaseRef } = commit;
       addReferencedCommit(baseRef);
       addReferencedCommit(mergeRef);
       addReferencedCommit(mergeBaseRef);

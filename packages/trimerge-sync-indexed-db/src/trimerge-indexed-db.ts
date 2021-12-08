@@ -10,7 +10,6 @@ import {
   OnEventFn,
   RemoteSyncInfo,
   ServerCommit,
-  isMergeCommit,
   CommitAck,
 } from 'trimerge-sync';
 import { AbstractLocalStore } from 'trimerge-sync';
@@ -258,11 +257,7 @@ class IndexedDbBackend<
 
     for (const commit of commits) {
       const syncId = ++syncCounter;
-      const { ref, baseRef, } = commit;
-      let mergeRef: string | undefined;
-      if (isMergeCommit(commit)) {
-        mergeRef = commit.mergeRef;
-      }
+      const { ref, baseRef, mergeRef } = commit;
       promises.push(
         (async () => {
           try {

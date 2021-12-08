@@ -2,11 +2,9 @@ import {
   ClientInfo,
   ClientList,
   Commit,
-  EditCommit,
   GetLocalStoreFn,
   LocalClientInfo,
   LocalStore,
-  MergeCommit,
   OnEventFn,
   SyncStatus,
 } from './types';
@@ -15,7 +13,6 @@ import { Differ, CommitDoc } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { timeout } from './lib/Timeout';
-import { refs } from './lib/Commits';
 
 type AddCommitType =
   // Added from this client
@@ -328,7 +325,7 @@ export class TrimergeClient<
     commit: Commit<EditMetadata, Delta>,
     type: AddCommitType,
   ): void {
-    const { ref, baseRef, mergeRef } = refs(commit);
+    const { ref, baseRef, mergeRef } = commit;
     if (this.commits.has(ref)) {
       // Promote lazy commit
       if (type === 'external') {
@@ -377,7 +374,7 @@ export class TrimergeClient<
     }
     const commit = this.lazyCommits.get(ref);
     if (commit) {
-      const {baseRef, mergeRef} = refs(commit);
+      const { baseRef, mergeRef } = commit;
       this.promoteLazyCommit(baseRef);
       this.promoteLazyCommit(mergeRef);
       this.lazyCommits.delete(ref);
@@ -393,29 +390,19 @@ export class TrimergeClient<
     mergeRef?: string,
     mergeBaseRef?: string,
   ): string {
-    const { userId, clientId } = this;
+    const { userId } = this;
     const delta = this.differ.diff(base?.doc, newDoc);
     const baseRef = base?.ref;
     const ref = this.differ.computeRef(baseRef, mergeRef, delta, editMetadata);
-    const commit: Commit<EditMetadata, Delta> = mergeRef !== undefined ? {
+    const commit: Commit<EditMetadata, Delta> = {
       userId,
-      clientId,
       ref,
       baseRef,
       mergeRef,
       mergeBaseRef,
       delta,
       metadata: editMetadata,
-    } as MergeCommit<EditMetadata, Delta> : 
-      {
-        userId,
-        clientId,
-        ref,
-        baseRef,
-        delta,
-        metadata: editMetadata,
-      } as EditCommit<EditMetadata, Delta>
-    ;
+    };
     this.addCommit(commit, lazy ? 'lazy' : 'local');
     return ref;
   }

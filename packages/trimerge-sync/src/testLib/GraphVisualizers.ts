@@ -1,5 +1,4 @@
-import { refs } from '../lib/Commits';
-import { Commit, isMergeCommit } from '../types';
+import { Commit } from '../types';
 
 type BasicGraphItem = {
   graph: string;
@@ -14,7 +13,7 @@ export function getBasicGraph<EditMetadata>(
   const result = [];
   for (const commit of commits) {
     const userId = commit.userId;
-    const { ref, baseRef, mergeBaseRef, mergeRef } = refs(commit);
+    const { ref, baseRef, mergeBaseRef, mergeRef } = commit;
     if (mergeRef) {
       result.push({
         graph: `(${baseRef} + ${mergeRef}) w/ base=${mergeBaseRef} -> ${ref}`,
@@ -41,11 +40,11 @@ export function getDotGraph<EditMetadata>(
   for (const commit of commits) {
     lines.push(
       `"${commit.ref}" [shape=${
-        isMergeCommit(commit) ? 'rectangle' : 'ellipse'
+        commit.mergeRef ? 'rectangle' : 'ellipse'
       }, label=${JSON.stringify(getValue(commit))}]`,
     );
     if (commit.baseRef) {
-      if (isMergeCommit(commit)) {
+      if (commit.mergeRef) {
         lines.push(`"${commit.baseRef}" -> "${commit.ref}" [label=left]`);
         lines.push(
           `"${commit.mergeBaseRef}" -> "${commit.ref}" [style=dashed, label=base]`,
