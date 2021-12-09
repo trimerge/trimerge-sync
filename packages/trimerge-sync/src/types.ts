@@ -11,7 +11,7 @@ export type BaseCommit<EditMetadata, Delta> = {
   userId: string;
   ref: string;
 
-  // the delta itself
+  // a structure defining the differences between baseRef and this commit
   delta?: Delta;
 
   // application specific metadata about the commit
