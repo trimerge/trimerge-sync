@@ -16,15 +16,12 @@ export type BaseCommit<EditMetadata, Delta> = {
 
   // application specific metadata about the commit
   metadata: EditMetadata;
-};
 
-export type EditCommit<EditMetadata, Delta> = BaseCommit<
-  EditMetadata,
-  Delta
-> & {
   // The ref of the commit that this commit is based on
   baseRef?: string;
 };
+
+export type EditCommit<EditMetadata, Delta> = BaseCommit<EditMetadata, Delta>;
 
 export type MergeCommit<EditMetadata, Delta> = BaseCommit<
   EditMetadata,
@@ -32,6 +29,7 @@ export type MergeCommit<EditMetadata, Delta> = BaseCommit<
 > & {
   // primary parent of the merge commit
   baseRef: string;
+
   // secondary parent of the merge commit
   mergeRef: string;
 

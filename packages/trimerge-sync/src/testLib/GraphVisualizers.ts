@@ -1,4 +1,4 @@
-import { refs } from '../lib/Commits';
+import { asCommitRefs } from '../lib/Commits';
 import { Commit, isMergeCommit } from '../types';
 
 type BasicGraphItem = {
@@ -14,7 +14,7 @@ export function getBasicGraph<EditMetadata>(
   const result = [];
   for (const commit of commits) {
     const userId = commit.userId;
-    const { ref, baseRef, mergeBaseRef, mergeRef } = refs(commit);
+    const { ref, baseRef, mergeBaseRef, mergeRef } = asCommitRefs(commit);
     if (mergeRef) {
       result.push({
         graph: `(${baseRef} + ${mergeRef}) w/ base=${mergeBaseRef} -> ${ref}`,

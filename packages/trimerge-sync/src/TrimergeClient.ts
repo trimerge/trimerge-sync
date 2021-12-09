@@ -15,7 +15,7 @@ import { Differ, CommitDoc } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { timeout } from './lib/Timeout';
-import { refs } from './lib/Commits';
+import { asCommitRefs } from './lib/Commits';
 
 type AddCommitType =
   // Added from this client
@@ -328,7 +328,7 @@ export class TrimergeClient<
     commit: Commit<EditMetadata, Delta>,
     type: AddCommitType,
   ): void {
-    const { ref, baseRef, mergeRef } = refs(commit);
+    const { ref, baseRef, mergeRef } = asCommitRefs(commit);
     if (this.commits.has(ref)) {
       // Promote lazy commit
       if (type === 'external') {
@@ -377,7 +377,7 @@ export class TrimergeClient<
     }
     const commit = this.lazyCommits.get(ref);
     if (commit) {
-      const { baseRef, mergeRef } = refs(commit);
+      const { baseRef, mergeRef } = asCommitRefs(commit);
       this.promoteLazyCommit(baseRef);
       this.promoteLazyCommit(mergeRef);
       this.lazyCommits.delete(ref);
