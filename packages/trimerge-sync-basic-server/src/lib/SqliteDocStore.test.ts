@@ -201,21 +201,21 @@ describe('SqliteDocStore', () => {
           ref: 'hello1',
           userId: 'client-2',
           baseRef: 'unknown',
-          metadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-2' },
         },
 
         {
           ref: 'hello2',
           userId: 'client-2',
           mergeRef: 'unknown',
-          metadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-2' },
         },
 
         {
           ref: 'hello3',
           userId: 'client-2',
           mergeBaseRef: 'unknown',
-          metadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-2' },
         },
       ]),
     ).toMatchInlineSnapshot(`
@@ -250,14 +250,14 @@ describe('SqliteDocStore', () => {
           ref: 'hello1',
           userId: 'client-2',
           baseRef: 'unknown',
-          metadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-2' },
         },
 
         {
           ref: 'hello2',
           userId: 'client-2',
           baseRef: 'hello1',
-          metadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-2' },
         },
       ]),
     ).toMatchInlineSnapshot(`
