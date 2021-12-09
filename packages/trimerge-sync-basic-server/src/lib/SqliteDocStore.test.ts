@@ -369,4 +369,97 @@ Object {
 }
 `);
   });
+  it('existing db', async () => {
+    let store = makeSqliteStore('existing db');
+
+    store.add([
+      {
+        ref: 'hello1',
+        userId: 'user-2',
+        metadata: { hello: 'world', clientId: 'client-1' },
+      },
+
+      {
+        ref: 'hello2',
+        userId: 'user-2',
+        metadata: { hello: 'mars', clientId: 'client-2' },
+      },
+
+      {
+        ref: 'hello3',
+        userId: 'user-2',
+        baseRef: 'hello1',
+        mergeRef: 'hello2',
+        metadata: { hello: 'wmoarrlsd', clientId: 'client-1' },
+      },
+    ]);
+
+    store.close();
+
+    store = makeSqliteStore('existing db');
+
+    store.add([
+      {
+        ref: 'hello4',
+        userId: 'user-2',
+        baseRef: 'hello3',
+        metadata: { hello: 'blargan', clientId: 'client-1' },
+      },
+    ]);
+
+    expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": undefined,
+      "delta": undefined,
+      "main": true,
+      "metadata": Object {
+        "clientId": "client-1",
+        "hello": "world",
+      },
+      "ref": "hello1",
+      "userId": "user-2",
+    },
+    Object {
+      "baseRef": "hello3",
+      "delta": undefined,
+      "main": false,
+      "metadata": Object {
+        "clientId": "client-1",
+        "hello": "blargan",
+      },
+      "ref": "hello4",
+      "userId": "user-2",
+    },
+    Object {
+      "baseRef": undefined,
+      "delta": undefined,
+      "main": false,
+      "metadata": Object {
+        "clientId": "client-2",
+        "hello": "mars",
+      },
+      "ref": "hello2",
+      "userId": "user-2",
+    },
+    Object {
+      "baseRef": "hello1",
+      "delta": undefined,
+      "main": true,
+      "mergeBaseRef": undefined,
+      "mergeRef": "hello2",
+      "metadata": Object {
+        "clientId": "client-1",
+        "hello": "wmoarrlsd",
+      },
+      "ref": "hello3",
+      "userId": "user-2",
+    },
+  ],
+  "syncId": "1970-01-01T00:00:00.000Z",
+  "type": "commits",
+}
+`);
+  });
 });
