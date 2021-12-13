@@ -7,17 +7,46 @@ export type ErrorCode =
   | 'bad-request'
   | 'unauthorized';
 
-export type Commit<EditMetadata, Delta> = {
+export type BaseCommit<EditMetadata, Delta> = {
   userId: string;
-  clientId: string;
   ref: string;
-  baseRef?: string;
-  mergeRef?: string;
-  mergeBaseRef?: string;
+
+  // a structure defining the differences between baseRef and this commit
   delta?: Delta;
-  editMetadata: EditMetadata;
-  remoteSyncId?: string;
+
+  // application specific metadata about the commit
+  metadata: EditMetadata;
+
+  // The ref of the commit that this commit is based on
+  baseRef?: string;
 };
+
+export type EditCommit<EditMetadata, Delta> = BaseCommit<EditMetadata, Delta>;
+
+export type MergeCommit<EditMetadata, Delta> = BaseCommit<
+  EditMetadata,
+  Delta
+> & {
+  // primary parent of the merge commit
+  baseRef: string;
+
+  // secondary parent of the merge commit
+  mergeRef: string;
+
+  // the most recent common ancestor of the baseRef and mergeRef,
+  // can be undefined if multiple clients are editing the same new document.
+  mergeBaseRef?: string;
+};
+
+export function isMergeCommit(
+  commit: Commit<unknown, unknown>,
+): commit is MergeCommit<unknown, unknown> {
+  return (commit as MergeCommit<unknown, unknown>).mergeRef !== undefined;
+}
+
+export type Commit<EditMetadata, Delta> =
+  | MergeCommit<EditMetadata, Delta>
+  | EditCommit<EditMetadata, Delta>;
 
 export type LocalReadStatus =
   | 'loading' /** reading state from disk */
@@ -78,12 +107,29 @@ export type InitEvent =
       auth: unknown;
     };
 
+export type CommitAck = {
+  ref: string;
+
+  // If the remote acking this commit is authoritative, main will indicate if this
+  // commit is on the mainline or not, otherwise it will be undefined.
+  main?: boolean;
+};
+
+export type ServerCommitAck = Required<CommitAck>;
+
+export type ServerCommit<EditMetadata, Delta> = Commit<EditMetadata, Delta> &
+  ServerCommitAck;
+
 export type CommitsEvent<EditMetadata, Delta, Presence> = {
   type: 'commits';
-  commits: readonly Commit<EditMetadata, Delta>[];
+  commits: readonly (
+    | ServerCommit<EditMetadata, Delta>
+    | Commit<EditMetadata, Delta>
+  )[];
   clientInfo?: ClientInfo<Presence>;
   syncId?: string;
 };
+
 export type ReadyEvent = {
   type: 'ready';
 };
@@ -101,7 +147,7 @@ export type AckCommitError = {
 export type AckRefErrors = Record<string, AckCommitError>;
 export type AckCommitsEvent = {
   type: 'ack';
-  refs: readonly string[];
+  acks: readonly CommitAck[];
   refErrors?: AckRefErrors;
   syncId: string;
 };

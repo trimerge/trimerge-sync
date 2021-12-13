@@ -22,6 +22,7 @@
     "build": "cross-env SKIP_PREFLIGHT_CHECK=true react-scripts build",
     "test": "cross-env SKIP_PREFLIGHT_CHECK=true react-scripts test",
     "test-ci": "cross-env SKIP_PREFLIGHT_CHECK=true react-scripts test --coverage --passWithNoTests",
+    "test:update-snapshots": "cross-env SKIP_PREFLIGHT_CHECK=true react-scripts test --updateSnapshot --passWithNoTests",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

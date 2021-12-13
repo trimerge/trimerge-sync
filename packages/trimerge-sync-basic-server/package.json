@@ -9,6 +9,7 @@
   "scripts": {
     "test": "jest --watch",
     "test-ci": "jest --coverage --reporters=@descript/jest-github-reporter",
+    "test:update-snapshots": "jest --updateSnapshot",
     "start": "ts-node-dev --respawn --project tsconfig.dev-start.json --transpile-only src/sample-server.ts",
     "build": "rollup -c",
     "lint": "eslint src/**/*.ts"

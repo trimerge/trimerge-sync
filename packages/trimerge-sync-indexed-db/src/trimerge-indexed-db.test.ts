@@ -60,13 +60,10 @@ Object {
   "commits": Array [
     Object {
       "baseRef": undefined,
-      "clientId": "1",
       "delta": Array [
         "hello",
       ],
-      "editMetadata": "",
-      "mergeBaseRef": undefined,
-      "mergeRef": undefined,
+      "metadata": "",
       "ref": "W04IBhus",
       "remoteSyncId": "",
       "syncId": 1,
@@ -74,14 +71,11 @@ Object {
     },
     Object {
       "baseRef": "W04IBhus",
-      "clientId": "1",
       "delta": Array [
         "hello",
         "hello there",
       ],
-      "editMetadata": "",
-      "mergeBaseRef": undefined,
-      "mergeRef": undefined,
+      "metadata": "",
       "ref": "r4VLd8ne",
       "remoteSyncId": "",
       "syncId": 2,
@@ -151,17 +145,16 @@ Object {
   "commits": Array [
     Object {
       "baseRef": "JvrfzM9e",
-      "clientId": "2",
       "delta": Array [
         "hello there",
         "oh hello there",
       ],
-      "editMetadata": Object {
+      "mergeBaseRef": "GhP0VPg5",
+      "mergeRef": "Rofed6go",
+      "metadata": Object {
         "message": "merge",
         "ref": "(JvrfzM9e+Rofed6go)",
       },
-      "mergeBaseRef": "GhP0VPg5",
-      "mergeRef": "Rofed6go",
       "ref": "3vmxbFmH",
       "remoteSyncId": "",
       "syncId": 5,
@@ -169,14 +162,11 @@ Object {
     },
     Object {
       "baseRef": "W04IBhus",
-      "clientId": "1",
       "delta": Array [
         "hello",
         "hello world",
       ],
-      "editMetadata": "",
-      "mergeBaseRef": undefined,
-      "mergeRef": undefined,
+      "metadata": "",
       "ref": "GhP0VPg5",
       "remoteSyncId": "",
       "syncId": 2,
@@ -184,14 +174,11 @@ Object {
     },
     Object {
       "baseRef": "GhP0VPg5",
-      "clientId": "1",
       "delta": Array [
         "hello world",
         "hello there",
       ],
-      "editMetadata": "",
-      "mergeBaseRef": undefined,
-      "mergeRef": undefined,
+      "metadata": "",
       "ref": "JvrfzM9e",
       "remoteSyncId": "",
       "syncId": 3,
@@ -199,14 +186,11 @@ Object {
     },
     Object {
       "baseRef": "GhP0VPg5",
-      "clientId": "2",
       "delta": Array [
         "hello world",
         "oh hello",
       ],
-      "editMetadata": "",
-      "mergeBaseRef": undefined,
-      "mergeRef": undefined,
+      "metadata": "",
       "ref": "Rofed6go",
       "remoteSyncId": "",
       "syncId": 4,
@@ -214,13 +198,10 @@ Object {
     },
     Object {
       "baseRef": undefined,
-      "clientId": "1",
       "delta": Array [
         "hello",
       ],
-      "editMetadata": "",
-      "mergeBaseRef": undefined,
-      "mergeRef": undefined,
+      "metadata": "",
       "ref": "W04IBhus",
       "remoteSyncId": "",
       "syncId": 1,
@@ -305,13 +286,10 @@ Object {
   "commits": Array [
     Object {
       "baseRef": undefined,
-      "clientId": "1",
       "delta": Array [
         "hello remote",
       ],
-      "editMetadata": "",
-      "mergeBaseRef": undefined,
-      "mergeRef": undefined,
+      "metadata": "",
       "ref": "lIKnl-vc",
       "remoteSyncId": "foo",
       "syncId": 1,
@@ -337,13 +315,10 @@ Object {
   "commits": Array [
     Object {
       "baseRef": undefined,
-      "clientId": "1",
       "delta": Array [
         "hello remote",
       ],
-      "editMetadata": "",
-      "mergeBaseRef": undefined,
-      "mergeRef": undefined,
+      "metadata": "",
       "ref": "lIKnl-vc",
       "remoteSyncId": "",
       "syncId": 1,
@@ -375,13 +350,10 @@ Object {
   "commits": Array [
     Object {
       "baseRef": undefined,
-      "clientId": "1",
       "delta": Array [
         "hello remote",
       ],
-      "editMetadata": "",
-      "mergeBaseRef": undefined,
-      "mergeRef": undefined,
+      "metadata": "",
       "ref": "lIKnl-vc",
       "remoteSyncId": "foo",
       "syncId": 1,
@@ -432,14 +404,11 @@ Object {
   "commits": Array [
     Object {
       "baseRef": "axg0ZCUR",
-      "clientId": "2",
       "delta": Array [
         "hello offline remote",
         "hello online remote",
       ],
-      "editMetadata": "",
-      "mergeBaseRef": undefined,
-      "mergeRef": undefined,
+      "metadata": "",
       "ref": "_btn0pve",
       "remoteSyncId": "foo",
       "syncId": 2,
@@ -447,13 +416,10 @@ Object {
     },
     Object {
       "baseRef": undefined,
-      "clientId": "1",
       "delta": Array [
         "hello offline remote",
       ],
-      "editMetadata": "",
-      "mergeBaseRef": undefined,
-      "mergeRef": undefined,
+      "metadata": "",
       "ref": "axg0ZCUR",
       "remoteSyncId": "foo",
       "syncId": 1,
@@ -517,13 +483,10 @@ Object {
 Array [
   Object {
     "baseRef": undefined,
-    "clientId": "1",
     "delta": Array [
       1,
     ],
-    "editMetadata": "",
-    "mergeBaseRef": undefined,
-    "mergeRef": undefined,
+    "metadata": "",
     "ref": "f_zx0amC",
     "remoteSyncId": "",
     "syncId": 1,
@@ -531,14 +494,11 @@ Array [
   },
   Object {
     "baseRef": "f_zx0amC",
-    "clientId": "1",
     "delta": Array [
       1,
       2,
     ],
-    "editMetadata": "",
-    "mergeBaseRef": undefined,
-    "mergeRef": undefined,
+    "metadata": "",
     "ref": "MN9DSWRy",
     "remoteSyncId": "",
     "syncId": 2,
@@ -546,14 +506,11 @@ Array [
   },
   Object {
     "baseRef": "MN9DSWRy",
-    "clientId": "1",
     "delta": Array [
       2,
       3,
     ],
-    "editMetadata": "",
-    "mergeBaseRef": undefined,
-    "mergeRef": undefined,
+    "metadata": "",
     "ref": "ghfnnw_t",
     "remoteSyncId": "",
     "syncId": 3,
@@ -561,14 +518,11 @@ Array [
   },
   Object {
     "baseRef": "ghfnnw_t",
-    "clientId": "1",
     "delta": Array [
       3,
       4,
     ],
-    "editMetadata": "",
-    "mergeBaseRef": undefined,
-    "mergeRef": undefined,
+    "metadata": "",
     "ref": "donKeCF-",
     "remoteSyncId": "",
     "syncId": 4,
@@ -576,14 +530,11 @@ Array [
   },
   Object {
     "baseRef": "donKeCF-",
-    "clientId": "1",
     "delta": Array [
       4,
       5,
     ],
-    "editMetadata": "",
-    "mergeBaseRef": undefined,
-    "mergeRef": undefined,
+    "metadata": "",
     "ref": "pb34uqhZ",
     "remoteSyncId": "",
     "syncId": 5,
@@ -591,14 +542,11 @@ Array [
   },
   Object {
     "baseRef": "pb34uqhZ",
-    "clientId": "1",
     "delta": Array [
       5,
       6,
     ],
-    "editMetadata": "",
-    "mergeBaseRef": undefined,
-    "mergeRef": undefined,
+    "metadata": "",
     "ref": "u2ev8uuN",
     "remoteSyncId": "",
     "syncId": 6,

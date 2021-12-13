@@ -15,7 +15,7 @@ class MockLocalStore extends AbstractLocalStore<unknown, unknown, unknown> {
   }
 
   async addCommits(): Promise<AckCommitsEvent> {
-    return { type: 'ack', refs: [], syncId: '' };
+    return { type: 'ack', acks: [], syncId: '' };
   }
 
   async broadcastLocal(): Promise<void> {
@@ -68,7 +68,7 @@ describe('AbstractLocalStore', () => {
 Array [
   Array [
     Object {
-      "refs": Array [],
+      "acks": Array [],
       "syncId": "",
       "type": "ack",
     },
