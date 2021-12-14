@@ -76,7 +76,7 @@ describe('TrimergeClient: 3 users', () => {
     clientB.updateDoc({ text: 'b' }, { ref: 'b1', message: 'set text' });
     clientC.updateDoc({ text: 'c' }, { ref: 'c1', message: 'set text' });
 
-    // Now client 1 and client 2 have different changes
+    // Now all clients have different changes
     expect(clientA.doc).toEqual({ text: 'a' });
     expect(clientB.doc).toEqual({ text: 'b' });
     expect(clientC.doc).toEqual({ text: 'c' });
