@@ -3,8 +3,9 @@ import { TrimergeClient } from './TrimergeClient';
 import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
 import { computeRef, diff, merge, migrate, patch } from './testLib/MergeUtils';
-import { getBasicGraph } from './testLib/GraphVisualizers';
 import { timeout } from './lib/Timeout';
+
+jest.setTimeout(10_000);
 
 type TestEditMetadata = any;
 type TestSavedDoc = any;
