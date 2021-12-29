@@ -17,13 +17,6 @@ function logStderr(...args: unknown[]) {
   }
 }
 
-export function createSharedWorkerRemote<EditMetadata, Delta, Presence>(
-  onEvent: OnEventFn<EditMetadata, Delta, Presence>,
-  worker: SharedWorker,
-): SharedWorkerRemote<EditMetadata, Delta, Presence> {
-  return new SharedWorkerRemote(onEvent, worker);
-}
-
 export class SharedWorkerRemote<EditMetadata, Delta, Presence>
   implements Remote<EditMetadata, Delta, Presence>
 {
@@ -34,20 +27,15 @@ export class SharedWorkerRemote<EditMetadata, Delta, Presence>
     private readonly sharedWorker: SharedWorker,
   ) {
     logStdout('creating shared worker remote');
+    sharedWorker.port.onmessage = (e) => {
+      logStdout('received message from shared worker', e);
+      void this.queue.add(() => this.onEvent(e.data));
+    };
   }
 
   send(event: SyncEvent<EditMetadata, Delta, Presence>): void {
     logStdout('receieved event to send', event);
     this.sharedWorker.port.postMessage(event);
-    switch (event.type) {
-      case 'commits':
-        this.onEvent({ type: 'remote-state', save: 'saving' });
-        // TODO: postmessage to shared worker.
-        break;
-      default:
-        // commits is the only event that we can do anything about.
-        logStdout('skipping sending event:', event);
-    }
   }
 
   shutdown(): void | Promise<void> {

@@ -97,6 +97,7 @@ export type LocalClientInfo<Presence> = ClientInfo<Presence> & {
 };
 export type ClientList<Presence> = readonly LocalClientInfo<Presence>[];
 
+// TODO(matt): do I need to make a new version of the init message?
 export type InitEvent =
   | {
       type: 'init';
@@ -110,6 +111,8 @@ export type InitEvent =
       localStoreId: string;
       lastSyncCursor: string | undefined;
       auth: unknown;
+      docId?: string;
+      userId?: string;
     };
 
 export type CommitAck<CommitMetadata = unknown> = {

@@ -6,15 +6,8 @@ import {
   SyncStatus,
   TrimergeClient,
 } from 'trimerge-sync';
-import {
-  createIndexedDbBackendFactory,
-  deleteDocDatabase,
-} from 'trimerge-sync-indexed-db';
-import {
-  SharedWorkerRemote,
-  WebsocketRemote,
-} from 'trimerge-sync-basic-client';
-import { randomId } from './randomId';
+import { deleteDocDatabase } from 'trimerge-sync-indexed-db';
+import { SharedWorkerRemote } from 'trimerge-sync-basic-client';
 
 export type UpdateDocFn<LatestDoc, CommitMetadata> = (
   doc: LatestDoc,
@@ -40,16 +33,16 @@ function getCachedTrimergeClient<
 ) {
   const key = `${docId}:${userId}:${clientId}`;
 
-  const worker = new SharedWorker(
-    new URL('./TrimergeShared.worker', import.meta.url),
-  );
-
   if (!TRIMERGE_CLIENT_CACHE[key]) {
+    const worker = new SharedWorker(
+      new URL('./TrimergeShared.worker', import.meta.url),
+    );
     TRIMERGE_CLIENT_CACHE[key] = new TrimergeClient(
       userId,
       clientId,
       (userId, clientId, onEvent) =>
         new PassthroughLocalStore(
+          docId,
           userId,
           clientId,
           new SharedWorkerRemote(onEvent, worker),
