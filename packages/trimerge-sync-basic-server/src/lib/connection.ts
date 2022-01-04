@@ -4,8 +4,27 @@ import { PromiseQueue } from 'trimerge-sync';
 import type { LiveDoc } from './docs';
 import type { Authenticated, AuthenticateFn, Logger } from '../types';
 import { InternalError, MessageTooBig, UnsupportedData } from './codes';
+import PubNub from 'pubnub';
 
-export class Connection {
+export interface Connection {
+  receiveBroadcast(from: Connection, message: string): void;
+}
+
+export class PubNubConnection implements Connection {
+  constructor(
+    private readonly pubnub: PubNub,
+    private readonly channel: string,
+  ) {}
+
+  receiveBroadcast(_: Connection, message: string): void {
+    this.pubnub.publish({
+      channel: this.channel,
+      message,
+    });
+  }
+}
+
+export class WebSocketConnection implements Connection {
   private readonly clients = new Set<string>();
   private readonly queue = new PromiseQueue();
   private clientStoreId?: string = undefined;
@@ -197,13 +216,15 @@ export class Connection {
       if (!authenticated) {
         return;
       }
-      // Don't send to other clients with the same userId/clientStoreId pair
-      if (
-        authenticated.userId === from.authenticated?.userId &&
-        clientStoreId === from.clientStoreId
-      ) {
-        return;
-      }
+
+      // TODO(matt): reinstate this
+      // // Don't send to other clients with the same userId/clientStoreId pair
+      // if (
+      //   authenticated.userId === from.authenticated?.userId &&
+      //   clientStoreId === from.clientStoreId
+      // ) {
+      //   return;
+      // }
       this.send(message);
     });
   }

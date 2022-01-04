@@ -1,4 +1,4 @@
-import { BasicServer } from './server';
+import { BasicServer } from './websocketapi';
 import { join } from 'path';
 import { mkdirpSync } from 'fs-extra';
 import { SqliteDocStore } from './lib/SqliteDocStore';

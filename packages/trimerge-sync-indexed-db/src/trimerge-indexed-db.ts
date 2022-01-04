@@ -258,7 +258,7 @@ class IndexedDbBackend<
 
     for (const commit of commits) {
       const syncId = ++syncCounter;
-      const { ref, baseRef, } = commit;
+      const { ref, baseRef } = commit;
       let mergeRef: string | undefined;
       if (isMergeCommit(commit)) {
         mergeRef = commit.mergeRef;

@@ -4,7 +4,7 @@ import WebSocket, { Server } from 'ws';
 import type { DocStore } from './DocStore';
 import type { AuthenticateFn, Logger } from './types';
 import { LiveDoc } from './lib/docs';
-import { Connection } from './lib/connection';
+import { WebSocketConnection } from './lib/connection';
 
 function getMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -54,7 +54,7 @@ export class BasicServer {
           const liveDoc =
             this.liveDocs.get(docId) ?? new LiveDoc(this.makeDocStore(docId));
           this.liveDocs.set(docId, liveDoc);
-          const conn = new Connection(
+          const conn = new WebSocketConnection(
             ws,
             docId,
             liveDoc,

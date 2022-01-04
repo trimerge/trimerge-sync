@@ -35,8 +35,10 @@
   },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
   "dependencies": {
+    "@types/pubnub": "^4.29.5",
     "@types/ws": "^8.2.0",
     "fs-extra": "^10.0.0",
+    "pubnub": "^4.37.0",
     "trimerge-sync": "0.12.0-rc.1",
     "ws": "^8.2.3"
   },
@@ -52,6 +54,7 @@
     "@rollup/plugin-node-resolve": "13.0.6",
     "@types/better-sqlite3": "^7.4.0",
     "@types/fs-extra": "^9.0.13",
+    "@types/pubnub": "^4.29.5",
     "better-sqlite3": "^7.4.3",
     "jest": "27.0.6",
     "rollup": "2.58.0",
