@@ -1,11 +1,12 @@
 import {
   AckCommitsEvent,
-  Commit,
   GetLocalStoreFn,
   GetRemoteFn,
   CommitsEvent,
   RemoteSyncInfo,
   CommitAck,
+  Commit,
+  FlatCommit,
 } from '../types';
 import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
@@ -20,9 +21,14 @@ function randomId() {
   return generate({ words: 3, alliterative: true }).dashed;
 }
 
-export class MemoryStore<EditMetadata, Delta, Presence> {
-  public readonly remotes: MemoryRemote<EditMetadata, Delta, Presence>[] = [];
-  private commits: Commit<EditMetadata, Delta>[] = [];
+export class MemoryStore<EditMetadata, Delta, Presence, CreationMetadata> {
+  public readonly remotes: MemoryRemote<
+    EditMetadata,
+    Delta,
+    Presence,
+    CreationMetadata
+  >[] = [];
+  private commits: Commit<EditMetadata, Delta, CreationMetadata>[] = [];
   private localCommitRefs = new Set<string>();
   private syncedCommits = new Set<string>();
   private readonly localStoreId = randomId();
@@ -31,18 +37,28 @@ export class MemoryStore<EditMetadata, Delta, Presence> {
   private readonly localStores: MemoryLocalStore<
     EditMetadata,
     Delta,
-    Presence
+    Presence,
+    CreationMetadata
   >[] = [];
 
   public writeErrorMode = false;
 
   constructor(
     public readonly channelName: string = randomId(),
-    private readonly getRemoteFn?: GetRemoteFn<EditMetadata, Delta, Presence>,
+    private readonly getRemoteFn?: GetRemoteFn<
+      EditMetadata,
+      Delta,
+      Presence,
+      CreationMetadata
+    >,
     public online = true,
   ) {}
 
-  public getCommits(): readonly Commit<EditMetadata, Delta>[] {
+  public getCommits(): readonly Commit<
+    EditMetadata,
+    Delta,
+    CreationMetadata
+  >[] {
     return this.commits;
   }
 
@@ -56,11 +72,12 @@ export class MemoryStore<EditMetadata, Delta, Presence> {
     }
   }
 
-  getLocalStore: GetLocalStoreFn<EditMetadata, Delta, Presence> = (
-    userId,
-    clientId,
-    onEvent,
-  ) => {
+  getLocalStore: GetLocalStoreFn<
+    EditMetadata,
+    Delta,
+    Presence,
+    CreationMetadata
+  > = (userId, clientId, onEvent) => {
     const store = new MemoryLocalStore(
       this,
       userId,
@@ -72,7 +89,7 @@ export class MemoryStore<EditMetadata, Delta, Presence> {
     return store;
   };
 
-  getRemote: GetRemoteFn<EditMetadata, Delta, Presence> = (
+  getRemote: GetRemoteFn<EditMetadata, Delta, Presence, CreationMetadata> = (
     userId: string,
     remoteSyncInfo,
     onEvent,
@@ -86,24 +103,30 @@ export class MemoryStore<EditMetadata, Delta, Presence> {
   };
 
   addCommits(
-    commits: readonly Commit<EditMetadata, Delta>[],
-    remoteSyncId?: string,
+    commits: readonly Commit<EditMetadata, Delta, CreationMetadata>[],
   ): Promise<AckCommitsEvent> {
     return this.queue.add(async () => {
       const refs = new Set<string>();
       for (const commit of commits) {
-        const { ref } = commit;
+        const {
+          body: { ref },
+        } = commit;
         if (!this.localCommitRefs.has(ref)) {
           this.commits.push(commit);
           this.localCommitRefs.add(ref);
         }
         refs.add(ref);
       }
-      if (remoteSyncId !== undefined) {
-        for (const { ref } of commits) {
+      for (const {
+        body: { ref },
+        ackMetadata,
+      } of commits as FlatCommit<EditMetadata, Delta, CreationMetadata>[]) {
+        if (ackMetadata) {
           this.syncedCommits.add(ref);
+
+          // assumes these commits are in order.
+          this.lastRemoteSyncCursor = ackMetadata.cursor;
         }
-        this.lastRemoteSyncCursor = remoteSyncId;
       }
       return {
         type: 'ack',
@@ -126,7 +149,7 @@ export class MemoryStore<EditMetadata, Delta, Presence> {
 
   getLocalCommitsEvent(
     startSyncCursor?: string,
-  ): Promise<CommitsEvent<EditMetadata, Delta, Presence>> {
+  ): Promise<CommitsEvent<EditMetadata, Delta, Presence, CreationMetadata>> {
     return this.queue.add(async () => ({
       type: 'commits',
       commits:
@@ -144,10 +167,10 @@ export class MemoryStore<EditMetadata, Delta, Presence> {
   }
 
   async *getCommitsForRemote(): AsyncIterableIterator<
-    CommitsEvent<EditMetadata, Delta, Presence>
+    CommitsEvent<EditMetadata, Delta, Presence, CreationMetadata>
   > {
     const commits = await this.queue.add(async () =>
-      this.commits.filter(({ ref }) => !this.syncedCommits.has(ref)),
+      this.commits.filter(({ body: { ref } }) => !this.syncedCommits.has(ref)),
     );
     const BATCH_SIZE = 5;
     for (let i = 0; i < commits.length; i += BATCH_SIZE) {

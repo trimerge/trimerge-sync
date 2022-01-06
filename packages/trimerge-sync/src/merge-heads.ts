@@ -1,7 +1,9 @@
 export type MergableCommit = {
-  ref: string;
-  baseRef?: string;
-  mergeRef?: string;
+  body: {
+    ref: string;
+    baseRef?: string;
+    mergeRef?: string;
+  };
 };
 
 type Visitor = {
@@ -72,7 +74,9 @@ export function mergeHeads<N extends MergableCommit>(
             return true;
           }
         }
-        const { baseRef, mergeRef } = getCommit(commitRef);
+        const {
+          body: { baseRef, mergeRef },
+        } = getCommit(commitRef);
         if (baseRef !== undefined) {
           nextCommitRefs.add(baseRef);
           leaf.seenRefs.add(baseRef);

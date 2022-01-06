@@ -2,12 +2,12 @@ import { AbstractLocalStore, BroadcastEvent } from '../AbstractLocalStore';
 import { MemoryBroadcastChannel } from './MemoryBroadcastChannel';
 import {
   AckCommitsEvent,
-  Commit,
   GetRemoteFn,
   CommitsEvent,
   OnEventFn,
   RemoteSyncInfo,
   CommitAck,
+  Commit,
 } from '../types';
 import { MemoryStore } from './MemoryStore';
 
@@ -15,18 +15,24 @@ export class MemoryLocalStore<
   EditMetadata,
   Delta,
   Presence,
-> extends AbstractLocalStore<EditMetadata, Delta, Presence> {
+  CreationMetadata,
+> extends AbstractLocalStore<EditMetadata, Delta, Presence, CreationMetadata> {
   private _closed = false;
   public readonly channel: MemoryBroadcastChannel<
-    BroadcastEvent<EditMetadata, Delta, Presence>
+    BroadcastEvent<EditMetadata, Delta, Presence, CreationMetadata>
   >;
 
   constructor(
-    private readonly store: MemoryStore<EditMetadata, Delta, Presence>,
+    private readonly store: MemoryStore<
+      EditMetadata,
+      Delta,
+      Presence,
+      CreationMetadata
+    >,
     userId: string,
     clientId: string,
-    onEvent: OnEventFn<EditMetadata, Delta, Presence>,
-    getRemote?: GetRemoteFn<EditMetadata, Delta, Presence>,
+    onEvent: OnEventFn<EditMetadata, Delta, Presence, CreationMetadata>,
+    getRemote?: GetRemoteFn<EditMetadata, Delta, Presence, CreationMetadata>,
   ) {
     super(userId, clientId, onEvent, getRemote, {
       initialDelayMs: 0,
@@ -44,10 +50,9 @@ export class MemoryLocalStore<
   }
 
   protected addCommits(
-    commits: Commit<EditMetadata, Delta>[],
-    remoteSyncId?: string,
+    commits: Commit<EditMetadata, Delta, CreationMetadata>[],
   ): Promise<AckCommitsEvent> {
-    return this.store.addCommits(commits, remoteSyncId);
+    return this.store.addCommits(commits);
   }
 
   protected async acknowledgeRemoteCommits(
@@ -58,7 +63,7 @@ export class MemoryLocalStore<
   }
 
   protected async broadcastLocal(
-    event: BroadcastEvent<EditMetadata, Delta, Presence>,
+    event: BroadcastEvent<EditMetadata, Delta, Presence, CreationMetadata>,
   ): Promise<void> {
     if (this._closed) {
       return;
@@ -67,13 +72,13 @@ export class MemoryLocalStore<
   }
 
   protected async *getLocalCommits(): AsyncIterableIterator<
-    CommitsEvent<EditMetadata, Delta, Presence>
+    CommitsEvent<EditMetadata, Delta, Presence, CreationMetadata>
   > {
     yield await this.store.getLocalCommitsEvent();
   }
 
   protected getCommitsForRemote(): AsyncIterableIterator<
-    CommitsEvent<EditMetadata, Delta, Presence>
+    CommitsEvent<EditMetadata, Delta, Presence, CreationMetadata>
   > {
     return this.store.getCommitsForRemote();
   }

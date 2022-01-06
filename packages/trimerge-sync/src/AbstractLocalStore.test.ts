@@ -6,8 +6,15 @@ import {
   RemoteSyncInfo,
 } from './types';
 
-class MockLocalStore extends AbstractLocalStore<unknown, unknown, unknown> {
-  constructor(onEvent: OnEventFn<unknown, unknown, unknown> = () => undefined) {
+class MockLocalStore extends AbstractLocalStore<
+  unknown,
+  unknown,
+  unknown,
+  unknown
+> {
+  constructor(
+    onEvent: OnEventFn<unknown, unknown, unknown, unknown> = () => undefined,
+  ) {
     super('', '', onEvent);
   }
   async acknowledgeRemoteCommits(): Promise<void> {
@@ -27,13 +34,13 @@ class MockLocalStore extends AbstractLocalStore<unknown, unknown, unknown> {
   }
 
   async *getLocalCommits(): AsyncIterableIterator<
-    CommitsEvent<unknown, unknown, unknown>
+    CommitsEvent<unknown, unknown, unknown, unknown>
   > {
     //
   }
 
   async *getCommitsForRemote(): AsyncIterableIterator<
-    CommitsEvent<unknown, unknown, unknown>
+    CommitsEvent<unknown, unknown, unknown, unknown>
   > {
     //
   }

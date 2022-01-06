@@ -7,23 +7,26 @@ export type ErrorCode =
   | 'bad-request'
   | 'unauthorized';
 
-export type BaseCommit<EditMetadata, Delta> = {
+export type BaseCommitBody<EditMetadata, Delta> = {
   userId: string;
   ref: string;
 
   // a structure defining the differences between baseRef and this commit
   delta?: Delta;
 
-  // application specific metadata about the commit
+  // application specific metadata about the commit, that all clients should get.
   metadata: EditMetadata;
 
   // The ref of the commit that this commit is based on
   baseRef?: string;
 };
 
-export type EditCommit<EditMetadata, Delta> = BaseCommit<EditMetadata, Delta>;
+export type EditCommitBody<EditMetadata, Delta> = BaseCommitBody<
+  EditMetadata,
+  Delta
+>;
 
-export type MergeCommit<EditMetadata, Delta> = BaseCommit<
+export type MergeCommitBody<EditMetadata, Delta> = BaseCommitBody<
   EditMetadata,
   Delta
 > & {
@@ -39,14 +42,73 @@ export type MergeCommit<EditMetadata, Delta> = BaseCommit<
 };
 
 export function isMergeCommit(
-  commit: Commit<unknown, unknown>,
-): commit is MergeCommit<unknown, unknown> {
-  return (commit as MergeCommit<unknown, unknown>).mergeRef !== undefined;
+  commit: CommitBody<unknown, unknown>,
+): commit is MergeCommitBody<unknown, unknown> {
+  return (commit as MergeCommitBody<unknown, unknown>).mergeRef !== undefined;
 }
 
-export type Commit<EditMetadata, Delta> =
-  | MergeCommit<EditMetadata, Delta>
-  | EditCommit<EditMetadata, Delta>;
+// indicates if the commit has already been acked by the server.
+export function hasAck<EditMetadata, Delta, CreationMetadata>(
+  commit: Commit<EditMetadata, Delta, CreationMetadata>,
+): commit is
+  | ConfirmedCommit<EditMetadata, Delta, CreationMetadata>
+  | RemoteCommit<EditMetadata, Delta> {
+  return (
+    (
+      commit as
+        | ConfirmedCommit<EditMetadata, Delta, CreationMetadata>
+        | RemoteCommit<EditMetadata, Delta>
+    ).ackMetadata !== undefined
+  );
+}
+
+export type CommitBody<EditMetadata, Delta> =
+  | MergeCommitBody<EditMetadata, Delta>
+  | EditCommitBody<EditMetadata, Delta>;
+
+export type AckMetadata = {
+  main: boolean;
+  cursor: string;
+};
+
+export type BaseCommit<EditMetadata, Delta> = {
+  body: CommitBody<EditMetadata, Delta>;
+};
+
+// This is a commit that was generated locally but has not been confirmed by the server.
+export type UnconfirmedCommit<EditMetadata, Delta, CreationMetadata> =
+  BaseCommit<EditMetadata, Delta> & {
+    body: CommitBody<EditMetadata, Delta>;
+
+    // information about the commit that won't be sent to other clients.
+    creationMetadata: CreationMetadata;
+  };
+
+// This is a commit that was generated locally and has been confirmed by the server.
+export type ConfirmedCommit<EditMetadata, Delta, CreationMetadata> =
+  UnconfirmedCommit<EditMetadata, Delta, CreationMetadata> & {
+    ackMetadata: AckMetadata;
+  };
+
+// This is a commit that was generated remotely.
+export type RemoteCommit<EditMetadata, Delta> = BaseCommit<
+  EditMetadata,
+  Delta
+> & {
+  ackMetadata: AckMetadata;
+};
+
+export type Commit<EditMetadata, Delta, CreationMetadata> =
+  | ConfirmedCommit<EditMetadata, Delta, CreationMetadata>
+  | UnconfirmedCommit<EditMetadata, Delta, CreationMetadata>
+  | RemoteCommit<EditMetadata, Delta>;
+
+// useful for optionally grabbing the potentially undefined fields from a commit.
+export type FlatCommit<EditMetadata, Delta, CreationMetadata> = {
+  body: CommitBody<EditMetadata, Delta>;
+  ackMetadata?: AckMetadata;
+  creationMetadata?: CreationMetadata;
+};
 
 export type LocalReadStatus =
   | 'loading' /** reading state from disk */
@@ -107,25 +169,13 @@ export type InitEvent =
       auth: unknown;
     };
 
-export type CommitAck = {
+export type CommitAck = Partial<AckMetadata> & {
   ref: string;
-
-  // If the remote acking this commit is authoritative, main will indicate if this
-  // commit is on the mainline or not, otherwise it will be undefined.
-  main?: boolean;
 };
 
-export type ServerCommitAck = Required<CommitAck>;
-
-export type ServerCommit<EditMetadata, Delta> = Commit<EditMetadata, Delta> &
-  ServerCommitAck;
-
-export type CommitsEvent<EditMetadata, Delta, Presence> = {
+export type CommitsEvent<EditMetadata, Delta, Presence, CreationMetadata> = {
   type: 'commits';
-  commits: readonly (
-    | ServerCommit<EditMetadata, Delta>
-    | Commit<EditMetadata, Delta>
-  )[];
+  commits: readonly Commit<EditMetadata, Delta, CreationMetadata>[];
   clientInfo?: ClientInfo<Presence>;
   syncId?: string;
 };
@@ -183,53 +233,56 @@ export type LeaderEvent = {
   action: 'request' | 'current' | 'accept' | 'withdraw';
   clientId: string;
 };
-export type SyncEvent<EditMetadata, Delta, Presence> = Readonly<
-  | InitEvent
-  | CommitsEvent<EditMetadata, Delta, Presence>
-  | ReadyEvent
-  | LeaderEvent
-  | AckCommitsEvent
-  | ClientJoinEvent<Presence>
-  | ClientPresenceEvent<Presence>
-  | ClientLeaveEvent
-  | RemoteStateEvent
-  | ErrorEvent
->;
+export type SyncEvent<EditMetadata, Delta, Presence, CreationMetadata> =
+  Readonly<
+    | InitEvent
+    | CommitsEvent<EditMetadata, Delta, Presence, CreationMetadata>
+    | ReadyEvent
+    | LeaderEvent
+    | AckCommitsEvent
+    | ClientJoinEvent<Presence>
+    | ClientPresenceEvent<Presence>
+    | ClientLeaveEvent
+    | RemoteStateEvent
+    | ErrorEvent
+  >;
 
-export type OnEventFn<EditMetadata, Delta, Presence> = (
-  event: SyncEvent<EditMetadata, Delta, Presence>,
+export type OnEventFn<EditMetadata, Delta, Presence, CreationMetadata> = (
+  event: SyncEvent<EditMetadata, Delta, Presence, CreationMetadata>,
 ) => void;
 
-export type GetLocalStoreFn<EditMetadata, Delta, Presence> = (
+export type GetLocalStoreFn<EditMetadata, Delta, Presence, CreationMetadata> = (
   userId: string,
   clientId: string,
-  onEvent: OnEventFn<EditMetadata, Delta, Presence>,
-) => LocalStore<EditMetadata, Delta, Presence>;
+  onEvent: OnEventFn<EditMetadata, Delta, Presence, CreationMetadata>,
+) => LocalStore<EditMetadata, Delta, Presence, CreationMetadata>;
 
 export type RemoteSyncInfo = {
   localStoreId: string;
   lastSyncCursor: string | undefined;
 };
 
-export type GetRemoteFn<EditMetadata, Delta, Presence> = (
+export type GetCreationMetadataFn<CreationMetadata> = () => CreationMetadata;
+
+export type GetRemoteFn<EditMetadata, Delta, Presence, CreationMetadata> = (
   userId: string,
   remoteSyncInfo: RemoteSyncInfo,
-  onEvent: OnEventFn<EditMetadata, Delta, Presence>,
+  onEvent: OnEventFn<EditMetadata, Delta, Presence, CreationMetadata>,
 ) =>
-  | Remote<EditMetadata, Delta, Presence>
-  | Promise<Remote<EditMetadata, Delta, Presence>>;
+  | Remote<EditMetadata, Delta, Presence, CreationMetadata>
+  | Promise<Remote<EditMetadata, Delta, Presence, CreationMetadata>>;
 
-export interface LocalStore<EditMetadata, Delta, Presence> {
+export interface LocalStore<EditMetadata, Delta, Presence, CreationMetadata> {
   update(
-    commits: Commit<EditMetadata, Delta>[],
+    commits: Commit<EditMetadata, Delta, CreationMetadata>[],
     presence: ClientPresenceRef<Presence> | undefined,
   ): void;
   isRemoteLeader: boolean;
   shutdown(): void | Promise<void>;
 }
 
-export interface Remote<EditMetadata, Delta, Presence> {
-  send(event: SyncEvent<EditMetadata, Delta, Presence>): void;
+export interface Remote<EditMetadata, Delta, Presence, CreationMetadata> {
+  send(event: SyncEvent<EditMetadata, Delta, Presence, CreationMetadata>): void;
   shutdown(): void | Promise<void>;
 }
 

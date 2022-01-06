@@ -1,5 +1,5 @@
 import { asCommitRefs } from '../lib/Commits';
-import { Commit, isMergeCommit } from '../types';
+import { Commit, CommitBody, isMergeCommit } from '../types';
 
 type BasicGraphItem = {
   graph: string;
@@ -7,25 +7,25 @@ type BasicGraphItem = {
   value: any;
 };
 export function getBasicGraph<EditMetadata>(
-  commits: Iterable<Commit<EditMetadata, unknown>>,
-  getEditLabel: (commit: Commit<EditMetadata, unknown>) => string,
-  getValue: (commit: Commit<EditMetadata, unknown>) => any,
+  commits: Iterable<Commit<EditMetadata, unknown, unknown>>,
+  getEditLabel: (commit: CommitBody<EditMetadata, unknown>) => string,
+  getValue: (commit: CommitBody<EditMetadata, unknown>) => any,
 ): BasicGraphItem[] {
   const result = [];
-  for (const commit of commits) {
-    const userId = commit.userId;
-    const { ref, baseRef, mergeBaseRef, mergeRef } = asCommitRefs(commit);
+  for (const { body } of commits) {
+    const userId = body.userId;
+    const { ref, baseRef, mergeBaseRef, mergeRef } = asCommitRefs(body);
     if (mergeRef) {
       result.push({
         graph: `(${baseRef} + ${mergeRef}) w/ base=${mergeBaseRef} -> ${ref}`,
         step: `User ${userId}: merge`,
-        value: getValue(commit),
+        value: getValue(body),
       });
     } else {
       result.push({
         graph: `${baseRef} -> ${ref}`,
-        step: `User ${userId}: ${getEditLabel(commit)}`,
-        value: getValue(commit),
+        step: `User ${userId}: ${getEditLabel(body)}`,
+        value: getValue(body),
       });
     }
   }
@@ -33,9 +33,9 @@ export function getBasicGraph<EditMetadata>(
 }
 
 export function getDotGraph<EditMetadata>(
-  commits: Iterable<Commit<EditMetadata, unknown>>,
-  getEditLabel: (commit: Commit<EditMetadata, any>) => string,
-  getValue: (commit: Commit<EditMetadata, any>) => string,
+  commits: Iterable<CommitBody<EditMetadata, unknown>>,
+  getEditLabel: (commit: CommitBody<EditMetadata, any>) => string,
+  getValue: (commit: CommitBody<EditMetadata, any>) => string,
 ): string {
   const lines: string[] = ['digraph {'];
   for (const commit of commits) {

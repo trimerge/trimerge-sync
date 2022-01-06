@@ -2,7 +2,6 @@ import {
   AckCommitsEvent,
   ClientInfo,
   ClientPresenceRef,
-  Commit,
   ErrorCode,
   GetRemoteFn,
   LocalStore,
@@ -13,6 +12,7 @@ import {
   RemoteSyncInfo,
   SyncEvent,
   CommitAck,
+  Commit,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
 import {
@@ -29,8 +29,8 @@ export type NetworkSettings = Readonly<
   } & LeaderSettings
 >;
 
-export type BroadcastEvent<EditMetadata, Delta, Presence> = {
-  event: SyncEvent<EditMetadata, Delta, Presence>;
+export type BroadcastEvent<EditMetadata, Delta, Presence, CreationMetadata> = {
+  event: SyncEvent<EditMetadata, Delta, Presence, CreationMetadata>;
   remoteOrigin: boolean;
 };
 
@@ -41,15 +41,21 @@ const DEFAULT_SETTINGS: NetworkSettings = {
   ...DEFAULT_LEADER_SETTINGS,
 };
 
-export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
-  implements LocalStore<EditMetadata, Delta, Presence>
+export abstract class AbstractLocalStore<
+  EditMetadata,
+  Delta,
+  Presence,
+  CreationMetadata,
+> implements LocalStore<EditMetadata, Delta, Presence, CreationMetadata>
 {
   private closed = false;
   private presence: ClientPresenceRef<Presence> = {
     ref: undefined,
     presence: undefined,
   };
-  private remote: Remote<EditMetadata, Delta, Presence> | undefined;
+  private remote:
+    | Remote<EditMetadata, Delta, Presence, CreationMetadata>
+    | undefined;
   private reconnectTimeout: ReturnType<typeof setTimeout> | undefined;
   private reconnectDelayMs: number;
   private remoteSyncState: RemoteStateEvent = {
@@ -68,8 +74,18 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
   protected constructor(
     protected readonly userId: string,
     protected readonly clientId: string,
-    private readonly onEvent: OnEventFn<EditMetadata, Delta, Presence>,
-    private readonly getRemote?: GetRemoteFn<EditMetadata, Delta, Presence>,
+    private readonly onEvent: OnEventFn<
+      EditMetadata,
+      Delta,
+      Presence,
+      CreationMetadata
+    >,
+    private readonly getRemote?: GetRemoteFn<
+      EditMetadata,
+      Delta,
+      Presence,
+      CreationMetadata
+    >,
     networkSettings: Partial<NetworkSettings> = {},
   ) {
     this.networkSettings = { ...DEFAULT_SETTINGS, ...networkSettings };
@@ -84,20 +100,19 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
    * Send to all *other* local clients
    */
   protected abstract broadcastLocal(
-    event: BroadcastEvent<EditMetadata, Delta, Presence>,
+    event: BroadcastEvent<EditMetadata, Delta, Presence, CreationMetadata>,
   ): Promise<void>;
 
   protected abstract getLocalCommits(): AsyncIterableIterator<
-    CommitsEvent<EditMetadata, Delta, Presence>
+    CommitsEvent<EditMetadata, Delta, Presence, CreationMetadata>
   >;
 
   protected abstract getCommitsForRemote(): AsyncIterableIterator<
-    CommitsEvent<EditMetadata, Delta, Presence>
+    CommitsEvent<EditMetadata, Delta, Presence, CreationMetadata>
   >;
 
   protected abstract addCommits(
-    commits: readonly Commit<EditMetadata, Delta>[],
-    remoteSyncId?: string,
+    commits: readonly Commit<EditMetadata, Delta, CreationMetadata>[],
   ): Promise<AckCommitsEvent>;
 
   protected abstract acknowledgeRemoteCommits(
@@ -127,7 +142,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
   }
 
   protected processEvent = async (
-    event: SyncEvent<EditMetadata, Delta, Presence>,
+    event: SyncEvent<EditMetadata, Delta, Presence, CreationMetadata>,
     // Three sources of events: local broadcast, remote broadcast, and remote via local broadcast
     origin: 'local' | 'remote' | 'remote-via-local',
   ): Promise<void> => {
@@ -161,7 +176,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
 
       case 'commits':
         if (origin === 'remote') {
-          await this.addCommits(event.commits, event.syncId);
+          await this.addCommits(event.commits);
         }
         break;
 
@@ -229,7 +244,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
   protected readonly onLocalBroadcastEvent = ({
     event,
     remoteOrigin,
-  }: BroadcastEvent<EditMetadata, Delta, Presence>): void => {
+  }: BroadcastEvent<EditMetadata, Delta, Presence, CreationMetadata>): void => {
     this.processEvent(event, remoteOrigin ? 'remote-via-local' : 'local').catch(
       this.handleAsError('network'),
     );
@@ -325,7 +340,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
         );
         let saving = false;
         for await (const event of this.getCommitsForRemote()) {
-          for (const { ref } of event.commits) {
+          for (const {
+            body: { ref },
+          } of event.commits) {
             this.unacknowledgedRefs.add(ref);
           }
           if (!saving) {
@@ -370,7 +387,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
     };
   }
   protected async sendEvent(
-    event: SyncEvent<EditMetadata, Delta, Presence>,
+    event: SyncEvent<EditMetadata, Delta, Presence, CreationMetadata>,
     {
       remote = false,
       local = false,
@@ -437,7 +454,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
     })();
   }
   update(
-    commits: Commit<EditMetadata, Delta>[],
+    commits: Commit<EditMetadata, Delta, CreationMetadata>[],
     presence: ClientPresenceRef<Presence> | undefined,
   ): void {
     if (this.closed) {
@@ -449,7 +466,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
   }
 
   private async doUpdate(
-    commits: Commit<EditMetadata, Delta>[],
+    commits: Commit<EditMetadata, Delta, CreationMetadata>[],
     presenceRef: ClientPresenceRef<Presence> | undefined,
   ): Promise<void> {
     if (presenceRef) {

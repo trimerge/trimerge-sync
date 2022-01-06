@@ -2,13 +2,15 @@ import {
   ClientInfo,
   ClientList,
   Commit,
-  EditCommit,
+  CommitBody,
+  GetCreationMetadataFn,
   GetLocalStoreFn,
+  hasAck,
   LocalClientInfo,
   LocalStore,
-  MergeCommit,
   OnEventFn,
   SyncStatus,
+  UnconfirmedCommit,
 } from './types';
 import { mergeHeads } from './merge-heads';
 import { Differ, CommitDoc } from './differ';
@@ -31,6 +33,7 @@ export class TrimergeClient<
   EditMetadata,
   Delta,
   Presence,
+  CreationMetadata,
 > {
   private lastSaved?: CommitDoc<SavedDoc, EditMetadata>;
   private latestDoc?: CommitDoc<LatestDoc, EditMetadata>;
@@ -51,13 +54,23 @@ export class TrimergeClient<
   private clientMap = new Map<string, LocalClientInfo<Presence>>();
   private clientList: ClientList<Presence> = [];
 
-  private commits = new Map<string, Commit<EditMetadata, Delta>>();
+  private commits = new Map<
+    string,
+    Commit<EditMetadata, Delta, CreationMetadata>
+  >();
   private docs = new Map<string, CommitDoc<SavedDoc, EditMetadata>>();
   private headRefs = new Set<string>();
 
-  private store: LocalStore<EditMetadata, Delta, Presence>;
-  private lazyCommits = new Map<string, Commit<EditMetadata, Delta>>();
-  private unsyncedCommits: Commit<EditMetadata, Delta>[] = [];
+  private store: LocalStore<EditMetadata, Delta, Presence, CreationMetadata>;
+  private lazyCommits = new Map<
+    string,
+    UnconfirmedCommit<EditMetadata, Delta, CreationMetadata>
+  >();
+  private unsyncedCommits: UnconfirmedCommit<
+    EditMetadata,
+    Delta,
+    CreationMetadata
+  >[] = [];
 
   private selfFullId: string;
   private newPresence: ClientInfo<Presence> | undefined;
@@ -76,10 +89,12 @@ export class TrimergeClient<
     private readonly getLocalStore: GetLocalStoreFn<
       EditMetadata,
       Delta,
-      Presence
+      Presence,
+      CreationMetadata
     >,
     private readonly differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
     private readonly bufferMs: number,
+    private readonly getCreationMetadata: GetCreationMetadataFn<CreationMetadata>,
   ) {
     this.selfFullId = getFullId(userId, clientId);
     this.store = getLocalStore(userId, clientId, this.onEvent);
@@ -101,68 +116,69 @@ export class TrimergeClient<
     this.clientMap.set(getFullId(userId, clientId), cursor);
     this.emitClientListChange();
   }
-  private onEvent: OnEventFn<EditMetadata, Delta, Presence> = (event) => {
-    switch (event.type) {
-      case 'commits': {
-        const { commits, syncId, clientInfo } = event;
-        for (const commit of commits) {
-          this.addCommit(commit, 'external');
-        }
-        this.lastLocalSyncId = syncId;
-        this.mergeHeads();
-        this.docSubs.emitChange();
-        this.sync();
-        if (clientInfo) {
-          this.setClientInfo(clientInfo);
+  private onEvent: OnEventFn<EditMetadata, Delta, Presence, CreationMetadata> =
+    (event) => {
+      switch (event.type) {
+        case 'commits': {
+          const { commits, syncId, clientInfo } = event;
+          for (const commit of commits) {
+            this.addCommit(commit, 'external');
+          }
+          this.lastLocalSyncId = syncId;
+          this.mergeHeads();
+          this.docSubs.emitChange();
+          this.sync();
+          if (clientInfo) {
+            this.setClientInfo(clientInfo);
+          }
+
+          break;
         }
 
-        break;
+        case 'ack':
+          this.lastLocalSyncId = event.syncId;
+          break;
+
+        case 'client-leave':
+          this.clientMap.delete(getFullId(event.userId, event.clientId));
+          this.emitClientListChange();
+          break;
+
+        case 'client-join':
+        case 'client-presence':
+          this.setClientInfo(event.info);
+          break;
+
+        case 'remote-state':
+          // TODO: remove remote clients as applicable?
+          this.emitClientListChange();
+          const changes: Partial<SyncStatus> = {};
+          if (event.connect) {
+            changes.remoteConnect = event.connect;
+          }
+          if (event.read) {
+            changes.remoteRead = event.read;
+          }
+          if (event.save) {
+            changes.remoteSave = event.save;
+          }
+          this.updateSyncState(changes);
+          break;
+
+        case 'ready':
+          this.updateSyncState({ localRead: 'ready' });
+          break;
+        case 'error':
+          if (event.code === 'internal') {
+            this.updateSyncState({ localRead: 'error' });
+          }
+          break;
+
+        default:
+          console.warn(`unknown event: ${event['type']}`);
+          break;
       }
-
-      case 'ack':
-        this.lastLocalSyncId = event.syncId;
-        break;
-
-      case 'client-leave':
-        this.clientMap.delete(getFullId(event.userId, event.clientId));
-        this.emitClientListChange();
-        break;
-
-      case 'client-join':
-      case 'client-presence':
-        this.setClientInfo(event.info);
-        break;
-
-      case 'remote-state':
-        // TODO: remove remote clients as applicable?
-        this.emitClientListChange();
-        const changes: Partial<SyncStatus> = {};
-        if (event.connect) {
-          changes.remoteConnect = event.connect;
-        }
-        if (event.read) {
-          changes.remoteRead = event.read;
-        }
-        if (event.save) {
-          changes.remoteSave = event.save;
-        }
-        this.updateSyncState(changes);
-        break;
-
-      case 'ready':
-        this.updateSyncState({ localRead: 'ready' });
-        break;
-      case 'error':
-        if (event.code === 'internal') {
-          this.updateSyncState({ localRead: 'error' });
-        }
-        break;
-
-      default:
-        console.warn(`unknown event: ${event['type']}`);
-        break;
-    }
-  };
+    };
 
   get doc(): LatestDoc | undefined {
     if (this.lastSaved === undefined) {
@@ -220,14 +236,14 @@ export class TrimergeClient<
     if (doc !== undefined) {
       return doc;
     }
-    const commit = this.getCommit(ref);
-    const baseValue = commit.baseRef
-      ? this.getCommitDoc(commit.baseRef).doc
+    const { body } = this.getCommit(ref);
+    const baseValue = body.baseRef
+      ? this.getCommitDoc(body.baseRef).doc
       : undefined;
     const commitDoc: CommitDoc<SavedDoc, EditMetadata> = {
-      ref: commit.ref,
-      doc: this.differ.patch(baseValue, commit.delta),
-      editMetadata: commit.metadata,
+      ref: body.ref,
+      doc: this.differ.patch(baseValue, body.delta),
+      editMetadata: body.metadata,
     };
     this.docs.set(ref, commitDoc);
     return commitDoc;
@@ -325,10 +341,10 @@ export class TrimergeClient<
   }
 
   private addCommit(
-    commit: Commit<EditMetadata, Delta>,
+    commit: Commit<EditMetadata, Delta, CreationMetadata>,
     type: AddCommitType,
   ): void {
-    const { ref, baseRef, mergeRef } = asCommitRefs(commit);
+    const { ref, baseRef, mergeRef } = asCommitRefs(commit.body);
     if (this.commits.has(ref)) {
       // Promote lazy commit
       if (type === 'external') {
@@ -356,16 +372,23 @@ export class TrimergeClient<
     this.headRefs.add(ref);
     const currentRef = this.lastSaved?.ref;
     if (currentRef === baseRef || currentRef === mergeRef) {
-      this.lastSaved = this.getCommitDoc(commit.ref);
+      this.lastSaved = this.getCommitDoc(commit.body.ref);
       this.latestDoc = undefined;
     }
     switch (type) {
       case 'lazy':
-        this.lazyCommits.set(commit.ref, commit);
+        if (hasAck(commit)) {
+          throw new Error(`acked commits cannot be lazy.`);
+        }
+        this.lazyCommits.set(commit.body.ref, commit);
         break;
       case 'local':
+        if (hasAck(commit)) {
+          throw new Error(`this commit has already been acked.`);
+        }
         this.promoteLazyCommit(baseRef);
         this.promoteLazyCommit(mergeRef);
+        // TODO(matt): cast as UnconfirmedCommit
         this.unsyncedCommits.push(commit);
         break;
     }
@@ -377,7 +400,7 @@ export class TrimergeClient<
     }
     const commit = this.lazyCommits.get(ref);
     if (commit) {
-      const { baseRef, mergeRef } = asCommitRefs(commit);
+      const { baseRef, mergeRef } = asCommitRefs(commit.body);
       this.promoteLazyCommit(baseRef);
       this.promoteLazyCommit(mergeRef);
       this.lazyCommits.delete(ref);
@@ -393,14 +416,11 @@ export class TrimergeClient<
     mergeRef?: string,
     mergeBaseRef?: string,
   ): string {
-    // TODO(matt): decide what we want to do here with clientId.
-    // Is it users responsibility to attach that to the editMetadata? do
-    // wrap their editMetadata in a new object?
-    const { userId, clientId } = this;
+    const { userId } = this;
     const delta = this.differ.diff(base?.doc, newDoc);
     const baseRef = base?.ref;
     const ref = this.differ.computeRef(baseRef, mergeRef, delta, editMetadata);
-    const commit: Commit<EditMetadata, Delta> =
+    const commitBody: CommitBody<EditMetadata, Delta> =
       mergeRef !== undefined
         ? {
             userId,
@@ -418,6 +438,10 @@ export class TrimergeClient<
             delta,
             metadata: editMetadata,
           };
+    const commit = {
+      body: commitBody,
+      creationMetadata: this.getCreationMetadata(),
+    };
     this.addCommit(commit, lazy ? 'lazy' : 'local');
     return ref;
   }

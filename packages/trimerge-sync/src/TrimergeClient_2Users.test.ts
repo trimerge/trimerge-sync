@@ -11,6 +11,7 @@ type TestEditMetadata = string;
 type TestSavedDoc = any;
 type TestDoc = any;
 type TestPresence = any;
+type TestCreationMetadata = any;
 
 const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
   migrate,
@@ -21,30 +22,54 @@ const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
 };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestPresence>();
+  return new MemoryStore<
+    TestEditMetadata,
+    Delta,
+    TestPresence,
+    TestCreationMetadata
+  >();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
+  store: MemoryStore<
+    TestEditMetadata,
+    Delta,
+    TestPresence,
+    TestCreationMetadata
+  >,
 ): TrimergeClient<
   TestSavedDoc,
   TestDoc,
   TestEditMetadata,
   Delta,
-  TestPresence
+  TestPresence,
+  TestCreationMetadata
 > {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
+  return new TrimergeClient(
+    userId,
+    'test',
+    store.getLocalStore,
+    differ,
+    0,
+    () => 'test',
+  );
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
+  store: MemoryStore<
+    TestEditMetadata,
+    Delta,
+    TestPresence,
+    TestCreationMetadata
+  >,
   client1: TrimergeClient<
     TestSavedDoc,
     TestDoc,
     TestEditMetadata,
     Delta,
-    TestPresence
+    TestPresence,
+    TestCreationMetadata
   >,
 ) {
   return getBasicGraph(
@@ -60,7 +85,8 @@ function sortedClients(
     TestDoc,
     TestEditMetadata,
     Delta,
-    TestPresence
+    TestPresence,
+    TestCreationMetadata
   >,
 ) {
   return Array.from(client.clients).sort(clientSort);
