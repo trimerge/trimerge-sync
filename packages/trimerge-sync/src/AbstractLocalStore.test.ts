@@ -86,9 +86,10 @@ describe('AbstractLocalStore', () => {
     const fn = jest.fn();
     let mockRemote: MockRemote;
     let sendSpy: jest.SpyInstance;
+    let localStore: MockLocalStore;
 
     await new Promise<void>((resolve) => {
-      new MockLocalStore(fn, (_, __, onEvent) => {
+      localStore = new MockLocalStore(fn, (_, __, onEvent) => {
         mockRemote = new MockRemote(onEvent);
         sendSpy = jest.spyOn(mockRemote, 'send');
         resolve();
@@ -121,6 +122,8 @@ Array [
   ],
 ]
 `);
+
+    await localStore!.shutdown();
   });
 
   it('handle empty update call', async () => {
