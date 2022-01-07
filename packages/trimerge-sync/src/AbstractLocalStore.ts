@@ -197,7 +197,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
         break;
       case 'remote-state':
         if (origin === 'remote') {
-          if (event.connect === 'online') {
+          if (
+            event.connect === 'online' &&
+            this.remoteSyncState.connect !== 'online'
+          ) {
             await this.sendEvent(
               {
                 type: 'client-join',
