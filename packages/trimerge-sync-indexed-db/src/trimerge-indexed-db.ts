@@ -1,4 +1,4 @@
-import type {
+import {
   AckCommitsEvent,
   AckRefErrors,
   BroadcastEvent,
@@ -9,6 +9,9 @@ import type {
   CommitsEvent,
   OnEventFn,
   RemoteSyncInfo,
+  ServerCommit,
+  isMergeCommit,
+  CommitAck,
 } from 'trimerge-sync';
 import { AbstractLocalStore } from 'trimerge-sync';
 import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
@@ -160,12 +163,12 @@ class IndexedDbBackend<
   }
 
   protected async acknowledgeRemoteCommits(
-    refs: readonly string[],
+    acks: readonly CommitAck[],
     remoteSyncCursor: string,
   ): Promise<void> {
     const db = await this.db;
-    for (const ref of refs) {
-      const commit = await db.get('commits', ref);
+    for (const ack of acks) {
+      const commit = await db.get('commits', ack.ref);
       if (commit && !commit.remoteSyncId) {
         commit.remoteSyncId = remoteSyncCursor;
         await db.put('commits', commit);
@@ -218,7 +221,7 @@ class IndexedDbBackend<
   }
 
   protected async addCommits(
-    commits: readonly Commit<EditMetadata, Delta>[],
+    commits: readonly ServerCommit<EditMetadata, Delta>[],
     lastSyncCursor: string | undefined,
   ): Promise<AckCommitsEvent> {
     const db = await this.db;
@@ -238,7 +241,7 @@ class IndexedDbBackend<
     const headsToDelete = new Set<string>();
     const headsToAdd = new Set<string>();
     const promises: Promise<unknown>[] = [];
-    const refs = new Set<string>();
+    const refs = new Map<string, boolean>();
     const refErrors: AckRefErrors = {};
     async function commitExistsAlready(
       commit: Commit<unknown, unknown>,
@@ -246,7 +249,7 @@ class IndexedDbBackend<
     ): Promise<boolean> {
       const existingCommit = await commitsDb.get(commit.ref);
       if (existingCommit) {
-        refs.add(commit.ref);
+        refs.set(commit.ref, existingCommit.main);
         console.warn(`already have commit`, { commit, existingCommit, error });
         return true;
       }
@@ -255,7 +258,11 @@ class IndexedDbBackend<
 
     for (const commit of commits) {
       const syncId = ++syncCounter;
-      const { ref, baseRef, mergeRef } = commit;
+      const { ref, baseRef, } = commit;
+      let mergeRef: string | undefined;
+      if (isMergeCommit(commit)) {
+        mergeRef = commit.mergeRef;
+      }
       promises.push(
         (async () => {
           try {
@@ -263,7 +270,10 @@ class IndexedDbBackend<
               return;
             }
             await commitsDb.add({ syncId, remoteSyncId: '', ...commit });
-            refs.add(ref);
+            const ackedCommit = await commitsDb.get(commit.ref);
+            if (ackedCommit) {
+              refs.set(ref, ackedCommit.main);
+            }
           } catch (e) {
             refErrors[ref] = {
               code: 'storage-failure',
@@ -300,7 +310,7 @@ class IndexedDbBackend<
 
     return {
       type: 'ack',
-      refs: Array.from(refs),
+      acks: Array.from(refs, ([ref, main]) => ({ ref, main })),
       refErrors,
       syncId: toSyncId(syncCounter),
     };
@@ -347,7 +357,7 @@ interface TrimergeSyncDbSchema extends DBSchema {
   };
   commits: {
     key: string;
-    value: Commit<any, any> & {
+    value: ServerCommit<any, any> & {
       syncId: number;
       remoteSyncId: string;
     };

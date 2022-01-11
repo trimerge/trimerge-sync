@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-hash",
-  "version": "0.11.1",
+  "version": "0.12.0-rc.1",
   "description": "SHA-256 based hash generator for use with trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
@@ -9,6 +9,7 @@
   "scripts": {
     "test": "jest --watch",
     "test-ci": "jest --coverage --reporters=@descript/jest-github-reporter",
+    "test:update-snapshots": "jest --updateSnapshot",
     "build": "rollup -c",
     "watch": "rollup -c -w",
     "lint": "eslint src/**/*.ts",

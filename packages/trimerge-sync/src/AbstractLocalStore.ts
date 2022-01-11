@@ -12,6 +12,7 @@ import {
   RemoteStateEvent,
   RemoteSyncInfo,
   SyncEvent,
+  CommitAck,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
 import {
@@ -100,7 +101,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
   ): Promise<AckCommitsEvent>;
 
   protected abstract acknowledgeRemoteCommits(
-    refs: readonly string[],
+    refs: readonly CommitAck[],
     remoteSyncId: string,
   ): Promise<void>;
 
@@ -166,9 +167,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
 
       case 'ack':
         if (origin === 'remote') {
-          await this.acknowledgeRemoteCommits(event.refs, event.syncId);
-          for (const ref of event.refs) {
-            this.unacknowledgedRefs.delete(ref);
+          await this.acknowledgeRemoteCommits(event.acks, event.syncId);
+          for (const ref of event.acks) {
+            this.unacknowledgedRefs.delete(ref.ref);
           }
           if (event.refErrors && Object.keys(event.refErrors).length > 0) {
             await this.setRemoteState({ type: 'remote-state', save: 'error' });
@@ -196,7 +197,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
         break;
       case 'remote-state':
         if (origin === 'remote') {
-          if (event.connect === 'online') {
+          if (
+            event.connect === 'online' &&
+            this.remoteSyncState.connect !== 'online'
+          ) {
             await this.sendEvent(
               {
                 type: 'client-join',

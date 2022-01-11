@@ -7,6 +7,7 @@ import {
   CommitsEvent,
   OnEventFn,
   RemoteSyncInfo,
+  CommitAck,
 } from '../types';
 import { MemoryStore } from './MemoryStore';
 
@@ -50,7 +51,7 @@ export class MemoryLocalStore<
   }
 
   protected async acknowledgeRemoteCommits(
-    refs: readonly string[],
+    refs: readonly CommitAck[],
     remoteSyncId: string,
   ): Promise<void> {
     await this.store.acknowledgeCommits(refs, remoteSyncId);

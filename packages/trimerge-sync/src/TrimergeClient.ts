@@ -2,9 +2,11 @@ import {
   ClientInfo,
   ClientList,
   Commit,
+  EditCommit,
   GetLocalStoreFn,
   LocalClientInfo,
   LocalStore,
+  MergeCommit,
   OnEventFn,
   SyncStatus,
 } from './types';
@@ -12,6 +14,7 @@ import { mergeHeads } from './merge-heads';
 import { CommitDoc, Differ } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
+import { asCommitRefs } from './lib/Commits';
 
 type AddCommitType =
   // Added from this client
@@ -231,7 +234,7 @@ export class TrimergeClient<
     const commitDoc: CommitDoc<SavedDoc, EditMetadata> = {
       ref: commit.ref,
       doc: this.differ.patch(baseValue, commit.delta),
-      editMetadata: commit.editMetadata,
+      editMetadata: commit.metadata,
     };
     this.docs.set(ref, commitDoc);
     return commitDoc;
@@ -337,7 +340,7 @@ export class TrimergeClient<
     commit: Commit<EditMetadata, Delta>,
     type: AddCommitType,
   ): void {
-    const { ref, baseRef, mergeRef } = commit;
+    const { ref, baseRef, mergeRef } = asCommitRefs(commit);
     if (this.commits.has(ref)) {
       // Promote lazy commit
       if (type === 'external') {
@@ -397,8 +400,9 @@ export class TrimergeClient<
     }
     const commit = this.lazyCommits.get(ref);
     if (commit) {
-      this.promoteLazyCommit(commit.baseRef);
-      this.promoteLazyCommit(commit.mergeRef);
+      const { baseRef, mergeRef } = asCommitRefs(commit);
+      this.promoteLazyCommit(baseRef);
+      this.promoteLazyCommit(mergeRef);
       this.addHead(commit, this.nonLazyHeadRefs);
       this.lazyCommits.delete(ref);
       this.unsyncedCommits.push(commit);
@@ -416,20 +420,31 @@ export class TrimergeClient<
     mergeRef?: string,
     mergeBaseRef?: string,
   ): string {
+    // TODO(matt): decide what we want to do here with clientId.
+    // Is it users responsibility to attach that to the editMetadata? do
+    // wrap their editMetadata in a new object?
     const { userId, clientId } = this;
     const delta = this.differ.diff(base?.doc, newDoc);
     const baseRef = base?.ref;
     const ref = this.differ.computeRef(baseRef, mergeRef, delta, editMetadata);
-    const commit: Commit<EditMetadata, Delta> = {
-      userId,
-      clientId,
-      ref,
-      baseRef,
-      mergeRef,
-      mergeBaseRef,
-      delta,
-      editMetadata,
-    };
+    const commit: Commit<EditMetadata, Delta> =
+      mergeRef !== undefined
+        ? {
+            userId,
+            ref,
+            baseRef,
+            mergeRef,
+            mergeBaseRef,
+            delta,
+            metadata: editMetadata,
+          }
+        : {
+            userId,
+            ref,
+            baseRef,
+            delta,
+            metadata: editMetadata,
+          };
     this.addCommit(commit, lazy ? 'lazy' : 'local');
     return ref;
   }

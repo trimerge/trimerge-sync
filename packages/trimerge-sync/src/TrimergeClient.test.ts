@@ -53,11 +53,10 @@ describe('TrimergeClient', () => {
         type: 'commits',
         commits: [
           {
-            clientId: '',
             userId: '',
             ref: 'a',
             baseRef: 'unknown',
-            editMetadata: '',
+            metadata: '',
           },
         ],
       }),
@@ -70,11 +69,10 @@ describe('TrimergeClient', () => {
         type: 'commits',
         commits: [
           {
-            clientId: '',
             userId: '',
             ref: 'a',
             mergeRef: 'unknown',
-            editMetadata: '',
+            metadata: '',
           },
         ],
       }),

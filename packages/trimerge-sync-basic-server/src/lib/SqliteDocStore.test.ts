@@ -42,26 +42,37 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          clientId: 'client-1',
-          userId: 'client-2',
-          editMetadata: { hello: 'world' },
+          userId: 'user-2',
+          metadata: {
+            clientId: 'client-1',
+            hello: 'world',
+          },
         },
+
         {
           ref: 'hello2',
-          clientId: 'client-1',
-          userId: 'client-2',
-          editMetadata: { hello: 'world' },
+          userId: 'user-2',
+          metadata: {
+            clientId: 'client-1',
+            hello: 'world',
+          },
           baseRef: 'hello1',
           delta: { delta: 'format' },
         },
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "refErrors": Object {},
-        "refs": Array [
-          "hello1",
-          "hello2",
+        "acks": Array [
+          Object {
+            "main": true,
+            "ref": "hello1",
+          },
+          Object {
+            "main": true,
+            "ref": "hello2",
+          },
         ],
+        "refErrors": Object {},
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
@@ -71,17 +82,19 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello3',
-          clientId: 'client-1',
           userId: 'client-2',
-          editMetadata: undefined,
+          metadata: undefined,
         },
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "refErrors": Object {},
-        "refs": Array [
-          "hello3",
+        "acks": Array [
+          Object {
+            "main": false,
+            "ref": "hello3",
+          },
         ],
+        "refErrors": Object {},
         "syncId": "1970-01-01T00:00:00.001Z",
         "type": "ack",
       }
@@ -92,41 +105,34 @@ describe('SqliteDocStore', () => {
         "commits": Array [
           Object {
             "baseRef": undefined,
-            "clientId": "client-1",
             "delta": undefined,
-            "editMetadata": Object {
+            "main": true,
+            "metadata": Object {
+              "clientId": "client-1",
               "hello": "world",
             },
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
             "ref": "hello1",
-            "remoteSyncId": "1970-01-01T00:00:00.000Z",
-            "userId": "client-2",
+            "userId": "user-2",
           },
           Object {
             "baseRef": "hello1",
-            "clientId": "client-1",
             "delta": Object {
               "delta": "format",
             },
-            "editMetadata": Object {
+            "main": true,
+            "metadata": Object {
+              "clientId": "client-1",
               "hello": "world",
             },
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
             "ref": "hello2",
-            "remoteSyncId": "1970-01-01T00:00:00.000Z",
-            "userId": "client-2",
+            "userId": "user-2",
           },
           Object {
             "baseRef": undefined,
-            "clientId": "client-1",
             "delta": undefined,
-            "editMetadata": undefined,
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
+            "main": false,
+            "metadata": undefined,
             "ref": "hello3",
-            "remoteSyncId": "1970-01-01T00:00:00.001Z",
             "userId": "client-2",
           },
         ],
@@ -141,13 +147,10 @@ describe('SqliteDocStore', () => {
         "commits": Array [
           Object {
             "baseRef": undefined,
-            "clientId": "client-1",
             "delta": undefined,
-            "editMetadata": undefined,
-            "mergeBaseRef": undefined,
-            "mergeRef": undefined,
+            "main": false,
+            "metadata": undefined,
             "ref": "hello3",
-            "remoteSyncId": "1970-01-01T00:00:00.001Z",
             "userId": "client-2",
           },
         ],
@@ -164,23 +167,25 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          clientId: 'client-1',
           userId: 'client-2',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-1' },
         },
+
         {
           ref: 'hello1',
-          clientId: 'client-1',
           userId: 'client-2',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-1' },
         },
       ]),
     ).toMatchInlineSnapshot(`
       Object {
-        "refErrors": Object {},
-        "refs": Array [
-          "hello1",
+        "acks": Array [
+          Object {
+            "main": true,
+            "ref": "hello1",
+          },
         ],
+        "refErrors": Object {},
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
@@ -194,28 +199,28 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          clientId: 'client-1',
           userId: 'client-2',
           baseRef: 'unknown',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-2' },
         },
+
         {
           ref: 'hello2',
-          clientId: 'client-1',
           userId: 'client-2',
           mergeRef: 'unknown',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-2' },
         },
+
         {
           ref: 'hello3',
-          clientId: 'client-1',
           userId: 'client-2',
           mergeBaseRef: 'unknown',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-2' },
         },
       ]),
     ).toMatchInlineSnapshot(`
       Object {
+        "acks": Array [],
         "refErrors": Object {
           "hello1": Object {
             "code": "unknown-ref",
@@ -230,7 +235,6 @@ describe('SqliteDocStore', () => {
             "message": "unknown mergeBaseRef",
           },
         },
-        "refs": Array [],
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
@@ -244,22 +248,21 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          clientId: 'client-1',
           userId: 'client-2',
           baseRef: 'unknown',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-2' },
         },
 
         {
           ref: 'hello2',
-          clientId: 'client-1',
           userId: 'client-2',
           baseRef: 'hello1',
-          editMetadata: { hello: 'world' },
+          metadata: { hello: 'world', clientId: 'client-2' },
         },
       ]),
     ).toMatchInlineSnapshot(`
       Object {
+        "acks": Array [],
         "refErrors": Object {
           "hello1": Object {
             "code": "unknown-ref",
@@ -270,10 +273,193 @@ describe('SqliteDocStore', () => {
             "message": "unknown baseRef",
           },
         },
-        "refs": Array [],
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
     `);
+  });
+
+  it('adds merge commits successfully', async () => {
+    const store = makeSqliteStore('merge_commits');
+
+    expect(
+      store.add([
+        {
+          ref: 'hello1',
+          userId: 'user-2',
+          metadata: { hello: 'world', clientId: 'client-1' },
+        },
+
+        {
+          ref: 'hello2',
+          userId: 'user-2',
+          metadata: { hello: 'mars', clientId: 'client-2' },
+        },
+
+        {
+          ref: 'hello3',
+          userId: 'client-2',
+          baseRef: 'hello1',
+          mergeRef: 'hello2',
+          metadata: { hello: 'wmoarrlsd', clientId: 'client-1' },
+        },
+      ]),
+    ).toMatchInlineSnapshot(`
+      Object {
+        "acks": Array [
+          Object {
+            "main": true,
+            "ref": "hello1",
+          },
+          Object {
+            "main": false,
+            "ref": "hello2",
+          },
+          Object {
+            "main": true,
+            "ref": "hello3",
+          },
+        ],
+        "refErrors": Object {},
+        "syncId": "1970-01-01T00:00:00.000Z",
+        "type": "ack",
+      }
+    `);
+    expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": undefined,
+      "delta": undefined,
+      "main": true,
+      "metadata": Object {
+        "clientId": "client-1",
+        "hello": "world",
+      },
+      "ref": "hello1",
+      "userId": "user-2",
+    },
+    Object {
+      "baseRef": undefined,
+      "delta": undefined,
+      "main": false,
+      "metadata": Object {
+        "clientId": "client-2",
+        "hello": "mars",
+      },
+      "ref": "hello2",
+      "userId": "user-2",
+    },
+    Object {
+      "baseRef": "hello1",
+      "delta": undefined,
+      "main": true,
+      "mergeBaseRef": undefined,
+      "mergeRef": "hello2",
+      "metadata": Object {
+        "clientId": "client-1",
+        "hello": "wmoarrlsd",
+      },
+      "ref": "hello3",
+      "userId": "client-2",
+    },
+  ],
+  "syncId": "1970-01-01T00:00:00.000Z",
+  "type": "commits",
+}
+`);
+  });
+  it('existing db', async () => {
+    let store = makeSqliteStore('existing db');
+
+    store.add([
+      {
+        ref: 'hello1',
+        userId: 'user-2',
+        metadata: { hello: 'world', clientId: 'client-1' },
+      },
+
+      {
+        ref: 'hello2',
+        userId: 'user-2',
+        metadata: { hello: 'mars', clientId: 'client-2' },
+      },
+
+      {
+        ref: 'hello3',
+        userId: 'user-2',
+        baseRef: 'hello1',
+        mergeRef: 'hello2',
+        metadata: { hello: 'wmoarrlsd', clientId: 'client-1' },
+      },
+    ]);
+
+    store.close();
+
+    store = makeSqliteStore('existing db');
+
+    store.add([
+      {
+        ref: 'hello4',
+        userId: 'user-2',
+        baseRef: 'hello3',
+        metadata: { hello: 'blargan', clientId: 'client-1' },
+      },
+    ]);
+
+    expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": undefined,
+      "delta": undefined,
+      "main": true,
+      "metadata": Object {
+        "clientId": "client-1",
+        "hello": "world",
+      },
+      "ref": "hello1",
+      "userId": "user-2",
+    },
+    Object {
+      "baseRef": "hello3",
+      "delta": undefined,
+      "main": false,
+      "metadata": Object {
+        "clientId": "client-1",
+        "hello": "blargan",
+      },
+      "ref": "hello4",
+      "userId": "user-2",
+    },
+    Object {
+      "baseRef": undefined,
+      "delta": undefined,
+      "main": false,
+      "metadata": Object {
+        "clientId": "client-2",
+        "hello": "mars",
+      },
+      "ref": "hello2",
+      "userId": "user-2",
+    },
+    Object {
+      "baseRef": "hello1",
+      "delta": undefined,
+      "main": true,
+      "mergeBaseRef": undefined,
+      "mergeRef": "hello2",
+      "metadata": Object {
+        "clientId": "client-1",
+        "hello": "wmoarrlsd",
+      },
+      "ref": "hello3",
+      "userId": "user-2",
+    },
+  ],
+  "syncId": "1970-01-01T00:00:00.000Z",
+  "type": "commits",
+}
+`);
   });
 });

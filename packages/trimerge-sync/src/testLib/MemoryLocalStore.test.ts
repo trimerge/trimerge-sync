@@ -16,9 +16,8 @@ describe('MemoryLocalStore', () => {
       [
         {
           userId: 'test',
-          clientId: 'test',
           ref: 'test1',
-          editMetadata: undefined,
+          metadata: undefined,
         },
       ],
       undefined,
@@ -33,8 +32,7 @@ Array [
     Object {
       "commits": Array [
         Object {
-          "clientId": "test",
-          "editMetadata": undefined,
+          "metadata": undefined,
           "ref": "test1",
           "userId": "test",
         },
@@ -58,8 +56,10 @@ Array [
   ],
   Array [
     Object {
-      "refs": Array [
-        "test1",
+      "acks": Array [
+        Object {
+          "ref": "test1",
+        },
       ],
       "syncId": "1",
       "type": "ack",
@@ -81,9 +81,8 @@ Array [
       [
         {
           userId: 'test',
-          clientId: 'test',
           ref: 'test2',
-          editMetadata: undefined,
+          metadata: undefined,
         },
       ],
       undefined,
@@ -94,8 +93,7 @@ Array [
     Object {
       "commits": Array [
         Object {
-          "clientId": "test",
-          "editMetadata": undefined,
+          "metadata": undefined,
           "ref": "test1",
           "userId": "test",
         },
@@ -119,8 +117,10 @@ Array [
   ],
   Array [
     Object {
-      "refs": Array [
-        "test1",
+      "acks": Array [
+        Object {
+          "ref": "test1",
+        },
       ],
       "syncId": "1",
       "type": "ack",
