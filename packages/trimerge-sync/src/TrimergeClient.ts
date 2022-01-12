@@ -318,8 +318,8 @@ export class TrimergeClient<
     this.syncStateSubs.emitChange();
   }
   private addHead(
-    { ref, baseRef, mergeRef }: CommitRefs,
     headRefs: Set<string>,
+    { ref, baseRef, mergeRef }: CommitRefs,
   ): void {
     if (baseRef !== undefined) {
       if (!this.commits.has(baseRef)) {
@@ -342,9 +342,10 @@ export class TrimergeClient<
   ): void {
     const { ref, baseRef, mergeRef } = asCommitRefs(commit);
     if (this.commits.has(ref)) {
-      // Promote temp commit
       if (type === 'external') {
+        // Promote temp commit
         this.promoteTempCommit(ref);
+        // TODO: upsert commit metadata
       } else {
         console.warn(
           `[TRIMERGE-SYNC] skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (type=${type})`,
@@ -370,7 +371,7 @@ export class TrimergeClient<
     }
 
     this.commits.set(ref, commit);
-    this.addHead(asCommitRefs(commit), this.allHeadRefs);
+    this.addHead(this.allHeadRefs, commit);
     const currentRef = this.lastSavedDoc?.ref;
     if (currentRef === baseRef || currentRef === mergeRef) {
       this.lastSavedDoc = this.getCommitDoc(commit.ref);
@@ -390,7 +391,7 @@ export class TrimergeClient<
         break;
     }
     if (type !== 'temp') {
-      this.addHead(commit, this.nonTempHeadRefs);
+      this.addHead(this.nonTempHeadRefs, commit);
     }
   }
 
@@ -403,7 +404,7 @@ export class TrimergeClient<
       const { baseRef, mergeRef } = asCommitRefs(commit);
       this.promoteTempCommit(baseRef);
       this.promoteTempCommit(mergeRef);
-      this.addHead(commit, this.nonTempHeadRefs);
+      this.addHead(this.nonTempHeadRefs, commit);
       this.tempCommits.delete(ref);
       this.unsyncedCommits.push(commit);
     }
