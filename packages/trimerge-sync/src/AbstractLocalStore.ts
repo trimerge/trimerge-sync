@@ -3,16 +3,16 @@ import {
   ClientInfo,
   ClientPresenceRef,
   Commit,
+  CommitAck,
+  CommitsEvent,
   ErrorCode,
   GetRemoteFn,
   LocalStore,
-  CommitsEvent,
   OnEventFn,
   Remote,
   RemoteStateEvent,
   RemoteSyncInfo,
   SyncEvent,
-  CommitAck,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
 import {
