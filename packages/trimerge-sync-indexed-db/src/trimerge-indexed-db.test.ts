@@ -143,23 +143,6 @@ Object {
 Object {
   "commits": Array [
     Object {
-      "baseRef": "JvrfzM9e",
-      "delta": Array [
-        "hello there",
-        "oh hello there",
-      ],
-      "mergeBaseRef": "GhP0VPg5",
-      "mergeRef": "Rofed6go",
-      "metadata": Object {
-        "message": "merge",
-        "ref": "(JvrfzM9e+Rofed6go)",
-      },
-      "ref": "3vmxbFmH",
-      "remoteSyncId": "",
-      "syncId": 5,
-      "userId": "test",
-    },
-    Object {
       "baseRef": "W04IBhus",
       "delta": Array [
         "hello",
@@ -209,7 +192,10 @@ Object {
   ],
   "heads": Array [
     Object {
-      "ref": "3vmxbFmH",
+      "ref": "JvrfzM9e",
+    },
+    Object {
+      "ref": "Rofed6go",
     },
   ],
   "remotes": Array [],
