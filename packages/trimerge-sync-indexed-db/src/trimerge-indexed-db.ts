@@ -258,7 +258,7 @@ class IndexedDbBackend<
 
     for (const commit of commits) {
       const syncId = ++syncCounter;
-      const { ref, baseRef, } = commit;
+      const { ref, baseRef } = commit;
       let mergeRef: string | undefined;
       if (isMergeCommit(commit)) {
         mergeRef = commit.mergeRef;
@@ -269,7 +269,12 @@ class IndexedDbBackend<
             if (await commitExistsAlready(commit)) {
               return;
             }
-            await commitsDb.add({ syncId, remoteSyncId: '', ...commit });
+
+            await commitsDb.add({
+              syncId,
+              remoteSyncId: commit.cursor ?? '',
+              ...commit,
+            });
             const ackedCommit = await commitsDb.get(commit.ref);
             if (ackedCommit) {
               refs.set(ref, ackedCommit.main);

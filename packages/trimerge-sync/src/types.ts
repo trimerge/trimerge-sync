@@ -113,6 +113,8 @@ export type CommitAck = {
   // If the remote acking this commit is authoritative, main will indicate if this
   // commit is on the mainline or not, otherwise it will be undefined.
   main?: boolean;
+
+  cursor?: string;
 };
 
 export type ServerCommitAck = Required<CommitAck>;
