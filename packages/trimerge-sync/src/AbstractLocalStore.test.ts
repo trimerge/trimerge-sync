@@ -130,16 +130,6 @@ Array [
     const fn = jest.fn();
     const store = new MockLocalStore(fn);
     await store.update([], undefined);
-    expect(fn.mock.calls).toMatchInlineSnapshot(`
-Array [
-  Array [
-    Object {
-      "acks": Array [],
-      "syncId": "",
-      "type": "ack",
-    },
-  ],
-]
-`);
+    expect(fn.mock.calls).toMatchInlineSnapshot(`Array []`);
   });
 });

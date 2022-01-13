@@ -3,8 +3,9 @@ import { TrimergeClient } from './TrimergeClient';
 import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
 import { computeRef, diff, merge, migrate, patch } from './testLib/MergeUtils';
-import { getBasicGraph } from './testLib/GraphVisualizers';
 import { timeout } from './lib/Timeout';
+
+jest.setTimeout(10_000);
 
 type TestEditMetadata = any;
 type TestSavedDoc = any;
@@ -33,7 +34,7 @@ function makeClient(
   Delta,
   TestPresence
 > {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, differ, 0);
+  return new TrimergeClient(userId, 'test', store.getLocalStore, differ);
 }
 
 describe('TrimergeClient Fuzz', () => {

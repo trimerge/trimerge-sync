@@ -30,14 +30,6 @@ describe('MemoryLocalStore', () => {
 Array [
   Array [
     Object {
-      "connect": "offline",
-      "read": "offline",
-      "save": "pending",
-      "type": "remote-state",
-    },
-  ],
-  Array [
-    Object {
       "commits": Array [
         Object {
           "metadata": undefined,
@@ -51,6 +43,19 @@ Array [
   ],
   Array [
     Object {
+      "type": "ready",
+    },
+  ],
+  Array [
+    Object {
+      "connect": "offline",
+      "read": "offline",
+      "save": "pending",
+      "type": "remote-state",
+    },
+  ],
+  Array [
+    Object {
       "acks": Array [
         Object {
           "ref": "test1",
@@ -58,11 +63,6 @@ Array [
       ],
       "syncId": "1",
       "type": "ack",
-    },
-  ],
-  Array [
-    Object {
-      "type": "ready",
     },
   ],
   Array [
@@ -91,14 +91,6 @@ Array [
 Array [
   Array [
     Object {
-      "connect": "offline",
-      "read": "offline",
-      "save": "pending",
-      "type": "remote-state",
-    },
-  ],
-  Array [
-    Object {
       "commits": Array [
         Object {
           "metadata": undefined,
@@ -112,6 +104,19 @@ Array [
   ],
   Array [
     Object {
+      "type": "ready",
+    },
+  ],
+  Array [
+    Object {
+      "connect": "offline",
+      "read": "offline",
+      "save": "pending",
+      "type": "remote-state",
+    },
+  ],
+  Array [
+    Object {
       "acks": Array [
         Object {
           "ref": "test1",
@@ -119,11 +124,6 @@ Array [
       ],
       "syncId": "1",
       "type": "ack",
-    },
-  ],
-  Array [
-    Object {
-      "type": "ready",
     },
   ],
   Array [

@@ -11,11 +11,10 @@ import {
   SyncStatus,
 } from './types';
 import { mergeHeads } from './merge-heads';
-import { Differ, CommitDoc } from './differ';
+import { CommitDoc, Differ } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
-import { timeout } from './lib/Timeout';
-import { asCommitRefs } from './lib/Commits';
+import { asCommitRefs, CommitRefs } from './lib/Commits';
 
 type AddCommitType =
   // Added from this client
@@ -23,7 +22,7 @@ type AddCommitType =
   // Added from outside the client (e.g. a store)
   | 'external'
   // Added from this client, but don't sync to store
-  | 'lazy';
+  | 'temp';
 
 export class TrimergeClient<
   SavedDoc,
@@ -32,8 +31,16 @@ export class TrimergeClient<
   Delta,
   Presence,
 > {
-  private lastSaved?: CommitDoc<SavedDoc, EditMetadata>;
+  // The doc for the latest non-temp commit
+  // This is used when rolling back all temp commits
+  private lastNonTempDoc?: CommitDoc<SavedDoc, EditMetadata>;
+
+  // The doc for the latest commit (potentially temp)
+  private lastSavedDoc?: CommitDoc<SavedDoc, EditMetadata>;
+
+  // A cached migrated version of lastSavedDoc (could be instance equal)
   private latestDoc?: CommitDoc<LatestDoc, EditMetadata>;
+
   private lastLocalSyncId: string | undefined;
 
   private docSubs = new SubscriberList(() => this.doc);
@@ -53,10 +60,11 @@ export class TrimergeClient<
 
   private commits = new Map<string, Commit<EditMetadata, Delta>>();
   private docs = new Map<string, CommitDoc<SavedDoc, EditMetadata>>();
-  private headRefs = new Set<string>();
+  private allHeadRefs = new Set<string>();
+  private nonTempHeadRefs = new Set<string>();
 
   private store: LocalStore<EditMetadata, Delta, Presence>;
-  private lazyCommits = new Map<string, Commit<EditMetadata, Delta>>();
+  private tempCommits = new Map<string, Commit<EditMetadata, Delta>>();
   private unsyncedCommits: Commit<EditMetadata, Delta>[] = [];
 
   private selfFullId: string;
@@ -79,7 +87,6 @@ export class TrimergeClient<
       Presence
     >,
     private readonly differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
-    private readonly bufferMs: number,
   ) {
     this.selfFullId = getFullId(userId, clientId);
     this.store = getLocalStore(userId, clientId, this.onEvent);
@@ -165,11 +172,11 @@ export class TrimergeClient<
   };
 
   get doc(): LatestDoc | undefined {
-    if (this.lastSaved === undefined) {
+    if (this.lastSavedDoc === undefined) {
       return undefined;
     }
     if (this.latestDoc === undefined) {
-      this.latestDoc = this.migrateCommit(this.lastSaved);
+      this.latestDoc = this.migrateCommit(this.lastSavedDoc);
     }
     return this.latestDoc.doc;
   }
@@ -207,7 +214,7 @@ export class TrimergeClient<
 
   private setPresence(
     presence: Presence | undefined,
-    ref = this.lastSaved?.ref,
+    ref = this.lastSavedDoc?.ref,
   ) {
     const { userId, clientId } = this;
     this.newPresence = { userId, clientId, ref, presence };
@@ -249,18 +256,18 @@ export class TrimergeClient<
       commit.editMetadata,
     );
     if (commit.doc === doc) {
-      return { ...commit, doc };
+      return commit as CommitDoc<LatestDoc, EditMetadata>;
     }
     const ref = this.addNewCommit(doc, editMetadata, true, commit);
     return { ref, doc, editMetadata };
   }
 
   private mergeHeads() {
-    if (this.headRefs.size <= 1) {
+    if (this.allHeadRefs.size <= 1) {
       return;
     }
     mergeHeads(
-      Array.from(this.headRefs),
+      Array.from(this.allHeadRefs),
       this.getCommit,
       (baseRef, leftRef, rightRef) => {
         const base =
@@ -272,56 +279,61 @@ export class TrimergeClient<
         const {
           doc,
           editMetadata,
-          lazy = false,
+          temp = true,
         } = this.differ.merge(base, left, right);
         return this.addNewCommit(
           doc,
           editMetadata,
-          lazy,
+          temp,
           left,
           rightRef,
           baseRef,
         );
       },
     );
+    if (this.allHeadRefs.size > 1) {
+      throw new Error('more than one head after merging');
+    }
     // TODO: update Presence(s) based on this merge
     // TODO: can we clear out commits we don't need anymore?
   }
-
-  private syncPromise: Promise<boolean> | undefined;
 
   private emitClientListChange() {
     this.clientList = Array.from(this.clientMap.values());
     this.clientListSubs.emitChange();
   }
-
-  private get needsSync(): boolean {
-    return this.unsyncedCommits.length > 0 || this.newPresence !== undefined;
-  }
   private sync(): void {
-    if (!this.syncPromise && this.needsSync) {
-      this.syncPromise = this.doSync();
-    }
-  }
-
-  private updateSyncState(update: Partial<SyncStatus>) {
-    this.syncState = { ...this.syncState, ...update };
-    this.syncStateSubs.emitChange();
-  }
-
-  private async doSync() {
-    while (this.needsSync) {
-      this.updateSyncState({ localSave: 'pending' });
-      await timeout(this.bufferMs);
-      const commits = this.unsyncedCommits;
+    const commits = this.unsyncedCommits;
+    if (commits.length > 0 || this.newPresence !== undefined) {
       this.unsyncedCommits = [];
       this.updateSyncState({ localSave: 'saving' });
       this.store.update(commits, this.newPresence);
       this.newPresence = undefined;
     }
     this.updateSyncState({ localSave: 'ready' });
-    this.syncPromise = undefined;
-    return true;
+  }
+
+  private updateSyncState(update: Partial<SyncStatus>): void {
+    this.syncState = { ...this.syncState, ...update };
+    this.syncStateSubs.emitChange();
+  }
+  private addHead(
+    headRefs: Set<string>,
+    { ref, baseRef, mergeRef }: CommitRefs,
+  ): void {
+    if (baseRef !== undefined) {
+      if (!this.commits.has(baseRef)) {
+        throw new Error(`unknown baseRef ${baseRef}`);
+      }
+      headRefs.delete(baseRef);
+    }
+    if (mergeRef !== undefined) {
+      if (!this.commits.has(mergeRef)) {
+        throw new Error(`unknown mergeRef ${mergeRef}`);
+      }
+      headRefs.delete(mergeRef);
+    }
+    headRefs.add(ref);
   }
 
   private addCommit(
@@ -330,9 +342,10 @@ export class TrimergeClient<
   ): void {
     const { ref, baseRef, mergeRef } = asCommitRefs(commit);
     if (this.commits.has(ref)) {
-      // Promote lazy commit
       if (type === 'external') {
-        this.lazyCommits.delete(ref);
+        // Promote temp commit
+        this.promoteTempCommit(ref);
+        // TODO: upsert commit metadata
       } else {
         console.warn(
           `[TRIMERGE-SYNC] skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (type=${type})`,
@@ -340,56 +353,71 @@ export class TrimergeClient<
       }
       return;
     }
+
+    if (type === 'external') {
+      // Roll back to non-temp commit
+      if (this.lastSavedDoc !== this.lastNonTempDoc) {
+        this.lastSavedDoc = this.lastNonTempDoc;
+        this.latestDoc = undefined;
+      }
+      // Remove all temp commits
+      for (const ref1 of this.tempCommits.keys()) {
+        this.commits.delete(ref1);
+        this.docs.delete(ref1);
+      }
+      // Roll back heads
+      this.allHeadRefs = new Set(this.nonTempHeadRefs);
+      this.tempCommits.clear();
+    }
+
     this.commits.set(ref, commit);
-    if (baseRef !== undefined) {
-      if (!this.commits.has(baseRef)) {
-        throw new Error(`unknown baseRef ${baseRef}`);
-      }
-      this.headRefs.delete(baseRef);
-    }
-    if (mergeRef !== undefined) {
-      if (!this.commits.has(mergeRef)) {
-        throw new Error(`unknown mergeRef ${mergeRef}`);
-      }
-      this.headRefs.delete(mergeRef);
-    }
-    this.headRefs.add(ref);
-    const currentRef = this.lastSaved?.ref;
+    this.addHead(this.allHeadRefs, commit);
+    const currentRef = this.lastSavedDoc?.ref;
     if (currentRef === baseRef || currentRef === mergeRef) {
-      this.lastSaved = this.getCommitDoc(commit.ref);
+      this.lastSavedDoc = this.getCommitDoc(commit.ref);
+      if (type !== 'temp') {
+        this.lastNonTempDoc = this.lastSavedDoc;
+      }
       this.latestDoc = undefined;
     }
     switch (type) {
-      case 'lazy':
-        this.lazyCommits.set(commit.ref, commit);
+      case 'temp':
+        this.tempCommits.set(commit.ref, commit);
         break;
       case 'local':
-        this.promoteLazyCommit(baseRef);
-        this.promoteLazyCommit(mergeRef);
+        this.promoteTempCommit(baseRef);
+        this.promoteTempCommit(mergeRef);
         this.unsyncedCommits.push(commit);
         break;
     }
+    if (type !== 'temp') {
+      this.addHead(this.nonTempHeadRefs, commit);
+    }
   }
 
-  private promoteLazyCommit(ref?: string) {
+  private promoteTempCommit(ref?: string) {
     if (!ref) {
       return;
     }
-    const commit = this.lazyCommits.get(ref);
+    const commit = this.tempCommits.get(ref);
     if (commit) {
       const { baseRef, mergeRef } = asCommitRefs(commit);
-      this.promoteLazyCommit(baseRef);
-      this.promoteLazyCommit(mergeRef);
-      this.lazyCommits.delete(ref);
+      this.promoteTempCommit(baseRef);
+      this.promoteTempCommit(mergeRef);
+      this.addHead(this.nonTempHeadRefs, commit);
+      this.tempCommits.delete(ref);
       this.unsyncedCommits.push(commit);
+    }
+    if (this.lastSavedDoc?.ref === ref) {
+      this.lastNonTempDoc = this.lastSavedDoc;
     }
   }
 
   private addNewCommit(
     newDoc: LatestDoc,
     editMetadata: EditMetadata,
-    lazy: boolean,
-    base: CommitDoc<SavedDoc, EditMetadata> | undefined = this.lastSaved,
+    temp: boolean,
+    base: CommitDoc<SavedDoc, EditMetadata> | undefined = this.lastSavedDoc,
     mergeRef?: string,
     mergeBaseRef?: string,
   ): string {
@@ -418,7 +446,7 @@ export class TrimergeClient<
             delta,
             metadata: editMetadata,
           };
-    this.addCommit(commit, lazy ? 'lazy' : 'local');
+    this.addCommit(commit, temp ? 'temp' : 'local');
     return ref;
   }
 

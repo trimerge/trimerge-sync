@@ -24,7 +24,7 @@ export type CommitDoc<Doc, EditMetadata> = {
 } & DocAndMetadata<Doc, EditMetadata>;
 
 export type MergeResult<LatestDoc, EditMetadata> = {
-  lazy?: boolean;
+  temp?: boolean;
 } & DocAndMetadata<LatestDoc, EditMetadata>;
 
 export type MergeDocFn<LatestDoc, EditMetadata> = (

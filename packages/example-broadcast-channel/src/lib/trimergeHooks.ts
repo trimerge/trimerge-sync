@@ -46,7 +46,6 @@ function getCachedTrimergeClient<
         remoteId: 'localhost',
       }),
       differ,
-      100,
     );
   }
   return TRIMERGE_CLIENT_CACHE[key];

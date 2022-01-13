@@ -18,47 +18,35 @@ function makeClientV1(
   userId: string,
   store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1, DocV1, TestEditMetadata, Delta, TestPresence> {
-  return new TrimergeClient(
-    userId,
-    'test',
-    store.getLocalStore,
-    {
-      migrate: (doc, editMetadata) => ({ doc, editMetadata }),
-      diff,
-      patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
-      computeRef,
-      merge,
-    },
-    0,
-  );
+  return new TrimergeClient(userId, 'test', store.getLocalStore, {
+    migrate: (doc, editMetadata) => ({ doc, editMetadata }),
+    diff,
+    patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
+    computeRef,
+    merge,
+  });
 }
 function makeClientV2(
   userId: string,
   store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1 | DocV2, DocV2, TestEditMetadata, Delta, TestPresence> {
-  return new TrimergeClient(
-    userId,
-    'test',
-    store.getLocalStore,
-    {
-      migrate: (doc, editMetadata) => {
-        switch (doc.v) {
-          case 1:
-            return {
-              doc: { v: 2, field: String(doc.field) },
-              editMetadata: 'migrated to v2',
-            };
-          case 2:
-            return { doc, editMetadata };
-        }
-      },
-      diff,
-      patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
-      computeRef,
-      merge,
+  return new TrimergeClient(userId, 'test', store.getLocalStore, {
+    migrate: (doc, editMetadata) => {
+      switch (doc.v) {
+        case 1:
+          return {
+            doc: { v: 2, field: String(doc.field) },
+            editMetadata: 'migrated to v2',
+          };
+        case 2:
+          return { doc, editMetadata };
+      }
     },
-    0,
-  );
+    diff,
+    patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
+    computeRef,
+    merge,
+  });
 }
 
 function basicGraph(
@@ -143,6 +131,52 @@ Array [
     "value": Object {
       "field": "456",
       "v": 2,
+    },
+  },
+]
+`);
+  });
+  it('remigrates as updates come in', async () => {
+    const store = newStore();
+
+    const client1 = makeClientV1('a', store);
+    client1.updateDoc({ v: 1, field: 123 }, 'initialize');
+    expect(client1.doc).toEqual({ v: 1, field: 123 });
+
+    await timeout();
+
+    const client2 = makeClientV2('a', store);
+
+    await timeout();
+
+    expect(client2.doc).toEqual({ v: 2, field: '123' });
+
+    client1.updateDoc({ v: 1, field: 456 }, 'update field');
+
+    expect(client1.doc).toEqual({ v: 1, field: 456 });
+
+    await timeout();
+
+    // expect(client2.doc).toEqual({ v: 2, field: '456' });
+
+    await timeout();
+
+    expect(basicGraph(store, client2)).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "graph": "undefined -> Z-zhYWBg",
+    "step": "User a: initialize",
+    "value": Object {
+      "field": 123,
+      "v": 1,
+    },
+  },
+  Object {
+    "graph": "Z-zhYWBg -> 2gIafKP_",
+    "step": "User a: update field",
+    "value": Object {
+      "field": 456,
+      "v": 1,
     },
   },
 ]
