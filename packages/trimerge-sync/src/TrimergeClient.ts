@@ -106,7 +106,9 @@ export class TrimergeClient<
       case 'commits': {
         const { commits, syncId, clientInfo } = event;
         for (const commit of commits) {
-          this.addCommit(commit, 'external');
+          if (commit.type === 'commit') {
+            this.addCommit(commit.commit, 'external');
+          }
         }
         this.lastLocalSyncId = syncId;
         this.mergeHeads();

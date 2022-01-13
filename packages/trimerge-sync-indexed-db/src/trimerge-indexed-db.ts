@@ -11,6 +11,9 @@ import {
   RemoteSyncInfo,
   ServerCommit,
   isMergeCommit,
+  CommitOrAck,
+  ServerCommitAck,
+  hasServerInfo,
   CommitAck,
 } from 'trimerge-sync';
 import { AbstractLocalStore } from 'trimerge-sync';
@@ -156,25 +159,28 @@ class IndexedDbBackend<
       for (let i = 0; i < unsentcommits.length; i += COMMIT_PAGE_SIZE) {
         yield {
           type: 'commits',
-          commits: unsentcommits.slice(i, i + COMMIT_PAGE_SIZE),
+          commits: unsentcommits
+            .slice(i, i + COMMIT_PAGE_SIZE)
+            .map((commit) => ({ type: 'commit', commit })),
         };
       }
     }
   }
 
-  protected async acknowledgeRemoteCommits(
-    acks: readonly CommitAck[],
-    remoteSyncCursor: string,
-  ): Promise<void> {
-    const db = await this.db;
-    for (const ack of acks) {
-      const commit = await db.get('commits', ack.ref);
-      if (commit && !commit.remoteSyncId) {
-        commit.remoteSyncId = remoteSyncCursor;
+  private static async confirmLocalCommit(
+    db: IDBPDatabase<TrimergeSyncDbSchema>,
+    ack: CommitAck,
+  ) {
+    const commit = await db.get('commits', ack.ref);
+    if (commit) {
+      if (hasServerInfo(ack) && !commit.remoteSyncId) {
+        commit.remoteSyncId = ack.cursor;
+        commit.main = ack.main;
         await db.put('commits', commit);
       }
+    } else {
+      throw new Error(`Commit ${ack.ref} not found`);
     }
-    await this.upsertRemoteSyncInfo(remoteSyncCursor);
   }
 
   protected async getRemoteSyncInfo(): Promise<RemoteSyncInfo> {
@@ -221,7 +227,7 @@ class IndexedDbBackend<
   }
 
   protected async addCommits(
-    commits: readonly ServerCommit<EditMetadata, Delta>[],
+    commitOrAcks: readonly CommitOrAck<EditMetadata, Delta>[],
     lastSyncCursor: string | undefined,
   ): Promise<AckCommitsEvent> {
     const db = await this.db;
@@ -250,13 +256,33 @@ class IndexedDbBackend<
       const existingCommit = await commitsDb.get(commit.ref);
       if (existingCommit) {
         refs.set(commit.ref, existingCommit.main);
-        console.warn(`already have commit`, { commit, existingCommit, error });
+        if (hasServerInfo(commit)) {
+          await IndexedDbBackend.confirmLocalCommit(db, commit);
+          console.warn(`recieved local commit from remote in it's entirety`, {
+            commit,
+            existingCommit,
+            error,
+          });
+        } else {
+          console.warn(`already have commit`, {
+            commit,
+            existingCommit,
+            error,
+          });
+        }
         return true;
       }
       return false;
     }
 
-    for (const commit of commits) {
+    for (const commitOrAck of commitOrAcks) {
+      if (commitOrAck.type === 'ack') {
+        await IndexedDbBackend.confirmLocalCommit(db, commitOrAck.ack);
+        continue;
+      }
+
+      const { commit } = commitOrAck;
+
       const syncId = ++syncCounter;
       const { ref, baseRef } = commit;
       let mergeRef: string | undefined;
@@ -270,9 +296,14 @@ class IndexedDbBackend<
               return;
             }
 
+            // TODO(matt): clean this up, we shouldn't need to store both remoteSyncId and cursor.
+            const remoteSyncId = hasServerInfo(commit) ? commit.cursor : '';
+
             await commitsDb.add({
               syncId,
-              remoteSyncId: commit.cursor ?? '',
+              remoteSyncId,
+              main: false,
+              cursor: remoteSyncId,
               ...commit,
             });
             const ackedCommit = await commitsDb.get(commit.ref);
@@ -284,7 +315,7 @@ class IndexedDbBackend<
               code: 'storage-failure',
               message: e instanceof Error ? e.message : String(e),
             };
-            console.warn(`error inserting commit`, { commit }, e);
+            console.warn(`error inserting commit`, { commit: commit }, e);
           }
         })(),
       );
@@ -334,7 +365,7 @@ class IndexedDbBackend<
     const syncCounter = getSyncCounter(commits);
     yield {
       type: 'commits',
-      commits,
+      commits: commits.map((c) => ({ type: 'commit', commit: c })),
       syncId: toSyncId(syncCounter),
     };
   }

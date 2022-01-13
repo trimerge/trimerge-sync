@@ -13,6 +13,7 @@ import {
   RemoteSyncInfo,
   SyncEvent,
   CommitAck,
+  CommitOrAck,
 } from './types';
 import { PromiseQueue } from './lib/PromiseQueue';
 import {
@@ -96,14 +97,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
   >;
 
   protected abstract addCommits(
-    commits: readonly Commit<EditMetadata, Delta>[],
+    commits: readonly CommitOrAck<EditMetadata, Delta>[],
     remoteSyncId?: string,
   ): Promise<AckCommitsEvent>;
-
-  protected abstract acknowledgeRemoteCommits(
-    refs: readonly CommitAck[],
-    remoteSyncId: string,
-  ): Promise<void>;
 
   protected abstract getRemoteSyncInfo(): Promise<RemoteSyncInfo>;
 
@@ -162,19 +158,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
       case 'commits':
         if (origin === 'remote') {
           await this.addCommits(event.commits, event.syncId);
-        }
-        break;
-
-      case 'ack':
-        if (origin === 'remote') {
-          await this.acknowledgeRemoteCommits(event.acks, event.syncId);
-          for (const ref of event.acks) {
-            this.unacknowledgedRefs.delete(ref.ref);
-          }
-          if (event.refErrors && Object.keys(event.refErrors).length > 0) {
-            await this.setRemoteState({ type: 'remote-state', save: 'error' });
-          } else if (this.unacknowledgedRefs.size === 0) {
-            await this.setRemoteState({ type: 'remote-state', save: 'ready' });
+          for (const ack of event.commits) {
+            if (ack.type === 'ack') {
+              this.unacknowledgedRefs.delete(ack.ack.ref);
+            }
           }
         }
         break;
@@ -328,8 +315,11 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
         );
         let saving = false;
         for await (const event of this.getCommitsForRemote()) {
-          for (const { ref } of event.commits) {
-            this.unacknowledgedRefs.add(ref);
+          for (const commit of event.commits) {
+            if (commit.type === 'ack') {
+              throw new Error('should not be generating ack for remote');
+            }
+            this.unacknowledgedRefs.add(commit.commit.ref);
           }
           if (!saving) {
             await this.setRemoteState({
@@ -462,7 +452,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
       await this.setRemoteState({ type: 'remote-state', save: 'pending' });
     }
 
-    const ack = await this.addCommits(commits);
+    const wrappedCommits: CommitOrAck<EditMetadata, Delta>[] = commits.map(
+      (commit) => ({ type: 'commit', commit }),
+    );
+    const ack = await this.addCommits(wrappedCommits);
     await this.sendEvent(ack, { self: true });
     const clientInfo: ClientInfo<Presence> | undefined = presenceRef && {
       ...presenceRef,
@@ -474,7 +467,7 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
       await this.sendEvent(
         {
           type: 'commits',
-          commits,
+          commits: wrappedCommits,
           syncId: ack.syncId,
           clientInfo,
         },

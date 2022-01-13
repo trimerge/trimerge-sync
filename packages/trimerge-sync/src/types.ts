@@ -44,6 +44,19 @@ export function isMergeCommit(
   return (commit as MergeCommit<unknown, unknown>).mergeRef !== undefined;
 }
 
+export function hasServerInfo(
+  commit: Commit<unknown, unknown>,
+): commit is ServerCommit<unknown, unknown>;
+export function hasServerInfo(commit: CommitAck): commit is ServerCommitAck;
+export function hasServerInfo(
+  commit: Commit<unknown, unknown> | CommitAck,
+): commit is ServerCommit<unknown, unknown> | ServerCommitAck {
+  return (
+    (commit as ServerCommit<unknown, unknown>).main !== undefined &&
+    (commit as ServerCommit<unknown, unknown>).cursor !== undefined
+  );
+}
+
 export type Commit<EditMetadata, Delta> =
   | MergeCommit<EditMetadata, Delta>
   | EditCommit<EditMetadata, Delta>;
@@ -122,12 +135,27 @@ export type ServerCommitAck = Required<CommitAck>;
 export type ServerCommit<EditMetadata, Delta> = Commit<EditMetadata, Delta> &
   ServerCommitAck;
 
+type BaseCommitOrAck = {
+  type: 'commit' | 'ack';
+};
+
+type CommitWrapper<EditMetadata, Delta> = BaseCommitOrAck & {
+  type: 'commit';
+  commit: Commit<EditMetadata, Delta> | ServerCommit<EditMetadata, Delta>;
+};
+
+type AckWrapper = BaseCommitOrAck & {
+  type: 'ack';
+  ack: CommitAck;
+};
+
+export type CommitOrAck<EditMetadata, Delta> =
+  | CommitWrapper<EditMetadata, Delta>
+  | AckWrapper;
+
 export type CommitsEvent<EditMetadata, Delta, Presence> = {
   type: 'commits';
-  commits: readonly (
-    | ServerCommit<EditMetadata, Delta>
-    | Commit<EditMetadata, Delta>
-  )[];
+  commits: readonly CommitOrAck<EditMetadata, Delta>[];
   clientInfo?: ClientInfo<Presence>;
   syncId?: string;
 };

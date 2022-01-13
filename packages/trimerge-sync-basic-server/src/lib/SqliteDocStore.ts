@@ -121,7 +121,7 @@ export class SqliteDocStore implements DocStore {
     );
     return {
       type: 'commits',
-      commits,
+      commits: commits.map((commit) => ({ type: 'commit', commit })),
       syncId,
     };
   }
