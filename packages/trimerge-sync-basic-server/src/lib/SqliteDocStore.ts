@@ -104,6 +104,7 @@ export class SqliteDocStore implements DocStore {
             delta: delta ? JSON.parse(delta) : undefined,
             metadata: metadata ? JSON.parse(metadata) : undefined,
             main: Boolean(main),
+            cursor: remoteSyncId,
           };
         } else {
           return {
@@ -113,6 +114,7 @@ export class SqliteDocStore implements DocStore {
             delta: delta ? JSON.parse(delta) : undefined,
             metadata: metadata ? JSON.parse(metadata) : undefined,
             main: Boolean(main),
+            cursor: remoteSyncId,
           };
         }
       },

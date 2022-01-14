@@ -96,14 +96,9 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
   >;
 
   protected abstract addCommits(
-    commits: readonly Commit<EditMetadata, Delta>[],
+    commits: readonly CommitOrAck<EditMetadata, Delta>[],
     remoteSyncId?: string,
   ): Promise<AckCommitsEvent>;
-
-  protected abstract acknowledgeRemoteCommits(
-    refs: readonly CommitAck[],
-    remoteSyncId: string,
-  ): Promise<void>;
 
   protected abstract getRemoteSyncInfo(): Promise<RemoteSyncInfo>;
 
@@ -162,12 +157,14 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
       case 'commits':
         if (origin === 'remote') {
           await this.addCommits(event.commits, event.syncId);
+          for (const { ref } of event.commits) {
+            this.unacknowledgedRefs.delete(ref);
+          }
         }
         break;
 
       case 'ack':
         if (origin === 'remote') {
-          await this.acknowledgeRemoteCommits(event.acks, event.syncId);
           for (const ref of event.acks) {
             this.unacknowledgedRefs.delete(ref.ref);
           }

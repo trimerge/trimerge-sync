@@ -11,6 +11,8 @@ import {
   RemoteSyncInfo,
   ServerCommit,
   isMergeCommit,
+  ServerCommitAck,
+  hasServerInfo,
   CommitAck,
 } from 'trimerge-sync';
 import { AbstractLocalStore } from 'trimerge-sync';
@@ -162,19 +164,20 @@ class IndexedDbBackend<
     }
   }
 
-  protected async acknowledgeRemoteCommits(
-    acks: readonly CommitAck[],
-    remoteSyncCursor: string,
-  ): Promise<void> {
-    const db = await this.db;
-    for (const ack of acks) {
-      const commit = await db.get('commits', ack.ref);
-      if (commit && !commit.remoteSyncId) {
-        commit.remoteSyncId = remoteSyncCursor;
+  private static async confirmLocalCommit(
+    db: IDBPDatabase<TrimergeSyncDbSchema>,
+    ack: CommitAck,
+  ) {
+    const commit = await db.get('commits', ack.ref);
+    if (commit) {
+      if (hasServerInfo(ack) && !commit.remoteSyncId) {
+        commit.remoteSyncId = ack.cursor;
+        commit.main = ack.main;
         await db.put('commits', commit);
       }
+    } else {
+      throw new Error(`Commit ${ack.ref} not found`);
     }
-    await this.upsertRemoteSyncInfo(remoteSyncCursor);
   }
 
   protected async getRemoteSyncInfo(): Promise<RemoteSyncInfo> {
@@ -251,6 +254,9 @@ class IndexedDbBackend<
       if (existingCommit) {
         refs.set(commit.ref, existingCommit.main);
         console.warn(`already have commit`, { commit, existingCommit, error });
+        if (hasServerInfo(commit)) {
+          await IndexedDbBackend.confirmLocalCommit(db, commit);
+        }
         return true;
       }
       return false;
@@ -258,7 +264,7 @@ class IndexedDbBackend<
 
     for (const commit of commits) {
       const syncId = ++syncCounter;
-      const { ref, baseRef, } = commit;
+      const { ref, baseRef } = commit;
       let mergeRef: string | undefined;
       if (isMergeCommit(commit)) {
         mergeRef = commit.mergeRef;
@@ -269,7 +275,17 @@ class IndexedDbBackend<
             if (await commitExistsAlready(commit)) {
               return;
             }
-            await commitsDb.add({ syncId, remoteSyncId: '', ...commit });
+
+            // TODO(matt): clean this up, we shouldn't need to store both remoteSyncId and cursor.
+            const remoteSyncId = hasServerInfo(commit) ? commit.cursor : '';
+
+            await commitsDb.add({
+              syncId,
+              remoteSyncId,
+              main: false,
+              cursor: remoteSyncId,
+              ...commit,
+            });
             const ackedCommit = await commitsDb.get(commit.ref);
             if (ackedCommit) {
               refs.set(ref, ackedCommit.main);

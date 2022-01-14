@@ -44,6 +44,19 @@ export function isMergeCommit(
   return (commit as MergeCommit<unknown, unknown>).mergeRef !== undefined;
 }
 
+export function hasServerInfo(
+  commit: Commit<unknown, unknown>,
+): commit is ServerCommit<unknown, unknown>;
+export function hasServerInfo(commit: CommitAck): commit is ServerCommitAck;
+export function hasServerInfo(
+  commit: Commit<unknown, unknown> | CommitAck,
+): commit is ServerCommit<unknown, unknown> | ServerCommitAck {
+  return (
+    (commit as ServerCommit<unknown, unknown>).main !== undefined &&
+    (commit as ServerCommit<unknown, unknown>).cursor !== undefined
+  );
+}
+
 export type Commit<EditMetadata, Delta> =
   | MergeCommit<EditMetadata, Delta>
   | EditCommit<EditMetadata, Delta>;
@@ -113,6 +126,8 @@ export type CommitAck = {
   // If the remote acking this commit is authoritative, main will indicate if this
   // commit is on the mainline or not, otherwise it will be undefined.
   main?: boolean;
+
+  cursor?: string;
 };
 
 export type ServerCommitAck = Required<CommitAck>;
