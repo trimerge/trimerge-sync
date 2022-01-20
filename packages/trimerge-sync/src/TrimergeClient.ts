@@ -10,7 +10,7 @@ import {
   OnEventFn,
   SyncStatus,
 } from './types';
-import { mergeHeads } from './merge-heads';
+import { GetCommitFn, mergeHeads, SortRefsFn } from './merge-heads';
 import { CommitDoc, Differ } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
@@ -240,7 +240,9 @@ export class TrimergeClient<
     return commitDoc;
   }
 
-  getCommit = (ref: string) => {
+  private getCommit: GetCommitFn<Commit<EditMetadata, Delta>> = (
+    ref: string,
+  ) => {
     const commit = this.commits.get(ref);
     if (commit) {
       return commit;
@@ -262,38 +264,30 @@ export class TrimergeClient<
     return { ref, doc, editMetadata };
   }
 
+  private getMigratedDoc = (
+    ref: string,
+  ): CommitDoc<LatestDoc, EditMetadata> => {
+    return this.migrateCommit(this.getCommitDoc(ref));
+  };
+
   private mergeHeads() {
     if (this.allHeadRefs.size <= 1) {
       return;
     }
-    mergeHeads(
+    this.differ.autoMerge(
       Array.from(this.allHeadRefs),
       this.getCommit,
-      (baseRef, leftRef, rightRef) => {
-        const base =
-          baseRef !== undefined
-            ? this.migrateCommit(this.getCommitDoc(baseRef))
-            : undefined;
-        const left = this.migrateCommit(this.getCommitDoc(leftRef));
-        const right = this.migrateCommit(this.getCommitDoc(rightRef));
-        const {
-          doc,
-          editMetadata,
-          temp = true,
-        } = this.differ.merge(base, left, right);
+      this.getMigratedDoc,
+      (doc, metadata, temp, leftRef, rightRef) => {
         return this.addNewCommit(
           doc,
-          editMetadata,
+          metadata,
           temp,
-          left,
+          this.getCommitDoc(leftRef),
           rightRef,
-          baseRef,
         );
       },
     );
-    if (this.allHeadRefs.size > 1) {
-      throw new Error('more than one head after merging');
-    }
     // TODO: update Presence(s) based on this merge
     // TODO: can we clear out commits we don't need anymore?
   }
@@ -415,37 +409,19 @@ export class TrimergeClient<
 
   private addNewCommit(
     newDoc: LatestDoc,
-    editMetadata: EditMetadata,
+    metadata: EditMetadata,
     temp: boolean,
     base: CommitDoc<SavedDoc, EditMetadata> | undefined = this.lastSavedDoc,
     mergeRef?: string,
-    mergeBaseRef?: string,
   ): string {
     // TODO(matt): decide what we want to do here with clientId.
-    // Is it users responsibility to attach that to the editMetadata? do
-    // wrap their editMetadata in a new object?
-    const { userId, clientId } = this;
     const delta = this.differ.diff(base?.doc, newDoc);
     const baseRef = base?.ref;
-    const ref = this.differ.computeRef(baseRef, mergeRef, delta, editMetadata);
+    const ref = this.differ.computeRef(baseRef, mergeRef, delta, metadata);
     const commit: Commit<EditMetadata, Delta> =
       mergeRef !== undefined
-        ? {
-            userId,
-            ref,
-            baseRef,
-            mergeRef,
-            mergeBaseRef,
-            delta,
-            metadata: editMetadata,
-          }
-        : {
-            userId,
-            ref,
-            baseRef,
-            delta,
-            metadata: editMetadata,
-          };
+        ? { ref, baseRef, mergeRef, delta, metadata }
+        : { ref, baseRef, delta, metadata };
     this.addCommit(commit, temp ? 'temp' : 'local');
     return ref;
   }

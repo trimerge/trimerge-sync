@@ -1,8 +1,4 @@
-export type MergableCommit = {
-  ref: string;
-  baseRef?: string;
-  mergeRef?: string;
-};
+import { CommitInfo } from './types';
 
 type Visitor = {
   ref: string;
@@ -17,6 +13,10 @@ export type MergeCommitsFn = (
   depth: number,
 ) => string;
 
+export type SortRefsFn = (refA: string, refB: string) => number;
+
+export type GetCommitFn<N extends CommitInfo> = (ref: string) => N;
+
 /**
  * This function walks up the tree starting at the commits in a breadth-first manner, merging commits as common ancestors are found.
  *
@@ -24,13 +24,14 @@ export type MergeCommitsFn = (
  *
  * If there are completely un-connected commits, these will be merged with base === undefined
  */
-export function mergeHeads<N extends MergableCommit>(
-  refs: string[],
-  getCommit: (ref: string) => N,
+export function mergeHeads<N extends CommitInfo>(
+  headRefs: string[],
+  sortRefs: SortRefsFn,
+  getCommit: GetCommitFn<N>,
   merge: MergeCommitsFn,
 ): string | undefined {
-  refs.sort();
-  const visitors = refs.map(
+  headRefs.sort(sortRefs);
+  const visitors = headRefs.map(
     (ref): Visitor => ({
       ref,
       current: new Set([ref]),
@@ -95,7 +96,7 @@ export function mergeHeads<N extends MergableCommit>(
   if (visitors.length > 1) {
     // If we still have multiple visitors, we have unconnected root commits (undefined baseRef)
     // Sort them deterministically and merge from left to right: e.g. merge(merge(merge(0,1),2),3)
-    visitors.sort((a, b) => (a.ref < b.ref ? -1 : 1));
+    visitors.sort((a, b) => sortRefs(a.ref, b.ref));
     while (visitors.length > 1) {
       mergeVisitors(0, 1);
     }
