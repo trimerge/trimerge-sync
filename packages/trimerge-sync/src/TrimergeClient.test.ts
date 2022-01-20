@@ -7,7 +7,7 @@ import { migrate } from './testLib/MergeUtils';
 const differ: Differ<any, any, any, any> = {
   migrate,
   diff: () => null,
-  merge: () => ({ doc: undefined, editMetadata: undefined }),
+  autoMerge: () => null,
   patch: () => null,
   computeRef: () => 'hash',
 };
@@ -53,7 +53,6 @@ describe('TrimergeClient', () => {
         type: 'commits',
         commits: [
           {
-            userId: '',
             ref: 'a',
             baseRef: 'unknown',
             metadata: '',
@@ -69,7 +68,6 @@ describe('TrimergeClient', () => {
         type: 'commits',
         commits: [
           {
-            userId: '',
             ref: 'a',
             mergeRef: 'unknown',
             metadata: '',

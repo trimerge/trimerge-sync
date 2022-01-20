@@ -19,7 +19,7 @@ function makeClientV1(
   store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1, DocV1, TestEditMetadata, Delta, TestPresence> {
   return new TrimergeClient(userId, 'test', store.getLocalStore, {
-    migrate: (doc, editMetadata) => ({ doc, editMetadata }),
+    migrate: (doc, editMetadata) => ({ doc, metadata }),
     diff,
     patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
     computeRef,
@@ -36,10 +36,10 @@ function makeClientV2(
         case 1:
           return {
             doc: { v: 2, field: String(doc.field) },
-            editMetadata: 'migrated to v2',
+            metadata: 'migrated to v2',
           };
         case 2:
-          return { doc, editMetadata };
+          return { doc, metadata };
       }
     },
     diff,

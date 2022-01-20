@@ -227,22 +227,18 @@ export class TrimergeClient<
     if (doc !== undefined) {
       return doc;
     }
-    const commit = this.getCommit(ref);
-    const baseValue = commit.baseRef
-      ? this.getCommitDoc(commit.baseRef).doc
-      : undefined;
+    const { baseRef, delta, metadata } = this.getCommit(ref);
+    const baseValue = baseRef ? this.getCommitDoc(baseRef).doc : undefined;
     const commitDoc: CommitDoc<SavedDoc, EditMetadata> = {
-      ref: commit.ref,
-      doc: this.differ.patch(baseValue, commit.delta),
-      editMetadata: commit.metadata,
+      ref,
+      doc: this.differ.patch(baseValue, delta),
+      metadata: metadata,
     };
     this.docs.set(ref, commitDoc);
     return commitDoc;
   }
 
-  private getCommit: GetCommitFn<Commit<EditMetadata, Delta>> = (
-    ref: string,
-  ) => {
+  getCommit: GetCommitFn<Commit<EditMetadata, Delta>> = (ref: string) => {
     const commit = this.commits.get(ref);
     if (commit) {
       return commit;
@@ -253,15 +249,12 @@ export class TrimergeClient<
   private migrateCommit(
     commit: CommitDoc<SavedDoc, EditMetadata>,
   ): CommitDoc<LatestDoc, EditMetadata> {
-    const { doc, editMetadata } = this.differ.migrate(
-      commit.doc,
-      commit.editMetadata,
-    );
+    const { doc, metadata } = this.differ.migrate(commit.doc, commit.metadata);
     if (commit.doc === doc) {
       return commit as CommitDoc<LatestDoc, EditMetadata>;
     }
-    const ref = this.addNewCommit(doc, editMetadata, true, commit);
-    return { ref, doc, editMetadata };
+    const ref = this.addNewCommit(doc, metadata, true, commit);
+    return { ref, doc, metadata };
   }
 
   private getMigratedDoc = (

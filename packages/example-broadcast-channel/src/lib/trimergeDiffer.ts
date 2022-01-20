@@ -19,7 +19,7 @@ const trimergeObjects = combineMergers(
 
 export const merge: MergeDocFn<any, string> = (base, left, right) => ({
   doc: trimergeObjects(base?.doc, left.doc, right.doc),
-  editMetadata: `merge`,
+  metadata: `merge`,
 });
 
 const jdp = create({ textDiff: { minLength: 20 } });
