@@ -258,7 +258,7 @@ class IndexedDbBackend<
 
     for (const commit of commits) {
       const syncId = ++syncCounter;
-      const { ref, baseRef, } = commit;
+      const { ref, baseRef } = commit;
       let mergeRef: string | undefined;
       if (isMergeCommit(commit)) {
         mergeRef = commit.mergeRef;
@@ -357,7 +357,7 @@ interface TrimergeSyncDbSchema extends DBSchema {
   };
   commits: {
     key: string;
-    value: ServerCommit<any, any> & {
+    value: Commit<any, any> & {
       syncId: number;
       remoteSyncId: string;
     };

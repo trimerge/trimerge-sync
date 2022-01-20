@@ -232,7 +232,7 @@ export class TrimergeClient<
     const commitDoc: CommitDoc<SavedDoc, EditMetadata> = {
       ref,
       doc: this.differ.patch(baseValue, delta),
-      metadata: metadata,
+      metadata,
     };
     this.docs.set(ref, commitDoc);
     return commitDoc;

@@ -10,7 +10,8 @@ export type ErrorCode =
 export type BaseCommit<EditMetadata = unknown, Delta = unknown> = {
   ref: string;
 
-  // The ref of the commit that this commit is based on
+  // The ref of the parent commit that the delta was based on
+  // or undefined if it's an initial document commit
   baseRef?: string;
 
   // a structure defining the differences between baseRef and this commit
@@ -111,18 +112,14 @@ export type InitEvent =
       auth: unknown;
     };
 
-export type CommitAck = {
+export type CommitAck<EditMetadata> = {
   ref: string;
+  metadata?: EditMetadata;
 };
-
-export type ServerCommit<EditMetadata, Delta> = Commit<EditMetadata, Delta>;
 
 export type CommitsEvent<EditMetadata, Delta, Presence> = {
   type: 'commits';
-  commits: readonly (
-    | ServerCommit<EditMetadata, Delta>
-    | Commit<EditMetadata, Delta>
-  )[];
+  commits: readonly Commit<EditMetadata, Delta>[];
   clientInfo?: ClientInfo<Presence>;
   syncId?: string;
 };
@@ -142,9 +139,9 @@ export type AckCommitError = {
   message?: string;
 };
 export type AckRefErrors = Record<string, AckCommitError>;
-export type AckCommitsEvent = {
+export type AckCommitsEvent<EditMetadata> = {
   type: 'ack';
-  acks: readonly CommitAck[];
+  acks: readonly CommitAck<EditMetadata>[];
   refErrors?: AckRefErrors;
   syncId: string;
 };
@@ -185,7 +182,7 @@ export type SyncEvent<EditMetadata, Delta, Presence> = Readonly<
   | CommitsEvent<EditMetadata, Delta, Presence>
   | ReadyEvent
   | LeaderEvent
-  | AckCommitsEvent
+  | AckCommitsEvent<EditMetadata>
   | ClientJoinEvent<Presence>
   | ClientPresenceEvent<Presence>
   | ClientLeaveEvent

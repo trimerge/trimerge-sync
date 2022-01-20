@@ -6,7 +6,6 @@ import {
   Commit,
   CommitsEvent,
   MergeCommit,
-  ServerCommit,
   isMergeCommit,
 } from 'trimerge-sync';
 import { unlink } from 'fs-extra';
@@ -76,47 +75,45 @@ export class SqliteDocStore implements DocStore {
 
     const sqliteCommits: SqliteCommitType[] = stmt.all({ lastSyncId });
     let syncId = '';
-    const commits = sqliteCommits.map(
-      (commit): ServerCommit<unknown, unknown> => {
-        const {
+    const commits = sqliteCommits.map((commit): Commit<unknown, unknown> => {
+      const {
+        ref,
+        remoteSyncId,
+        userId,
+        baseRef,
+        mergeRef,
+        mergeBaseRef,
+        delta,
+        metadata,
+        main,
+      } = commit;
+
+      if (remoteSyncId) {
+        syncId = remoteSyncId;
+      }
+
+      if (mergeRef) {
+        return {
           ref,
-          remoteSyncId,
           userId,
           baseRef,
           mergeRef,
-          mergeBaseRef,
-          delta,
-          metadata,
-          main,
-        } = commit;
-
-        if (remoteSyncId) {
-          syncId = remoteSyncId;
-        }
-
-        if (mergeRef) {
-          return {
-            ref,
-            userId,
-            baseRef,
-            mergeRef,
-            mergeBaseRef: mergeBaseRef || undefined,
-            delta: delta ? JSON.parse(delta) : undefined,
-            metadata: metadata ? JSON.parse(metadata) : undefined,
-            main: Boolean(main),
-          };
-        } else {
-          return {
-            ref,
-            userId,
-            baseRef: baseRef || undefined,
-            delta: delta ? JSON.parse(delta) : undefined,
-            metadata: metadata ? JSON.parse(metadata) : undefined,
-            main: Boolean(main),
-          };
-        }
-      },
-    );
+          mergeBaseRef: mergeBaseRef || undefined,
+          delta: delta ? JSON.parse(delta) : undefined,
+          metadata: metadata ? JSON.parse(metadata) : undefined,
+          main: Boolean(main),
+        };
+      } else {
+        return {
+          ref,
+          userId,
+          baseRef: baseRef || undefined,
+          delta: delta ? JSON.parse(delta) : undefined,
+          metadata: metadata ? JSON.parse(metadata) : undefined,
+          main: Boolean(main),
+        };
+      }
+    });
     return {
       type: 'commits',
       commits,
