@@ -18,7 +18,7 @@ const trimergeObjects = combineMergers(
 );
 export const merge: MergeDocFn<any, any> = (base, left, right) => ({
   doc: trimergeObjects(base?.doc, left.doc, right.doc),
-  editMetadata: {
+  metadata: {
     ref: `(${left.ref}+${right.ref})`,
     message: `merge`,
   },
@@ -56,7 +56,7 @@ export const differ: Differ<
   TestEditMetadata,
   TestPresence
 > = {
-  migrate: (doc, editMetadata) => ({ doc, editMetadata }),
+  migrate: (doc, editMetadata) => ({ doc, metadata }),
   diff,
   patch,
   computeRef,

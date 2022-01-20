@@ -12,10 +12,10 @@ describe('migrate type tests', () => {
     ) => {
       switch (doc.version) {
         case 1:
-          return { doc: { version: 2, b: doc.a }, editMetadata: 'migrate' };
+          return { doc: { version: 2, b: doc.a }, metadata: 'migrate' };
         case 2:
           // Up to date
-          return { doc, editMetadata };
+          return { doc, metadata };
       }
     };
     const v1Doc: DocV1 = { version: 1, a: 12 };

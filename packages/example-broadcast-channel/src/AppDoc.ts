@@ -29,7 +29,7 @@ export const defaultDoc = {
 };
 
 export const differ: Differ<SavedAppDoc, LatestAppDoc, string, Delta> = {
-  migrate: (doc, editMetadata) => ({ doc, editMetadata }),
+  migrate: (doc, editMetadata) => ({ doc, metadata }),
   diff,
   patch: (priorOrNext, delta) => patch(priorOrNext, delta) ?? defaultDoc,
   computeRef,

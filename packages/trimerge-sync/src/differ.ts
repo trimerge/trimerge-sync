@@ -1,4 +1,3 @@
-import { GetCommitFn, MergeCommitsFn, SortRefsFn } from './merge-heads';
 import { CommitInfo } from './types';
 
 export type ComputeRefFn<Delta, EditMetadata> = (
@@ -20,21 +19,11 @@ export type PatchFn<SavedDoc, Delta> = (
 
 export type DocAndMetadata<Doc, EditMetadata> = {
   doc: Doc;
-  editMetadata: EditMetadata;
+  metadata: EditMetadata;
 };
 export type CommitDoc<Doc, EditMetadata> = {
   ref: string;
 } & DocAndMetadata<Doc, EditMetadata>;
-
-export type MergeResult<LatestDoc, EditMetadata> = {
-  temp?: boolean;
-} & DocAndMetadata<LatestDoc, EditMetadata>;
-
-export type MergeDocFn<LatestDoc, EditMetadata> = (
-  base: CommitDoc<LatestDoc, EditMetadata> | undefined,
-  left: CommitDoc<LatestDoc, EditMetadata>,
-  right: CommitDoc<LatestDoc, EditMetadata>,
-) => MergeResult<LatestDoc, EditMetadata>;
 
 export type MigrateDocFn<SavedDoc, LatestDoc extends SavedDoc, EditMetadata> = (
   doc: SavedDoc,
@@ -52,7 +41,7 @@ export type AutoMergeFn<LatestDoc, EditMetadata> = (
     leftRef: string,
     rightRef: string,
   ) => string,
-) => number;
+) => void;
 
 export interface Differ<
   SavedDoc,

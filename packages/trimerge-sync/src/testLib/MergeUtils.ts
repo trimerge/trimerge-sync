@@ -6,9 +6,10 @@ import {
   trimergeString,
 } from 'trimerge';
 import { create, Delta } from 'jsondiffpatch';
-import { MergeDocFn, DocAndMetadata } from '../differ';
+import { DocAndMetadata } from '../differ';
 import { produce } from 'immer';
 import { computeRef as computeShaRef } from 'trimerge-sync-hash';
+import { MergeDocFn } from '../auto-merge-heads';
 
 const trimergeObjects = combineMergers(
   trimergeEquality,
@@ -17,7 +18,7 @@ const trimergeObjects = combineMergers(
 );
 export const merge: MergeDocFn<any, any> = (base, left, right) => ({
   doc: trimergeObjects(base?.doc, left.doc, right.doc),
-  editMetadata: {
+  metadata: {
     ref: `(${left.ref}+${right.ref})`,
     message: `merge`,
   },
@@ -40,7 +41,7 @@ export function migrate<Doc, EditMetadata>(
   doc: Doc,
   editMetadata: EditMetadata,
 ): DocAndMetadata<Doc, EditMetadata> {
-  return { doc, editMetadata };
+  return { doc, metadata };
 }
 
 export function computeRef(
