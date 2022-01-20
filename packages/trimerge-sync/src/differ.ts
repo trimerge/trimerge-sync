@@ -1,3 +1,6 @@
+import { GetCommitFn, MergeCommitsFn, SortRefsFn } from './merge-heads';
+import { CommitInfo } from './types';
+
 export type ComputeRefFn<Delta, EditMetadata> = (
   baseRef: string | undefined,
   mergeRef: string | undefined,
@@ -38,6 +41,19 @@ export type MigrateDocFn<SavedDoc, LatestDoc extends SavedDoc, EditMetadata> = (
   editMetadata: EditMetadata,
 ) => DocAndMetadata<LatestDoc, EditMetadata>;
 
+export type AutoMergeFn<LatestDoc, EditMetadata> = (
+  headRefs: string[],
+  getCommitInfo: (ref: string) => CommitInfo,
+  getMigratedDoc: (ref: string) => CommitDoc<LatestDoc, EditMetadata>,
+  addMerge: (
+    doc: LatestDoc,
+    editMetadata: EditMetadata,
+    temp: boolean,
+    leftRef: string,
+    rightRef: string,
+  ) => string,
+) => number;
+
 export interface Differ<
   SavedDoc,
   LatestDoc extends SavedDoc,
@@ -55,6 +71,6 @@ export interface Differ<
   /** Apply a patch from one Doc to another */
   readonly patch: PatchFn<SavedDoc, Delta>;
 
-  /** Three-way-merge function */
-  readonly merge: MergeDocFn<LatestDoc, EditMetadata>;
+  /** Auto-merge head commits */
+  readonly autoMerge: AutoMergeFn<LatestDoc, EditMetadata>;
 }
