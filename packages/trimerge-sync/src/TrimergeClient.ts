@@ -223,7 +223,7 @@ export class TrimergeClient<
     this.emitClientListChange();
   }
 
-  private getCommit = (ref: string) => {
+  getCommit = (ref: string) => {
     const commit = this.commits.get(ref);
     if (commit) {
       return commit;
