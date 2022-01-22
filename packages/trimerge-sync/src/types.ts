@@ -112,7 +112,7 @@ export type InitEvent =
       auth: unknown;
     };
 
-export type CommitAck<EditMetadata> = {
+export type CommitAck<EditMetadata = unknown> = {
   ref: string;
   metadata?: EditMetadata;
 };
@@ -139,7 +139,7 @@ export type AckCommitError = {
   message?: string;
 };
 export type AckRefErrors = Record<string, AckCommitError>;
-export type AckCommitsEvent<EditMetadata> = {
+export type AckCommitsEvent<EditMetadata = unknown> = {
   type: 'ack';
   acks: readonly CommitAck<EditMetadata>[];
   refErrors?: AckRefErrors;

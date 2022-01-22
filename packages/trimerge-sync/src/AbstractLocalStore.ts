@@ -98,10 +98,10 @@ export abstract class AbstractLocalStore<EditMetadata, Delta, Presence>
   protected abstract addCommits(
     commits: readonly Commit<EditMetadata, Delta>[],
     remoteSyncId?: string,
-  ): Promise<AckCommitsEvent>;
+  ): Promise<AckCommitsEvent<EditMetadata>>;
 
   protected abstract acknowledgeRemoteCommits(
-    refs: readonly CommitAck[],
+    refs: readonly CommitAck<EditMetadata>[],
     remoteSyncId: string,
   ): Promise<void>;
 

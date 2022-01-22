@@ -1,7 +1,12 @@
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { MemoryStore } from './testLib/MemoryStore';
-import { computeRef, diff, merge, patch } from './testLib/MergeUtils';
+import {
+  computeRef,
+  diff,
+  mergeAllBranches,
+  patch,
+} from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 import { timeout } from './lib/Timeout';
 
@@ -23,7 +28,7 @@ function makeClientV1(
     diff,
     patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
     computeRef,
-    merge,
+    mergeAllBranches,
   });
 }
 function makeClientV2(
@@ -45,7 +50,7 @@ function makeClientV2(
     diff,
     patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
     computeRef,
-    merge,
+    mergeAllBranches,
   });
 }
 

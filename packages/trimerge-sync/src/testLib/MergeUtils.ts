@@ -6,10 +6,10 @@ import {
   trimergeString,
 } from 'trimerge';
 import { create, Delta } from 'jsondiffpatch';
-import { DocAndMetadata } from '../differ';
+import { DocAndMetadata, MergeAllBranchesFn } from '../differ';
 import { produce } from 'immer';
 import { computeRef as computeShaRef } from 'trimerge-sync-hash';
-import { MergeDocFn } from '../auto-branch-merger';
+import { makeAutoBranchMerger, MergeDocFn } from '../auto-branch-merger';
 
 const trimergeObjects = combineMergers(
   trimergeEquality,
@@ -23,6 +23,10 @@ export const merge: MergeDocFn<any, any> = (base, left, right) => ({
     message: `merge`,
   },
 });
+
+export const mergeAllBranches: MergeAllBranchesFn<any, any> =
+  makeAutoBranchMerger((a, b) => (a < b ? -1 : 1), merge);
+
 export const jdp = create({ textDiff: { minLength: 20 } });
 
 export function patch<T>(base: T, delta: Delta | undefined): T {

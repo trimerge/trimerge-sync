@@ -2,7 +2,7 @@ import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
-import { diff, merge, migrate, patch } from './testLib/MergeUtils';
+import { diff, mergeAllBranches, migrate, patch } from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 
 type TestEditMetadata = { ref: string; message: string };
@@ -15,7 +15,7 @@ const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
   diff,
   patch,
   computeRef: (baseRef, mergeRef, delta, editMetadata) => editMetadata.ref,
-  merge,
+  mergeAllBranches,
 };
 
 function newStore() {

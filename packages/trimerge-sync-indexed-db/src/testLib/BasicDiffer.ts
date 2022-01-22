@@ -60,5 +60,5 @@ export const differ: Differ<
   diff,
   patch,
   computeRef,
-  merge,
+  mergeAllBranches,
 };

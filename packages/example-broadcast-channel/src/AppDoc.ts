@@ -7,7 +7,7 @@ import {
   useTrimergeStateShutdown,
   useTrimergeSyncStatus,
 } from './lib/trimergeHooks';
-import { diff, merge, patch } from './lib/trimergeDiffer';
+import { diff, mergeAllBranches, patch } from './lib/trimergeDiffer';
 import { Differ } from 'trimerge-sync';
 import { computeRef } from 'trimerge-sync-hash';
 import { currentTabId } from './lib/currentTabId';
@@ -29,11 +29,11 @@ export const defaultDoc = {
 };
 
 export const differ: Differ<SavedAppDoc, LatestAppDoc, string, Delta> = {
-  migrate: (doc, editMetadata) => ({ doc, metadata }),
+  migrate: (doc, metadata) => ({ doc, metadata }),
   diff,
   patch: (priorOrNext, delta) => patch(priorOrNext, delta) ?? defaultDoc,
   computeRef,
-  merge,
+  mergeAllBranches,
 };
 
 const DEMO_DOC_ID = 'demo';

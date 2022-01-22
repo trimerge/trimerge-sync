@@ -1,4 +1,10 @@
-import { computeRef, diff, merge, migrate, patch } from './testLib/MergeUtils';
+import {
+  computeRef,
+  diff,
+  mergeAllBranches,
+  migrate,
+  patch,
+} from './testLib/MergeUtils';
 import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
 import { Delta } from 'jsondiffpatch';
@@ -18,7 +24,7 @@ const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
   diff,
   patch,
   computeRef,
-  merge,
+  mergeAllBranches,
 };
 
 const stores = new Set<MemoryStore<TestEditMetadata, Delta, TestPresence>>();
