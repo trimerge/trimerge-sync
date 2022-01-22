@@ -2,6 +2,7 @@ import {
   ClientInfo,
   ClientList,
   Commit,
+  CommitInfo,
   EditCommit,
   GetLocalStoreFn,
   LocalClientInfo,
@@ -11,7 +12,7 @@ import {
   SyncStatus,
 } from './types';
 import { GetCommitFn, mergeHeads, SortRefsFn } from './merge-heads';
-import { CommitDoc, Differ } from './differ';
+import { CommitDoc, Differ, MergeHelpers } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { asCommitRefs, CommitRefs } from './lib/Commits';
@@ -222,6 +223,27 @@ export class TrimergeClient<
     this.emitClientListChange();
   }
 
+  private getCommit = (ref: string) => {
+    const commit = this.commits.get(ref);
+    if (commit) {
+      return commit;
+    }
+    throw new Error(`unknown ref "${ref}"`);
+  };
+
+  private mergeHelpers: MergeHelpers<LatestDoc, EditMetadata> = {
+    getCommitInfo: this.getCommit,
+    computeLatestDoc: (ref) => this.migrateCommit(this.getCommitDoc(ref)),
+    addMerge: (doc, metadata, temp, leftRef, rightRef) =>
+      this.addNewCommit(
+        doc,
+        metadata,
+        temp,
+        this.getCommitDoc(leftRef),
+        rightRef,
+      ),
+  };
+
   getCommitDoc(ref: string): CommitDoc<SavedDoc, EditMetadata> {
     const doc = this.docs.get(ref);
     if (doc !== undefined) {
@@ -238,14 +260,6 @@ export class TrimergeClient<
     return commitDoc;
   }
 
-  getCommit: GetCommitFn<Commit<EditMetadata, Delta>> = (ref: string) => {
-    const commit = this.commits.get(ref);
-    if (commit) {
-      return commit;
-    }
-    throw new Error(`unknown ref "${ref}"`);
-  };
-
   private migrateCommit(
     commit: CommitDoc<SavedDoc, EditMetadata>,
   ): CommitDoc<LatestDoc, EditMetadata> {
@@ -257,29 +271,13 @@ export class TrimergeClient<
     return { ref, doc, metadata };
   }
 
-  private getMigratedDoc = (
-    ref: string,
-  ): CommitDoc<LatestDoc, EditMetadata> => {
-    return this.migrateCommit(this.getCommitDoc(ref));
-  };
-
   private mergeHeads() {
     if (this.allHeadRefs.size <= 1) {
       return;
     }
-    this.differ.autoMerge(
+    this.differ.mergeAllBranches(
       Array.from(this.allHeadRefs),
-      this.getCommit,
-      this.getMigratedDoc,
-      (doc, metadata, temp, leftRef, rightRef) => {
-        return this.addNewCommit(
-          doc,
-          metadata,
-          temp,
-          this.getCommitDoc(leftRef),
-          rightRef,
-        );
-      },
+      this.mergeHelpers,
     );
     // TODO: update Presence(s) based on this merge
     // TODO: can we clear out commits we don't need anymore?

@@ -9,7 +9,7 @@ import { create, Delta } from 'jsondiffpatch';
 import { DocAndMetadata } from '../differ';
 import { produce } from 'immer';
 import { computeRef as computeShaRef } from 'trimerge-sync-hash';
-import { MergeDocFn } from '../auto-merge-heads';
+import { MergeDocFn } from '../auto-branch-merger';
 
 const trimergeObjects = combineMergers(
   trimergeEquality,

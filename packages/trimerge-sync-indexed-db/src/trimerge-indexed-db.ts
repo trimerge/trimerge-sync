@@ -9,7 +9,6 @@ import {
   CommitsEvent,
   OnEventFn,
   RemoteSyncInfo,
-  ServerCommit,
   isMergeCommit,
   CommitAck,
 } from 'trimerge-sync';
@@ -221,7 +220,7 @@ class IndexedDbBackend<
   }
 
   protected async addCommits(
-    commits: readonly ServerCommit<EditMetadata, Delta>[],
+    commits: readonly Commit<EditMetadata, Delta>[],
     lastSyncCursor: string | undefined,
   ): Promise<AckCommitsEvent> {
     const db = await this.db;
@@ -244,7 +243,7 @@ class IndexedDbBackend<
     const refs = new Map<string, boolean>();
     const refErrors: AckRefErrors = {};
     async function commitExistsAlready(
-      commit: Commit<unknown, unknown>,
+      commit: Commit,
       error?: string,
     ): Promise<boolean> {
       const existingCommit = await commitsDb.get(commit.ref);

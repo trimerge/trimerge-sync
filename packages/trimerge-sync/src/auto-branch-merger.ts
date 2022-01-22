@@ -1,4 +1,4 @@
-import { AutoMergeFn, CommitDoc, DocAndMetadata } from './differ';
+import { MergeAllBranchesFn, CommitDoc, DocAndMetadata } from './differ';
 import { mergeHeads, SortRefsFn } from './merge-heads';
 
 export type MergeResult<LatestDoc, EditMetadata> = {
@@ -11,20 +11,20 @@ export type MergeDocFn<LatestDoc, EditMetadata> = (
   right: CommitDoc<LatestDoc, EditMetadata>,
 ) => MergeResult<LatestDoc, EditMetadata>;
 
-export function makeHeadMerger<LatestDoc, EditMetadata>(
+export function makeAutoBranchMerger<LatestDoc, EditMetadata>(
   sortRefs: SortRefsFn,
   merge: MergeDocFn<LatestDoc, EditMetadata>,
-): AutoMergeFn<LatestDoc, EditMetadata> {
-  return (headRefs, getCommitInfo, getMigratedDoc, addMerge) => {
+): MergeAllBranchesFn<LatestDoc, EditMetadata> {
+  return (headRefs, { addMerge, getCommitInfo, computeLatestDoc }) => {
     mergeHeads(
       headRefs,
       sortRefs,
       getCommitInfo,
       (baseRef, leftRef, rightRef) => {
         const migratedBase =
-          baseRef !== undefined ? getMigratedDoc(baseRef) : undefined;
-        const migratedLeft = getMigratedDoc(leftRef);
-        const migratedRight = getMigratedDoc(rightRef);
+          baseRef !== undefined ? computeLatestDoc(baseRef) : undefined;
+        const migratedLeft = computeLatestDoc(leftRef);
+        const migratedRight = computeLatestDoc(rightRef);
 
         const {
           doc,

@@ -7,7 +7,7 @@ import { migrate } from './testLib/MergeUtils';
 const differ: Differ<any, any, any, any> = {
   migrate,
   diff: () => null,
-  autoMerge: () => null,
+  mergeAllBranches: () => null,
   patch: () => null,
   computeRef: () => 'hash',
 };

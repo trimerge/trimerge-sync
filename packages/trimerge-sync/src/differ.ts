@@ -30,17 +30,20 @@ export type MigrateDocFn<SavedDoc, LatestDoc extends SavedDoc, EditMetadata> = (
   editMetadata: EditMetadata,
 ) => DocAndMetadata<LatestDoc, EditMetadata>;
 
-export type AutoMergeFn<LatestDoc, EditMetadata> = (
-  headRefs: string[],
-  getCommitInfo: (ref: string) => CommitInfo,
-  getMigratedDoc: (ref: string) => CommitDoc<LatestDoc, EditMetadata>,
-  addMerge: (
+export type MergeHelpers<LatestDoc, EditMetadata> = {
+  getCommitInfo(ref: string): CommitInfo;
+  computeLatestDoc(ref: string): CommitDoc<LatestDoc, EditMetadata>;
+  addMerge(
     doc: LatestDoc,
     editMetadata: EditMetadata,
     temp: boolean,
     leftRef: string,
     rightRef: string,
-  ) => string,
+  ): string;
+};
+export type MergeAllBranchesFn<LatestDoc, EditMetadata> = (
+  branchHeadRefs: string[],
+  helpers: MergeHelpers<LatestDoc, EditMetadata>,
 ) => void;
 
 export interface Differ<
@@ -60,6 +63,6 @@ export interface Differ<
   /** Apply a patch from one Doc to another */
   readonly patch: PatchFn<SavedDoc, Delta>;
 
-  /** Auto-merge head commits */
-  readonly autoMerge: AutoMergeFn<LatestDoc, EditMetadata>;
+  /** Merge all head commits */
+  readonly mergeAllBranches: MergeAllBranchesFn<LatestDoc, EditMetadata>;
 }

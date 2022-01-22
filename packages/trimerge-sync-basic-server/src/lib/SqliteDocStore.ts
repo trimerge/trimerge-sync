@@ -18,17 +18,13 @@ type SqliteCommitType = {
   userId: string;
   baseRef?: string;
   mergeRef?: string;
-  mergeBaseRef?: string;
   delta?: string;
   metadata?: string;
-
-  // Indicates whether this commit is on the "mainline"
-  main: boolean;
 };
 
 export class SqliteDocStore implements DocStore {
   private readonly db: Database;
-  private readonly seenRefs = new Map<string, boolean>();
+  private readonly seenRefs = new Set<string>();
   private headRef: string | undefined = undefined;
 
   constructor(
@@ -45,20 +41,16 @@ export class SqliteDocStore implements DocStore {
         userId TEXT NOT NULL,
         baseRef TEXT,
         mergeRef TEXT,
-        mergeBaseRef TEXT,
         delta TEXT,
-        metadata TEXT,
-        main BOOLEAN
+        metadata TEXT
       );
       CREATE INDEX IF NOT EXISTS remoteSyncIdIndex ON commits (remoteSyncId, remoteSyncIndex);
 `);
     const stmt = this.db.prepare(
       `SELECT ref FROM commits ORDER BY remoteSyncId, remoteSyncIndex`,
     );
-    const sqliteCommits: Pick<SqliteCommitType, 'ref' | 'main'>[] = stmt.all();
-    this.seenRefs = new Map(
-      sqliteCommits.map(({ ref, main }) => [ref, main ?? false]),
-    );
+    const sqliteCommits: Pick<SqliteCommitType, 'ref'>[] = stmt.all();
+    this.seenRefs = new Set(sqliteCommits.map(({ ref }) => ref));
   }
 
   getCommitsEvent(
@@ -75,18 +67,8 @@ export class SqliteDocStore implements DocStore {
 
     const sqliteCommits: SqliteCommitType[] = stmt.all({ lastSyncId });
     let syncId = '';
-    const commits = sqliteCommits.map((commit): Commit<unknown, unknown> => {
-      const {
-        ref,
-        remoteSyncId,
-        userId,
-        baseRef,
-        mergeRef,
-        mergeBaseRef,
-        delta,
-        metadata,
-        main,
-      } = commit;
+    const commits = sqliteCommits.map((commit): Commit => {
+      const { ref, remoteSyncId, baseRef, mergeRef, delta, metadata } = commit;
 
       if (remoteSyncId) {
         syncId = remoteSyncId;
@@ -95,22 +77,17 @@ export class SqliteDocStore implements DocStore {
       if (mergeRef) {
         return {
           ref,
-          userId,
           baseRef,
           mergeRef,
-          mergeBaseRef: mergeBaseRef || undefined,
-          delta: delta ? JSON.parse(delta) : undefined,
+          delta,
           metadata: metadata ? JSON.parse(metadata) : undefined,
-          main: Boolean(main),
         };
       } else {
         return {
           ref,
-          userId,
           baseRef: baseRef || undefined,
-          delta: delta ? JSON.parse(delta) : undefined,
+          delta,
           metadata: metadata ? JSON.parse(metadata) : undefined,
-          main: Boolean(main),
         };
       }
     });
@@ -125,18 +102,15 @@ export class SqliteDocStore implements DocStore {
     const remoteSyncId = this.syncIdCreator();
     const insert = this.db.prepare(
       `
-        INSERT INTO commits (ref, remoteSyncId, remoteSyncIndex, userId, baseRef, mergeRef, mergeBaseRef, delta, metadata, main) 
-        VALUES (@ref, @remoteSyncId, @remoteSyncIndex, @userId, @baseRef, @mergeRef, @mergeBaseRef, @delta, @metadata, @main)
+        INSERT INTO commits (ref, remoteSyncId, remoteSyncIndex, userId, baseRef, mergeRef, delta, metadata) 
+        VALUES (@ref, @remoteSyncId, @remoteSyncIndex, @userId, @baseRef, @mergeRef, @delta, @metadata)
         ON CONFLICT DO NOTHING`,
     );
     const refs = new Map<string, boolean>();
     const refErrors: AckRefErrors = {};
-    const invalidParentRef = (
-      commit: Commit<unknown, unknown>,
-      key: 'baseRef' | 'mergeRef' | 'mergeBaseRef',
-    ) => {
-      // slightly unsafe type cast here but mergeRef and mergeBaseRef should just be undefined for EditCommits
-      const parentRef = (commit as MergeCommit<unknown, unknown>)[key];
+    const invalidParentRef = (commit: Commit, key: 'baseRef' | 'mergeRef') => {
+      // slightly unsafe type cast here but mergeRef should just be undefined for EditCommits
+      const parentRef = (commit as MergeCommit)[key];
       if (parentRef && !this.seenRefs.has(parentRef)) {
         refErrors[commit.ref] = {
           code: 'unknown-ref',
@@ -160,20 +134,17 @@ export class SqliteDocStore implements DocStore {
     this.db.transaction(() => {
       let remoteSyncIndex = 0;
       for (const commit of commits) {
-        const { userId, ref, baseRef, delta, metadata } = commit;
+        const { ref, baseRef, delta, metadata } = commit;
 
         let mergeRef: string | undefined;
-        let mergeBaseRef: string | undefined;
 
         if (isMergeCommit(commit)) {
           mergeRef = commit.mergeRef;
-          mergeBaseRef = commit.mergeBaseRef;
         }
 
         if (
           invalidParentRef(commit, 'baseRef') ||
-          invalidParentRef(commit, 'mergeRef') ||
-          invalidParentRef(commit, 'mergeBaseRef')
+          invalidParentRef(commit, 'mergeRef')
         ) {
           continue;
         }
@@ -189,16 +160,13 @@ export class SqliteDocStore implements DocStore {
           }
 
           const { changes } = insert.run({
-            userId,
             ref,
             baseRef,
-            mergeBaseRef,
             mergeRef,
-            delta: JSON.stringify(delta),
+            delta,
             metadata: JSON.stringify(metadata),
             remoteSyncId,
             remoteSyncIndex,
-            main: isMain ? 1 : 0,
           });
           if (changes !== 1) {
             throw new Error(`inserted changes unexpectedly ${changes}`);
