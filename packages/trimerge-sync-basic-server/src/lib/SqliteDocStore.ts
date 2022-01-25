@@ -10,6 +10,7 @@ import {
 } from 'trimerge-sync';
 import { unlink } from 'fs-extra';
 import { DocStore } from '../DocStore';
+import { asCommitRefs } from 'trimerge-sync/dist/lib/Commits';
 
 type SqliteCommitType = {
   ref: string;
@@ -22,9 +23,17 @@ type SqliteCommitType = {
   metadata?: string;
 };
 
+interface ServerMetadata extends Record<string, unknown> {
+  server?: {
+    main: boolean;
+    remoteSyncId: string;
+    remoteSyncIndex: number;
+  };
+}
+
 export class SqliteDocStore implements DocStore {
   private readonly db: Database;
-  private readonly seenRefs = new Set<string>();
+  private readonly seenRefs = new Map<string, ServerMetadata | undefined>();
   private headRef: string | undefined = undefined;
 
   constructor(
@@ -49,8 +58,14 @@ export class SqliteDocStore implements DocStore {
     const stmt = this.db.prepare(
       `SELECT ref FROM commits ORDER BY remoteSyncId, remoteSyncIndex`,
     );
-    const sqliteCommits: Pick<SqliteCommitType, 'ref'>[] = stmt.all();
-    this.seenRefs = new Set(sqliteCommits.map(({ ref }) => ref));
+    const sqliteCommits: Pick<SqliteCommitType, 'ref' | 'metadata'>[] =
+      stmt.all();
+    this.seenRefs = new Map(
+      sqliteCommits.map(({ ref, metadata }) => [
+        ref,
+        metadata ? JSON.parse(metadata) : undefined,
+      ]),
+    );
   }
 
   getCommitsEvent(
@@ -98,7 +113,7 @@ export class SqliteDocStore implements DocStore {
     };
   }
 
-  add(commits: readonly Commit<unknown, unknown>[]): AckCommitsEvent {
+  add(commits: readonly Commit<ServerMetadata, unknown>[]): AckCommitsEvent {
     const remoteSyncId = this.syncIdCreator();
     const insert = this.db.prepare(
       `
@@ -106,7 +121,7 @@ export class SqliteDocStore implements DocStore {
         VALUES (@ref, @remoteSyncId, @remoteSyncIndex, @userId, @baseRef, @mergeRef, @delta, @metadata)
         ON CONFLICT DO NOTHING`,
     );
-    const refs = new Map<string, boolean>();
+    const acks = new Map<string, ServerMetadata | undefined>();
     const refErrors: AckRefErrors = {};
     const invalidParentRef = (commit: Commit, key: 'baseRef' | 'mergeRef') => {
       // slightly unsafe type cast here but mergeRef should just be undefined for EditCommits
@@ -121,7 +136,7 @@ export class SqliteDocStore implements DocStore {
       return false;
     };
 
-    const computeIsMain = (commit: Commit<unknown, unknown>) => {
+    const computeIsMain = (commit: Commit<ServerMetadata, unknown>) => {
       if (isMergeCommit(commit)) {
         return (
           commit.mergeRef === this.headRef || commit.baseRef === this.headRef
@@ -134,13 +149,9 @@ export class SqliteDocStore implements DocStore {
     this.db.transaction(() => {
       let remoteSyncIndex = 0;
       for (const commit of commits) {
-        const { ref, baseRef, delta, metadata } = commit;
-
-        let mergeRef: string | undefined;
-
-        if (isMergeCommit(commit)) {
-          mergeRef = commit.mergeRef;
-        }
+        const { ref, baseRef, mergeRef } = asCommitRefs(commit);
+        const { delta } = commit;
+        let { metadata } = commit;
 
         if (
           invalidParentRef(commit, 'baseRef') ||
@@ -149,7 +160,7 @@ export class SqliteDocStore implements DocStore {
           continue;
         }
         if (this.seenRefs.has(ref)) {
-          refs.set(ref, this.seenRefs.get(ref) ?? false);
+          acks.set(ref, this.seenRefs.get(ref));
           continue;
         }
         try {
@@ -158,6 +169,15 @@ export class SqliteDocStore implements DocStore {
             isMain = true;
             this.headRef = commit.ref;
           }
+
+          metadata = {
+            ...metadata,
+            server: {
+              main: isMain,
+              remoteSyncIndex,
+              remoteSyncId,
+            },
+          };
 
           const { changes } = insert.run({
             ref,
@@ -171,9 +191,9 @@ export class SqliteDocStore implements DocStore {
           if (changes !== 1) {
             throw new Error(`inserted changes unexpectedly ${changes}`);
           }
-          refs.set(ref, isMain);
+          acks.set(ref, metadata);
+          this.seenRefs.set(ref, metadata);
           remoteSyncIndex++;
-          this.seenRefs.set(ref, isMain);
         } catch (error) {
           refErrors[commit.ref] = {
             code: 'storage-failure',
@@ -184,7 +204,7 @@ export class SqliteDocStore implements DocStore {
     })();
     return {
       type: 'ack',
-      acks: Array.from(refs, ([ref, main]) => ({ ref, main })),
+      acks: Array.from(acks, ([ref, metadata]) => ({ ref, metadata })),
       refErrors,
       syncId: remoteSyncId,
     };

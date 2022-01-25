@@ -2,7 +2,13 @@ import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
-import { diff, mergeAllBranches, migrate, patch } from './testLib/MergeUtils';
+import {
+  diff,
+  mergeAllBranches,
+  migrate,
+  patch,
+  computeRef,
+} from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 
 type TestCommitMetadata = { ref: string; message: string };
@@ -15,8 +21,7 @@ const differ: Differ<TestSavedDoc, TestDoc, TestCommitMetadata, TestPresence> =
     migrate,
     diff,
     patch,
-    computeRef: (baseRef, mergeRef, delta, CommitMetadata) =>
-      CommitMetadata.ref,
+    computeRef,
     mergeAllBranches,
   };
 
@@ -88,29 +93,29 @@ describe('TrimergeClient: 3 users', () => {
     expect(basicGraph(store, clientA)).toMatchInlineSnapshot(`
 Array [
   Object {
-    "graph": "undefined -> ROOT",
-    "step": "User a: init",
+    "graph": "undefined -> wK5f8__5",
+    "step": "init",
     "value": Object {
       "text": "",
     },
   },
   Object {
-    "graph": "ROOT -> a1",
-    "step": "User a: set text",
+    "graph": "wK5f8__5 -> 8n57Fn1Z",
+    "step": "set text",
     "value": Object {
       "text": "a",
     },
   },
   Object {
-    "graph": "ROOT -> b1",
-    "step": "User b: set text",
+    "graph": "wK5f8__5 -> 97kyoTPd",
+    "step": "set text",
     "value": Object {
       "text": "b",
     },
   },
   Object {
-    "graph": "ROOT -> c1",
-    "step": "User c: set text",
+    "graph": "wK5f8__5 -> TL7mKxsx",
+    "step": "set text",
     "value": Object {
       "text": "c",
     },
@@ -168,44 +173,44 @@ Array [
     expect(basicGraph(store, clientA)).toMatchInlineSnapshot(`
 Array [
   Object {
-    "graph": "undefined -> a1",
-    "step": "User a: add hello",
+    "graph": "undefined -> HgR3uUrD",
+    "step": "add hello",
     "value": Object {
       "hello": "world",
     },
   },
   Object {
-    "graph": "undefined -> b1",
-    "step": "User b: add world",
+    "graph": "undefined -> AUJdfMae",
+    "step": "add world",
     "value": Object {
       "world": "world",
     },
   },
   Object {
-    "graph": "a1 -> a2",
-    "step": "User a: change hello",
+    "graph": "HgR3uUrD -> eaef2Px0",
+    "step": "change hello",
     "value": Object {
       "hello": "vorld",
     },
   },
   Object {
-    "graph": "b1 -> b2",
-    "step": "User b: change world",
+    "graph": "AUJdfMae -> qOgOVi10",
+    "step": "change world",
     "value": Object {
       "world": "vorld",
     },
   },
   Object {
-    "graph": "(a2 + b2) w/ base=undefined -> (a2+b2)",
-    "step": "User c: merge",
+    "graph": "(eaef2Px0 + qOgOVi10) w/ base=unknown -> yHC1lA3q",
+    "step": "merge",
     "value": Object {
       "hello": "vorld",
       "world": "vorld",
     },
   },
   Object {
-    "graph": "(a2+b2) -> c1",
-    "step": "User c: change hello",
+    "graph": "yHC1lA3q -> 7BcdoBW0",
+    "step": "change hello",
     "value": Object {
       "hello": "world",
       "world": "vorld",

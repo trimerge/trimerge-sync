@@ -13,18 +13,17 @@ export function getBasicGraph<CommitMetadata>(
 ): BasicGraphItem[] {
   const result = [];
   for (const commit of commits) {
-    const userId = commit.userId;
-    const { ref, baseRef, mergeBaseRef, mergeRef } = asCommitRefs(commit);
+    const { ref, baseRef, mergeRef } = asCommitRefs(commit);
     if (mergeRef) {
       result.push({
-        graph: `(${baseRef} + ${mergeRef}) w/ base=${mergeBaseRef} -> ${ref}`,
-        step: `User ${userId}: merge`,
+        graph: `(${baseRef} + ${mergeRef}) w/ base=${'unknown'} -> ${ref}`,
+        step: `merge`,
         value: getValue(commit),
       });
     } else {
       result.push({
         graph: `${baseRef} -> ${ref}`,
-        step: `User ${userId}: ${getEditLabel(commit)}`,
+        step: getEditLabel(commit),
         value: getValue(commit),
       });
     }
@@ -47,14 +46,11 @@ export function getDotGraph<CommitMetadata>(
     if (commit.baseRef) {
       if (isMergeCommit(commit)) {
         lines.push(`"${commit.baseRef}" -> "${commit.ref}" [label=left]`);
-        lines.push(
-          `"${commit.mergeBaseRef}" -> "${commit.ref}" [style=dashed, label=base]`,
-        );
         lines.push(`"${commit.mergeRef}" -> "${commit.ref}" [label=right]`);
       } else {
         lines.push(
           `"${commit.baseRef}" -> "${commit.ref}" [label=${JSON.stringify(
-            `User ${commit.userId}: ${getEditLabel(commit)}`,
+            getEditLabel(commit),
           )}]`,
         );
       }

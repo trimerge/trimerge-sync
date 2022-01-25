@@ -29,7 +29,8 @@ export type SubscribeEvent = {
     | 'remote'; // A remote client updated the value
 };
 
-export type NewCommitMetadataFn<CommitMetadata> = (
+export type AddNewCommitMetadataFn<CommitMetadata> = (
+  metadata: CommitMetadata,
   userId: string,
   clientId: string,
 ) => CommitMetadata;
@@ -37,7 +38,7 @@ export type NewCommitMetadataFn<CommitMetadata> = (
 export class TrimergeClient<
   SavedDoc,
   LatestDoc extends SavedDoc,
-  CommitMetadata extends Record<string, unknown>,
+  CommitMetadata,
   Delta,
   Presence,
 > {
@@ -102,7 +103,7 @@ export class TrimergeClient<
     >,
     private readonly differ: Differ<SavedDoc, LatestDoc, CommitMetadata, Delta>,
     /** Add metadata to every new commit created on this client */
-    private readonly getNewCommitMetadata?: NewCommitMetadataFn<CommitMetadata>,
+    private readonly addNewCommitMetadata?: AddNewCommitMetadataFn<CommitMetadata>,
   ) {
     this.store = getLocalStore(userId, clientId, this.onStoreEvent);
     this.setClientInfo(
@@ -436,11 +437,12 @@ export class TrimergeClient<
   ): string {
     const delta = this.differ.diff(base?.doc, newDoc);
     const baseRef = base?.ref;
-    if (this.getNewCommitMetadata) {
-      metadata = {
-        ...metadata,
-        ...this.getNewCommitMetadata(this.userId, this.clientId),
-      };
+    if (this.addNewCommitMetadata) {
+      metadata = this.addNewCommitMetadata(
+        metadata,
+        this.userId,
+        this.clientId,
+      );
     }
     const ref = this.differ.computeRef(baseRef, mergeRef, delta);
     const commit: Commit<CommitMetadata, Delta> =

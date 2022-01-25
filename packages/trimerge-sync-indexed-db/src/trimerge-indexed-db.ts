@@ -45,13 +45,11 @@ export type IndexedDbBackendOptions<CommitMetadata, Delta, Presence> = {
   networkSettings?: Partial<NetworkSettings>;
   remoteId?: string;
   localIdGenerator: LocalIdGeneratorFn;
+  /** Add metadata to every local commit stored in client */
+  addStoreMetadata?: AddStoreMetadataFn<CommitMetadata>;
 };
 
-export function createIndexedDbBackendFactory<
-  CommitMetadata extends Record<string, unknown>,
-  Delta,
-  Presence,
->(
+export function createIndexedDbBackendFactory<CommitMetadata, Delta, Presence>(
   docId: string,
   options: IndexedDbBackendOptions<CommitMetadata, Delta, Presence>,
 ): GetLocalStoreFn<CommitMetadata, Delta, Presence> {
@@ -97,13 +95,14 @@ export function getIDBPDatabase<CommitMetadata, Delta>(
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
   return createIndexedDb(getDatabaseName(docId));
 }
-export type StoreCommitMetadataFn<CommitMetadata> = (
+export type AddStoreMetadataFn<CommitMetadata> = (
+  metadata: CommitMetadata,
   localStoreId: string,
   commitIndex: number,
 ) => CommitMetadata;
 
 class IndexedDbBackend<
-  CommitMetadata extends Record<string, unknown>,
+  CommitMetadata,
   Delta,
   Presence,
 > extends AbstractLocalStore<CommitMetadata, Delta, Presence> {
@@ -114,8 +113,9 @@ class IndexedDbBackend<
   private readonly channel: BroadcastChannel<
     BroadcastEvent<CommitMetadata, Delta, Presence>
   >;
-  private remoteId: string;
-  private localIdGenerator: LocalIdGeneratorFn;
+  private readonly remoteId: string;
+  private readonly localIdGenerator: LocalIdGeneratorFn;
+  private readonly addStoreMetadata?: AddStoreMetadataFn<CommitMetadata>;
   private localStoreId: Promise<string>;
 
   public constructor(
@@ -128,14 +128,14 @@ class IndexedDbBackend<
       networkSettings,
       remoteId = 'origin',
       localIdGenerator,
+      addStoreMetadata,
     }: IndexedDbBackendOptions<CommitMetadata, Delta, Presence>,
-
-    /** Add metadata to every local commit stored in client */
-    private readonly getStoreCommitMetadata?: StoreCommitMetadataFn<CommitMetadata>,
   ) {
     super(userId, clientId, onStoreEvent, getRemote, networkSettings);
     this.remoteId = remoteId;
     this.localIdGenerator = localIdGenerator;
+    this.addStoreMetadata = addStoreMetadata;
+
     const dbName = getDatabaseName(docId);
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
@@ -306,7 +306,7 @@ class IndexedDbBackend<
 
     for (const commit of commits) {
       const commitIndex = ++nextCommitIndex;
-      const { ref, baseRef, metadata } = commit;
+      const { ref, baseRef } = commit;
       let mergeRef: string | undefined;
       if (isMergeCommit(commit)) {
         mergeRef = commit.mergeRef;
@@ -318,21 +318,20 @@ class IndexedDbBackend<
               return;
             }
 
-            if (this.getStoreCommitMetadata) {
-              commit.metadata = {
-                ...commit.metadata,
-                ...this.getStoreCommitMetadata(
-                  await this.localStoreId,
-                  commitIndex,
-                ),
-              };
+            if (this.addStoreMetadata) {
+              const localStoreId = await this.localStoreId;
+              commit.metadata = this.addStoreMetadata(
+                commit.metadata,
+                localStoreId,
+                commitIndex,
+              );
             }
             await commitsDb.add({
               syncId: commitIndex,
               remoteSyncId: remoteSyncId ?? '',
               ...commit,
             });
-            refMetadata.set(ref, metadata);
+            refMetadata.set(ref, commit.metadata);
           } catch (e) {
             refErrors[ref] = {
               code: 'storage-failure',

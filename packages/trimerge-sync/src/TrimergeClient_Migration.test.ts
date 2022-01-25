@@ -24,7 +24,7 @@ function makeClientV1(
   store: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1, DocV1, TestCommitMetadata, Delta, TestPresence> {
   return new TrimergeClient(userId, 'test', store.getLocalStore, {
-    migrate: (doc, CommitMetadata) => ({ doc, metadata }),
+    migrate: (doc, metadata) => ({ doc, metadata }),
     diff,
     patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
     computeRef,
@@ -42,7 +42,7 @@ function makeClientV2(
   TestPresence
 > {
   return new TrimergeClient(userId, 'test', store.getLocalStore, {
-    migrate: (doc, CommitMetadata) => {
+    migrate: (doc, metadata) => {
       switch (doc.v) {
         case 1:
           return {
