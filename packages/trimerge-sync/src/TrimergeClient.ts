@@ -154,9 +154,7 @@ export class TrimergeClient<
 
       case 'client-leave':
         this.clientMap.delete(getFullId(event.userId, event.clientId));
-        this.emitClientListChange({
-          origin,
-        });
+        this.emitClientListChange({ origin });
         break;
 
       case 'client-join':
@@ -166,7 +164,6 @@ export class TrimergeClient<
 
       case 'remote-state':
         // TODO: remove remote clients as applicable?
-        this.emitClientListChange({ origin: 'remote' });
         const changes: Partial<SyncStatus> = {};
         if (event.connect) {
           changes.remoteConnect = event.connect;

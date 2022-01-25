@@ -337,6 +337,8 @@ Array [
 
     const syncUpdates1: SyncStatus[] = [];
     client1.subscribeSyncStatus((state) => syncUpdates1.push(state));
+    const client1Sub = jest.fn();
+    client1.subscribeClientList(client1Sub);
 
     client1.updateDoc({}, 'initialize');
     client1.updateDoc({ hello: 'world' }, 'add hello');
@@ -347,6 +349,8 @@ Array [
 
     const syncUpdates2: SyncStatus[] = [];
     client2.subscribeSyncStatus((state) => syncUpdates2.push(state));
+    const client2Sub = jest.fn();
+    client2.subscribeClientList(client2Sub);
 
     await timeout();
 
@@ -475,6 +479,138 @@ Array [
     "remoteRead": "ready",
     "remoteSave": "ready",
   },
+]
+`);
+    expect(client1Sub.mock.calls).toMatchInlineSnapshot(`
+Array [
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "test",
+      },
+    ],
+    Object {
+      "origin": "subscribe",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "DuQe--Vh",
+        "self": true,
+        "userId": "test",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "DuQe--Vh",
+        "self": true,
+        "userId": "test",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "u0wBto6f",
+        "self": true,
+        "userId": "test",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "u0wBto6f",
+        "self": true,
+        "userId": "test",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "u0wBto6f",
+        "self": true,
+        "userId": "test",
+      },
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "test",
+      },
+    ],
+    Object {
+      "origin": "local",
+    },
+  ],
+]
+`);
+    expect(client2Sub.mock.calls).toMatchInlineSnapshot(`
+Array [
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "test",
+      },
+    ],
+    Object {
+      "origin": "subscribe",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "test",
+      },
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "u0wBto6f",
+        "userId": "test",
+      },
+    ],
+    Object {
+      "origin": "local",
+    },
+  ],
 ]
 `);
   });
