@@ -10,7 +10,7 @@ import {
 import { create, Delta } from 'jsondiffpatch';
 import { produce } from 'immer';
 import { computeRef as computeShaRef } from 'trimerge-sync-hash';
-import { makeAutoBranchMerger, MergeAllBranchesFn } from 'trimerge-sync';
+import { makeMergeAllBranchesFn, MergeAllBranchesFn } from 'trimerge-sync';
 
 const trimergeObjects = combineMergers(
   trimergeEquality,
@@ -25,7 +25,7 @@ export const merge: MergeDocFn<any, any> = (base, left, right) => ({
   },
 });
 export const mergeAllBranches: MergeAllBranchesFn<any, any> =
-  makeAutoBranchMerger((a, b) => (a < b ? -1 : 1), merge);
+  makeMergeAllBranchesFn((a, b) => (a < b ? -1 : 1), merge);
 
 export const jdp = create({ textDiff: { minLength: 20 } });
 

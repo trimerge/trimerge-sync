@@ -6,7 +6,7 @@ import {
   trimergeString,
 } from 'trimerge';
 import {
-  makeAutoBranchMerger,
+  makeMergeAllBranchesFn,
   MergeAllBranchesFn,
   MergeDocFn,
 } from 'trimerge-sync';
@@ -27,7 +27,7 @@ export const merge: MergeDocFn<any, string> = (base, left, right) => ({
 });
 
 export const mergeAllBranches: MergeAllBranchesFn<any, any> =
-  makeAutoBranchMerger((a, b) => (a < b ? -1 : 1), merge);
+  makeMergeAllBranchesFn((a, b) => (a < b ? -1 : 1), merge);
 
 const jdp = create({ textDiff: { minLength: 20 } });
 
