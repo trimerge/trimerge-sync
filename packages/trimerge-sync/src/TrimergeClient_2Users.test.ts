@@ -128,12 +128,15 @@ Array [
     await timeout();
 
     expect(onStateChange.mock.calls).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          undefined,
-        ],
-      ]
-    `);
+Array [
+  Array [
+    undefined,
+    Object {
+      "origin": "subscribe",
+    },
+  ],
+]
+`);
     unsub();
   });
   it('tracks presence', async () => {
@@ -157,6 +160,9 @@ Array [
         "userId": "a",
       },
     ],
+    Object {
+      "origin": "self",
+    },
   ],
 ]
 `);
@@ -244,6 +250,7 @@ Array [
             clientId: 'test',
           },
         ],
+        { origin: 'subscribe' },
       ],
     ]);
 
@@ -297,6 +304,9 @@ Array [
         "userId": "a",
       },
     ],
+    Object {
+      "origin": "subscribe",
+    },
   ],
   Array [
     Array [
@@ -314,6 +324,9 @@ Array [
         "userId": "b",
       },
     ],
+    Object {
+      "origin": "self",
+    },
   ],
   Array [
     Array [
@@ -331,6 +344,9 @@ Array [
         "userId": "b",
       },
     ],
+    Object {
+      "origin": "self",
+    },
   ],
 ]
 `);
@@ -652,11 +668,11 @@ Array [
 `);
 
     expect(subscribeFn.mock.calls).toEqual([
-      [undefined],
-      [{}],
-      [{ hello: 'world' }],
-      [{ hello: 'vorld' }],
-      [{ hello: 'there' }],
+      [undefined, { origin: 'subscribe' }],
+      [{}, { origin: 'self' }],
+      [{ hello: 'world' }, { origin: 'self' }],
+      [{ hello: 'vorld' }, { origin: 'self' }],
+      [{ hello: 'there' }, { origin: 'self' }],
     ]);
   });
 
