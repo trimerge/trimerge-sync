@@ -88,7 +88,7 @@ export class MemoryStore<EditMetadata, Delta, Presence> {
   addCommits(
     commits: readonly Commit<EditMetadata, Delta>[],
     remoteSyncId?: string,
-  ): Promise<AckCommitsEvent> {
+  ): Promise<AckCommitsEvent<EditMetadata>> {
     return this.queue.add(async () => {
       const refs = new Set<string>();
       for (const commit of commits) {

@@ -102,7 +102,7 @@ export class MemoryRemote<EditMetadata, Delta, Presence>
   }
   protected addCommits(
     commits: readonly Commit<EditMetadata, Delta>[],
-  ): Promise<AckCommitsEvent> {
+  ): Promise<AckCommitsEvent<EditMetadata>> {
     return this.store.addCommits(commits);
   }
 

@@ -121,13 +121,13 @@ describe('Remote sync', () => {
     expect(localGraph1).toMatchInlineSnapshot(`
 Array [
   Object {
-    "graph": "undefined -> DuQe--Vh",
-    "step": "User a: initialize",
+    "graph": "undefined -> Zob0dMmD",
+    "step": "initialize",
     "value": Object {},
   },
   Object {
-    "graph": "DuQe--Vh -> u0wBto6f",
-    "step": "User a: add hello",
+    "graph": "Zob0dMmD -> leySPlIR",
+    "step": "add hello",
     "value": Object {
       "hello": "world",
     },
@@ -272,62 +272,62 @@ Array [
     expect(localGraph1).toMatchInlineSnapshot(`
 Array [
   Object {
-    "graph": "undefined -> DuQe--Vh",
-    "step": "User a: initialize",
+    "graph": "undefined -> Zob0dMmD",
+    "step": "initialize",
     "value": Object {},
   },
   Object {
-    "graph": "DuQe--Vh -> u0wBto6f",
-    "step": "User a: add hello",
+    "graph": "Zob0dMmD -> leySPlIR",
+    "step": "add hello",
     "value": Object {
       "hello": "world",
     },
   },
   Object {
-    "graph": "u0wBto6f -> mtMnDodx",
-    "step": "User a: edit hello",
+    "graph": "leySPlIR -> DWZJPKBc",
+    "step": "edit hello",
     "value": Object {
       "hello": "world 2",
     },
   },
   Object {
-    "graph": "mtMnDodx -> tB2Oxxss",
-    "step": "User a: edit hello",
+    "graph": "DWZJPKBc -> EM9w-Vme",
+    "step": "edit hello",
     "value": Object {
       "hello": "world 3",
     },
   },
   Object {
-    "graph": "tB2Oxxss -> ltIl6khP",
-    "step": "User a: edit hello",
+    "graph": "EM9w-Vme -> bPTFg9aG",
+    "step": "edit hello",
     "value": Object {
       "hello": "world 4",
     },
   },
   Object {
-    "graph": "ltIl6khP -> 6_CORFe7",
-    "step": "User a: edit hello",
+    "graph": "bPTFg9aG -> SZgOrzaG",
+    "step": "edit hello",
     "value": Object {
       "hello": "world 5",
     },
   },
   Object {
-    "graph": "6_CORFe7 -> OhiKsT4g",
-    "step": "User a: edit hello",
+    "graph": "SZgOrzaG -> s9y6mchq",
+    "step": "edit hello",
     "value": Object {
       "hello": "world 6",
     },
   },
   Object {
-    "graph": "OhiKsT4g -> bTzlNzXZ",
-    "step": "User a: edit hello",
+    "graph": "s9y6mchq -> DnqoAp6m",
+    "step": "edit hello",
     "value": Object {
       "hello": "world 7",
     },
   },
   Object {
-    "graph": "bTzlNzXZ -> ilW_0_ne",
-    "step": "User a: edit hello",
+    "graph": "DnqoAp6m -> _fOHZjAT",
+    "step": "edit hello",
     "value": Object {
       "hello": "world 8",
     },
@@ -508,7 +508,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "DuQe--Vh",
+        "ref": "Zob0dMmD",
         "self": true,
         "userId": "test",
       },
@@ -522,7 +522,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "DuQe--Vh",
+        "ref": "Zob0dMmD",
         "self": true,
         "userId": "test",
       },
@@ -536,7 +536,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "u0wBto6f",
+        "ref": "leySPlIR",
         "self": true,
         "userId": "test",
       },
@@ -550,7 +550,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "u0wBto6f",
+        "ref": "leySPlIR",
         "self": true,
         "userId": "test",
       },
@@ -564,7 +564,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "u0wBto6f",
+        "ref": "leySPlIR",
         "self": true,
         "userId": "test",
       },
@@ -609,7 +609,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "u0wBto6f",
+        "ref": "leySPlIR",
         "userId": "test",
       },
     ],
@@ -1064,44 +1064,44 @@ Array [
     const graph1 = basicGraph(store1, client1);
     const graph2 = basicGraph(store2, client1);
     expect(graph1).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "graph": "undefined -> DuQe--Vh",
-          "step": "User a: initialize",
-          "value": Object {},
-        },
-        Object {
-          "graph": "DuQe--Vh -> u0wBto6f",
-          "step": "User a: add hello",
-          "value": Object {
-            "hello": "world",
-          },
-        },
-        Object {
-          "graph": "u0wBto6f -> YYUSBDXS",
-          "step": "User a: change hello",
-          "value": Object {
-            "hello": "vorld",
-          },
-        },
-        Object {
-          "graph": "YYUSBDXS -> YFIigfVr",
-          "step": "User b: add world",
-          "value": Object {
-            "hello": "vorld",
-            "world": "world",
-          },
-        },
-        Object {
-          "graph": "YFIigfVr -> 3duBmH5E",
-          "step": "User b: change world",
-          "value": Object {
-            "hello": "vorld",
-            "world": "vorld",
-          },
-        },
-      ]
-    `);
+Array [
+  Object {
+    "graph": "undefined -> Zob0dMmD",
+    "step": "initialize",
+    "value": Object {},
+  },
+  Object {
+    "graph": "Zob0dMmD -> leySPlIR",
+    "step": "add hello",
+    "value": Object {
+      "hello": "world",
+    },
+  },
+  Object {
+    "graph": "leySPlIR -> x_n2sT7P",
+    "step": "change hello",
+    "value": Object {
+      "hello": "vorld",
+    },
+  },
+  Object {
+    "graph": "x_n2sT7P -> iOywLlrW",
+    "step": "add world",
+    "value": Object {
+      "hello": "vorld",
+      "world": "world",
+    },
+  },
+  Object {
+    "graph": "iOywLlrW -> ZLVXz73q",
+    "step": "change world",
+    "value": Object {
+      "hello": "vorld",
+      "world": "vorld",
+    },
+  },
+]
+`);
     expect(graph2).toEqual(graph1);
 
     await client1.shutdown();
@@ -1381,7 +1381,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "DuQe--Vh",
+        "ref": "Zob0dMmD",
         "self": true,
         "userId": "a",
       },
@@ -1395,7 +1395,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "DuQe--Vh",
+        "ref": "Zob0dMmD",
         "self": true,
         "userId": "a",
       },
@@ -1409,7 +1409,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "u0wBto6f",
+        "ref": "leySPlIR",
         "self": true,
         "userId": "a",
       },
@@ -1423,7 +1423,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "u0wBto6f",
+        "ref": "leySPlIR",
         "self": true,
         "userId": "a",
       },
@@ -1437,7 +1437,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "YYUSBDXS",
+        "ref": "x_n2sT7P",
         "self": true,
         "userId": "a",
       },
@@ -1451,7 +1451,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "YYUSBDXS",
+        "ref": "x_n2sT7P",
         "self": true,
         "userId": "a",
       },
@@ -1465,7 +1465,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "YYUSBDXS",
+        "ref": "x_n2sT7P",
         "self": true,
         "userId": "a",
       },
@@ -1485,14 +1485,14 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "YYUSBDXS",
+        "ref": "x_n2sT7P",
         "self": true,
         "userId": "a",
       },
       Object {
         "clientId": "b",
         "presence": undefined,
-        "ref": "YFIigfVr",
+        "ref": "iOywLlrW",
         "userId": "b",
       },
     ],
@@ -1505,14 +1505,14 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "YYUSBDXS",
+        "ref": "x_n2sT7P",
         "self": true,
         "userId": "a",
       },
       Object {
         "clientId": "b",
         "presence": undefined,
-        "ref": "3duBmH5E",
+        "ref": "ZLVXz73q",
         "userId": "b",
       },
     ],
@@ -1525,7 +1525,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "YYUSBDXS",
+        "ref": "x_n2sT7P",
         "self": true,
         "userId": "a",
       },
@@ -1564,7 +1564,7 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "YYUSBDXS",
+        "ref": "x_n2sT7P",
         "userId": "a",
       },
     ],
@@ -1577,14 +1577,14 @@ Array [
       Object {
         "clientId": "b",
         "presence": undefined,
-        "ref": "YFIigfVr",
+        "ref": "iOywLlrW",
         "self": true,
         "userId": "b",
       },
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "YYUSBDXS",
+        "ref": "x_n2sT7P",
         "userId": "a",
       },
     ],
@@ -1597,14 +1597,14 @@ Array [
       Object {
         "clientId": "b",
         "presence": undefined,
-        "ref": "YFIigfVr",
+        "ref": "iOywLlrW",
         "self": true,
         "userId": "b",
       },
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "YYUSBDXS",
+        "ref": "x_n2sT7P",
         "userId": "a",
       },
     ],
@@ -1617,14 +1617,14 @@ Array [
       Object {
         "clientId": "b",
         "presence": undefined,
-        "ref": "3duBmH5E",
+        "ref": "ZLVXz73q",
         "self": true,
         "userId": "b",
       },
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "YYUSBDXS",
+        "ref": "x_n2sT7P",
         "userId": "a",
       },
     ],
@@ -1637,14 +1637,14 @@ Array [
       Object {
         "clientId": "b",
         "presence": undefined,
-        "ref": "3duBmH5E",
+        "ref": "ZLVXz73q",
         "self": true,
         "userId": "b",
       },
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "YYUSBDXS",
+        "ref": "x_n2sT7P",
         "userId": "a",
       },
     ],
@@ -1657,7 +1657,7 @@ Array [
       Object {
         "clientId": "b",
         "presence": undefined,
-        "ref": "3duBmH5E",
+        "ref": "ZLVXz73q",
         "self": true,
         "userId": "b",
       },

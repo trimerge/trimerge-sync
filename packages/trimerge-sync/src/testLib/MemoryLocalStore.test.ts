@@ -15,7 +15,6 @@ describe('MemoryLocalStore', () => {
     local.update(
       [
         {
-          userId: 'test',
           ref: 'test1',
           metadata: undefined,
         },
@@ -34,7 +33,6 @@ Array [
         Object {
           "metadata": undefined,
           "ref": "test1",
-          "userId": "test",
         },
       ],
       "syncId": "0",
@@ -85,7 +83,6 @@ Array [
     local.update(
       [
         {
-          userId: 'test',
           ref: 'test2',
           metadata: undefined,
         },
@@ -100,7 +97,6 @@ Array [
         Object {
           "metadata": undefined,
           "ref": "test1",
-          "userId": "test",
         },
       ],
       "syncId": "0",
