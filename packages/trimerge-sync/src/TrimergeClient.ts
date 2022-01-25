@@ -101,28 +101,36 @@ export class TrimergeClient<
   ) {
     this.selfFullId = getFullId(userId, clientId);
     this.store = getLocalStore(userId, clientId, this.onStoreEvent);
-    this.setClientInfo({
-      userId,
-      clientId,
-      ref: undefined,
-      presence: undefined,
-      self: true,
-    });
+    this.setClientInfo(
+      {
+        userId,
+        clientId,
+        ref: undefined,
+        presence: undefined,
+        self: true,
+      },
+      { origin: 'self' },
+    );
   }
 
   public get isRemoteLeader(): boolean {
     return this.store.isRemoteLeader;
   }
 
-  private setClientInfo(cursor: LocalClientInfo<Presence>) {
+  private setClientInfo(
+    cursor: LocalClientInfo<Presence>,
+    event: SubscribeEvent,
+  ) {
     const { userId, clientId } = cursor;
     this.clientMap.set(getFullId(userId, clientId), cursor);
-    this.emitClientListChange({ origin: 'self' });
+    this.emitClientListChange(event);
   }
   private onStoreEvent: OnStoreEventFn<EditMetadata, Delta, Presence> = (
     event,
     remoteOrigin,
   ) => {
+    const origin = remoteOrigin ? 'remote' : 'local';
+
     switch (event.type) {
       case 'commits': {
         const { commits, syncId, clientInfo } = event;
@@ -131,10 +139,10 @@ export class TrimergeClient<
         }
         this.lastLocalSyncId = syncId;
         this.mergeHeads();
-        this.docSubs.emitChange({ origin: remoteOrigin ? 'remote' : 'local' });
+        this.docSubs.emitChange({ origin });
         this.sync();
         if (clientInfo) {
-          this.setClientInfo(clientInfo);
+          this.setClientInfo(clientInfo, { origin });
         }
 
         break;
@@ -147,13 +155,13 @@ export class TrimergeClient<
       case 'client-leave':
         this.clientMap.delete(getFullId(event.userId, event.clientId));
         this.emitClientListChange({
-          origin: remoteOrigin ? 'remote' : 'local',
+          origin,
         });
         break;
 
       case 'client-join':
       case 'client-presence':
-        this.setClientInfo(event.info);
+        this.setClientInfo(event.info, { origin });
         break;
 
       case 'remote-state':
@@ -236,7 +244,10 @@ export class TrimergeClient<
   ) {
     const { userId, clientId } = this;
     this.newPresence = { userId, clientId, ref, presence };
-    this.setClientInfo({ userId, clientId, ref, presence, self: true });
+    this.setClientInfo(
+      { userId, clientId, ref, presence, self: true },
+      { origin: 'self' },
+    );
     this.emitClientListChange({ origin: 'self' });
   }
 
