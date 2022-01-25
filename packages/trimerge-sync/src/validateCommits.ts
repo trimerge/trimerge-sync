@@ -1,17 +1,17 @@
 import { asCommitRefs } from './lib/Commits';
 import type { AckCommitsEvent, Commit } from './types';
 
-export type CommitValidation<CommitMetadata, Delta> = {
-  newCommits: readonly Commit<CommitMetadata, Delta>[];
+export type CommitValidation<EditMetadata, Delta> = {
+  newCommits: readonly Commit<EditMetadata, Delta>[];
   invalidRefs: Set<string>;
   referencedCommits: Set<string>;
 };
 
-export function validateCommitOrder<CommitMetadata, Delta>(
-  commits: readonly Commit<CommitMetadata, Delta>[],
-): CommitValidation<CommitMetadata, Delta> {
+export function validateCommitOrder<EditMetadata, Delta>(
+  commits: readonly Commit<EditMetadata, Delta>[],
+): CommitValidation<EditMetadata, Delta> {
   const newCommitRefs = new Set<string>();
-  const newCommits: Commit<CommitMetadata, Delta>[] = [];
+  const newCommits: Commit<EditMetadata, Delta>[] = [];
   const referencedCommits = new Set<string>();
   const invalidRefs = new Set<string>();
   function addReferencedCommit(ref?: string) {

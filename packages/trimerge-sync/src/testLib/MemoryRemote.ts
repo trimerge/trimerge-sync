@@ -11,18 +11,18 @@ import {
 import { MemoryStore } from './MemoryStore';
 import { PromiseQueue } from '../lib/PromiseQueue';
 
-export class MemoryRemote<CommitMetadata, Delta, Presence>
-  implements Remote<CommitMetadata, Delta, Presence>
+export class MemoryRemote<EditMetadata, Delta, Presence>
+  implements Remote<EditMetadata, Delta, Presence>
 {
   private readonly remoteQueue = new PromiseQueue();
   private closed = false;
   private readonly clientStoreId: string;
 
   constructor(
-    private readonly store: MemoryStore<CommitMetadata, Delta, Presence>,
+    private readonly store: MemoryStore<EditMetadata, Delta, Presence>,
     private readonly userId: string,
     { lastSyncCursor, localStoreId }: RemoteSyncInfo,
-    private readonly onEvent: OnRemoteEventFn<CommitMetadata, Delta, Presence>,
+    private readonly onEvent: OnRemoteEventFn<EditMetadata, Delta, Presence>,
   ) {
     this.clientStoreId = localStoreId;
     this.sendInitialEvents(lastSyncCursor).catch(
@@ -31,7 +31,7 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
   }
 
   private async handle(
-    event: SyncEvent<CommitMetadata, Delta, Presence>,
+    event: SyncEvent<EditMetadata, Delta, Presence>,
   ): Promise<void> {
     if (this.closed) {
       return;
@@ -56,12 +56,12 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
     }
   }
 
-  send(event: SyncEvent<CommitMetadata, Delta, Presence>): void {
+  send(event: SyncEvent<EditMetadata, Delta, Presence>): void {
     this.remoteQueue
       .add(() => this.handle(event))
       .catch(this.handleAsError('internal'));
   }
-  private receive(event: SyncEvent<CommitMetadata, Delta, Presence>): void {
+  private receive(event: SyncEvent<EditMetadata, Delta, Presence>): void {
     this.remoteQueue
       .add(async () => this.onEvent(event))
       .catch(this.handleAsError('internal'));
@@ -101,13 +101,13 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
     return (error: Error) => this.fail(error.message, code);
   }
   protected addCommits(
-    commits: readonly Commit<CommitMetadata, Delta>[],
+    commits: readonly Commit<EditMetadata, Delta>[],
   ): Promise<AckCommitsEvent> {
     return this.store.addCommits(commits);
   }
 
   protected async broadcast(
-    event: SyncEvent<CommitMetadata, Delta, Presence>,
+    event: SyncEvent<EditMetadata, Delta, Presence>,
   ): Promise<void> {
     for (const remote of this.store.remotes) {
       // Don't send to other clients with the same userId/clientStoreId pair
@@ -123,7 +123,7 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
 
   protected async *getCommits(
     lastSyncCursor: string | undefined,
-  ): AsyncIterableIterator<CommitsEvent<CommitMetadata, Delta, Presence>> {
+  ): AsyncIterableIterator<CommitsEvent<EditMetadata, Delta, Presence>> {
     yield await this.store.getLocalCommitsEvent(lastSyncCursor);
   }
 }

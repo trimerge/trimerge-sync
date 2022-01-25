@@ -10,19 +10,19 @@ import {
 import { getBasicGraph } from './testLib/GraphVisualizers';
 import { timeout } from './lib/Timeout';
 
-type TestCommitMetadata = string;
+type TestEditMetadata = string;
 type DocV1 = { v: 1; field: number };
 type DocV2 = { v: 2; field: string };
 type TestPresence = any;
 
 function newStore() {
-  return new MemoryStore<TestCommitMetadata, Delta, TestPresence>();
+  return new MemoryStore<TestEditMetadata, Delta, TestPresence>();
 }
 
 function makeClientV1(
   userId: string,
-  store: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
-): TrimergeClient<DocV1, DocV1, TestCommitMetadata, Delta, TestPresence> {
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
+): TrimergeClient<DocV1, DocV1, TestEditMetadata, Delta, TestPresence> {
   return new TrimergeClient(userId, 'test', store.getLocalStore, {
     migrate: (doc, metadata) => ({ doc, metadata }),
     diff,
@@ -33,14 +33,8 @@ function makeClientV1(
 }
 function makeClientV2(
   userId: string,
-  store: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
-): TrimergeClient<
-  DocV1 | DocV2,
-  DocV2,
-  TestCommitMetadata,
-  Delta,
-  TestPresence
-> {
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
+): TrimergeClient<DocV1 | DocV2, DocV2, TestEditMetadata, Delta, TestPresence> {
   return new TrimergeClient(userId, 'test', store.getLocalStore, {
     migrate: (doc, metadata) => {
       switch (doc.v) {
@@ -61,7 +55,7 @@ function makeClientV2(
 }
 
 function basicGraph(
-  store: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
   client1: TrimergeClient<any, any, any, any, any>,
 ) {
   return getBasicGraph(

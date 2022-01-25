@@ -6,15 +6,15 @@ import type {
   SyncEvent,
 } from 'trimerge-sync';
 
-export class WebsocketRemote<CommitMetadata, Delta, Presence>
-  implements Remote<CommitMetadata, Delta, Presence>
+export class WebsocketRemote<EditMetadata, Delta, Presence>
+  implements Remote<EditMetadata, Delta, Presence>
 {
   private socket: WebSocket | undefined;
-  private bufferedEvents: SyncEvent<CommitMetadata, Delta, Presence>[] = [];
+  private bufferedEvents: SyncEvent<EditMetadata, Delta, Presence>[] = [];
   constructor(
     auth: unknown,
     { localStoreId, lastSyncCursor }: RemoteSyncInfo,
-    private readonly onEvent: OnRemoteEventFn<CommitMetadata, Delta, Presence>,
+    private readonly onEvent: OnRemoteEventFn<EditMetadata, Delta, Presence>,
     websocketUrl: string,
   ) {
     console.log(`[TRIMERGE-SYNC] Connecting to ${websocketUrl}...`);
@@ -46,7 +46,7 @@ export class WebsocketRemote<CommitMetadata, Delta, Presence>
     });
   }
 
-  send(event: SyncEvent<CommitMetadata, Delta, Presence>): void {
+  send(event: SyncEvent<EditMetadata, Delta, Presence>): void {
     if (!this.socket) {
       return;
     }

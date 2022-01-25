@@ -16,46 +16,42 @@ export type PatchFn<SavedDoc, Delta> = (
   delta: Delta | undefined,
 ) => SavedDoc;
 
-export type DocAndMetadata<Doc, CommitMetadata> = {
+export type DocAndMetadata<Doc, EditMetadata> = {
   doc: Doc;
-  metadata: CommitMetadata;
+  metadata: EditMetadata;
 };
-export type CommitDoc<Doc, CommitMetadata> = {
+export type CommitDoc<Doc, EditMetadata> = {
   ref: string;
-} & DocAndMetadata<Doc, CommitMetadata>;
+} & DocAndMetadata<Doc, EditMetadata>;
 
-export type MigrateDocFn<
-  SavedDoc,
-  LatestDoc extends SavedDoc,
-  CommitMetadata,
-> = (
+export type MigrateDocFn<SavedDoc, LatestDoc extends SavedDoc, EditMetadata> = (
   doc: SavedDoc,
-  metadata: CommitMetadata,
-) => DocAndMetadata<LatestDoc, CommitMetadata>;
+  metadata: EditMetadata,
+) => DocAndMetadata<LatestDoc, EditMetadata>;
 
-export type MergeHelpers<LatestDoc, CommitMetadata> = {
+export type MergeHelpers<LatestDoc, EditMetadata> = {
   getCommitInfo(ref: string): CommitInfo;
-  computeLatestDoc(ref: string): CommitDoc<LatestDoc, CommitMetadata>;
+  computeLatestDoc(ref: string): CommitDoc<LatestDoc, EditMetadata>;
   addMerge(
     doc: LatestDoc,
-    metadata: CommitMetadata,
+    metadata: EditMetadata,
     temp: boolean,
     leftRef: string,
     rightRef: string,
   ): string;
 };
-export type MergeAllBranchesFn<LatestDoc, CommitMetadata> = (
+export type MergeAllBranchesFn<LatestDoc, EditMetadata> = (
   branchHeadRefs: string[],
-  helpers: MergeHelpers<LatestDoc, CommitMetadata>,
+  helpers: MergeHelpers<LatestDoc, EditMetadata>,
 ) => void;
 
 export interface Differ<
   SavedDoc,
   LatestDoc extends SavedDoc,
-  CommitMetadata,
+  EditMetadata,
   Delta,
 > {
-  readonly migrate: MigrateDocFn<SavedDoc, LatestDoc, CommitMetadata>;
+  readonly migrate: MigrateDocFn<SavedDoc, LatestDoc, EditMetadata>;
 
   /** Calculate the ref string for a given edit */
   readonly computeRef: ComputeRefFn<Delta>;
@@ -67,5 +63,5 @@ export interface Differ<
   readonly patch: PatchFn<SavedDoc, Delta>;
 
   /** Merge all head commits */
-  readonly mergeAllBranches: MergeAllBranchesFn<LatestDoc, CommitMetadata>;
+  readonly mergeAllBranches: MergeAllBranchesFn<LatestDoc, EditMetadata>;
 }

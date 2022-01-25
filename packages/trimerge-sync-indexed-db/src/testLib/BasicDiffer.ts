@@ -48,7 +48,7 @@ export function computeRef(
   return computeShaRef(baseRef, mergeRef, delta).slice(0, 8);
 }
 
-type TestCommitMetadata = string;
+type TestEditMetadata = string;
 type TestSavedDoc = any;
 type TestDoc = any;
 type TestPresence = any;
@@ -56,7 +56,7 @@ type TestPresence = any;
 export const differ: Differ<
   TestSavedDoc,
   TestDoc,
-  TestCommitMetadata,
+  TestEditMetadata,
   TestPresence
 > = {
   migrate: (doc, metadata) => ({ doc, metadata }),

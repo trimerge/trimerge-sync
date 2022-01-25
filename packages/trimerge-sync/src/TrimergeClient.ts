@@ -29,28 +29,28 @@ export type SubscribeEvent = {
     | 'remote'; // A remote client updated the value
 };
 
-export type AddNewCommitMetadataFn<CommitMetadata> = (
-  metadata: CommitMetadata,
+export type AddNewEditMetadataFn<EditMetadata> = (
+  metadata: EditMetadata,
   userId: string,
   clientId: string,
-) => CommitMetadata;
+) => EditMetadata;
 
 export class TrimergeClient<
   SavedDoc,
   LatestDoc extends SavedDoc,
-  CommitMetadata,
+  EditMetadata,
   Delta,
   Presence,
 > {
   // The doc for the latest non-temp commit
   // This is used when rolling back all temp commits
-  private lastNonTempDoc?: CommitDoc<SavedDoc, CommitMetadata>;
+  private lastNonTempDoc?: CommitDoc<SavedDoc, EditMetadata>;
 
   // The doc for the latest commit (potentially temp)
-  private lastSavedDoc?: CommitDoc<SavedDoc, CommitMetadata>;
+  private lastSavedDoc?: CommitDoc<SavedDoc, EditMetadata>;
 
   // A cached migrated version of lastSavedDoc (could be instance equal)
-  private latestDoc?: CommitDoc<LatestDoc, CommitMetadata>;
+  private latestDoc?: CommitDoc<LatestDoc, EditMetadata>;
 
   private lastLocalSyncId: string | undefined;
 
@@ -74,14 +74,14 @@ export class TrimergeClient<
   private clientMap = new Map<string, LocalClientInfo<Presence>>();
   private clientList: ClientList<Presence> = [];
 
-  private commits = new Map<string, Commit<CommitMetadata, Delta>>();
-  private docs = new Map<string, CommitDoc<SavedDoc, CommitMetadata>>();
+  private commits = new Map<string, Commit<EditMetadata, Delta>>();
+  private docs = new Map<string, CommitDoc<SavedDoc, EditMetadata>>();
   private allHeadRefs = new Set<string>();
   private nonTempHeadRefs = new Set<string>();
 
-  private store: LocalStore<CommitMetadata, Delta, Presence>;
-  private tempCommits = new Map<string, Commit<CommitMetadata, Delta>>();
-  private unsyncedCommits: Commit<CommitMetadata, Delta>[] = [];
+  private store: LocalStore<EditMetadata, Delta, Presence>;
+  private tempCommits = new Map<string, Commit<EditMetadata, Delta>>();
+  private unsyncedCommits: Commit<EditMetadata, Delta>[] = [];
 
   private newPresence: ClientInfo<Presence> | undefined;
 
@@ -97,13 +97,13 @@ export class TrimergeClient<
     public readonly userId: string,
     public readonly clientId: string,
     private readonly getLocalStore: GetLocalStoreFn<
-      CommitMetadata,
+      EditMetadata,
       Delta,
       Presence
     >,
-    private readonly differ: Differ<SavedDoc, LatestDoc, CommitMetadata, Delta>,
+    private readonly differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
     /** Add metadata to every new commit created on this client */
-    private readonly addNewCommitMetadata?: AddNewCommitMetadataFn<CommitMetadata>,
+    private readonly addNewEditMetadata?: AddNewEditMetadataFn<EditMetadata>,
   ) {
     this.store = getLocalStore(userId, clientId, this.onStoreEvent);
     this.setClientInfo(
@@ -130,7 +130,7 @@ export class TrimergeClient<
     this.clientMap.set(getFullId(userId, clientId), cursor);
     this.emitClientListChange(event);
   }
-  private onStoreEvent: OnStoreEventFn<CommitMetadata, Delta, Presence> = (
+  private onStoreEvent: OnStoreEventFn<EditMetadata, Delta, Presence> = (
     event,
     remoteOrigin,
   ) => {
@@ -227,7 +227,7 @@ export class TrimergeClient<
     return this.clientListSubs.subscribe(onChange, { origin: 'subscribe' });
   }
 
-  updateDoc(doc: LatestDoc, metadata: CommitMetadata, presence?: Presence) {
+  updateDoc(doc: LatestDoc, metadata: EditMetadata, presence?: Presence) {
     const ref = this.addNewCommit(doc, metadata, false);
     this.setPresence(presence, ref);
     this.mergeHeads();
@@ -261,7 +261,7 @@ export class TrimergeClient<
     throw new Error(`unknown ref "${ref}"`);
   };
 
-  private mergeHelpers: MergeHelpers<LatestDoc, CommitMetadata> = {
+  private mergeHelpers: MergeHelpers<LatestDoc, EditMetadata> = {
     getCommitInfo: this.getCommit,
     computeLatestDoc: (ref) => this.migrateCommit(this.getCommitDoc(ref)),
     addMerge: (doc, metadata, temp, leftRef, rightRef) =>
@@ -274,14 +274,14 @@ export class TrimergeClient<
       ),
   };
 
-  getCommitDoc(ref: string): CommitDoc<SavedDoc, CommitMetadata> {
+  getCommitDoc(ref: string): CommitDoc<SavedDoc, EditMetadata> {
     const doc = this.docs.get(ref);
     if (doc !== undefined) {
       return doc;
     }
     const { baseRef, delta, metadata } = this.getCommit(ref);
     const baseValue = baseRef ? this.getCommitDoc(baseRef).doc : undefined;
-    const commitDoc: CommitDoc<SavedDoc, CommitMetadata> = {
+    const commitDoc: CommitDoc<SavedDoc, EditMetadata> = {
       ref,
       doc: this.differ.patch(baseValue, delta),
       metadata,
@@ -291,11 +291,11 @@ export class TrimergeClient<
   }
 
   private migrateCommit(
-    commit: CommitDoc<SavedDoc, CommitMetadata>,
-  ): CommitDoc<LatestDoc, CommitMetadata> {
+    commit: CommitDoc<SavedDoc, EditMetadata>,
+  ): CommitDoc<LatestDoc, EditMetadata> {
     const { doc, metadata } = this.differ.migrate(commit.doc, commit.metadata);
     if (commit.doc === doc) {
-      return commit as CommitDoc<LatestDoc, CommitMetadata>;
+      return commit as CommitDoc<LatestDoc, EditMetadata>;
     }
     const ref = this.addNewCommit(doc, metadata, true, commit);
     return { ref, doc, metadata };
@@ -352,7 +352,7 @@ export class TrimergeClient<
   }
 
   private addCommit(
-    commit: Commit<CommitMetadata, Delta>,
+    commit: Commit<EditMetadata, Delta>,
     type: AddCommitType,
   ): void {
     const { ref, baseRef, mergeRef } = asCommitRefs(commit);
@@ -430,22 +430,18 @@ export class TrimergeClient<
 
   private addNewCommit(
     newDoc: LatestDoc,
-    metadata: CommitMetadata,
+    metadata: EditMetadata,
     temp: boolean,
-    base: CommitDoc<SavedDoc, CommitMetadata> | undefined = this.lastSavedDoc,
+    base: CommitDoc<SavedDoc, EditMetadata> | undefined = this.lastSavedDoc,
     mergeRef?: string,
   ): string {
     const delta = this.differ.diff(base?.doc, newDoc);
     const baseRef = base?.ref;
-    if (this.addNewCommitMetadata) {
-      metadata = this.addNewCommitMetadata(
-        metadata,
-        this.userId,
-        this.clientId,
-      );
+    if (this.addNewEditMetadata) {
+      metadata = this.addNewEditMetadata(metadata, this.userId, this.clientId);
     }
     const ref = this.differ.computeRef(baseRef, mergeRef, delta);
-    const commit: Commit<CommitMetadata, Delta> =
+    const commit: Commit<EditMetadata, Delta> =
       mergeRef !== undefined
         ? { ref, baseRef, mergeRef, delta, metadata }
         : { ref, baseRef, delta, metadata };

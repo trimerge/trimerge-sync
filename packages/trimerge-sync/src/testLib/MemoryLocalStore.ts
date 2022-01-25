@@ -12,21 +12,21 @@ import {
 import { MemoryStore } from './MemoryStore';
 
 export class MemoryLocalStore<
-  CommitMetadata,
+  EditMetadata,
   Delta,
   Presence,
-> extends AbstractLocalStore<CommitMetadata, Delta, Presence> {
+> extends AbstractLocalStore<EditMetadata, Delta, Presence> {
   private _closed = false;
   public readonly channel: MemoryBroadcastChannel<
-    BroadcastEvent<CommitMetadata, Delta, Presence>
+    BroadcastEvent<EditMetadata, Delta, Presence>
   >;
 
   constructor(
-    private readonly store: MemoryStore<CommitMetadata, Delta, Presence>,
+    private readonly store: MemoryStore<EditMetadata, Delta, Presence>,
     userId: string,
     clientId: string,
-    onEvent: OnStoreEventFn<CommitMetadata, Delta, Presence>,
-    getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>,
+    onEvent: OnStoreEventFn<EditMetadata, Delta, Presence>,
+    getRemote?: GetRemoteFn<EditMetadata, Delta, Presence>,
   ) {
     super(userId, clientId, onEvent, getRemote, {
       initialDelayMs: 0,
@@ -44,7 +44,7 @@ export class MemoryLocalStore<
   }
 
   protected addCommits(
-    commits: Commit<CommitMetadata, Delta>[],
+    commits: Commit<EditMetadata, Delta>[],
     remoteSyncId?: string,
   ): Promise<AckCommitsEvent> {
     return this.store.addCommits(commits, remoteSyncId);
@@ -58,7 +58,7 @@ export class MemoryLocalStore<
   }
 
   protected async broadcastLocal(
-    event: BroadcastEvent<CommitMetadata, Delta, Presence>,
+    event: BroadcastEvent<EditMetadata, Delta, Presence>,
   ): Promise<void> {
     if (this._closed) {
       return;
@@ -67,13 +67,13 @@ export class MemoryLocalStore<
   }
 
   protected async *getLocalCommits(): AsyncIterableIterator<
-    CommitsEvent<CommitMetadata, Delta, Presence>
+    CommitsEvent<EditMetadata, Delta, Presence>
   > {
     yield await this.store.getLocalCommitsEvent();
   }
 
   protected getCommitsForRemote(): AsyncIterableIterator<
-    CommitsEvent<CommitMetadata, Delta, Presence>
+    CommitsEvent<EditMetadata, Delta, Presence>
   > {
     return this.store.getCommitsForRemote();
   }

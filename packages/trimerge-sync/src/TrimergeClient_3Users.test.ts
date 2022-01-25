@@ -11,31 +11,30 @@ import {
 } from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 
-type TestCommitMetadata = { ref: string; message: string };
+type TestEditMetadata = { ref: string; message: string };
 type TestSavedDoc = any;
 type TestDoc = any;
 type TestPresence = any;
 
-const differ: Differ<TestSavedDoc, TestDoc, TestCommitMetadata, TestPresence> =
-  {
-    migrate,
-    diff,
-    patch,
-    computeRef,
-    mergeAllBranches,
-  };
+const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
+  migrate,
+  diff,
+  patch,
+  computeRef,
+  mergeAllBranches,
+};
 
 function newStore() {
-  return new MemoryStore<TestCommitMetadata, Delta, TestPresence>();
+  return new MemoryStore<TestEditMetadata, Delta, TestPresence>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<
   TestSavedDoc,
   TestDoc,
-  TestCommitMetadata,
+  TestEditMetadata,
   Delta,
   TestPresence
 > {
@@ -47,11 +46,11 @@ function timeout() {
 }
 
 function basicGraph(
-  store: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
   clientA: TrimergeClient<
     TestSavedDoc,
     TestDoc,
-    TestCommitMetadata,
+    TestEditMetadata,
     Delta,
     TestPresence
   >,

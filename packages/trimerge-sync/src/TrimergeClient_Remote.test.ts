@@ -14,21 +14,20 @@ import { SyncStatus } from './types';
 import { timeout } from './lib/Timeout';
 import { resetAll } from './testLib/MemoryBroadcastChannel';
 
-type TestCommitMetadata = string;
+type TestEditMetadata = string;
 type TestSavedDoc = any;
 type TestDoc = any;
 type TestPresence = any;
 
-const differ: Differ<TestSavedDoc, TestDoc, TestCommitMetadata, TestPresence> =
-  {
-    migrate,
-    diff,
-    patch,
-    computeRef,
-    mergeAllBranches,
-  };
+const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
+  migrate,
+  diff,
+  patch,
+  computeRef,
+  mergeAllBranches,
+};
 
-const stores = new Set<MemoryStore<TestCommitMetadata, Delta, TestPresence>>();
+const stores = new Set<MemoryStore<TestEditMetadata, Delta, TestPresence>>();
 
 afterEach(async () => {
   for (const store of stores) {
@@ -39,10 +38,10 @@ afterEach(async () => {
 });
 
 function newStore(
-  remote?: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
+  remote?: MemoryStore<TestEditMetadata, Delta, TestPresence>,
   online?: boolean,
 ) {
-  const store = new MemoryStore<TestCommitMetadata, Delta, TestPresence>(
+  const store = new MemoryStore<TestEditMetadata, Delta, TestPresence>(
     undefined,
     remote?.getRemote,
     online,
@@ -54,11 +53,11 @@ function newStore(
 function makeClient(
   userId: string,
   clientId: string,
-  store: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<
   TestSavedDoc,
   TestDoc,
-  TestCommitMetadata,
+  TestEditMetadata,
   Delta,
   TestPresence
 > {
@@ -66,11 +65,11 @@ function makeClient(
 }
 
 function basicGraph(
-  store: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
+  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
   client1: TrimergeClient<
     TestSavedDoc,
     TestDoc,
-    TestCommitMetadata,
+    TestEditMetadata,
     Delta,
     TestPresence
   >,
@@ -86,7 +85,7 @@ function basicClients(
   client1: TrimergeClient<
     TestSavedDoc,
     TestDoc,
-    TestCommitMetadata,
+    TestEditMetadata,
     Delta,
     TestPresence
   >,

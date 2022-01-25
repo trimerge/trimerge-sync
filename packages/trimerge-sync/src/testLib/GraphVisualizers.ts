@@ -6,10 +6,10 @@ type BasicGraphItem = {
   step: string;
   value: any;
 };
-export function getBasicGraph<CommitMetadata>(
-  commits: Iterable<Commit<CommitMetadata, unknown>>,
-  getEditLabel: (commit: Commit<CommitMetadata, unknown>) => string,
-  getValue: (commit: Commit<CommitMetadata, unknown>) => any,
+export function getBasicGraph<EditMetadata>(
+  commits: Iterable<Commit<EditMetadata, unknown>>,
+  getEditLabel: (commit: Commit<EditMetadata, unknown>) => string,
+  getValue: (commit: Commit<EditMetadata, unknown>) => any,
 ): BasicGraphItem[] {
   const result = [];
   for (const commit of commits) {
@@ -31,10 +31,10 @@ export function getBasicGraph<CommitMetadata>(
   return result;
 }
 
-export function getDotGraph<CommitMetadata>(
-  commits: Iterable<Commit<CommitMetadata, unknown>>,
-  getEditLabel: (commit: Commit<CommitMetadata, any>) => string,
-  getValue: (commit: Commit<CommitMetadata, any>) => string,
+export function getDotGraph<EditMetadata>(
+  commits: Iterable<Commit<EditMetadata, unknown>>,
+  getEditLabel: (commit: Commit<EditMetadata, any>) => string,
+  getValue: (commit: Commit<EditMetadata, any>) => string,
 ): string {
   const lines: string[] = ['digraph {'];
   for (const commit of commits) {

@@ -20,8 +20,8 @@ import { timeout } from './lib/timeout';
 
 const COMMIT_PAGE_SIZE = 100;
 
-function getSyncCounter<CommitMetadata, Delta>(
-  commits: StoreValue<TrimergeSyncDbSchema<CommitMetadata, Delta>, 'commits'>[],
+function getSyncCounter<EditMetadata, Delta>(
+  commits: StoreValue<TrimergeSyncDbSchema<EditMetadata, Delta>, 'commits'>[],
 ): number {
   let syncCounter = 0;
   for (const commit of commits) {
@@ -40,19 +40,19 @@ function toSyncNumber(syncId: string | undefined): number {
 }
 
 type LocalIdGeneratorFn = () => Promise<string> | string;
-export type IndexedDbBackendOptions<CommitMetadata, Delta, Presence> = {
-  getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>;
+export type IndexedDbBackendOptions<EditMetadata, Delta, Presence> = {
+  getRemote?: GetRemoteFn<EditMetadata, Delta, Presence>;
   networkSettings?: Partial<NetworkSettings>;
   remoteId?: string;
   localIdGenerator: LocalIdGeneratorFn;
   /** Add metadata to every local commit stored in client */
-  addStoreMetadata?: AddStoreMetadataFn<CommitMetadata>;
+  addStoreMetadata?: AddStoreMetadataFn<EditMetadata>;
 };
 
-export function createIndexedDbBackendFactory<CommitMetadata, Delta, Presence>(
+export function createIndexedDbBackendFactory<EditMetadata, Delta, Presence>(
   docId: string,
-  options: IndexedDbBackendOptions<CommitMetadata, Delta, Presence>,
-): GetLocalStoreFn<CommitMetadata, Delta, Presence> {
+  options: IndexedDbBackendOptions<EditMetadata, Delta, Presence>,
+): GetLocalStoreFn<EditMetadata, Delta, Presence> {
   return (userId, clientId, onEvent) =>
     new IndexedDbBackend(docId, userId, clientId, onEvent, options);
 }
@@ -90,46 +90,44 @@ export async function resetDocRemoteSyncData(docId: string): Promise<void> {
   await tx.done;
 }
 
-export function getIDBPDatabase<CommitMetadata, Delta>(
+export function getIDBPDatabase<EditMetadata, Delta>(
   docId: string,
-): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
+): Promise<IDBPDatabase<TrimergeSyncDbSchema<EditMetadata, Delta>>> {
   return createIndexedDb(getDatabaseName(docId));
 }
-export type AddStoreMetadataFn<CommitMetadata> = (
-  metadata: CommitMetadata,
+export type AddStoreMetadataFn<EditMetadata> = (
+  metadata: EditMetadata,
   localStoreId: string,
   commitIndex: number,
-) => CommitMetadata;
+) => EditMetadata;
 
 class IndexedDbBackend<
-  CommitMetadata,
+  EditMetadata,
   Delta,
   Presence,
-> extends AbstractLocalStore<CommitMetadata, Delta, Presence> {
+> extends AbstractLocalStore<EditMetadata, Delta, Presence> {
   private readonly dbName: string;
-  private db: Promise<
-    IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>
-  >;
+  private db: Promise<IDBPDatabase<TrimergeSyncDbSchema<EditMetadata, Delta>>>;
   private readonly channel: BroadcastChannel<
-    BroadcastEvent<CommitMetadata, Delta, Presence>
+    BroadcastEvent<EditMetadata, Delta, Presence>
   >;
   private readonly remoteId: string;
   private readonly localIdGenerator: LocalIdGeneratorFn;
-  private readonly addStoreMetadata?: AddStoreMetadataFn<CommitMetadata>;
+  private readonly addStoreMetadata?: AddStoreMetadataFn<EditMetadata>;
   private localStoreId: Promise<string>;
 
   public constructor(
     private readonly docId: string,
     userId: string,
     clientId: string,
-    onStoreEvent: OnStoreEventFn<CommitMetadata, Delta, Presence>,
+    onStoreEvent: OnStoreEventFn<EditMetadata, Delta, Presence>,
     {
       getRemote,
       networkSettings,
       remoteId = 'origin',
       localIdGenerator,
       addStoreMetadata,
-    }: IndexedDbBackendOptions<CommitMetadata, Delta, Presence>,
+    }: IndexedDbBackendOptions<EditMetadata, Delta, Presence>,
   ) {
     super(userId, clientId, onStoreEvent, getRemote, networkSettings);
     this.remoteId = remoteId;
@@ -152,13 +150,13 @@ class IndexedDbBackend<
   }
 
   protected broadcastLocal(
-    event: BroadcastEvent<CommitMetadata, Delta, Presence>,
+    event: BroadcastEvent<EditMetadata, Delta, Presence>,
   ): Promise<void> {
     return this.channel.postMessage(event).catch(this.handleAsError('network'));
   }
 
   protected async *getCommitsForRemote(): AsyncIterableIterator<
-    CommitsEvent<CommitMetadata, Delta, Presence>
+    CommitsEvent<EditMetadata, Delta, Presence>
   > {
     const db = await this.db;
     const unsentcommits = await db.getAllFromIndex(
@@ -182,10 +180,10 @@ class IndexedDbBackend<
    * Mutates commit and returns true if it did so
    */
   private updateCommitWithRemote(
-    commit: TrimergeSyncDbCommit<CommitMetadata, Delta> | undefined,
-    metadata: CommitMetadata | undefined,
+    commit: TrimergeSyncDbCommit<EditMetadata, Delta> | undefined,
+    metadata: EditMetadata | undefined,
     remoteSyncId: string | undefined,
-  ): commit is TrimergeSyncDbCommit<CommitMetadata, Delta> {
+  ): commit is TrimergeSyncDbCommit<EditMetadata, Delta> {
     if (commit && !commit.remoteSyncId && remoteSyncId) {
       commit.remoteSyncId = remoteSyncId;
       if (metadata !== undefined) {
@@ -197,7 +195,7 @@ class IndexedDbBackend<
   }
 
   protected async acknowledgeRemoteCommits(
-    acks: readonly CommitAck<CommitMetadata>[],
+    acks: readonly CommitAck<EditMetadata>[],
     remoteSyncId: string,
   ): Promise<void> {
     const tx = (await this.db).transaction(['commits'], 'readwrite');
@@ -241,14 +239,14 @@ class IndexedDbBackend<
 
   private async connect(
     reconnect: boolean = false,
-  ): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
+  ): Promise<IDBPDatabase<TrimergeSyncDbSchema<EditMetadata, Delta>>> {
     if (reconnect) {
       console.log(
         '[TRIMERGE-SYNC] IndexedDbBackend: reconnecting after 3 second timeout…',
       );
       await timeout(3_000);
     }
-    const db = await createIndexedDb<CommitMetadata, Delta>(this.dbName);
+    const db = await createIndexedDb<EditMetadata, Delta>(this.dbName);
     db.onclose = () => {
       this.db = this.connect(true);
     };
@@ -256,9 +254,9 @@ class IndexedDbBackend<
   }
 
   protected async addCommits(
-    commits: readonly Commit<CommitMetadata, Delta>[],
+    commits: readonly Commit<EditMetadata, Delta>[],
     remoteSyncId: string | undefined,
-  ): Promise<AckCommitsEvent<CommitMetadata>> {
+  ): Promise<AckCommitsEvent<EditMetadata>> {
     const db = await this.db;
     const tx = db.transaction(['heads', 'commits'], 'readwrite');
 
@@ -276,11 +274,11 @@ class IndexedDbBackend<
     const headsToDelete = new Set<string>();
     const headsToAdd = new Set<string>();
     const promises: Promise<unknown>[] = [];
-    const refMetadata = new Map<string, CommitMetadata>();
+    const refMetadata = new Map<string, EditMetadata>();
     const refErrors: AckRefErrors = {};
 
     const commitExistsAlready = async (
-      commit: Commit<CommitMetadata>,
+      commit: Commit<EditMetadata>,
     ): Promise<boolean> => {
       const existingCommit = await commitsDb.get(commit.ref);
       if (existingCommit) {
@@ -375,7 +373,7 @@ class IndexedDbBackend<
   }
 
   protected async *getLocalCommits(): AsyncIterableIterator<
-    CommitsEvent<CommitMetadata, Delta, Presence>
+    CommitsEvent<EditMetadata, Delta, Presence>
   > {
     const lastSyncCounter = toSyncNumber(undefined);
     const db = await this.db;
@@ -406,15 +404,12 @@ class IndexedDbBackend<
   };
 }
 
-type TrimergeSyncDbCommit<CommitMetadata, Delta> = Commit<
-  CommitMetadata,
-  Delta
-> & {
+type TrimergeSyncDbCommit<EditMetadata, Delta> = Commit<EditMetadata, Delta> & {
   syncId: number;
   remoteSyncId: string;
 };
 
-interface TrimergeSyncDbSchema<CommitMetadata, Delta> extends DBSchema {
+interface TrimergeSyncDbSchema<EditMetadata, Delta> extends DBSchema {
   heads: {
     key: string;
     value: {
@@ -423,7 +418,7 @@ interface TrimergeSyncDbSchema<CommitMetadata, Delta> extends DBSchema {
   };
   commits: {
     key: string;
-    value: TrimergeSyncDbCommit<CommitMetadata, Delta>;
+    value: TrimergeSyncDbCommit<EditMetadata, Delta>;
     indexes: {
       syncId: number;
       remoteSyncId: string;
@@ -438,9 +433,9 @@ interface TrimergeSyncDbSchema<CommitMetadata, Delta> extends DBSchema {
   };
 }
 
-function createIndexedDb<CommitMetadata, Delta>(
+function createIndexedDb<EditMetadata, Delta>(
   dbName: string,
-): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
+): Promise<IDBPDatabase<TrimergeSyncDbSchema<EditMetadata, Delta>>> {
   return openDB(dbName, 2, {
     upgrade(db, oldVersion, newVersion, tx) {
       let commits;

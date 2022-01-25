@@ -1,20 +1,20 @@
 import { MergeAllBranchesFn, CommitDoc, DocAndMetadata } from './differ';
 import { mergeHeads, SortRefsFn } from './merge-heads';
 
-export type MergeResult<LatestDoc, CommitMetadata> = {
+export type MergeResult<LatestDoc, EditMetadata> = {
   temp?: boolean;
-} & DocAndMetadata<LatestDoc, CommitMetadata>;
+} & DocAndMetadata<LatestDoc, EditMetadata>;
 
-export type MergeDocFn<LatestDoc, CommitMetadata> = (
-  base: CommitDoc<LatestDoc, CommitMetadata> | undefined,
-  left: CommitDoc<LatestDoc, CommitMetadata>,
-  right: CommitDoc<LatestDoc, CommitMetadata>,
-) => MergeResult<LatestDoc, CommitMetadata>;
+export type MergeDocFn<LatestDoc, EditMetadata> = (
+  base: CommitDoc<LatestDoc, EditMetadata> | undefined,
+  left: CommitDoc<LatestDoc, EditMetadata>,
+  right: CommitDoc<LatestDoc, EditMetadata>,
+) => MergeResult<LatestDoc, EditMetadata>;
 
-export function makeMergeAllBranchesFn<LatestDoc, CommitMetadata>(
+export function makeMergeAllBranchesFn<LatestDoc, EditMetadata>(
   sortRefs: SortRefsFn,
-  merge: MergeDocFn<LatestDoc, CommitMetadata>,
-): MergeAllBranchesFn<LatestDoc, CommitMetadata> {
+  merge: MergeDocFn<LatestDoc, EditMetadata>,
+): MergeAllBranchesFn<LatestDoc, EditMetadata> {
   return (headRefs, { addMerge, getCommitInfo, computeLatestDoc }) => {
     mergeHeads(
       headRefs,
