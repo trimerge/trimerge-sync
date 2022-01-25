@@ -1025,6 +1025,12 @@ Array [
     client1.subscribeSyncStatus((state) => syncUpdates1.push(state));
     client2.subscribeSyncStatus((state) => syncUpdates2.push(state));
 
+    const client1ListSub = jest.fn();
+    const client2ListSub = jest.fn();
+
+    client1.subscribeClientList(client1ListSub);
+    client2.subscribeClientList(client2ListSub);
+
     client1.updateDoc({}, 'initialize');
     client1.updateDoc({ hello: 'world' }, 'add hello');
     client1.updateDoc({ hello: 'vorld' }, 'change hello');
@@ -1346,6 +1352,314 @@ Array [
     "remoteRead": "offline",
     "remoteSave": "ready",
   },
+]
+`);
+    expect(client1ListSub.mock.calls).toMatchInlineSnapshot(`
+Array [
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "subscribe",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "DuQe--Vh",
+        "self": true,
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "DuQe--Vh",
+        "self": true,
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "u0wBto6f",
+        "self": true,
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "u0wBto6f",
+        "self": true,
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "YYUSBDXS",
+        "self": true,
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "YYUSBDXS",
+        "self": true,
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "YYUSBDXS",
+        "self": true,
+        "userId": "a",
+      },
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "b",
+      },
+    ],
+    Object {
+      "origin": "remote",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "YYUSBDXS",
+        "self": true,
+        "userId": "a",
+      },
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": "YFIigfVr",
+        "userId": "b",
+      },
+    ],
+    Object {
+      "origin": "remote",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "YYUSBDXS",
+        "self": true,
+        "userId": "a",
+      },
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": "3duBmH5E",
+        "userId": "b",
+      },
+    ],
+    Object {
+      "origin": "remote",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "YYUSBDXS",
+        "self": true,
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "remote",
+    },
+  ],
+]
+`);
+    expect(client2ListSub.mock.calls).toMatchInlineSnapshot(`
+Array [
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "b",
+      },
+    ],
+    Object {
+      "origin": "subscribe",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "b",
+      },
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "YYUSBDXS",
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "remote",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": "YFIigfVr",
+        "self": true,
+        "userId": "b",
+      },
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "YYUSBDXS",
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": "YFIigfVr",
+        "self": true,
+        "userId": "b",
+      },
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "YYUSBDXS",
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": "3duBmH5E",
+        "self": true,
+        "userId": "b",
+      },
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "YYUSBDXS",
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": "3duBmH5E",
+        "self": true,
+        "userId": "b",
+      },
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "YYUSBDXS",
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": "3duBmH5E",
+        "self": true,
+        "userId": "b",
+      },
+    ],
+    Object {
+      "origin": "remote",
+    },
+  ],
 ]
 `);
   });
