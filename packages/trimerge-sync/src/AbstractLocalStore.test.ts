@@ -4,6 +4,7 @@ import {
   AckCommitsEvent,
   CommitsEvent,
   GetRemoteFn,
+  OnRemoteEventFn,
   OnStoreEventFn,
   Remote,
   RemoteSyncInfo,
@@ -50,7 +51,7 @@ class MockLocalStore extends AbstractLocalStore<unknown, unknown, unknown> {
 }
 
 class MockRemote implements Remote<unknown, unknown, unknown> {
-  constructor(readonly onEvent: OnStoreEventFn<unknown, unknown, unknown>) {}
+  constructor(readonly onEvent: OnRemoteEventFn<unknown, unknown, unknown>) {}
 
   send(event: SyncEvent<unknown, unknown, unknown>): void {
     //

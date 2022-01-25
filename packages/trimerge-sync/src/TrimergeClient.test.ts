@@ -49,58 +49,70 @@ describe('TrimergeClient', () => {
   it('handles event with invalid baseRef', async () => {
     const { onEvent } = makeTrimergeClient();
     expect(() =>
-      onEvent({
-        type: 'commits',
-        commits: [
-          {
-            userId: '',
-            ref: 'a',
-            baseRef: 'unknown',
-            metadata: '',
-          },
-        ],
-      }),
+      onEvent(
+        {
+          type: 'commits',
+          commits: [
+            {
+              userId: '',
+              ref: 'a',
+              baseRef: 'unknown',
+              metadata: '',
+            },
+          ],
+        },
+        false,
+      ),
     ).toThrowErrorMatchingInlineSnapshot(`"unknown baseRef unknown"`);
   });
   it('handles event with invalid mergeRef', async () => {
     const { onEvent } = makeTrimergeClient();
     expect(() =>
-      onEvent({
-        type: 'commits',
-        commits: [
-          {
-            userId: '',
-            ref: 'a',
-            mergeRef: 'unknown',
-            metadata: '',
-          },
-        ],
-      }),
+      onEvent(
+        {
+          type: 'commits',
+          commits: [
+            {
+              userId: '',
+              ref: 'a',
+              mergeRef: 'unknown',
+              metadata: '',
+            },
+          ],
+        },
+        false,
+      ),
     ).toThrowErrorMatchingInlineSnapshot(`"unknown mergeRef unknown"`);
   });
 
   it('handles internal error', async () => {
     const { onEvent, client } = makeTrimergeClient();
-    onEvent({
-      type: 'error',
-      code: 'internal',
-      reconnect: false,
-      message: 'testing fake error',
-      fatal: true,
-    });
+    onEvent(
+      {
+        type: 'error',
+        code: 'internal',
+        reconnect: false,
+        message: 'testing fake error',
+        fatal: true,
+      },
+      false,
+    );
     await timeout();
     expect(client.syncStatus.localRead).toEqual('error');
   });
 
   it('ignores other error', async () => {
     const { onEvent, client } = makeTrimergeClient();
-    onEvent({
-      type: 'error',
-      code: 'internal',
-      reconnect: false,
-      message: 'testing fake error',
-      fatal: false,
-    });
+    onEvent(
+      {
+        type: 'error',
+        code: 'internal',
+        reconnect: false,
+        message: 'testing fake error',
+        fatal: false,
+      },
+      false,
+    );
     await timeout();
     expect(client.syncStatus.localRead).toEqual('error');
   });
@@ -108,13 +120,16 @@ describe('TrimergeClient', () => {
   it('handles unknown event type', async () => {
     const { onEvent } = makeTrimergeClient();
     // This just logs a warning, added for code coverage
-    onEvent({ type: 'fake-event' } as unknown as SyncEvent<any, any, any>);
+    onEvent(
+      { type: 'fake-event' } as unknown as SyncEvent<any, any, any>,
+      false,
+    );
     await timeout();
   });
   it('fails on leader event with no leader', async () => {
     const { onEvent } = makeTrimergeClient();
     // This just logs a warning, added for code coverage
-    onEvent({ type: 'leader', clientId: '', action: 'accept' });
+    onEvent({ type: 'leader', clientId: '', action: 'accept' }, false);
     await timeout();
   });
 });
