@@ -40,11 +40,13 @@ Array [
       "syncId": "0",
       "type": "commits",
     },
+    false,
   ],
   Array [
     Object {
       "type": "ready",
     },
+    false,
   ],
   Array [
     Object {
@@ -53,6 +55,7 @@ Array [
       "save": "pending",
       "type": "remote-state",
     },
+    false,
   ],
   Array [
     Object {
@@ -64,6 +67,7 @@ Array [
       "syncId": "1",
       "type": "ack",
     },
+    false,
   ],
   Array [
     Object {
@@ -72,6 +76,7 @@ Array [
       "save": "saving",
       "type": "remote-state",
     },
+    false,
   ],
 ]
 `);
@@ -101,11 +106,13 @@ Array [
       "syncId": "0",
       "type": "commits",
     },
+    false,
   ],
   Array [
     Object {
       "type": "ready",
     },
+    false,
   ],
   Array [
     Object {
@@ -114,6 +121,7 @@ Array [
       "save": "pending",
       "type": "remote-state",
     },
+    false,
   ],
   Array [
     Object {
@@ -125,6 +133,7 @@ Array [
       "syncId": "1",
       "type": "ack",
     },
+    false,
   ],
   Array [
     Object {
@@ -133,6 +142,7 @@ Array [
       "save": "saving",
       "type": "remote-state",
     },
+    false,
   ],
 ]
 `);

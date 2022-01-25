@@ -1,6 +1,6 @@
 import type {
   ErrorCode,
-  OnEventFn,
+  OnRemoteEventFn,
   Remote,
   RemoteSyncInfo,
   SyncEvent,
@@ -14,7 +14,7 @@ export class WebsocketRemote<CommitMetadata, Delta, Presence>
   constructor(
     auth: unknown,
     { localStoreId, lastSyncCursor }: RemoteSyncInfo,
-    private readonly onEvent: OnEventFn<CommitMetadata, Delta, Presence>,
+    private readonly onEvent: OnRemoteEventFn<CommitMetadata, Delta, Presence>,
     websocketUrl: string,
   ) {
     console.log(`[TRIMERGE-SYNC] Connecting to ${websocketUrl}...`);

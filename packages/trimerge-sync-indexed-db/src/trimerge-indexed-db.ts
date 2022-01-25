@@ -10,7 +10,7 @@ import {
   GetRemoteFn,
   isMergeCommit,
   NetworkSettings,
-  OnEventFn,
+  OnStoreEventFn,
   RemoteSyncInfo,
 } from 'trimerge-sync';
 import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
@@ -122,7 +122,7 @@ class IndexedDbBackend<
     private readonly docId: string,
     userId: string,
     clientId: string,
-    onEvent: OnEventFn<CommitMetadata, Delta, Presence>,
+    onStoreEvent: OnStoreEventFn<CommitMetadata, Delta, Presence>,
     {
       getRemote,
       networkSettings,
@@ -133,7 +133,7 @@ class IndexedDbBackend<
     /** Add metadata to every local commit stored in client */
     private readonly getStoreCommitMetadata?: StoreCommitMetadataFn<CommitMetadata>,
   ) {
-    super(userId, clientId, onEvent, getRemote, networkSettings);
+    super(userId, clientId, onStoreEvent, getRemote, networkSettings);
     this.remoteId = remoteId;
     this.localIdGenerator = localIdGenerator;
     const dbName = getDatabaseName(docId);

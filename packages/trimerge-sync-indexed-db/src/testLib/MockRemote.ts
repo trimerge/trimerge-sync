@@ -1,7 +1,7 @@
 import type {
   Commit,
   GetRemoteFn,
-  OnEventFn,
+  OnRemoteEventFn,
   Remote,
   RemoteSyncInfo,
   SyncEvent,
@@ -12,7 +12,7 @@ class MockRemote implements Remote<any, any, any> {
   constructor(
     private readonly userId: string,
     private readonly remoteSyncInfo: RemoteSyncInfo,
-    private readonly onEvent: OnEventFn<any, any, any>,
+    private readonly onEvent: OnRemoteEventFn<any, any, any>,
     private readonly commits?: Commit<any, any>[],
   ) {
     this.onEvent({ type: 'remote-state', connect: 'online' });

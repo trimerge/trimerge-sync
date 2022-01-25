@@ -8,7 +8,7 @@ import {
   ErrorCode,
   GetRemoteFn,
   LocalStore,
-  OnEventFn,
+  OnStoreEventFn,
   Remote,
   RemoteStateEvent,
   RemoteSyncInfo,
@@ -68,7 +68,11 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
   protected constructor(
     protected readonly userId: string,
     protected readonly clientId: string,
-    private readonly onEvent: OnEventFn<CommitMetadata, Delta, Presence>,
+    private readonly onStoreEvent: OnStoreEventFn<
+      CommitMetadata,
+      Delta,
+      Presence
+    >,
     private readonly getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>,
     networkSettings: Partial<NetworkSettings> = {},
   ) {
@@ -385,7 +389,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
   ): Promise<void> {
     if (self) {
       try {
-        this.onEvent(event);
+        this.onStoreEvent(event, remoteOrigin);
       } catch (e) {
         console.error(`[TRIMERGE-SYNC] local error handling event`, e);
         void this.shutdown();

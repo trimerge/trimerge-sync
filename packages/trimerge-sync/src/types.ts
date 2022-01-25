@@ -190,14 +190,19 @@ export type SyncEvent<CommitMetadata, Delta, Presence> = Readonly<
   | ErrorEvent
 >;
 
-export type OnEventFn<CommitMetadata, Delta, Presence> = (
+export type OnStoreEventFn<CommitMetadata, Delta, Presence> = (
+  event: SyncEvent<CommitMetadata, Delta, Presence>,
+  remoteOrigin: boolean,
+) => void;
+
+export type OnRemoteEventFn<CommitMetadata, Delta, Presence> = (
   event: SyncEvent<CommitMetadata, Delta, Presence>,
 ) => void;
 
 export type GetLocalStoreFn<CommitMetadata, Delta, Presence> = (
   userId: string,
   clientId: string,
-  onEvent: OnEventFn<CommitMetadata, Delta, Presence>,
+  onEvent: OnStoreEventFn<CommitMetadata, Delta, Presence>,
 ) => LocalStore<CommitMetadata, Delta, Presence>;
 
 export type RemoteSyncInfo = {
@@ -208,7 +213,7 @@ export type RemoteSyncInfo = {
 export type GetRemoteFn<CommitMetadata, Delta, Presence> = (
   userId: string,
   remoteSyncInfo: RemoteSyncInfo,
-  onEvent: OnEventFn<CommitMetadata, Delta, Presence>,
+  onRemoteEvent: OnRemoteEventFn<CommitMetadata, Delta, Presence>,
 ) =>
   | Remote<CommitMetadata, Delta, Presence>
   | Promise<Remote<CommitMetadata, Delta, Presence>>;

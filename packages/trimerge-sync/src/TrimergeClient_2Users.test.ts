@@ -135,12 +135,15 @@ Array [
     await timeout();
 
     expect(onStateChange.mock.calls).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          undefined,
-        ],
-      ]
-    `);
+Array [
+  Array [
+    undefined,
+    Object {
+      "origin": "subscribe",
+    },
+  ],
+]
+`);
     unsub();
   });
   it('tracks presence', async () => {
@@ -164,6 +167,9 @@ Array [
         "userId": "a",
       },
     ],
+    Object {
+      "origin": "self",
+    },
   ],
 ]
 `);
@@ -221,10 +227,12 @@ Array [
   it('sends presence information correctly', async () => {
     const store = newStore();
     const client1 = makeClient('a', store);
-    const client2 = makeClient('b', store);
     const client1Sub = jest.fn();
-
     const client1Unsub = client1.subscribeClientList(client1Sub);
+
+    const client2 = makeClient('b', store);
+    const client2Sub = jest.fn();
+    const client2Unsub = client2.subscribeClientList(client2Sub);
 
     // Initial values
     expect(client1.clients).toEqual([
@@ -251,6 +259,20 @@ Array [
             clientId: 'test',
           },
         ],
+        { origin: 'subscribe' },
+      ],
+    ]);
+
+    expect(client2Sub.mock.calls).toEqual([
+      [
+        [
+          {
+            userId: 'b',
+            self: true,
+            clientId: 'test',
+          },
+        ],
+        { origin: 'subscribe' },
       ],
     ]);
 
@@ -304,6 +326,9 @@ Array [
         "userId": "a",
       },
     ],
+    Object {
+      "origin": "subscribe",
+    },
   ],
   Array [
     Array [
@@ -321,6 +346,9 @@ Array [
         "userId": "b",
       },
     ],
+    Object {
+      "origin": "local",
+    },
   ],
   Array [
     Array [
@@ -338,10 +366,72 @@ Array [
         "userId": "b",
       },
     ],
+    Object {
+      "origin": "local",
+    },
+  ],
+]
+`);
+    expect(client2Sub.mock.calls).toMatchInlineSnapshot(`
+Array [
+  Array [
+    Array [
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "b",
+      },
+    ],
+    Object {
+      "origin": "subscribe",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "b",
+      },
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "local",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "b",
+      },
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "local",
+    },
   ],
 ]
 `);
     client1Unsub();
+    client2Unsub();
   });
 
   it('handles client-leave', async () => {
@@ -659,11 +749,11 @@ Array [
 `);
 
     expect(subscribeFn.mock.calls).toEqual([
-      [undefined],
-      [{}],
-      [{ hello: 'world' }],
-      [{ hello: 'vorld' }],
-      [{ hello: 'there' }],
+      [undefined, { origin: 'subscribe' }],
+      [{}, { origin: 'self' }],
+      [{ hello: 'world' }, { origin: 'self' }],
+      [{ hello: 'vorld' }, { origin: 'self' }],
+      [{ hello: 'there' }, { origin: 'self' }],
     ]);
   });
 
