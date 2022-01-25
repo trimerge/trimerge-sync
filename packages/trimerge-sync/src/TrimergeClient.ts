@@ -1,6 +1,5 @@
 import type {
   ClientInfo,
-  ClientMetadata,
   ClientList,
   Commit,
   GetLocalStoreFn,
@@ -22,10 +21,15 @@ type AddCommitType =
   // Added from this client, but don't sync to store
   | 'temp';
 
+export type NewCommitMetadataFn<CommitMetadata> = (
+  userId: string,
+  clientId: string,
+) => CommitMetadata;
+
 export class TrimergeClient<
   SavedDoc,
   LatestDoc extends SavedDoc,
-  CommitMetadata extends ClientMetadata,
+  CommitMetadata extends Record<string, unknown>,
   Delta,
   Presence,
 > {
@@ -84,6 +88,8 @@ export class TrimergeClient<
       Presence
     >,
     private readonly differ: Differ<SavedDoc, LatestDoc, CommitMetadata, Delta>,
+    /** Add metadata to every new commit created on this client */
+    private readonly getNewCommitMetadata?: NewCommitMetadataFn<CommitMetadata>,
   ) {
     this.store = getLocalStore(userId, clientId, this.onEvent);
     this.setClientInfo({
@@ -402,11 +408,12 @@ export class TrimergeClient<
   ): string {
     const delta = this.differ.diff(base?.doc, newDoc);
     const baseRef = base?.ref;
-    // Add client data to metadata
-    metadata = {
-      ...metadata,
-      client: { id: this.clientId, timestamp: new Date().toISOString() },
-    };
+    if (this.getNewCommitMetadata) {
+      metadata = {
+        ...metadata,
+        ...this.getNewCommitMetadata(this.userId, this.clientId),
+      };
+    }
     const ref = this.differ.computeRef(baseRef, mergeRef, delta);
     const commit: Commit<CommitMetadata, Delta> =
       mergeRef !== undefined

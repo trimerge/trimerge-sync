@@ -97,13 +97,6 @@ export type LocalClientInfo<Presence> = ClientInfo<Presence> & {
 };
 export type ClientList<Presence> = readonly LocalClientInfo<Presence>[];
 
-export type ClientMetadata = {
-  client: {
-    id: string;
-    timestamp: string;
-  };
-};
-
 export type InitEvent =
   | {
       type: 'init';

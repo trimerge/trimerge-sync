@@ -97,7 +97,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
 
   protected abstract addCommits(
     commits: readonly Commit<CommitMetadata, Delta>[],
-    remoteSyncId?: string,
+    remoteSyncId: string | undefined,
   ): Promise<AckCommitsEvent<CommitMetadata>>;
 
   protected abstract acknowledgeRemoteCommits(
@@ -464,7 +464,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
       await this.setRemoteState({ type: 'remote-state', save: 'pending' });
     }
 
-    const ack = await this.addCommits(commits);
+    const ack = await this.addCommits(commits, undefined);
     await this.sendEvent(ack, { self: true });
     const clientInfo: ClientInfo<Presence> | undefined = presenceRef && {
       ...presenceRef,
