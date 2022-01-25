@@ -1,19 +1,19 @@
 import {
+  AbstractLocalStore,
   AckCommitsEvent,
   AckRefErrors,
   BroadcastEvent,
   Commit,
+  CommitAck,
+  CommitsEvent,
   GetLocalStoreFn,
   GetRemoteFn,
+  isMergeCommit,
   NetworkSettings,
-  CommitsEvent,
-  OnEventFn,
+  OnStoreEventFn,
   RemoteSyncInfo,
   ServerCommit,
-  isMergeCommit,
-  CommitAck,
 } from 'trimerge-sync';
-import { AbstractLocalStore } from 'trimerge-sync';
 import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
 import { deleteDB, openDB } from 'idb';
 import { BroadcastChannel } from 'broadcast-channel';
@@ -112,7 +112,7 @@ class IndexedDbBackend<
     private readonly docId: string,
     userId: string,
     clientId: string,
-    onEvent: OnEventFn<EditMetadata, Delta, Presence>,
+    onStoreEvent: OnStoreEventFn<EditMetadata, Delta, Presence>,
     {
       getRemote,
       networkSettings,
@@ -120,7 +120,7 @@ class IndexedDbBackend<
       localIdGenerator,
     }: IndexedDbBackendOptions<EditMetadata, Delta, Presence>,
   ) {
-    super(userId, clientId, onEvent, getRemote, networkSettings);
+    super(userId, clientId, onStoreEvent, getRemote, networkSettings);
     this.remoteId = remoteId;
     this.localIdGenerator = localIdGenerator;
     const dbName = getDatabaseName(docId);
@@ -258,7 +258,7 @@ class IndexedDbBackend<
 
     for (const commit of commits) {
       const syncId = ++syncCounter;
-      const { ref, baseRef, } = commit;
+      const { ref, baseRef } = commit;
       let mergeRef: string | undefined;
       if (isMergeCommit(commit)) {
         mergeRef = commit.mergeRef;

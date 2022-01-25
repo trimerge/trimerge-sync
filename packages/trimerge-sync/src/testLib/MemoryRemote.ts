@@ -3,7 +3,7 @@ import {
   Commit,
   ErrorCode,
   CommitsEvent,
-  OnEventFn,
+  OnStoreEventFn,
   Remote,
   RemoteSyncInfo,
   SyncEvent,
@@ -22,7 +22,7 @@ export class MemoryRemote<EditMetadata, Delta, Presence>
     private readonly store: MemoryStore<EditMetadata, Delta, Presence>,
     private readonly userId: string,
     { lastSyncCursor, localStoreId }: RemoteSyncInfo,
-    private readonly onEvent: OnEventFn<EditMetadata, Delta, Presence>,
+    private readonly onEvent: OnStoreEventFn<EditMetadata, Delta, Presence>,
   ) {
     this.clientStoreId = localStoreId;
     this.sendInitialEvents(lastSyncCursor).catch(
