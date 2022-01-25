@@ -47,7 +47,11 @@ export type IndexedDbBackendOptions<EditMetadata, Delta, Presence> = {
   localIdGenerator: LocalIdGeneratorFn;
 };
 
-export function createIndexedDbBackendFactory<EditMetadata, Delta, Presence>(
+export function createIndexedDbBackendFactory<
+  EditMetadata extends EditMetadataWithStore,
+  Delta,
+  Presence,
+>(
   docId: string,
   options: IndexedDbBackendOptions<EditMetadata, Delta, Presence>,
 ): GetLocalStoreFn<EditMetadata, Delta, Presence> {
@@ -94,8 +98,17 @@ export function getIDBPDatabase(
   return createIndexedDb(getDatabaseName(docId));
 }
 
+export type StoreMetadata = {
+  id: string;
+  commitNum: number;
+};
+export type EditMetadataWithStore = {
+  store: StoreMetadata;
+  remote?: unknown;
+};
+
 class IndexedDbBackend<
-  EditMetadata,
+  EditMetadata extends EditMetadataWithStore,
   Delta,
   Presence,
 > extends AbstractLocalStore<EditMetadata, Delta, Presence> {
@@ -234,13 +247,13 @@ class IndexedDbBackend<
       // Gets the last item in the commits db based on the syncId index
       commitsDb.index('syncId').openCursor(undefined, 'prev'),
     ]);
-    let syncCounter = syncIdCursor?.value.syncId ?? 0;
+    let commitIndex = syncIdCursor?.value.syncId ?? 0;
 
     const priorHeads = new Set(currentHeads);
     const headsToDelete = new Set<string>();
     const headsToAdd = new Set<string>();
     const promises: Promise<unknown>[] = [];
-    const refs = new Map<string, boolean>();
+    const refMetadata = new Map<string, unknown>();
     const refErrors: AckRefErrors = {};
     async function commitExistsAlready(
       commit: Commit,
@@ -248,7 +261,7 @@ class IndexedDbBackend<
     ): Promise<boolean> {
       const existingCommit = await commitsDb.get(commit.ref);
       if (existingCommit) {
-        refs.set(commit.ref, existingCommit.main);
+        refMetadata.set(commit.ref, existingCommit.metadata);
         console.warn(`already have commit`, { commit, existingCommit, error });
         return true;
       }
@@ -256,7 +269,7 @@ class IndexedDbBackend<
     }
 
     for (const commit of commits) {
-      const syncId = ++syncCounter;
+      const syncId = ++commitIndex;
       const { ref, baseRef } = commit;
       let mergeRef: string | undefined;
       if (isMergeCommit(commit)) {
@@ -268,10 +281,15 @@ class IndexedDbBackend<
             if (await commitExistsAlready(commit)) {
               return;
             }
-            await commitsDb.add({ syncId, remoteSyncId: '', ...commit });
+            await commitsDb.add({
+              syncId,
+              remoteSyncId:
+                commit.metadata.remote !== undefined ? 'synced' : '',
+              ...commit,
+            });
             const ackedCommit = await commitsDb.get(commit.ref);
             if (ackedCommit) {
-              refs.set(ref, ackedCommit.main);
+              refMetadata.set(ref, ackedCommit.metadata);
             }
           } catch (e) {
             refErrors[ref] = {
@@ -309,9 +327,9 @@ class IndexedDbBackend<
 
     return {
       type: 'ack',
-      acks: Array.from(refs, ([ref, main]) => ({ ref, main })),
+      acks: Array.from(refMetadata, ([ref, main]) => ({ ref, main })),
       refErrors,
-      syncId: toSyncId(syncCounter),
+      syncId: toSyncId(commitIndex),
     };
   }
 

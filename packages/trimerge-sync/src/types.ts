@@ -37,10 +37,10 @@ export type MergeCommit<EditMetadata = unknown, Delta = unknown> = BaseCommit<
   mergeRef: string;
 };
 
-export function isMergeCommit(
-  commit: Commit<unknown, unknown>,
-): commit is MergeCommit<unknown, unknown> {
-  return (commit as MergeCommit<unknown, unknown>).mergeRef !== undefined;
+export function isMergeCommit<EditMetadata = unknown, Delta = unknown>(
+  commit: Commit<EditMetadata, Delta>,
+): commit is MergeCommit<EditMetadata, Delta> {
+  return (commit as MergeCommit).mergeRef !== undefined;
 }
 
 export type CommitInfo = {

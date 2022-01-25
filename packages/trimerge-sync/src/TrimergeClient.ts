@@ -68,7 +68,6 @@ export class TrimergeClient<
   private tempCommits = new Map<string, Commit<EditMetadata, Delta>>();
   private unsyncedCommits: Commit<EditMetadata, Delta>[] = [];
 
-  private selfFullId: string;
   private newPresence: ClientInfo<Presence> | undefined;
 
   private syncState: SyncStatus = {
@@ -89,7 +88,6 @@ export class TrimergeClient<
     >,
     private readonly differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
   ) {
-    this.selfFullId = getFullId(userId, clientId);
     this.store = getLocalStore(userId, clientId, this.onEvent);
     this.setClientInfo({
       userId,
