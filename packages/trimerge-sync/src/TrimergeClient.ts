@@ -2,12 +2,10 @@ import {
   ClientInfo,
   ClientList,
   Commit,
-  EditCommit,
   GetLocalStoreFn,
   LocalClientInfo,
   LocalStore,
-  MergeCommit,
-  OnEventFn,
+  OnStoreEventFn,
   SyncStatus,
 } from './types';
 import { mergeHeads } from './merge-heads';
@@ -23,6 +21,14 @@ type AddCommitType =
   | 'external'
   // Added from this client, but don't sync to store
   | 'temp';
+
+export type SubscribeEvent = {
+  origin:
+    | 'subscribe' // We send an initial event when you first subscribe
+    | 'self' // We send an event when you explicitly update the value
+    | 'local' // Another client on the same store updated the value
+    | 'remote'; // A remote client updated the value
+};
 
 export class TrimergeClient<
   SavedDoc,
@@ -43,8 +49,10 @@ export class TrimergeClient<
 
   private lastLocalSyncId: string | undefined;
 
-  private docSubs = new SubscriberList(() => this.doc);
-  private syncStateSubs = new SubscriberList(
+  private docSubs = new SubscriberList<LatestDoc | undefined, SubscribeEvent>(
+    () => this.doc,
+  );
+  private syncStateSubs = new SubscriberList<SyncStatus, SubscribeEvent>(
     () => this.syncState,
     (a, b) =>
       a.localRead === b.localRead &&
@@ -53,7 +61,10 @@ export class TrimergeClient<
       a.remoteSave === b.remoteSave &&
       a.remoteConnect === b.remoteConnect,
   );
-  private clientListSubs = new SubscriberList(() => this.clientList);
+  private clientListSubs = new SubscriberList<
+    ClientList<Presence>,
+    SubscribeEvent
+  >(() => this.clientList);
 
   private clientMap = new Map<string, LocalClientInfo<Presence>>();
   private clientList: ClientList<Presence> = [];
@@ -89,26 +100,37 @@ export class TrimergeClient<
     private readonly differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
   ) {
     this.selfFullId = getFullId(userId, clientId);
-    this.store = getLocalStore(userId, clientId, this.onEvent);
-    this.setClientInfo({
-      userId,
-      clientId,
-      ref: undefined,
-      presence: undefined,
-      self: true,
-    });
+    this.store = getLocalStore(userId, clientId, this.onStoreEvent);
+    this.setClientInfo(
+      {
+        userId,
+        clientId,
+        ref: undefined,
+        presence: undefined,
+        self: true,
+      },
+      { origin: 'self' },
+    );
   }
 
   public get isRemoteLeader(): boolean {
     return this.store.isRemoteLeader;
   }
 
-  private setClientInfo(cursor: LocalClientInfo<Presence>) {
+  private setClientInfo(
+    cursor: LocalClientInfo<Presence>,
+    event: SubscribeEvent,
+  ) {
     const { userId, clientId } = cursor;
     this.clientMap.set(getFullId(userId, clientId), cursor);
-    this.emitClientListChange();
+    this.emitClientListChange(event);
   }
-  private onEvent: OnEventFn<EditMetadata, Delta, Presence> = (event) => {
+  private onStoreEvent: OnStoreEventFn<EditMetadata, Delta, Presence> = (
+    event,
+    remoteOrigin,
+  ) => {
+    const origin = remoteOrigin ? 'remote' : 'local';
+
     switch (event.type) {
       case 'commits': {
         const { commits, syncId, clientInfo } = event;
@@ -117,10 +139,10 @@ export class TrimergeClient<
         }
         this.lastLocalSyncId = syncId;
         this.mergeHeads();
-        this.docSubs.emitChange();
+        this.docSubs.emitChange({ origin });
         this.sync();
         if (clientInfo) {
-          this.setClientInfo(clientInfo);
+          this.setClientInfo(clientInfo, { origin });
         }
 
         break;
@@ -132,17 +154,16 @@ export class TrimergeClient<
 
       case 'client-leave':
         this.clientMap.delete(getFullId(event.userId, event.clientId));
-        this.emitClientListChange();
+        this.emitClientListChange({ origin });
         break;
 
       case 'client-join':
       case 'client-presence':
-        this.setClientInfo(event.info);
+        this.setClientInfo(event.info, { origin });
         break;
 
       case 'remote-state':
         // TODO: remove remote clients as applicable?
-        this.emitClientListChange();
         const changes: Partial<SyncStatus> = {};
         if (event.connect) {
           changes.remoteConnect = event.connect;
@@ -187,23 +208,25 @@ export class TrimergeClient<
     return this.clientList;
   }
 
-  subscribeDoc(onChange: OnChangeFn<LatestDoc | undefined>) {
-    return this.docSubs.subscribe(onChange);
+  subscribeDoc(onChange: OnChangeFn<LatestDoc | undefined, SubscribeEvent>) {
+    return this.docSubs.subscribe(onChange, { origin: 'subscribe' });
   }
 
-  subscribeSyncStatus(onChange: OnChangeFn<SyncStatus>) {
-    return this.syncStateSubs.subscribe(onChange);
+  subscribeSyncStatus(onChange: OnChangeFn<SyncStatus, SubscribeEvent>) {
+    return this.syncStateSubs.subscribe(onChange, { origin: 'subscribe' });
   }
 
-  subscribeClientList(onChange: OnChangeFn<ClientList<Presence>>) {
-    return this.clientListSubs.subscribe(onChange);
+  subscribeClientList(
+    onChange: OnChangeFn<ClientList<Presence>, SubscribeEvent>,
+  ) {
+    return this.clientListSubs.subscribe(onChange, { origin: 'subscribe' });
   }
 
   updateDoc(doc: LatestDoc, editMetadata: EditMetadata, presence?: Presence) {
     const ref = this.addNewCommit(doc, editMetadata, false);
     this.setPresence(presence, ref);
     this.mergeHeads();
-    this.docSubs.emitChange();
+    this.docSubs.emitChange({ origin: 'self' });
     this.sync();
   }
 
@@ -218,8 +241,11 @@ export class TrimergeClient<
   ) {
     const { userId, clientId } = this;
     this.newPresence = { userId, clientId, ref, presence };
-    this.setClientInfo({ userId, clientId, ref, presence, self: true });
-    this.emitClientListChange();
+    this.setClientInfo(
+      { userId, clientId, ref, presence, self: true },
+      { origin: 'self' },
+    );
+    this.emitClientListChange({ origin: 'self' });
   }
 
   getCommitDoc(ref: string): CommitDoc<SavedDoc, EditMetadata> {
@@ -298,9 +324,9 @@ export class TrimergeClient<
     // TODO: can we clear out commits we don't need anymore?
   }
 
-  private emitClientListChange() {
+  private emitClientListChange(event: SubscribeEvent) {
     this.clientList = Array.from(this.clientMap.values());
-    this.clientListSubs.emitChange();
+    this.clientListSubs.emitChange(event);
   }
   private sync(): void {
     const commits = this.unsyncedCommits;
@@ -315,7 +341,7 @@ export class TrimergeClient<
 
   private updateSyncState(update: Partial<SyncStatus>): void {
     this.syncState = { ...this.syncState, ...update };
-    this.syncStateSubs.emitChange();
+    this.syncStateSubs.emitChange({ origin: 'local' });
   }
   private addHead(
     headRefs: Set<string>,

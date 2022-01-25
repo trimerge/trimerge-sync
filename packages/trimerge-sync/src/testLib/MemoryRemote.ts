@@ -1,9 +1,9 @@
 import {
   AckCommitsEvent,
   Commit,
-  ErrorCode,
   CommitsEvent,
-  OnEventFn,
+  ErrorCode,
+  OnRemoteEventFn,
   Remote,
   RemoteSyncInfo,
   SyncEvent,
@@ -22,7 +22,7 @@ export class MemoryRemote<EditMetadata, Delta, Presence>
     private readonly store: MemoryStore<EditMetadata, Delta, Presence>,
     private readonly userId: string,
     { lastSyncCursor, localStoreId }: RemoteSyncInfo,
-    private readonly onEvent: OnEventFn<EditMetadata, Delta, Presence>,
+    private readonly onEvent: OnRemoteEventFn<EditMetadata, Delta, Presence>,
   ) {
     this.clientStoreId = localStoreId;
     this.sendInitialEvents(lastSyncCursor).catch(

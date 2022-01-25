@@ -5,7 +5,7 @@ import {
   Commit,
   GetRemoteFn,
   CommitsEvent,
-  OnEventFn,
+  OnStoreEventFn,
   RemoteSyncInfo,
   CommitAck,
 } from '../types';
@@ -25,7 +25,7 @@ export class MemoryLocalStore<
     private readonly store: MemoryStore<EditMetadata, Delta, Presence>,
     userId: string,
     clientId: string,
-    onEvent: OnEventFn<EditMetadata, Delta, Presence>,
+    onEvent: OnStoreEventFn<EditMetadata, Delta, Presence>,
     getRemote?: GetRemoteFn<EditMetadata, Delta, Presence>,
   ) {
     super(userId, clientId, onEvent, getRemote, {

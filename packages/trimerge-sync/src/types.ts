@@ -196,14 +196,19 @@ export type SyncEvent<EditMetadata, Delta, Presence> = Readonly<
   | ErrorEvent
 >;
 
-export type OnEventFn<EditMetadata, Delta, Presence> = (
+export type OnStoreEventFn<EditMetadata, Delta, Presence> = (
+  event: SyncEvent<EditMetadata, Delta, Presence>,
+  remoteOrigin: boolean,
+) => void;
+
+export type OnRemoteEventFn<EditMetadata, Delta, Presence> = (
   event: SyncEvent<EditMetadata, Delta, Presence>,
 ) => void;
 
 export type GetLocalStoreFn<EditMetadata, Delta, Presence> = (
   userId: string,
   clientId: string,
-  onEvent: OnEventFn<EditMetadata, Delta, Presence>,
+  onEvent: OnStoreEventFn<EditMetadata, Delta, Presence>,
 ) => LocalStore<EditMetadata, Delta, Presence>;
 
 export type RemoteSyncInfo = {
@@ -214,7 +219,7 @@ export type RemoteSyncInfo = {
 export type GetRemoteFn<EditMetadata, Delta, Presence> = (
   userId: string,
   remoteSyncInfo: RemoteSyncInfo,
-  onEvent: OnEventFn<EditMetadata, Delta, Presence>,
+  onRemoteEvent: OnRemoteEventFn<EditMetadata, Delta, Presence>,
 ) =>
   | Remote<EditMetadata, Delta, Presence>
   | Promise<Remote<EditMetadata, Delta, Presence>>;
