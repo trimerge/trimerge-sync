@@ -41,10 +41,10 @@ export function diff<T>(left: T, right: T) {
 }
 
 // Simple no-op migration for unit tests
-export function migrate<Doc, EditMetadata>(
+export function migrate<Doc, CommitMetadata>(
   doc: Doc,
-  editMetadata: EditMetadata,
-): DocAndMetadata<Doc, EditMetadata> {
+  metadata: CommitMetadata,
+): DocAndMetadata<Doc, CommitMetadata> {
   return { doc, metadata };
 }
 
@@ -52,7 +52,6 @@ export function computeRef(
   baseRef: string | undefined,
   mergeRef: string | undefined,
   delta: any,
-  editMetadata: any,
 ): string {
-  return computeShaRef(baseRef, mergeRef, delta, editMetadata).slice(0, 8);
+  return computeShaRef(baseRef, mergeRef, delta).slice(0, 8);
 }

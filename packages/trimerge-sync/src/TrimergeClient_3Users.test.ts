@@ -5,30 +5,32 @@ import { MemoryStore } from './testLib/MemoryStore';
 import { diff, mergeAllBranches, migrate, patch } from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 
-type TestEditMetadata = { ref: string; message: string };
+type TestCommitMetadata = { ref: string; message: string };
 type TestSavedDoc = any;
 type TestDoc = any;
 type TestPresence = any;
 
-const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
-  migrate,
-  diff,
-  patch,
-  computeRef: (baseRef, mergeRef, delta, editMetadata) => editMetadata.ref,
-  mergeAllBranches,
-};
+const differ: Differ<TestSavedDoc, TestDoc, TestCommitMetadata, TestPresence> =
+  {
+    migrate,
+    diff,
+    patch,
+    computeRef: (baseRef, mergeRef, delta, CommitMetadata) =>
+      CommitMetadata.ref,
+    mergeAllBranches,
+  };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestPresence>();
+  return new MemoryStore<TestCommitMetadata, Delta, TestPresence>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
+  store: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
 ): TrimergeClient<
   TestSavedDoc,
   TestDoc,
-  TestEditMetadata,
+  TestCommitMetadata,
   Delta,
   TestPresence
 > {
@@ -40,11 +42,11 @@ function timeout() {
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
+  store: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
   clientA: TrimergeClient<
     TestSavedDoc,
     TestDoc,
-    TestEditMetadata,
+    TestCommitMetadata,
     Delta,
     TestPresence
   >,

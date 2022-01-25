@@ -1,4 +1,4 @@
-import { mergeAllBranches, patch } from './BasicDiffer';
+import { merge, patch } from './BasicDiffer';
 
 describe('patch', () => {
   it('patches undefined', () => {
@@ -20,7 +20,7 @@ describe('merge', () => {
     ).toMatchInlineSnapshot(`
       Object {
         "doc": "hithere",
-        "editMetadata": Object {
+        "metadata": Object {
           "message": "merge",
           "ref": "(1+2)",
         },
@@ -37,7 +37,7 @@ describe('merge', () => {
     ).toMatchInlineSnapshot(`
       Object {
         "doc": "h thereello",
-        "editMetadata": Object {
+        "metadata": Object {
           "message": "merge",
           "ref": "(2+3)",
         },

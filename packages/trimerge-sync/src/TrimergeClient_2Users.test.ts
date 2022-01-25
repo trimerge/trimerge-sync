@@ -13,30 +13,31 @@ import { getBasicGraph } from './testLib/GraphVisualizers';
 import { ClientInfo } from './types';
 import { timeout } from './lib/Timeout';
 
-type TestEditMetadata = string;
+type TestCommitMetadata = string;
 type TestSavedDoc = any;
 type TestDoc = any;
 type TestPresence = any;
 
-const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
-  migrate,
-  diff,
-  patch,
-  computeRef,
-  mergeAllBranches,
-};
+const differ: Differ<TestSavedDoc, TestDoc, TestCommitMetadata, TestPresence> =
+  {
+    migrate,
+    diff,
+    patch,
+    computeRef,
+    mergeAllBranches,
+  };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestPresence>();
+  return new MemoryStore<TestCommitMetadata, Delta, TestPresence>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
+  store: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
 ): TrimergeClient<
   TestSavedDoc,
   TestDoc,
-  TestEditMetadata,
+  TestCommitMetadata,
   Delta,
   TestPresence
 > {
@@ -44,11 +45,11 @@ function makeClient(
 }
 
 function basicGraph(
-  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
+  store: MemoryStore<TestCommitMetadata, Delta, TestPresence>,
   client1: TrimergeClient<
     TestSavedDoc,
     TestDoc,
-    TestEditMetadata,
+    TestCommitMetadata,
     Delta,
     TestPresence
   >,
@@ -64,7 +65,7 @@ function sortedClients(
   client: TrimergeClient<
     TestSavedDoc,
     TestDoc,
-    TestEditMetadata,
+    TestCommitMetadata,
     Delta,
     TestPresence
   >,

@@ -9,10 +9,9 @@ export function computeRef(
   baseRef: string | undefined,
   mergeRef: string | undefined,
   delta: any,
-  editMetadata: any,
 ): string {
   const sha = new Jssha('SHA-256', 'TEXT', { encoding: 'UTF8' });
-  sha.update(JSON.stringify([baseRef, mergeRef, delta, editMetadata]));
+  sha.update(JSON.stringify([baseRef, mergeRef, delta]));
   // Convert to Base64 URL
   return sha
     .getHash('B64')

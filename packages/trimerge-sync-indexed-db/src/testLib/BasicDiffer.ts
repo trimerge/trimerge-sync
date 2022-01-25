@@ -10,6 +10,7 @@ import {
 import { create, Delta } from 'jsondiffpatch';
 import { produce } from 'immer';
 import { computeRef as computeShaRef } from 'trimerge-sync-hash';
+import { makeAutoBranchMerger, MergeAllBranchesFn } from 'trimerge-sync';
 
 const trimergeObjects = combineMergers(
   trimergeEquality,
@@ -23,6 +24,9 @@ export const merge: MergeDocFn<any, any> = (base, left, right) => ({
     message: `merge`,
   },
 });
+export const mergeAllBranches: MergeAllBranchesFn<any, any> =
+  makeAutoBranchMerger((a, b) => (a < b ? -1 : 1), merge);
+
 export const jdp = create({ textDiff: { minLength: 20 } });
 
 export function patch<T>(base: T, delta: Delta | undefined): T {
@@ -40,12 +44,11 @@ export function computeRef(
   baseRef: string | undefined,
   mergeRef: string | undefined,
   delta: any,
-  editMetadata: any,
 ): string {
-  return computeShaRef(baseRef, mergeRef, delta, editMetadata).slice(0, 8);
+  return computeShaRef(baseRef, mergeRef, delta).slice(0, 8);
 }
 
-type TestEditMetadata = string;
+type TestCommitMetadata = string;
 type TestSavedDoc = any;
 type TestDoc = any;
 type TestPresence = any;
@@ -53,10 +56,10 @@ type TestPresence = any;
 export const differ: Differ<
   TestSavedDoc,
   TestDoc,
-  TestEditMetadata,
+  TestCommitMetadata,
   TestPresence
 > = {
-  migrate: (doc, editMetadata) => ({ doc, metadata }),
+  migrate: (doc, metadata) => ({ doc, metadata }),
   diff,
   patch,
   computeRef,
