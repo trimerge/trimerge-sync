@@ -11,7 +11,7 @@ export type MergeDocFn<LatestDoc, CommitMetadata> = (
   right: CommitDoc<LatestDoc, CommitMetadata>,
 ) => MergeResult<LatestDoc, CommitMetadata>;
 
-export function makeAutoBranchMerger<LatestDoc, CommitMetadata>(
+export function makeMergeAllBranchesFn<LatestDoc, CommitMetadata>(
   sortRefs: SortRefsFn,
   merge: MergeDocFn<LatestDoc, CommitMetadata>,
 ): MergeAllBranchesFn<LatestDoc, CommitMetadata> {

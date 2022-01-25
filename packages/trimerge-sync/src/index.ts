@@ -4,4 +4,4 @@ export * from './types';
 export * from './AbstractLocalStore';
 export * from './validateCommits';
 export * from './lib/PromiseQueue';
-export * from './auto-branch-merger';
+export * from './merge-all-helper';
