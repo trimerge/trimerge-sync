@@ -10,13 +10,11 @@ import {
 } from 'trimerge-sync';
 import { unlink } from 'fs-extra';
 import { DocStore } from '../DocStore';
-import { asCommitRefs } from 'trimerge-sync/dist/lib/Commits';
 
 type SqliteCommitType = {
   ref: string;
   remoteSyncId: string;
   remoteSyncIndex: number;
-  userId: string;
   baseRef?: string;
   mergeRef?: string;
   delta?: string;
@@ -47,7 +45,6 @@ export class SqliteDocStore implements DocStore {
         ref TEXT PRIMARY KEY NOT NULL,
         remoteSyncId TEXT NOT NULL,
         remoteSyncIndex INTEGER NOT NULL,
-        userId TEXT NOT NULL,
         baseRef TEXT,
         mergeRef TEXT,
         delta TEXT,
@@ -117,8 +114,8 @@ export class SqliteDocStore implements DocStore {
     const remoteSyncId = this.syncIdCreator();
     const insert = this.db.prepare(
       `
-        INSERT INTO commits (ref, remoteSyncId, remoteSyncIndex, userId, baseRef, mergeRef, delta, metadata) 
-        VALUES (@ref, @remoteSyncId, @remoteSyncIndex, @userId, @baseRef, @mergeRef, @delta, @metadata)
+        INSERT INTO commits (ref, remoteSyncId, remoteSyncIndex, baseRef, mergeRef, delta, metadata) 
+        VALUES (@ref, @remoteSyncId, @remoteSyncIndex, @baseRef, @mergeRef, @delta, @metadata)
         ON CONFLICT DO NOTHING`,
     );
     const acks = new Map<string, ServerMetadata | undefined>();
@@ -149,10 +146,9 @@ export class SqliteDocStore implements DocStore {
     this.db.transaction(() => {
       let remoteSyncIndex = 0;
       for (const commit of commits) {
-        const { ref, baseRef, mergeRef } = asCommitRefs(commit);
-        const { delta } = commit;
+        const { ref, baseRef, delta } = commit;
+        const mergeRef = isMergeCommit(commit) ? commit.mergeRef : undefined;
         let { metadata } = commit;
-
         if (
           invalidParentRef(commit, 'baseRef') ||
           invalidParentRef(commit, 'mergeRef')

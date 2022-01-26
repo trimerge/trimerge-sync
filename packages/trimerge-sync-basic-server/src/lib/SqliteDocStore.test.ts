@@ -42,7 +42,6 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          userId: 'user-2',
           metadata: {
             clientId: 'client-1',
             hello: 'world',
@@ -51,24 +50,40 @@ describe('SqliteDocStore', () => {
 
         {
           ref: 'hello2',
-          userId: 'user-2',
           metadata: {
             clientId: 'client-1',
             hello: 'world',
           },
+
           baseRef: 'hello1',
-          delta: { delta: 'format' },
+          delta: JSON.stringify({ delta: 'format' }),
         },
       ]),
     ).toMatchInlineSnapshot(`
       Object {
         "acks": Array [
           Object {
-            "main": true,
+            "metadata": Object {
+              "clientId": "client-1",
+              "hello": "world",
+              "server": Object {
+                "main": true,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 0,
+              },
+            },
             "ref": "hello1",
           },
           Object {
-            "main": true,
+            "metadata": Object {
+              "clientId": "client-1",
+              "hello": "world",
+              "server": Object {
+                "main": true,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 1,
+              },
+            },
             "ref": "hello2",
           },
         ],
@@ -82,15 +97,20 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello3',
-          userId: 'client-2',
-          metadata: undefined,
+          metadata: {},
         },
       ]),
     ).toMatchInlineSnapshot(`
       Object {
         "acks": Array [
           Object {
-            "main": false,
+            "metadata": Object {
+              "server": Object {
+                "main": false,
+                "remoteSyncId": "1970-01-01T00:00:00.001Z",
+                "remoteSyncIndex": 0,
+              },
+            },
             "ref": "hello3",
           },
         ],
@@ -105,35 +125,43 @@ describe('SqliteDocStore', () => {
         "commits": Array [
           Object {
             "baseRef": undefined,
-            "delta": undefined,
-            "main": true,
+            "delta": null,
             "metadata": Object {
               "clientId": "client-1",
               "hello": "world",
+              "server": Object {
+                "main": true,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 0,
+              },
             },
             "ref": "hello1",
-            "userId": "user-2",
           },
           Object {
             "baseRef": "hello1",
-            "delta": Object {
-              "delta": "format",
-            },
-            "main": true,
+            "delta": "{\\"delta\\":\\"format\\"}",
             "metadata": Object {
               "clientId": "client-1",
               "hello": "world",
+              "server": Object {
+                "main": true,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 1,
+              },
             },
             "ref": "hello2",
-            "userId": "user-2",
           },
           Object {
             "baseRef": undefined,
-            "delta": undefined,
-            "main": false,
-            "metadata": undefined,
+            "delta": null,
+            "metadata": Object {
+              "server": Object {
+                "main": false,
+                "remoteSyncId": "1970-01-01T00:00:00.001Z",
+                "remoteSyncIndex": 0,
+              },
+            },
             "ref": "hello3",
-            "userId": "client-2",
           },
         ],
         "syncId": "1970-01-01T00:00:00.001Z",
@@ -147,11 +175,15 @@ describe('SqliteDocStore', () => {
         "commits": Array [
           Object {
             "baseRef": undefined,
-            "delta": undefined,
-            "main": false,
-            "metadata": undefined,
+            "delta": null,
+            "metadata": Object {
+              "server": Object {
+                "main": false,
+                "remoteSyncId": "1970-01-01T00:00:00.001Z",
+                "remoteSyncIndex": 0,
+              },
+            },
             "ref": "hello3",
-            "userId": "client-2",
           },
         ],
         "syncId": "1970-01-01T00:00:00.001Z",
@@ -167,13 +199,11 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          userId: 'client-2',
           metadata: { hello: 'world', clientId: 'client-1' },
         },
 
         {
           ref: 'hello1',
-          userId: 'client-2',
           metadata: { hello: 'world', clientId: 'client-1' },
         },
       ]),
@@ -181,7 +211,15 @@ describe('SqliteDocStore', () => {
       Object {
         "acks": Array [
           Object {
-            "main": true,
+            "metadata": Object {
+              "clientId": "client-1",
+              "hello": "world",
+              "server": Object {
+                "main": true,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 0,
+              },
+            },
             "ref": "hello1",
           },
         ],
@@ -199,22 +237,13 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          userId: 'client-2',
           baseRef: 'unknown',
           metadata: { hello: 'world', clientId: 'client-2' },
         },
 
         {
           ref: 'hello2',
-          userId: 'client-2',
           mergeRef: 'unknown',
-          metadata: { hello: 'world', clientId: 'client-2' },
-        },
-
-        {
-          ref: 'hello3',
-          userId: 'client-2',
-          mergeBaseRef: 'unknown',
           metadata: { hello: 'world', clientId: 'client-2' },
         },
       ]),
@@ -230,10 +259,6 @@ describe('SqliteDocStore', () => {
             "code": "unknown-ref",
             "message": "unknown mergeRef",
           },
-          "hello3": Object {
-            "code": "unknown-ref",
-            "message": "unknown mergeBaseRef",
-          },
         },
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
@@ -248,14 +273,12 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          userId: 'client-2',
           baseRef: 'unknown',
           metadata: { hello: 'world', clientId: 'client-2' },
         },
 
         {
           ref: 'hello2',
-          userId: 'client-2',
           baseRef: 'hello1',
           metadata: { hello: 'world', clientId: 'client-2' },
         },
@@ -286,19 +309,16 @@ describe('SqliteDocStore', () => {
       store.add([
         {
           ref: 'hello1',
-          userId: 'user-2',
           metadata: { hello: 'world', clientId: 'client-1' },
         },
 
         {
           ref: 'hello2',
-          userId: 'user-2',
           metadata: { hello: 'mars', clientId: 'client-2' },
         },
 
         {
           ref: 'hello3',
-          userId: 'client-2',
           baseRef: 'hello1',
           mergeRef: 'hello2',
           metadata: { hello: 'wmoarrlsd', clientId: 'client-1' },
@@ -308,15 +328,39 @@ describe('SqliteDocStore', () => {
       Object {
         "acks": Array [
           Object {
-            "main": true,
+            "metadata": Object {
+              "clientId": "client-1",
+              "hello": "world",
+              "server": Object {
+                "main": true,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 0,
+              },
+            },
             "ref": "hello1",
           },
           Object {
-            "main": false,
+            "metadata": Object {
+              "clientId": "client-2",
+              "hello": "mars",
+              "server": Object {
+                "main": false,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 1,
+              },
+            },
             "ref": "hello2",
           },
           Object {
-            "main": true,
+            "metadata": Object {
+              "clientId": "client-1",
+              "hello": "wmoarrlsd",
+              "server": Object {
+                "main": true,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 2,
+              },
+            },
             "ref": "hello3",
           },
         ],
@@ -326,48 +370,56 @@ describe('SqliteDocStore', () => {
       }
     `);
     expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
-Object {
-  "commits": Array [
-    Object {
-      "baseRef": undefined,
-      "delta": undefined,
-      "main": true,
-      "metadata": Object {
-        "clientId": "client-1",
-        "hello": "world",
-      },
-      "ref": "hello1",
-      "userId": "user-2",
-    },
-    Object {
-      "baseRef": undefined,
-      "delta": undefined,
-      "main": false,
-      "metadata": Object {
-        "clientId": "client-2",
-        "hello": "mars",
-      },
-      "ref": "hello2",
-      "userId": "user-2",
-    },
-    Object {
-      "baseRef": "hello1",
-      "delta": undefined,
-      "main": true,
-      "mergeBaseRef": undefined,
-      "mergeRef": "hello2",
-      "metadata": Object {
-        "clientId": "client-1",
-        "hello": "wmoarrlsd",
-      },
-      "ref": "hello3",
-      "userId": "client-2",
-    },
-  ],
-  "syncId": "1970-01-01T00:00:00.000Z",
-  "type": "commits",
-}
-`);
+      Object {
+        "commits": Array [
+          Object {
+            "baseRef": undefined,
+            "delta": null,
+            "metadata": Object {
+              "clientId": "client-1",
+              "hello": "world",
+              "server": Object {
+                "main": true,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 0,
+              },
+            },
+            "ref": "hello1",
+          },
+          Object {
+            "baseRef": undefined,
+            "delta": null,
+            "metadata": Object {
+              "clientId": "client-2",
+              "hello": "mars",
+              "server": Object {
+                "main": false,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 1,
+              },
+            },
+            "ref": "hello2",
+          },
+          Object {
+            "baseRef": "hello1",
+            "delta": null,
+            "mergeRef": "hello2",
+            "metadata": Object {
+              "clientId": "client-1",
+              "hello": "wmoarrlsd",
+              "server": Object {
+                "main": true,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 2,
+              },
+            },
+            "ref": "hello3",
+          },
+        ],
+        "syncId": "1970-01-01T00:00:00.000Z",
+        "type": "commits",
+      }
+    `);
   });
   it('existing db', async () => {
     let store = makeSqliteStore('existing db');
@@ -375,19 +427,16 @@ Object {
     store.add([
       {
         ref: 'hello1',
-        userId: 'user-2',
         metadata: { hello: 'world', clientId: 'client-1' },
       },
 
       {
         ref: 'hello2',
-        userId: 'user-2',
         metadata: { hello: 'mars', clientId: 'client-2' },
       },
 
       {
         ref: 'hello3',
-        userId: 'user-2',
         baseRef: 'hello1',
         mergeRef: 'hello2',
         metadata: { hello: 'wmoarrlsd', clientId: 'client-1' },
@@ -401,65 +450,75 @@ Object {
     store.add([
       {
         ref: 'hello4',
-        userId: 'user-2',
         baseRef: 'hello3',
         metadata: { hello: 'blargan', clientId: 'client-1' },
       },
     ]);
 
     expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
-Object {
-  "commits": Array [
-    Object {
-      "baseRef": undefined,
-      "delta": undefined,
-      "main": true,
-      "metadata": Object {
-        "clientId": "client-1",
-        "hello": "world",
-      },
-      "ref": "hello1",
-      "userId": "user-2",
-    },
-    Object {
-      "baseRef": "hello3",
-      "delta": undefined,
-      "main": false,
-      "metadata": Object {
-        "clientId": "client-1",
-        "hello": "blargan",
-      },
-      "ref": "hello4",
-      "userId": "user-2",
-    },
-    Object {
-      "baseRef": undefined,
-      "delta": undefined,
-      "main": false,
-      "metadata": Object {
-        "clientId": "client-2",
-        "hello": "mars",
-      },
-      "ref": "hello2",
-      "userId": "user-2",
-    },
-    Object {
-      "baseRef": "hello1",
-      "delta": undefined,
-      "main": true,
-      "mergeBaseRef": undefined,
-      "mergeRef": "hello2",
-      "metadata": Object {
-        "clientId": "client-1",
-        "hello": "wmoarrlsd",
-      },
-      "ref": "hello3",
-      "userId": "user-2",
-    },
-  ],
-  "syncId": "1970-01-01T00:00:00.000Z",
-  "type": "commits",
-}
-`);
+      Object {
+        "commits": Array [
+          Object {
+            "baseRef": undefined,
+            "delta": null,
+            "metadata": Object {
+              "clientId": "client-1",
+              "hello": "world",
+              "server": Object {
+                "main": true,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 0,
+              },
+            },
+            "ref": "hello1",
+          },
+          Object {
+            "baseRef": "hello3",
+            "delta": null,
+            "metadata": Object {
+              "clientId": "client-1",
+              "hello": "blargan",
+              "server": Object {
+                "main": false,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 0,
+              },
+            },
+            "ref": "hello4",
+          },
+          Object {
+            "baseRef": undefined,
+            "delta": null,
+            "metadata": Object {
+              "clientId": "client-2",
+              "hello": "mars",
+              "server": Object {
+                "main": false,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 1,
+              },
+            },
+            "ref": "hello2",
+          },
+          Object {
+            "baseRef": "hello1",
+            "delta": null,
+            "mergeRef": "hello2",
+            "metadata": Object {
+              "clientId": "client-1",
+              "hello": "wmoarrlsd",
+              "server": Object {
+                "main": true,
+                "remoteSyncId": "1970-01-01T00:00:00.000Z",
+                "remoteSyncIndex": 2,
+              },
+            },
+            "ref": "hello3",
+          },
+        ],
+        "syncId": "1970-01-01T00:00:00.000Z",
+        "type": "commits",
+      }
+    `);
   });
 });
