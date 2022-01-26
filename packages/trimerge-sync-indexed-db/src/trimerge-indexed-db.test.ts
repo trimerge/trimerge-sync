@@ -63,30 +63,32 @@ Object {
         "hello",
       ],
       "metadata": "",
-      "ref": "W04IBhus",
+      "ref": "G0a5Az3Q",
       "remoteSyncId": "",
       "syncId": 1,
-      "userId": "test",
     },
     Object {
-      "baseRef": "W04IBhus",
+      "baseRef": "G0a5Az3Q",
       "delta": Array [
         "hello",
         "hello there",
       ],
       "metadata": "",
-      "ref": "r4VLd8ne",
+      "ref": "HwWFgzWO",
       "remoteSyncId": "",
       "syncId": 2,
-      "userId": "test",
     },
   ],
   "heads": Array [
     Object {
-      "ref": "r4VLd8ne",
+      "ref": "HwWFgzWO",
     },
   ],
-  "remotes": Array [],
+  "remotes": Array [
+    Object {
+      "localStoreId": "test-doc-store",
+    },
+  ],
 }
 `);
   });
@@ -143,62 +145,62 @@ Object {
 Object {
   "commits": Array [
     Object {
-      "baseRef": "W04IBhus",
-      "delta": Array [
-        "hello",
-        "hello world",
-      ],
-      "metadata": "",
-      "ref": "GhP0VPg5",
-      "remoteSyncId": "",
-      "syncId": 2,
-      "userId": "test",
-    },
-    Object {
-      "baseRef": "GhP0VPg5",
-      "delta": Array [
-        "hello world",
-        "hello there",
-      ],
-      "metadata": "",
-      "ref": "JvrfzM9e",
-      "remoteSyncId": "",
-      "syncId": 3,
-      "userId": "test",
-    },
-    Object {
-      "baseRef": "GhP0VPg5",
-      "delta": Array [
-        "hello world",
-        "oh hello",
-      ],
-      "metadata": "",
-      "ref": "Rofed6go",
-      "remoteSyncId": "",
-      "syncId": 4,
-      "userId": "test",
-    },
-    Object {
       "baseRef": undefined,
       "delta": Array [
         "hello",
       ],
       "metadata": "",
-      "ref": "W04IBhus",
+      "ref": "G0a5Az3Q",
       "remoteSyncId": "",
       "syncId": 1,
-      "userId": "test",
+    },
+    Object {
+      "baseRef": "G0a5Az3Q",
+      "delta": Array [
+        "hello",
+        "hello world",
+      ],
+      "metadata": "",
+      "ref": "VXV5D7z7",
+      "remoteSyncId": "",
+      "syncId": 2,
+    },
+    Object {
+      "baseRef": "VXV5D7z7",
+      "delta": Array [
+        "hello world",
+        "hello there",
+      ],
+      "metadata": "",
+      "ref": "YFy1LPs2",
+      "remoteSyncId": "",
+      "syncId": 3,
+    },
+    Object {
+      "baseRef": "VXV5D7z7",
+      "delta": Array [
+        "hello world",
+        "oh hello",
+      ],
+      "metadata": "",
+      "ref": "aG60Gm4o",
+      "remoteSyncId": "",
+      "syncId": 4,
     },
   ],
   "heads": Array [
     Object {
-      "ref": "JvrfzM9e",
+      "ref": "YFy1LPs2",
     },
     Object {
-      "ref": "Rofed6go",
+      "ref": "aG60Gm4o",
     },
   ],
-  "remotes": Array [],
+  "remotes": Array [
+    Object {
+      "localStoreId": "test-doc-store",
+    },
+  ],
 }
 `);
   });
@@ -275,15 +277,14 @@ Object {
         "hello remote",
       ],
       "metadata": "",
-      "ref": "lIKnl-vc",
+      "ref": "F2C9k7m0",
       "remoteSyncId": "foo",
       "syncId": 1,
-      "userId": "test",
     },
   ],
   "heads": Array [
     Object {
-      "ref": "lIKnl-vc",
+      "ref": "F2C9k7m0",
     },
   ],
   "remotes": Array [
@@ -304,15 +305,14 @@ Object {
         "hello remote",
       ],
       "metadata": "",
-      "ref": "lIKnl-vc",
+      "ref": "F2C9k7m0",
       "remoteSyncId": "",
       "syncId": 1,
-      "userId": "test",
     },
   ],
   "heads": Array [
     Object {
-      "ref": "lIKnl-vc",
+      "ref": "F2C9k7m0",
     },
   ],
   "remotes": Array [],
@@ -339,15 +339,14 @@ Object {
         "hello remote",
       ],
       "metadata": "",
-      "ref": "lIKnl-vc",
+      "ref": "F2C9k7m0",
       "remoteSyncId": "foo",
       "syncId": 1,
-      "userId": "test",
     },
   ],
   "heads": Array [
     Object {
-      "ref": "lIKnl-vc",
+      "ref": "F2C9k7m0",
     },
   ],
   "remotes": Array [
@@ -388,32 +387,30 @@ Object {
 Object {
   "commits": Array [
     Object {
-      "baseRef": "axg0ZCUR",
-      "delta": Array [
-        "hello offline remote",
-        "hello online remote",
-      ],
-      "metadata": "",
-      "ref": "_btn0pve",
-      "remoteSyncId": "foo",
-      "syncId": 2,
-      "userId": "test",
-    },
-    Object {
       "baseRef": undefined,
       "delta": Array [
         "hello offline remote",
       ],
       "metadata": "",
-      "ref": "axg0ZCUR",
+      "ref": "QBwr4r32",
       "remoteSyncId": "foo",
       "syncId": 1,
-      "userId": "test",
+    },
+    Object {
+      "baseRef": "QBwr4r32",
+      "delta": Array [
+        "hello offline remote",
+        "hello online remote",
+      ],
+      "metadata": "",
+      "ref": "YSkdCqy1",
+      "remoteSyncId": "foo",
+      "syncId": 2,
     },
   ],
   "heads": Array [
     Object {
-      "ref": "_btn0pve",
+      "ref": "YSkdCqy1",
     },
   ],
   "remotes": Array [
@@ -472,70 +469,64 @@ Array [
       1,
     ],
     "metadata": "",
-    "ref": "f_zx0amC",
+    "ref": "N5uy2QOO",
     "remoteSyncId": "",
     "syncId": 1,
-    "userId": "test",
   },
   Object {
-    "baseRef": "f_zx0amC",
+    "baseRef": "N5uy2QOO",
     "delta": Array [
       1,
       2,
     ],
     "metadata": "",
-    "ref": "MN9DSWRy",
+    "ref": "F55ccS6M",
     "remoteSyncId": "",
     "syncId": 2,
-    "userId": "test",
   },
   Object {
-    "baseRef": "MN9DSWRy",
+    "baseRef": "F55ccS6M",
     "delta": Array [
       2,
       3,
     ],
     "metadata": "",
-    "ref": "ghfnnw_t",
+    "ref": "uBHlRZDM",
     "remoteSyncId": "",
     "syncId": 3,
-    "userId": "test",
   },
   Object {
-    "baseRef": "ghfnnw_t",
+    "baseRef": "uBHlRZDM",
     "delta": Array [
       3,
       4,
     ],
     "metadata": "",
-    "ref": "donKeCF-",
+    "ref": "CujSo7BT",
     "remoteSyncId": "",
     "syncId": 4,
-    "userId": "test",
   },
   Object {
-    "baseRef": "donKeCF-",
+    "baseRef": "CujSo7BT",
     "delta": Array [
       4,
       5,
     ],
     "metadata": "",
-    "ref": "pb34uqhZ",
+    "ref": "bXqUP_u1",
     "remoteSyncId": "",
     "syncId": 5,
-    "userId": "test",
   },
   Object {
-    "baseRef": "pb34uqhZ",
+    "baseRef": "bXqUP_u1",
     "delta": Array [
       5,
       6,
     ],
     "metadata": "",
-    "ref": "u2ev8uuN",
+    "ref": "5mFFausi",
     "remoteSyncId": "",
     "syncId": 6,
-    "userId": "test",
   },
 ]
 `);
