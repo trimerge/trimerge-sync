@@ -269,11 +269,7 @@ class IndexedDbBackend<
             if (await commitExistsAlready(commit)) {
               return;
             }
-            await commitsDb.add({
-              syncId,
-              remoteSyncId: lastSyncCursor ?? '',
-              ...commit,
-            });
+            await commitsDb.add({ syncId, remoteSyncId: '', ...commit });
             const ackedCommit = await commitsDb.get(commit.ref);
             if (ackedCommit) {
               refs.set(ref, ackedCommit.main);
