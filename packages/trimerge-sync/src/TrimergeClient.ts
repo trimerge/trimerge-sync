@@ -29,8 +29,9 @@ export type SubscribeEvent = {
     | 'remote'; // A remote client updated the value
 };
 
-export type AddNewEditMetadataFn<EditMetadata> = (
+export type AddNewCommitMetadataFn<EditMetadata> = (
   metadata: EditMetadata,
+  commitRef: string,
   userId: string,
   clientId: string,
 ) => EditMetadata;
@@ -103,7 +104,7 @@ export class TrimergeClient<
     >,
     private readonly differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
     /** Add metadata to every new commit created on this client */
-    private readonly addNewEditMetadata?: AddNewEditMetadataFn<EditMetadata>,
+    private readonly addNewCommitMetadata?: AddNewCommitMetadataFn<EditMetadata>,
   ) {
     this.store = getLocalStore(userId, clientId, this.onStoreEvent);
     this.setClientInfo(
@@ -437,10 +438,15 @@ export class TrimergeClient<
   ): string {
     const delta = this.differ.diff(base?.doc, newDoc);
     const baseRef = base?.ref;
-    if (this.addNewEditMetadata) {
-      metadata = this.addNewEditMetadata(metadata, this.userId, this.clientId);
-    }
     const ref = this.differ.computeRef(baseRef, mergeRef, delta);
+    if (this.addNewCommitMetadata) {
+      metadata = this.addNewCommitMetadata(
+        metadata,
+        ref,
+        this.userId,
+        this.clientId,
+      );
+    }
     const commit: Commit<EditMetadata, Delta> =
       mergeRef !== undefined
         ? { ref, baseRef, mergeRef, delta, metadata }

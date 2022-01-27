@@ -96,7 +96,7 @@ export function getIDBPDatabase<EditMetadata, Delta>(
   return createIndexedDb(getDatabaseName(docId));
 }
 export type AddStoreMetadataFn<EditMetadata> = (
-  metadata: EditMetadata,
+  commit: Commit<EditMetadata>,
   localStoreId: string,
   commitIndex: number,
 ) => EditMetadata;
@@ -319,7 +319,7 @@ class IndexedDbBackend<
             if (this.addStoreMetadata) {
               const localStoreId = await this.localStoreId;
               commit.metadata = this.addStoreMetadata(
-                commit.metadata,
+                commit,
                 localStoreId,
                 commitIndex,
               );
