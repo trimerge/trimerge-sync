@@ -14,6 +14,7 @@ class MockRemote implements Remote<any, any, any> {
     private readonly remoteSyncInfo: RemoteSyncInfo,
     private readonly onEvent: OnRemoteEventFn<any, any, any>,
     private readonly commits?: Commit<any, any>[],
+    private readonly getRemoteMetadata?: (commit: Commit<any, any>) => any,
   ) {
     this.onEvent({ type: 'remote-state', connect: 'online' });
     this.onEvent({ type: 'ready' });
@@ -29,7 +30,10 @@ class MockRemote implements Remote<any, any, any> {
           addInvalidRefsToAckEvent(
             {
               type: 'ack',
-              acks: newCommits.map(({ ref }) => ({ ref })),
+              acks: newCommits.map((commit) => ({
+                ref: commit.ref,
+                metadata: this.getRemoteMetadata?.(commit),
+              })),
               syncId: 'foo',
             },
             invalidRefs,
@@ -46,7 +50,8 @@ export const getMockRemote = getMockRemoteForCommits();
 
 export function getMockRemoteForCommits(
   commits?: Commit<any, any>[],
+  getRemoteMetadata?: (commit: Commit<any, any>) => any,
 ): GetRemoteFn<any, any, any> {
   return (userId, remoteSyncInfo, onEvent) =>
-    new MockRemote(userId, remoteSyncInfo, onEvent, commits);
+    new MockRemote(userId, remoteSyncInfo, onEvent, commits, getRemoteMetadata);
 }

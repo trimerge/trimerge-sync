@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto';
 import type { Commit, GetRemoteFn } from 'trimerge-sync';
 import { TrimergeClient } from 'trimerge-sync';
 import {
+  AddStoreMetadataFn,
   createIndexedDbBackendFactory,
   deleteDocDatabase,
   resetDocRemoteSyncData,
@@ -18,6 +19,7 @@ function makeTestClient(
   docId: string,
   storeId: string,
   getRemote?: GetRemoteFn<any, any, any>,
+  addStoreMetadata?: AddStoreMetadataFn<any>,
 ) {
   return new TrimergeClient(
     userId,
@@ -33,6 +35,7 @@ function makeTestClient(
         heartbeatIntervalMs: 10,
         heartbeatTimeoutMs: 50,
       },
+      addStoreMetadata,
     }),
     differ,
   );
@@ -194,6 +197,104 @@ Object {
     },
     Object {
       "ref": "aG60Gm4o",
+    },
+  ],
+  "remotes": Array [
+    Object {
+      "localStoreId": "test-doc-store",
+    },
+  ],
+}
+`);
+  });
+
+  it('adds metadata via addStoreMetadata', async () => {
+    const docId = 'test-doc-collab';
+    const addStoreMetadata: AddStoreMetadataFn<any> = (
+      commit,
+      localStoreId,
+      commitIndex,
+    ) => {
+      return {
+        ...commit.metadata,
+        clientStore: { localStoreId, commitIndex },
+        hello: 'world',
+      };
+    };
+    const client1 = makeTestClient(
+      'test',
+      '1',
+      docId,
+      'test-doc-store',
+      undefined,
+      addStoreMetadata,
+    );
+    client1.updateDoc('hello', '');
+    // Wait for write
+    await timeout(100);
+
+    const client2 = makeTestClient(
+      'test',
+      '2',
+      docId,
+      'test-doc-store',
+      undefined,
+      addStoreMetadata,
+    );
+
+    // Wait for read
+    await timeout(100);
+
+    client2.updateDoc('hello there', '');
+
+    // Wait for read
+    await timeout(100);
+    expect(client1.doc).toEqual('hello there');
+    expect(client2.doc).toEqual('hello there');
+
+    await client1.shutdown();
+    await client2.shutdown();
+
+    await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": undefined,
+      "delta": Array [
+        "hello",
+      ],
+      "metadata": Object {
+        "clientStore": Object {
+          "commitIndex": 1,
+          "localStoreId": "test-doc-store",
+        },
+        "hello": "world",
+      },
+      "ref": "G0a5Az3Q",
+      "remoteSyncId": "",
+      "syncId": 1,
+    },
+    Object {
+      "baseRef": "G0a5Az3Q",
+      "delta": Array [
+        "hello",
+        "hello there",
+      ],
+      "metadata": Object {
+        "clientStore": Object {
+          "commitIndex": 2,
+          "localStoreId": "test-doc-store",
+        },
+        "hello": "world",
+      },
+      "ref": "HwWFgzWO",
+      "remoteSyncId": "",
+      "syncId": 2,
+    },
+  ],
+  "heads": Array [
+    Object {
+      "ref": "HwWFgzWO",
     },
   ],
   "remotes": Array [
@@ -529,6 +630,95 @@ Array [
     "syncId": 6,
   },
 ]
+`);
+  });
+
+  it('updates metadata from remote', async () => {
+    const docId = 'test-doc-remote2';
+    const client = makeTestClient(
+      'test',
+      '1',
+      docId,
+      'test-doc-store',
+      getMockRemoteForCommits(undefined, (commit) => ({
+        newMetadata: { fromRemote: true, ref: commit.ref },
+        oldMetadata: commit.metadata,
+      })),
+    );
+    client.updateDoc(1, 'hi');
+    client.updateDoc(2, 'there');
+    client.updateDoc(3, 'sup?');
+
+    // Wait for write
+    await timeout(100);
+    await client.shutdown();
+
+    await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": "N5uy2QOO",
+      "delta": Array [
+        1,
+        2,
+      ],
+      "metadata": Object {
+        "newMetadata": Object {
+          "fromRemote": true,
+          "ref": "F55ccS6M",
+        },
+        "oldMetadata": "there",
+      },
+      "ref": "F55ccS6M",
+      "remoteSyncId": "foo",
+      "syncId": 2,
+    },
+    Object {
+      "baseRef": undefined,
+      "delta": Array [
+        1,
+      ],
+      "metadata": Object {
+        "newMetadata": Object {
+          "fromRemote": true,
+          "ref": "N5uy2QOO",
+        },
+        "oldMetadata": "hi",
+      },
+      "ref": "N5uy2QOO",
+      "remoteSyncId": "foo",
+      "syncId": 1,
+    },
+    Object {
+      "baseRef": "F55ccS6M",
+      "delta": Array [
+        2,
+        3,
+      ],
+      "metadata": Object {
+        "newMetadata": Object {
+          "fromRemote": true,
+          "ref": "uBHlRZDM",
+        },
+        "oldMetadata": "sup?",
+      },
+      "ref": "uBHlRZDM",
+      "remoteSyncId": "foo",
+      "syncId": 3,
+    },
+  ],
+  "heads": Array [
+    Object {
+      "ref": "uBHlRZDM",
+    },
+  ],
+  "remotes": Array [
+    Object {
+      "lastSyncCursor": "foo",
+      "localStoreId": "test-doc-store",
+    },
+  ],
+}
 `);
   });
 });
