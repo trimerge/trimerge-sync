@@ -721,6 +721,7 @@ describe('createIndexedDbBackendFactory', () => {
             }
           `);
   });
+
   it('updates metadata from remote with two users', async () => {
     const mockRemote = getMockRemoteWithMap(new Map(), (commit) => ({
       newMetadata: { fromRemote: 1, ref: commit.ref },
@@ -794,6 +795,80 @@ describe('createIndexedDbBackendFactory', () => {
           `);
 
     await expect(dumpDatabase('test-doc-remoteB')).resolves
+      .toMatchInlineSnapshot(`
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello",
+                  ],
+                  "metadata": Object {
+                    "newMetadata": Object {
+                      "fromRemote": 1,
+                      "ref": "G0a5Az3Q",
+                    },
+                    "oldMetadata": "client 1",
+                  },
+                  "ref": "G0a5Az3Q",
+                  "remoteSyncId": "foo",
+                  "syncId": 1,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "G0a5Az3Q",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
+  });
+
+  it('updates metadata from remote with two clients on the same local store', async () => {
+    const mockRemote = getMockRemoteWithMap(new Map(), (commit) => ({
+      newMetadata: { fromRemote: 1, ref: commit.ref },
+      oldMetadata: commit.metadata,
+    }));
+    const client1 = makeTestClient(
+      'test',
+      '1',
+      'test-doc-remote3',
+      'test-doc-store',
+      mockRemote,
+    );
+    const client2 = makeTestClient(
+      'test',
+      '2',
+      'test-doc-remote3',
+      'test-doc-store',
+      mockRemote,
+    );
+
+    // In this test, both users make the exact same edit, so we want to
+    // settled on the first one that makes it to the remote
+    client1.updateDoc('hello', 'client 1');
+    client2.updateDoc('hello', 'client 2');
+
+    // Wait for read
+    await timeout(100);
+
+    expect(client1.doc).toEqual('hello');
+    await timeout(100);
+    expect(client2.doc).toEqual('hello');
+
+    // Wait for write
+    await timeout(100);
+
+    await client1.shutdown();
+    await client2.shutdown();
+
+    await expect(dumpDatabase('test-doc-remote')).resolves
       .toMatchInlineSnapshot(`
             Object {
               "commits": Array [
