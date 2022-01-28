@@ -868,7 +868,7 @@ describe('createIndexedDbBackendFactory', () => {
     await client1.shutdown();
     await client2.shutdown();
 
-    await expect(dumpDatabase('test-doc-remote')).resolves
+    await expect(dumpDatabase('test-doc-remote3')).resolves
       .toMatchInlineSnapshot(`
             Object {
               "commits": Array [
