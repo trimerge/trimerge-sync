@@ -724,8 +724,8 @@ describe('createIndexedDbBackendFactory', () => {
 
   it('updates metadata from remote with two users', async () => {
     const mockRemote = getMockRemoteWithMap(new Map(), (commit) => ({
-      newMetadata: { fromRemote: 1, ref: commit.ref },
-      oldMetadata: commit.metadata,
+      fromRemote: true,
+      ref: commit.ref,
     }));
     const client1 = makeTestClient(
       'test',
@@ -769,11 +769,8 @@ describe('createIndexedDbBackendFactory', () => {
                     "hello",
                   ],
                   "metadata": Object {
-                    "newMetadata": Object {
-                      "fromRemote": 1,
-                      "ref": "G0a5Az3Q",
-                    },
-                    "oldMetadata": "client 1",
+                    "fromRemote": true,
+                    "ref": "G0a5Az3Q",
                   },
                   "ref": "G0a5Az3Q",
                   "remoteSyncId": "foo",
@@ -804,11 +801,8 @@ describe('createIndexedDbBackendFactory', () => {
                     "hello",
                   ],
                   "metadata": Object {
-                    "newMetadata": Object {
-                      "fromRemote": 1,
-                      "ref": "G0a5Az3Q",
-                    },
-                    "oldMetadata": "client 1",
+                    "fromRemote": true,
+                    "ref": "G0a5Az3Q",
                   },
                   "ref": "G0a5Az3Q",
                   "remoteSyncId": "foo",
@@ -832,8 +826,8 @@ describe('createIndexedDbBackendFactory', () => {
 
   it('updates metadata from remote with two clients on the same local store', async () => {
     const mockRemote = getMockRemoteWithMap(new Map(), (commit) => ({
-      newMetadata: { fromRemote: 1, ref: commit.ref },
-      oldMetadata: commit.metadata,
+      fromRemote: true,
+      ref: commit.ref,
     }));
     const client1 = makeTestClient(
       'test',
@@ -878,11 +872,8 @@ describe('createIndexedDbBackendFactory', () => {
                     "hello",
                   ],
                   "metadata": Object {
-                    "newMetadata": Object {
-                      "fromRemote": 1,
-                      "ref": "G0a5Az3Q",
-                    },
-                    "oldMetadata": "client 1",
+                    "fromRemote": true,
+                    "ref": "G0a5Az3Q",
                   },
                   "ref": "G0a5Az3Q",
                   "remoteSyncId": "foo",
