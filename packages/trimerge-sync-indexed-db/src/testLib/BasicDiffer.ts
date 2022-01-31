@@ -48,20 +48,16 @@ export function computeRef(
   return computeShaRef(baseRef, mergeRef, delta).slice(0, 8);
 }
 
-type TestEditMetadata = string;
+type TestMetadata = string;
 type TestSavedDoc = any;
 type TestDoc = any;
 type TestPresence = any;
 
-export const differ: Differ<
-  TestSavedDoc,
-  TestDoc,
-  TestEditMetadata,
-  TestPresence
-> = {
-  migrate: (doc, metadata) => ({ doc, metadata }),
-  diff,
-  patch,
-  computeRef,
-  mergeAllBranches,
-};
+export const differ: Differ<TestSavedDoc, TestDoc, TestMetadata, TestPresence> =
+  {
+    migrate: (doc, metadata) => ({ doc, metadata }),
+    diff,
+    patch,
+    computeRef,
+    mergeAllBranches,
+  };
