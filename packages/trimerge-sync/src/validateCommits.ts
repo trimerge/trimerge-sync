@@ -25,10 +25,9 @@ export function validateCommitOrder<EditMetadata, Delta>(
     } else {
       newCommits.push(commit);
       newCommitRefs.add(commit.ref);
-      const { baseRef, mergeRef, mergeBaseRef } = asCommitRefs(commit);
+      const { baseRef, mergeRef } = asCommitRefs(commit);
       addReferencedCommit(baseRef);
       addReferencedCommit(mergeRef);
-      addReferencedCommit(mergeBaseRef);
     }
   }
   return { newCommits, invalidRefs, referencedCommits };

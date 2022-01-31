@@ -2,7 +2,13 @@ import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from '../TrimergeClient';
 import { Differ } from '../differ';
 import { MemoryStore } from './MemoryStore';
-import { computeRef, diff, merge, migrate, patch } from './MergeUtils';
+import {
+  computeRef,
+  diff,
+  mergeAllBranches,
+  migrate,
+  patch,
+} from './MergeUtils';
 import { getBasicGraph, getDotGraph } from './GraphVisualizers';
 import { timeout } from '../lib/Timeout';
 
@@ -16,7 +22,7 @@ const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
   diff,
   patch,
   computeRef,
-  merge,
+  mergeAllBranches,
 };
 
 function newStore() {
@@ -82,22 +88,22 @@ describe('GraphVisualizers', () => {
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
 Array [
   Object {
-    "graph": "undefined -> 9m0LhHdt",
-    "step": "User a: initialize",
+    "graph": "undefined -> X1xFORPw",
+    "step": "initialize",
     "value": Object {
       "hello": "1",
     },
   },
   Object {
-    "graph": "undefined -> E2BlVX80",
-    "step": "User b: initialize",
+    "graph": "undefined -> OscPQkG7",
+    "step": "initialize",
     "value": Object {
       "world": "2",
     },
   },
   Object {
-    "graph": "E2BlVX80 -> yxbBldSG",
-    "step": "User b: initialize",
+    "graph": "OscPQkG7 -> F7kQ39Rs",
+    "step": "initialize",
     "value": Object {
       "world": "3",
     },
@@ -106,10 +112,10 @@ Array [
 `);
     expect(dotGraph(store, client1)).toMatchInlineSnapshot(`
 "digraph {
-\\"9m0LhHdt\\" [shape=ellipse, label=\\"initialize\\"]
-\\"E2BlVX80\\" [shape=ellipse, label=\\"initialize\\"]
-\\"yxbBldSG\\" [shape=ellipse, label=\\"initialize\\"]
-\\"E2BlVX80\\" -> \\"yxbBldSG\\" [label=\\"User b: [object Object]\\"]
+\\"X1xFORPw\\" [shape=ellipse, label=\\"initialize\\"]
+\\"OscPQkG7\\" [shape=ellipse, label=\\"initialize\\"]
+\\"F7kQ39Rs\\" [shape=ellipse, label=\\"initialize\\"]
+\\"OscPQkG7\\" -> \\"F7kQ39Rs\\" [label={\\"world\\":\\"3\\"}]
 }"
 `);
   });

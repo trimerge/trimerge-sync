@@ -7,23 +7,26 @@ export type ErrorCode =
   | 'bad-request'
   | 'unauthorized';
 
-export type BaseCommit<EditMetadata, Delta> = {
-  userId: string;
+export type BaseCommit<EditMetadata = unknown, Delta = unknown> = {
   ref: string;
+
+  // The ref of the parent commit that the delta was based on
+  // or undefined if it's an initial document commit
+  baseRef?: string;
 
   // a structure defining the differences between baseRef and this commit
   delta?: Delta;
 
-  // application specific metadata about the commit
+  // application-specific metadata about the commit
   metadata: EditMetadata;
-
-  // The ref of the commit that this commit is based on
-  baseRef?: string;
 };
 
-export type EditCommit<EditMetadata, Delta> = BaseCommit<EditMetadata, Delta>;
+export type EditCommit<EditMetadata = unknown, Delta = unknown> = BaseCommit<
+  EditMetadata,
+  Delta
+>;
 
-export type MergeCommit<EditMetadata, Delta> = BaseCommit<
+export type MergeCommit<EditMetadata = unknown, Delta = unknown> = BaseCommit<
   EditMetadata,
   Delta
 > & {
@@ -32,19 +35,21 @@ export type MergeCommit<EditMetadata, Delta> = BaseCommit<
 
   // secondary parent of the merge commit
   mergeRef: string;
-
-  // the most recent common ancestor of the baseRef and mergeRef,
-  // can be undefined if multiple clients are editing the same new document.
-  mergeBaseRef?: string;
 };
 
-export function isMergeCommit(
-  commit: Commit<unknown, unknown>,
-): commit is MergeCommit<unknown, unknown> {
-  return (commit as MergeCommit<unknown, unknown>).mergeRef !== undefined;
+export function isMergeCommit<EditMetadata = unknown, Delta = unknown>(
+  commit: Commit<EditMetadata, Delta>,
+): commit is MergeCommit<EditMetadata, Delta> {
+  return (commit as MergeCommit).mergeRef !== undefined;
 }
 
-export type Commit<EditMetadata, Delta> =
+export type CommitInfo = {
+  ref: string;
+  baseRef?: string;
+  mergeRef?: string;
+};
+
+export type Commit<EditMetadata = unknown, Delta = unknown> =
   | MergeCommit<EditMetadata, Delta>
   | EditCommit<EditMetadata, Delta>;
 
@@ -107,25 +112,14 @@ export type InitEvent =
       auth: unknown;
     };
 
-export type CommitAck = {
+export type CommitAck<EditMetadata = unknown> = {
   ref: string;
-
-  // If the remote acking this commit is authoritative, main will indicate if this
-  // commit is on the mainline or not, otherwise it will be undefined.
-  main?: boolean;
+  metadata?: EditMetadata;
 };
-
-export type ServerCommitAck = Required<CommitAck>;
-
-export type ServerCommit<EditMetadata, Delta> = Commit<EditMetadata, Delta> &
-  ServerCommitAck;
 
 export type CommitsEvent<EditMetadata, Delta, Presence> = {
   type: 'commits';
-  commits: readonly (
-    | ServerCommit<EditMetadata, Delta>
-    | Commit<EditMetadata, Delta>
-  )[];
+  commits: readonly Commit<EditMetadata, Delta>[];
   clientInfo?: ClientInfo<Presence>;
   syncId?: string;
 };
@@ -145,9 +139,9 @@ export type AckCommitError = {
   message?: string;
 };
 export type AckRefErrors = Record<string, AckCommitError>;
-export type AckCommitsEvent = {
+export type AckCommitsEvent<EditMetadata = unknown> = {
   type: 'ack';
-  acks: readonly CommitAck[];
+  acks: readonly CommitAck<EditMetadata>[];
   refErrors?: AckRefErrors;
   syncId: string;
 };
@@ -188,7 +182,7 @@ export type SyncEvent<EditMetadata, Delta, Presence> = Readonly<
   | CommitsEvent<EditMetadata, Delta, Presence>
   | ReadyEvent
   | LeaderEvent
-  | AckCommitsEvent
+  | AckCommitsEvent<EditMetadata>
   | ClientJoinEvent<Presence>
   | ClientPresenceEvent<Presence>
   | ClientLeaveEvent
@@ -237,5 +231,3 @@ export interface Remote<EditMetadata, Delta, Presence> {
   send(event: SyncEvent<EditMetadata, Delta, Presence>): void;
   shutdown(): void | Promise<void>;
 }
-
-export type UnsubscribeFn = () => void;

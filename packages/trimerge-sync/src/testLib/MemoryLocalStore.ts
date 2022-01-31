@@ -46,7 +46,7 @@ export class MemoryLocalStore<
   protected addCommits(
     commits: Commit<EditMetadata, Delta>[],
     remoteSyncId?: string,
-  ): Promise<AckCommitsEvent> {
+  ): Promise<AckCommitsEvent<EditMetadata>> {
     return this.store.addCommits(commits, remoteSyncId);
   }
 

@@ -1,8 +1,9 @@
-export type ComputeRefFn<Delta, EditMetadata> = (
+import { CommitInfo } from './types';
+
+export type ComputeRefFn<Delta> = (
   baseRef: string | undefined,
   mergeRef: string | undefined,
   delta: Delta | undefined,
-  editMetadata: EditMetadata,
 ) => string;
 
 export type DiffFn<SavedDoc, Delta> = (
@@ -17,26 +18,32 @@ export type PatchFn<SavedDoc, Delta> = (
 
 export type DocAndMetadata<Doc, EditMetadata> = {
   doc: Doc;
-  editMetadata: EditMetadata;
+  metadata: EditMetadata;
 };
 export type CommitDoc<Doc, EditMetadata> = {
   ref: string;
 } & DocAndMetadata<Doc, EditMetadata>;
 
-export type MergeResult<LatestDoc, EditMetadata> = {
-  temp?: boolean;
-} & DocAndMetadata<LatestDoc, EditMetadata>;
-
-export type MergeDocFn<LatestDoc, EditMetadata> = (
-  base: CommitDoc<LatestDoc, EditMetadata> | undefined,
-  left: CommitDoc<LatestDoc, EditMetadata>,
-  right: CommitDoc<LatestDoc, EditMetadata>,
-) => MergeResult<LatestDoc, EditMetadata>;
-
 export type MigrateDocFn<SavedDoc, LatestDoc extends SavedDoc, EditMetadata> = (
   doc: SavedDoc,
-  editMetadata: EditMetadata,
+  metadata: EditMetadata,
 ) => DocAndMetadata<LatestDoc, EditMetadata>;
+
+export type MergeHelpers<LatestDoc, EditMetadata> = {
+  getCommitInfo(ref: string): CommitInfo;
+  computeLatestDoc(ref: string): CommitDoc<LatestDoc, EditMetadata>;
+  addMerge(
+    doc: LatestDoc,
+    metadata: EditMetadata,
+    temp: boolean,
+    leftRef: string,
+    rightRef: string,
+  ): string;
+};
+export type MergeAllBranchesFn<LatestDoc, EditMetadata> = (
+  branchHeadRefs: string[],
+  helpers: MergeHelpers<LatestDoc, EditMetadata>,
+) => void;
 
 export interface Differ<
   SavedDoc,
@@ -47,7 +54,7 @@ export interface Differ<
   readonly migrate: MigrateDocFn<SavedDoc, LatestDoc, EditMetadata>;
 
   /** Calculate the ref string for a given edit */
-  readonly computeRef: ComputeRefFn<Delta, EditMetadata>;
+  readonly computeRef: ComputeRefFn<Delta>;
 
   /** Computed the difference between two Docs */
   readonly diff: DiffFn<SavedDoc, Delta>;
@@ -55,6 +62,6 @@ export interface Differ<
   /** Apply a patch from one Doc to another */
   readonly patch: PatchFn<SavedDoc, Delta>;
 
-  /** Three-way-merge function */
-  readonly merge: MergeDocFn<LatestDoc, EditMetadata>;
+  /** Merge all head commits */
+  readonly mergeAllBranches: MergeAllBranchesFn<LatestDoc, EditMetadata>;
 }

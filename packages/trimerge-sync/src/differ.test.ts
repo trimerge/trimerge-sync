@@ -8,21 +8,21 @@ describe('migrate type tests', () => {
     type LatestDoc = DocV2;
     const migrate: MigrateDocFn<SavedDoc, LatestDoc, string> = (
       doc,
-      editMetadata,
+      metadata,
     ) => {
       switch (doc.version) {
         case 1:
-          return { doc: { version: 2, b: doc.a }, editMetadata: 'migrate' };
+          return { doc: { version: 2, b: doc.a }, metadata: 'migrate' };
         case 2:
           // Up to date
-          return { doc, editMetadata };
+          return { doc, metadata };
       }
     };
     const v1Doc: DocV1 = { version: 1, a: 12 };
     const v2Doc: DocV2 = { version: 2, b: 12 };
     expect(migrate(v1Doc, 'v1')).toEqual({
       doc: v2Doc,
-      editMetadata: 'migrate',
+      metadata: 'migrate',
     });
     expect(migrate(v2Doc, 'v2').doc).toBe(v2Doc);
 

@@ -5,7 +5,11 @@ import {
   trimergeObject,
   trimergeString,
 } from 'trimerge';
-import { MergeDocFn } from 'trimerge-sync';
+import {
+  makeMergeAllBranchesFn,
+  MergeAllBranchesFn,
+  MergeDocFn,
+} from 'trimerge-sync';
 import { create, Delta } from 'jsondiffpatch';
 import { produce } from 'immer';
 import { trimergeNumber } from './trimergeNumber';
@@ -19,8 +23,11 @@ const trimergeObjects = combineMergers(
 
 export const merge: MergeDocFn<any, string> = (base, left, right) => ({
   doc: trimergeObjects(base?.doc, left.doc, right.doc),
-  editMetadata: `merge`,
+  metadata: `merge`,
 });
+
+export const mergeAllBranches: MergeAllBranchesFn<any, any> =
+  makeMergeAllBranchesFn((a, b) => (a < b ? -1 : 1), merge);
 
 const jdp = create({ textDiff: { minLength: 20 } });
 

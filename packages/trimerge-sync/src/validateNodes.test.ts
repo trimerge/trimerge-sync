@@ -8,7 +8,6 @@ import { CommitRefs } from './lib/Commits';
 function simpleCommit(args: CommitRefs): Commit<unknown, unknown> {
   return {
     ...args,
-    userId: 'x',
     metadata: undefined,
   };
 }
@@ -33,7 +32,6 @@ describe('validateCommitOrder', () => {
           Object {
             "metadata": undefined,
             "ref": "1",
-            "userId": "x",
           },
         ],
         "referencedCommits": Set {},
@@ -55,19 +53,16 @@ describe('validateCommitOrder', () => {
           Object {
             "metadata": undefined,
             "ref": "1",
-            "userId": "x",
           },
           Object {
             "baseRef": "1",
             "metadata": undefined,
             "ref": "2",
-            "userId": "x",
           },
           Object {
             "baseRef": "2",
             "metadata": undefined,
             "ref": "3",
-            "userId": "x",
           },
         ],
         "referencedCommits": Set {},
@@ -89,13 +84,11 @@ describe('validateCommitOrder', () => {
             "baseRef": "1",
             "metadata": undefined,
             "ref": "2",
-            "userId": "x",
           },
           Object {
             "baseRef": "2",
             "metadata": undefined,
             "ref": "3",
-            "userId": "x",
           },
         ],
         "referencedCommits": Set {
@@ -115,7 +108,6 @@ describe('validateCommitOrder', () => {
           ref: '4',
           baseRef: '2',
           mergeRef: '3',
-          mergeBaseRef: '1',
         }),
       ]),
     ).toMatchInlineSnapshot(`
@@ -125,27 +117,22 @@ describe('validateCommitOrder', () => {
           Object {
             "metadata": undefined,
             "ref": "1",
-            "userId": "x",
           },
           Object {
             "baseRef": "1",
             "metadata": undefined,
             "ref": "2",
-            "userId": "x",
           },
           Object {
             "baseRef": "1",
             "metadata": undefined,
             "ref": "3",
-            "userId": "x",
           },
           Object {
             "baseRef": "2",
-            "mergeBaseRef": "1",
             "mergeRef": "3",
             "metadata": undefined,
             "ref": "4",
-            "userId": "x",
           },
         ],
         "referencedCommits": Set {},
@@ -161,7 +148,6 @@ describe('validateCommitOrder', () => {
           ref: '4',
           baseRef: '2',
           mergeRef: '3',
-          mergeBaseRef: '1',
         }),
       ]),
     ).toMatchInlineSnapshot(`
@@ -172,15 +158,12 @@ describe('validateCommitOrder', () => {
             "baseRef": "1",
             "metadata": undefined,
             "ref": "3",
-            "userId": "x",
           },
           Object {
             "baseRef": "2",
-            "mergeBaseRef": "1",
             "mergeRef": "3",
             "metadata": undefined,
             "ref": "4",
-            "userId": "x",
           },
         ],
         "referencedCommits": Set {

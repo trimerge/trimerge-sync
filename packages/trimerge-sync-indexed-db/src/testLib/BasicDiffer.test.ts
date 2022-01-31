@@ -14,13 +14,13 @@ describe('merge', () => {
     expect(
       merge(
         undefined,
-        { ref: '1', doc: 'hi', editMetadata: '' },
-        { ref: '2', doc: 'there', editMetadata: '' },
+        { ref: '1', doc: 'hi', metadata: '' },
+        { ref: '2', doc: 'there', metadata: '' },
       ),
     ).toMatchInlineSnapshot(`
       Object {
         "doc": "hithere",
-        "editMetadata": Object {
+        "metadata": Object {
           "message": "merge",
           "ref": "(1+2)",
         },
@@ -30,14 +30,14 @@ describe('merge', () => {
   it('merges with base', () => {
     expect(
       merge(
-        { ref: '1', doc: 'hi', editMetadata: '' },
-        { ref: '2', doc: 'hi there', editMetadata: '' },
-        { ref: '3', doc: 'hello', editMetadata: '' },
+        { ref: '1', doc: 'hi', metadata: '' },
+        { ref: '2', doc: 'hi there', metadata: '' },
+        { ref: '3', doc: 'hello', metadata: '' },
       ),
     ).toMatchInlineSnapshot(`
       Object {
         "doc": "h thereello",
-        "editMetadata": Object {
+        "metadata": Object {
           "message": "merge",
           "ref": "(2+3)",
         },

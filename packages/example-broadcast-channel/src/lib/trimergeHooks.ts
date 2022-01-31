@@ -9,7 +9,7 @@ import { randomId } from './randomId';
 
 export type UpdateDocFn<LatestDoc, EditMetadata> = (
   doc: LatestDoc,
-  editMetadata: EditMetadata,
+  metadata: EditMetadata,
 ) => void;
 export type UpdatePresenceFn<Presence> = (newPresence: Presence) => void;
 

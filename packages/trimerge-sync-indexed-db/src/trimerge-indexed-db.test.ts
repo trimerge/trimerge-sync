@@ -3,13 +3,14 @@ import 'fake-indexeddb/auto';
 import type { Commit, GetRemoteFn } from 'trimerge-sync';
 import { TrimergeClient } from 'trimerge-sync';
 import {
+  AddStoreMetadataFn,
   createIndexedDbBackendFactory,
   deleteDocDatabase,
   resetDocRemoteSyncData,
 } from './trimerge-indexed-db';
 import { differ } from './testLib/BasicDiffer';
 import { timeout } from './lib/timeout';
-import { getMockRemote, getMockRemoteForCommits } from './testLib/MockRemote';
+import { getMockRemote, getMockRemoteWithMap } from './testLib/MockRemote';
 import { dumpDatabase, getIdbDatabases } from './testLib/IndexedDB';
 
 function makeTestClient(
@@ -18,6 +19,7 @@ function makeTestClient(
   docId: string,
   storeId: string,
   getRemote?: GetRemoteFn<any, any, any>,
+  addStoreMetadata?: AddStoreMetadataFn<any>,
 ) {
   return new TrimergeClient(
     userId,
@@ -33,6 +35,7 @@ function makeTestClient(
         heartbeatIntervalMs: 10,
         heartbeatTimeoutMs: 50,
       },
+      addStoreMetadata,
     }),
     differ,
   );
@@ -55,40 +58,42 @@ describe('createIndexedDbBackendFactory', () => {
     await client.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-Object {
-  "commits": Array [
-    Object {
-      "baseRef": undefined,
-      "delta": Array [
-        "hello",
-      ],
-      "metadata": "",
-      "ref": "W04IBhus",
-      "remoteSyncId": "",
-      "syncId": 1,
-      "userId": "test",
-    },
-    Object {
-      "baseRef": "W04IBhus",
-      "delta": Array [
-        "hello",
-        "hello there",
-      ],
-      "metadata": "",
-      "ref": "r4VLd8ne",
-      "remoteSyncId": "",
-      "syncId": 2,
-      "userId": "test",
-    },
-  ],
-  "heads": Array [
-    Object {
-      "ref": "r4VLd8ne",
-    },
-  ],
-  "remotes": Array [],
-}
-`);
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello",
+                  ],
+                  "metadata": "",
+                  "ref": "G0a5Az3Q",
+                  "remoteSyncId": "",
+                  "syncId": 1,
+                },
+                Object {
+                  "baseRef": "G0a5Az3Q",
+                  "delta": Array [
+                    "hello",
+                    "hello there",
+                  ],
+                  "metadata": "",
+                  "ref": "HwWFgzWO",
+                  "remoteSyncId": "",
+                  "syncId": 2,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "HwWFgzWO",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
   });
 
   it('creates indexed db and can read it', async () => {
@@ -140,67 +145,165 @@ Object {
     await client2.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-Object {
-  "commits": Array [
-    Object {
-      "baseRef": "W04IBhus",
-      "delta": Array [
-        "hello",
-        "hello world",
-      ],
-      "metadata": "",
-      "ref": "GhP0VPg5",
-      "remoteSyncId": "",
-      "syncId": 2,
-      "userId": "test",
-    },
-    Object {
-      "baseRef": "GhP0VPg5",
-      "delta": Array [
-        "hello world",
-        "hello there",
-      ],
-      "metadata": "",
-      "ref": "JvrfzM9e",
-      "remoteSyncId": "",
-      "syncId": 3,
-      "userId": "test",
-    },
-    Object {
-      "baseRef": "GhP0VPg5",
-      "delta": Array [
-        "hello world",
-        "oh hello",
-      ],
-      "metadata": "",
-      "ref": "Rofed6go",
-      "remoteSyncId": "",
-      "syncId": 4,
-      "userId": "test",
-    },
-    Object {
-      "baseRef": undefined,
-      "delta": Array [
-        "hello",
-      ],
-      "metadata": "",
-      "ref": "W04IBhus",
-      "remoteSyncId": "",
-      "syncId": 1,
-      "userId": "test",
-    },
-  ],
-  "heads": Array [
-    Object {
-      "ref": "JvrfzM9e",
-    },
-    Object {
-      "ref": "Rofed6go",
-    },
-  ],
-  "remotes": Array [],
-}
-`);
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello",
+                  ],
+                  "metadata": "",
+                  "ref": "G0a5Az3Q",
+                  "remoteSyncId": "",
+                  "syncId": 1,
+                },
+                Object {
+                  "baseRef": "G0a5Az3Q",
+                  "delta": Array [
+                    "hello",
+                    "hello world",
+                  ],
+                  "metadata": "",
+                  "ref": "VXV5D7z7",
+                  "remoteSyncId": "",
+                  "syncId": 2,
+                },
+                Object {
+                  "baseRef": "VXV5D7z7",
+                  "delta": Array [
+                    "hello world",
+                    "hello there",
+                  ],
+                  "metadata": "",
+                  "ref": "YFy1LPs2",
+                  "remoteSyncId": "",
+                  "syncId": 3,
+                },
+                Object {
+                  "baseRef": "VXV5D7z7",
+                  "delta": Array [
+                    "hello world",
+                    "oh hello",
+                  ],
+                  "metadata": "",
+                  "ref": "aG60Gm4o",
+                  "remoteSyncId": "",
+                  "syncId": 4,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "YFy1LPs2",
+                },
+                Object {
+                  "ref": "aG60Gm4o",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
+  });
+
+  it('adds metadata via addStoreMetadata', async () => {
+    const docId = 'test-doc-collab';
+    const addStoreMetadata: AddStoreMetadataFn<any> = (
+      commit,
+      localStoreId,
+      commitIndex,
+    ) => {
+      return {
+        ...commit.metadata,
+        clientStore: { localStoreId, commitIndex },
+        hello: 'world',
+      };
+    };
+    const client1 = makeTestClient(
+      'test',
+      '1',
+      docId,
+      'test-doc-store',
+      undefined,
+      addStoreMetadata,
+    );
+    client1.updateDoc('hello', '');
+    // Wait for write
+    await timeout(100);
+
+    const client2 = makeTestClient(
+      'test',
+      '2',
+      docId,
+      'test-doc-store',
+      undefined,
+      addStoreMetadata,
+    );
+
+    // Wait for read
+    await timeout(100);
+
+    client2.updateDoc('hello there', '');
+
+    // Wait for read
+    await timeout(100);
+    expect(client1.doc).toEqual('hello there');
+    expect(client2.doc).toEqual('hello there');
+
+    await client1.shutdown();
+    await client2.shutdown();
+
+    await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello",
+                  ],
+                  "metadata": Object {
+                    "clientStore": Object {
+                      "commitIndex": 1,
+                      "localStoreId": "test-doc-store",
+                    },
+                    "hello": "world",
+                  },
+                  "ref": "G0a5Az3Q",
+                  "remoteSyncId": "",
+                  "syncId": 1,
+                },
+                Object {
+                  "baseRef": "G0a5Az3Q",
+                  "delta": Array [
+                    "hello",
+                    "hello there",
+                  ],
+                  "metadata": Object {
+                    "clientStore": Object {
+                      "commitIndex": 2,
+                      "localStoreId": "test-doc-store",
+                    },
+                    "hello": "world",
+                  },
+                  "ref": "HwWFgzWO",
+                  "remoteSyncId": "",
+                  "syncId": 2,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "HwWFgzWO",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
   });
 
   it('deletes indexed db with deleteDocDatabase', async () => {
@@ -212,13 +315,13 @@ Object {
     await client1.shutdown();
 
     await expect(getIdbDatabases()).resolves.toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "name": "trimerge-sync:test-doc-delete",
-          "version": 2,
-        },
-      ]
-    `);
+                  Array [
+                    Object {
+                      "name": "trimerge-sync:test-doc-delete",
+                      "version": 2,
+                    },
+                  ]
+              `);
 
     await deleteDocDatabase(docId);
 
@@ -267,57 +370,55 @@ Object {
     await client1.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-Object {
-  "commits": Array [
-    Object {
-      "baseRef": undefined,
-      "delta": Array [
-        "hello remote",
-      ],
-      "metadata": "",
-      "ref": "lIKnl-vc",
-      "remoteSyncId": "foo",
-      "syncId": 1,
-      "userId": "test",
-    },
-  ],
-  "heads": Array [
-    Object {
-      "ref": "lIKnl-vc",
-    },
-  ],
-  "remotes": Array [
-    Object {
-      "lastSyncCursor": "foo",
-      "localStoreId": "test-doc-store",
-    },
-  ],
-}
-`);
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello remote",
+                  ],
+                  "metadata": "",
+                  "ref": "F2C9k7m0",
+                  "remoteSyncId": "foo",
+                  "syncId": 1,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "F2C9k7m0",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
     await resetDocRemoteSyncData(docId);
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-Object {
-  "commits": Array [
-    Object {
-      "baseRef": undefined,
-      "delta": Array [
-        "hello remote",
-      ],
-      "metadata": "",
-      "ref": "lIKnl-vc",
-      "remoteSyncId": "",
-      "syncId": 1,
-      "userId": "test",
-    },
-  ],
-  "heads": Array [
-    Object {
-      "ref": "lIKnl-vc",
-    },
-  ],
-  "remotes": Array [],
-}
-`);
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello remote",
+                  ],
+                  "metadata": "",
+                  "ref": "F2C9k7m0",
+                  "remoteSyncId": "",
+                  "syncId": 1,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "F2C9k7m0",
+                },
+              ],
+              "remotes": Array [],
+            }
+          `);
 
     const client2 = makeTestClient(
       'test',
@@ -331,33 +432,32 @@ Object {
     expect(client2.doc).toEqual('hello remote');
     await client2.shutdown();
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-Object {
-  "commits": Array [
-    Object {
-      "baseRef": undefined,
-      "delta": Array [
-        "hello remote",
-      ],
-      "metadata": "",
-      "ref": "lIKnl-vc",
-      "remoteSyncId": "foo",
-      "syncId": 1,
-      "userId": "test",
-    },
-  ],
-  "heads": Array [
-    Object {
-      "ref": "lIKnl-vc",
-    },
-  ],
-  "remotes": Array [
-    Object {
-      "lastSyncCursor": "foo",
-      "localStoreId": "test-doc-store",
-    },
-  ],
-}
-`);
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello remote",
+                  ],
+                  "metadata": "",
+                  "ref": "F2C9k7m0",
+                  "remoteSyncId": "foo",
+                  "syncId": 1,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "F2C9k7m0",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
   });
 
   it('works offline then with remote', async () => {
@@ -385,45 +485,43 @@ Object {
     await client2.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-Object {
-  "commits": Array [
-    Object {
-      "baseRef": "axg0ZCUR",
-      "delta": Array [
-        "hello offline remote",
-        "hello online remote",
-      ],
-      "metadata": "",
-      "ref": "_btn0pve",
-      "remoteSyncId": "foo",
-      "syncId": 2,
-      "userId": "test",
-    },
-    Object {
-      "baseRef": undefined,
-      "delta": Array [
-        "hello offline remote",
-      ],
-      "metadata": "",
-      "ref": "axg0ZCUR",
-      "remoteSyncId": "foo",
-      "syncId": 1,
-      "userId": "test",
-    },
-  ],
-  "heads": Array [
-    Object {
-      "ref": "_btn0pve",
-    },
-  ],
-  "remotes": Array [
-    Object {
-      "lastSyncCursor": "foo",
-      "localStoreId": "test-doc-store",
-    },
-  ],
-}
-`);
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello offline remote",
+                  ],
+                  "metadata": "",
+                  "ref": "QBwr4r32",
+                  "remoteSyncId": "foo",
+                  "syncId": 1,
+                },
+                Object {
+                  "baseRef": "QBwr4r32",
+                  "delta": Array [
+                    "hello offline remote",
+                    "hello online remote",
+                  ],
+                  "metadata": "",
+                  "ref": "YSkdCqy1",
+                  "remoteSyncId": "foo",
+                  "syncId": 2,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "YSkdCqy1",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
   });
 
   it('works offline then with remote 2', async () => {
@@ -440,104 +538,362 @@ Object {
     await timeout(100);
     await client.shutdown();
 
-    const commits: Commit<any, any>[] = [];
+    const commitMap = new Map<string, Commit<any, any>>();
     const client2 = makeTestClient(
       'test',
       '2',
       docId,
       'test-doc-store',
-      getMockRemoteForCommits(commits),
+      getMockRemoteWithMap(commitMap),
     );
     // Wait for write
     await timeout(100);
 
     expect(client2.doc).toEqual(6);
     expect(client2.syncStatus).toMatchInlineSnapshot(`
-Object {
-  "localRead": "ready",
-  "localSave": "ready",
-  "remoteConnect": "online",
-  "remoteRead": "ready",
-  "remoteSave": "ready",
-}
-`);
+      Object {
+        "localRead": "ready",
+        "localSave": "ready",
+        "remoteConnect": "online",
+        "remoteRead": "ready",
+        "remoteSave": "ready",
+      }
+    `);
 
     await client2.shutdown();
 
-    expect(commits).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "baseRef": undefined,
-    "delta": Array [
-      1,
-    ],
-    "metadata": "",
-    "ref": "f_zx0amC",
-    "remoteSyncId": "",
-    "syncId": 1,
-    "userId": "test",
-  },
-  Object {
-    "baseRef": "f_zx0amC",
-    "delta": Array [
-      1,
-      2,
-    ],
-    "metadata": "",
-    "ref": "MN9DSWRy",
-    "remoteSyncId": "",
-    "syncId": 2,
-    "userId": "test",
-  },
-  Object {
-    "baseRef": "MN9DSWRy",
-    "delta": Array [
-      2,
-      3,
-    ],
-    "metadata": "",
-    "ref": "ghfnnw_t",
-    "remoteSyncId": "",
-    "syncId": 3,
-    "userId": "test",
-  },
-  Object {
-    "baseRef": "ghfnnw_t",
-    "delta": Array [
-      3,
-      4,
-    ],
-    "metadata": "",
-    "ref": "donKeCF-",
-    "remoteSyncId": "",
-    "syncId": 4,
-    "userId": "test",
-  },
-  Object {
-    "baseRef": "donKeCF-",
-    "delta": Array [
-      4,
-      5,
-    ],
-    "metadata": "",
-    "ref": "pb34uqhZ",
-    "remoteSyncId": "",
-    "syncId": 5,
-    "userId": "test",
-  },
-  Object {
-    "baseRef": "pb34uqhZ",
-    "delta": Array [
-      5,
-      6,
-    ],
-    "metadata": "",
-    "ref": "u2ev8uuN",
-    "remoteSyncId": "",
-    "syncId": 6,
-    "userId": "test",
-  },
-]
-`);
+    expect(Array.from(commitMap.values())).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "baseRef": undefined,
+          "delta": Array [
+            1,
+          ],
+          "metadata": "",
+          "ref": "N5uy2QOO",
+          "remoteSyncId": "",
+          "syncId": 1,
+        },
+        Object {
+          "baseRef": "N5uy2QOO",
+          "delta": Array [
+            1,
+            2,
+          ],
+          "metadata": "",
+          "ref": "F55ccS6M",
+          "remoteSyncId": "",
+          "syncId": 2,
+        },
+        Object {
+          "baseRef": "F55ccS6M",
+          "delta": Array [
+            2,
+            3,
+          ],
+          "metadata": "",
+          "ref": "uBHlRZDM",
+          "remoteSyncId": "",
+          "syncId": 3,
+        },
+        Object {
+          "baseRef": "uBHlRZDM",
+          "delta": Array [
+            3,
+            4,
+          ],
+          "metadata": "",
+          "ref": "CujSo7BT",
+          "remoteSyncId": "",
+          "syncId": 4,
+        },
+        Object {
+          "baseRef": "CujSo7BT",
+          "delta": Array [
+            4,
+            5,
+          ],
+          "metadata": "",
+          "ref": "bXqUP_u1",
+          "remoteSyncId": "",
+          "syncId": 5,
+        },
+        Object {
+          "baseRef": "bXqUP_u1",
+          "delta": Array [
+            5,
+            6,
+          ],
+          "metadata": "",
+          "ref": "5mFFausi",
+          "remoteSyncId": "",
+          "syncId": 6,
+        },
+      ]
+    `);
+  });
+
+  it('updates metadata from remote', async () => {
+    const docId = 'test-doc-remote2';
+    const client = makeTestClient(
+      'test',
+      '1',
+      docId,
+      'test-doc-store',
+      getMockRemoteWithMap(undefined, (commit) => ({
+        newMetadata: { fromRemote: true, ref: commit.ref },
+        oldMetadata: commit.metadata,
+      })),
+    );
+    client.updateDoc(1, 'hi');
+    client.updateDoc(2, 'there');
+    client.updateDoc(3, 'sup?');
+
+    // Wait for write
+    await timeout(100);
+    await client.shutdown();
+
+    await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": "N5uy2QOO",
+                  "delta": Array [
+                    1,
+                    2,
+                  ],
+                  "metadata": Object {
+                    "newMetadata": Object {
+                      "fromRemote": true,
+                      "ref": "F55ccS6M",
+                    },
+                    "oldMetadata": "there",
+                  },
+                  "ref": "F55ccS6M",
+                  "remoteSyncId": "foo",
+                  "syncId": 2,
+                },
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    1,
+                  ],
+                  "metadata": Object {
+                    "newMetadata": Object {
+                      "fromRemote": true,
+                      "ref": "N5uy2QOO",
+                    },
+                    "oldMetadata": "hi",
+                  },
+                  "ref": "N5uy2QOO",
+                  "remoteSyncId": "foo",
+                  "syncId": 1,
+                },
+                Object {
+                  "baseRef": "F55ccS6M",
+                  "delta": Array [
+                    2,
+                    3,
+                  ],
+                  "metadata": Object {
+                    "newMetadata": Object {
+                      "fromRemote": true,
+                      "ref": "uBHlRZDM",
+                    },
+                    "oldMetadata": "sup?",
+                  },
+                  "ref": "uBHlRZDM",
+                  "remoteSyncId": "foo",
+                  "syncId": 3,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "uBHlRZDM",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
+  });
+
+  it('updates metadata from remote with two users', async () => {
+    const getMockRemoteFn = getMockRemoteWithMap(new Map(), (commit) => ({
+      fromRemote: true,
+      ref: commit.ref,
+    }));
+
+    // TODO: this remote doesn't broadcast anything (commits, etc) back to clients
+    const client1 = makeTestClient(
+      'test',
+      '1',
+      'test-doc-remoteA',
+      'test-doc-store',
+      getMockRemoteFn,
+    );
+    const client2 = makeTestClient(
+      'test',
+      '2',
+      'test-doc-remoteB',
+      'test-doc-store',
+      getMockRemoteFn,
+    );
+
+    // In this test, both users make the exact same edit, so we want to
+    // settle on the first one that makes it to the remote
+    client1.updateDoc('hello', 'client 1');
+    client2.updateDoc('hello', 'client 2');
+
+    // Wait for read
+    await timeout(100);
+
+    expect(client1.doc).toEqual('hello');
+    expect(client2.doc).toEqual('hello');
+
+    // Wait for write
+    await timeout(100);
+
+    await client1.shutdown();
+    await client2.shutdown();
+
+    await expect(dumpDatabase('test-doc-remoteA')).resolves
+      .toMatchInlineSnapshot(`
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello",
+                  ],
+                  "metadata": Object {
+                    "fromRemote": true,
+                    "ref": "G0a5Az3Q",
+                  },
+                  "ref": "G0a5Az3Q",
+                  "remoteSyncId": "foo",
+                  "syncId": 1,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "G0a5Az3Q",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
+
+    await expect(dumpDatabase('test-doc-remoteB')).resolves
+      .toMatchInlineSnapshot(`
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello",
+                  ],
+                  "metadata": Object {
+                    "fromRemote": true,
+                    "ref": "G0a5Az3Q",
+                  },
+                  "ref": "G0a5Az3Q",
+                  "remoteSyncId": "foo",
+                  "syncId": 1,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "G0a5Az3Q",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
+  });
+
+  it('updates metadata from remote with two clients on the same local store', async () => {
+    const mockRemote = getMockRemoteWithMap(new Map(), (commit) => ({
+      fromRemote: true,
+      ref: commit.ref,
+    }));
+    const client1 = makeTestClient(
+      'test',
+      '1',
+      'test-doc-remote3',
+      'test-doc-store',
+      mockRemote,
+    );
+    const client2 = makeTestClient(
+      'test',
+      '2',
+      'test-doc-remote3',
+      'test-doc-store',
+      mockRemote,
+    );
+
+    // In this test, both users make the exact same edit, so we want to
+    // settle on the first one that makes it to the remote
+    client1.updateDoc('hello', 'client 1');
+    client2.updateDoc('hello', 'client 2');
+
+    // Wait for read
+    await timeout(100);
+
+    expect(client1.doc).toEqual('hello');
+    await timeout(100);
+    expect(client2.doc).toEqual('hello');
+
+    // Wait for write
+    await timeout(100);
+
+    await client1.shutdown();
+    await client2.shutdown();
+
+    await expect(dumpDatabase('test-doc-remote3')).resolves
+      .toMatchInlineSnapshot(`
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello",
+                  ],
+                  "metadata": Object {
+                    "fromRemote": true,
+                    "ref": "G0a5Az3Q",
+                  },
+                  "ref": "G0a5Az3Q",
+                  "remoteSyncId": "foo",
+                  "syncId": 1,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "G0a5Az3Q",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
   });
 });

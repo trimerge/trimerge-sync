@@ -1,4 +1,4 @@
-import {
+import type {
   ClientInfo,
   ClientList,
   Commit,
@@ -8,8 +8,7 @@ import {
   OnStoreEventFn,
   SyncStatus,
 } from './types';
-import { mergeHeads } from './merge-heads';
-import { CommitDoc, Differ } from './differ';
+import { CommitDoc, Differ, MergeHelpers } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { asCommitRefs, CommitRefs } from './lib/Commits';
@@ -29,6 +28,13 @@ export type SubscribeEvent = {
     | 'local' // Another client on the same store updated the value
     | 'remote'; // A remote client updated the value
 };
+
+export type AddNewCommitMetadataFn<EditMetadata> = (
+  metadata: EditMetadata,
+  commitRef: string,
+  userId: string,
+  clientId: string,
+) => EditMetadata;
 
 export class TrimergeClient<
   SavedDoc,
@@ -78,7 +84,6 @@ export class TrimergeClient<
   private tempCommits = new Map<string, Commit<EditMetadata, Delta>>();
   private unsyncedCommits: Commit<EditMetadata, Delta>[] = [];
 
-  private selfFullId: string;
   private newPresence: ClientInfo<Presence> | undefined;
 
   private syncState: SyncStatus = {
@@ -98,8 +103,9 @@ export class TrimergeClient<
       Presence
     >,
     private readonly differ: Differ<SavedDoc, LatestDoc, EditMetadata, Delta>,
+    /** Add metadata to every new commit created on this client */
+    private readonly addNewCommitMetadata?: AddNewCommitMetadataFn<EditMetadata>,
   ) {
-    this.selfFullId = getFullId(userId, clientId);
     this.store = getLocalStore(userId, clientId, this.onStoreEvent);
     this.setClientInfo(
       {
@@ -222,8 +228,8 @@ export class TrimergeClient<
     return this.clientListSubs.subscribe(onChange, { origin: 'subscribe' });
   }
 
-  updateDoc(doc: LatestDoc, editMetadata: EditMetadata, presence?: Presence) {
-    const ref = this.addNewCommit(doc, editMetadata, false);
+  updateDoc(doc: LatestDoc, metadata: EditMetadata, presence?: Presence) {
+    const ref = this.addNewCommit(doc, metadata, false);
     this.setPresence(presence, ref);
     this.mergeHeads();
     this.docSubs.emitChange({ origin: 'self' });
@@ -248,24 +254,6 @@ export class TrimergeClient<
     this.emitClientListChange({ origin: 'self' });
   }
 
-  getCommitDoc(ref: string): CommitDoc<SavedDoc, EditMetadata> {
-    const doc = this.docs.get(ref);
-    if (doc !== undefined) {
-      return doc;
-    }
-    const commit = this.getCommit(ref);
-    const baseValue = commit.baseRef
-      ? this.getCommitDoc(commit.baseRef).doc
-      : undefined;
-    const commitDoc: CommitDoc<SavedDoc, EditMetadata> = {
-      ref: commit.ref,
-      doc: this.differ.patch(baseValue, commit.delta),
-      editMetadata: commit.metadata,
-    };
-    this.docs.set(ref, commitDoc);
-    return commitDoc;
-  }
-
   getCommit = (ref: string) => {
     const commit = this.commits.get(ref);
     if (commit) {
@@ -274,52 +262,54 @@ export class TrimergeClient<
     throw new Error(`unknown ref "${ref}"`);
   };
 
+  private mergeHelpers: MergeHelpers<LatestDoc, EditMetadata> = {
+    getCommitInfo: this.getCommit,
+    computeLatestDoc: (ref) => this.migrateCommit(this.getCommitDoc(ref)),
+    addMerge: (doc, metadata, temp, leftRef, rightRef) =>
+      this.addNewCommit(
+        doc,
+        metadata,
+        temp,
+        this.getCommitDoc(leftRef),
+        rightRef,
+      ),
+  };
+
+  getCommitDoc(ref: string): CommitDoc<SavedDoc, EditMetadata> {
+    const doc = this.docs.get(ref);
+    if (doc !== undefined) {
+      return doc;
+    }
+    const { baseRef, delta, metadata } = this.getCommit(ref);
+    const baseValue = baseRef ? this.getCommitDoc(baseRef).doc : undefined;
+    const commitDoc: CommitDoc<SavedDoc, EditMetadata> = {
+      ref,
+      doc: this.differ.patch(baseValue, delta),
+      metadata,
+    };
+    this.docs.set(ref, commitDoc);
+    return commitDoc;
+  }
+
   private migrateCommit(
     commit: CommitDoc<SavedDoc, EditMetadata>,
   ): CommitDoc<LatestDoc, EditMetadata> {
-    const { doc, editMetadata } = this.differ.migrate(
-      commit.doc,
-      commit.editMetadata,
-    );
+    const { doc, metadata } = this.differ.migrate(commit.doc, commit.metadata);
     if (commit.doc === doc) {
       return commit as CommitDoc<LatestDoc, EditMetadata>;
     }
-    const ref = this.addNewCommit(doc, editMetadata, true, commit);
-    return { ref, doc, editMetadata };
+    const ref = this.addNewCommit(doc, metadata, true, commit);
+    return { ref, doc, metadata };
   }
 
   private mergeHeads() {
     if (this.allHeadRefs.size <= 1) {
       return;
     }
-    mergeHeads(
+    this.differ.mergeAllBranches(
       Array.from(this.allHeadRefs),
-      this.getCommit,
-      (baseRef, leftRef, rightRef) => {
-        const base =
-          baseRef !== undefined
-            ? this.migrateCommit(this.getCommitDoc(baseRef))
-            : undefined;
-        const left = this.migrateCommit(this.getCommitDoc(leftRef));
-        const right = this.migrateCommit(this.getCommitDoc(rightRef));
-        const {
-          doc,
-          editMetadata,
-          temp = true,
-        } = this.differ.merge(base, left, right);
-        return this.addNewCommit(
-          doc,
-          editMetadata,
-          temp,
-          left,
-          rightRef,
-          baseRef,
-        );
-      },
+      this.mergeHelpers,
     );
-    if (this.allHeadRefs.size > 1) {
-      throw new Error('more than one head after merging');
-    }
     // TODO: update Presence(s) based on this merge
     // TODO: can we clear out commits we don't need anymore?
   }
@@ -441,37 +431,26 @@ export class TrimergeClient<
 
   private addNewCommit(
     newDoc: LatestDoc,
-    editMetadata: EditMetadata,
+    metadata: EditMetadata,
     temp: boolean,
     base: CommitDoc<SavedDoc, EditMetadata> | undefined = this.lastSavedDoc,
     mergeRef?: string,
-    mergeBaseRef?: string,
   ): string {
-    // TODO(matt): decide what we want to do here with clientId.
-    // Is it users responsibility to attach that to the editMetadata? do
-    // wrap their editMetadata in a new object?
-    const { userId, clientId } = this;
     const delta = this.differ.diff(base?.doc, newDoc);
     const baseRef = base?.ref;
-    const ref = this.differ.computeRef(baseRef, mergeRef, delta, editMetadata);
+    const ref = this.differ.computeRef(baseRef, mergeRef, delta);
+    if (this.addNewCommitMetadata) {
+      metadata = this.addNewCommitMetadata(
+        metadata,
+        ref,
+        this.userId,
+        this.clientId,
+      );
+    }
     const commit: Commit<EditMetadata, Delta> =
       mergeRef !== undefined
-        ? {
-            userId,
-            ref,
-            baseRef,
-            mergeRef,
-            mergeBaseRef,
-            delta,
-            metadata: editMetadata,
-          }
-        : {
-            userId,
-            ref,
-            baseRef,
-            delta,
-            metadata: editMetadata,
-          };
+        ? { ref, baseRef, mergeRef, delta, metadata }
+        : { ref, baseRef, delta, metadata };
     this.addCommit(commit, temp ? 'temp' : 'local');
     return ref;
   }

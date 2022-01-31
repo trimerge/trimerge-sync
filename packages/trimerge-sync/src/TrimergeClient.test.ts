@@ -1,4 +1,4 @@
-import { TrimergeClient } from './TrimergeClient';
+import { AddNewCommitMetadataFn, TrimergeClient } from './TrimergeClient';
 import { timeout } from './lib/Timeout';
 import { OnStoreEventFn, SyncEvent } from './types';
 import { Differ } from './differ';
@@ -7,12 +7,14 @@ import { migrate } from './testLib/MergeUtils';
 const differ: Differ<any, any, any, any> = {
   migrate,
   diff: () => null,
-  merge: () => ({ doc: undefined, editMetadata: undefined }),
+  mergeAllBranches: () => null,
   patch: () => null,
   computeRef: () => 'hash',
 };
 
-function makeTrimergeClient(): {
+function makeTrimergeClient(
+  addNewCommitMetadata?: AddNewCommitMetadataFn<any>,
+): {
   client: TrimergeClient<any, any, any, any, any>;
   onEvent: OnStoreEventFn<any, any, any>;
 } {
@@ -29,6 +31,7 @@ function makeTrimergeClient(): {
       };
     },
     differ,
+    addNewCommitMetadata,
   );
   if (!onEvent) {
     throw new Error('could not get onEvent');
@@ -37,12 +40,48 @@ function makeTrimergeClient(): {
 }
 
 describe('TrimergeClient', () => {
+  it('adds metadata', async () => {
+    const { client } = makeTrimergeClient(
+      (metadata, commitRef, userId, clientId) => {
+        return {
+          message: metadata,
+          added: 'on client',
+          userId,
+          clientId,
+          commitRef,
+        };
+      },
+    );
+    client.updateDoc('hello', 'hi');
+    expect(client.getCommit('hash')).toMatchInlineSnapshot(`
+Object {
+  "baseRef": undefined,
+  "delta": null,
+  "metadata": Object {
+    "added": "on client",
+    "clientId": "",
+    "commitRef": "hash",
+    "message": "hi",
+    "userId": "",
+  },
+  "ref": "hash",
+}
+`);
+  });
+
   it('handles bad getCommit', async () => {
     const { client } = makeTrimergeClient();
     client.updateDoc('hello', 'hi');
     client.updateDoc('hello2', 'hi');
     client.updateDoc('hello3', 'hi');
-    await timeout(100);
+    expect(client.getCommit('hash')).toMatchInlineSnapshot(`
+Object {
+  "baseRef": undefined,
+  "delta": null,
+  "metadata": "hi",
+  "ref": "hash",
+}
+`);
     expect(() => client.getCommit('xxx')).toThrowError(`unknown ref "xxx"`);
   });
 
@@ -54,7 +93,6 @@ describe('TrimergeClient', () => {
           type: 'commits',
           commits: [
             {
-              userId: '',
               ref: 'a',
               baseRef: 'unknown',
               metadata: '',
@@ -73,7 +111,6 @@ describe('TrimergeClient', () => {
           type: 'commits',
           commits: [
             {
-              userId: '',
               ref: 'a',
               mergeRef: 'unknown',
               metadata: '',

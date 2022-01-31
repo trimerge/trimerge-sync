@@ -1,7 +1,12 @@
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { MemoryStore } from './testLib/MemoryStore';
-import { computeRef, diff, merge, patch } from './testLib/MergeUtils';
+import {
+  computeRef,
+  diff,
+  mergeAllBranches,
+  patch,
+} from './testLib/MergeUtils';
 import { getBasicGraph } from './testLib/GraphVisualizers';
 import { timeout } from './lib/Timeout';
 
@@ -19,11 +24,11 @@ function makeClientV1(
   store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1, DocV1, TestEditMetadata, Delta, TestPresence> {
   return new TrimergeClient(userId, 'test', store.getLocalStore, {
-    migrate: (doc, editMetadata) => ({ doc, editMetadata }),
+    migrate: (doc, metadata) => ({ doc, metadata }),
     diff,
     patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
     computeRef,
-    merge,
+    mergeAllBranches,
   });
 }
 function makeClientV2(
@@ -31,21 +36,21 @@ function makeClientV2(
   store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1 | DocV2, DocV2, TestEditMetadata, Delta, TestPresence> {
   return new TrimergeClient(userId, 'test', store.getLocalStore, {
-    migrate: (doc, editMetadata) => {
+    migrate: (doc, metadata) => {
       switch (doc.v) {
         case 1:
           return {
             doc: { v: 2, field: String(doc.field) },
-            editMetadata: 'migrated to v2',
+            metadata: 'migrated to v2',
           };
         case 2:
-          return { doc, editMetadata };
+          return { doc, metadata };
       }
     },
     diff,
     patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
     computeRef,
-    merge,
+    mergeAllBranches,
   });
 }
 
@@ -73,8 +78,8 @@ describe('TrimergeClient: Migration', () => {
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
 Array [
   Object {
-    "graph": "undefined -> Z-zhYWBg",
-    "step": "User a: initialize",
+    "graph": "undefined -> wkRuq_cr",
+    "step": "initialize",
     "value": Object {
       "field": 123,
       "v": 1,
@@ -92,8 +97,8 @@ Array [
     expect(basicGraph(store, client2)).toMatchInlineSnapshot(`
 Array [
   Object {
-    "graph": "undefined -> Z-zhYWBg",
-    "step": "User a: initialize",
+    "graph": "undefined -> wkRuq_cr",
+    "step": "initialize",
     "value": Object {
       "field": 123,
       "v": 1,
@@ -110,24 +115,24 @@ Array [
     expect(basicGraph(store, client2)).toMatchInlineSnapshot(`
 Array [
   Object {
-    "graph": "undefined -> Z-zhYWBg",
-    "step": "User a: initialize",
+    "graph": "undefined -> wkRuq_cr",
+    "step": "initialize",
     "value": Object {
       "field": 123,
       "v": 1,
     },
   },
   Object {
-    "graph": "Z-zhYWBg -> wjdpLZeO",
-    "step": "User a: migrated to v2",
+    "graph": "wkRuq_cr -> -gOdQHo5",
+    "step": "migrated to v2",
     "value": Object {
       "field": "123",
       "v": 2,
     },
   },
   Object {
-    "graph": "wjdpLZeO -> UzG9E1u9",
-    "step": "User a: update field",
+    "graph": "-gOdQHo5 -> nr3tJSIE",
+    "step": "update field",
     "value": Object {
       "field": "456",
       "v": 2,
@@ -164,16 +169,16 @@ Array [
     expect(basicGraph(store, client2)).toMatchInlineSnapshot(`
 Array [
   Object {
-    "graph": "undefined -> Z-zhYWBg",
-    "step": "User a: initialize",
+    "graph": "undefined -> wkRuq_cr",
+    "step": "initialize",
     "value": Object {
       "field": 123,
       "v": 1,
     },
   },
   Object {
-    "graph": "Z-zhYWBg -> 2gIafKP_",
-    "step": "User a: update field",
+    "graph": "wkRuq_cr -> _AA1V6TC",
+    "step": "update field",
     "value": Object {
       "field": 456,
       "v": 1,
