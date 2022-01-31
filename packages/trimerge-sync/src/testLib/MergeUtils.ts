@@ -41,10 +41,10 @@ export function diff<T>(left: T, right: T) {
 }
 
 // Simple no-op migration for unit tests
-export function migrate<Doc, EditMetadata>(
+export function migrate<Doc, CommitMetadata>(
   doc: Doc,
-  metadata: EditMetadata,
-): DocAndMetadata<Doc, EditMetadata> {
+  metadata: CommitMetadata,
+): DocAndMetadata<Doc, CommitMetadata> {
   return { doc, metadata };
 }
 

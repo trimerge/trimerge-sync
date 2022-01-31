@@ -13,12 +13,12 @@ import { timeout } from './lib/Timeout';
 
 jest.setTimeout(10_000);
 
-type TestEditMetadata = any;
+type TestMetadata = any;
 type TestSavedDoc = any;
 type TestDoc = any;
 type TestPresence = any;
 
-const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
+const differ: Differ<TestSavedDoc, TestDoc, TestMetadata, TestPresence> = {
   migrate,
   diff,
   patch,
@@ -27,19 +27,13 @@ const differ: Differ<TestSavedDoc, TestDoc, TestEditMetadata, TestPresence> = {
 };
 
 function newStore() {
-  return new MemoryStore<TestEditMetadata, Delta, TestPresence>();
+  return new MemoryStore<TestMetadata, Delta, TestPresence>();
 }
 
 function makeClient(
   userId: string,
-  store: MemoryStore<TestEditMetadata, Delta, TestPresence>,
-): TrimergeClient<
-  TestSavedDoc,
-  TestDoc,
-  TestEditMetadata,
-  Delta,
-  TestPresence
-> {
+  store: MemoryStore<TestMetadata, Delta, TestPresence>,
+): TrimergeClient<TestSavedDoc, TestDoc, TestMetadata, Delta, TestPresence> {
   return new TrimergeClient(userId, 'test', store.getLocalStore, differ);
 }
 

@@ -12,21 +12,21 @@ import {
 import { MemoryStore } from './MemoryStore';
 
 export class MemoryLocalStore<
-  EditMetadata,
+  CommitMetadata,
   Delta,
   Presence,
-> extends AbstractLocalStore<EditMetadata, Delta, Presence> {
+> extends AbstractLocalStore<CommitMetadata, Delta, Presence> {
   private _closed = false;
   public readonly channel: MemoryBroadcastChannel<
-    BroadcastEvent<EditMetadata, Delta, Presence>
+    BroadcastEvent<CommitMetadata, Delta, Presence>
   >;
 
   constructor(
-    private readonly store: MemoryStore<EditMetadata, Delta, Presence>,
+    private readonly store: MemoryStore<CommitMetadata, Delta, Presence>,
     userId: string,
     clientId: string,
-    onEvent: OnStoreEventFn<EditMetadata, Delta, Presence>,
-    getRemote?: GetRemoteFn<EditMetadata, Delta, Presence>,
+    onEvent: OnStoreEventFn<CommitMetadata, Delta, Presence>,
+    getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>,
   ) {
     super(userId, clientId, onEvent, getRemote, {
       initialDelayMs: 0,
@@ -44,9 +44,9 @@ export class MemoryLocalStore<
   }
 
   protected addCommits(
-    commits: Commit<EditMetadata, Delta>[],
+    commits: Commit<CommitMetadata, Delta>[],
     remoteSyncId?: string,
-  ): Promise<AckCommitsEvent<EditMetadata>> {
+  ): Promise<AckCommitsEvent<CommitMetadata>> {
     return this.store.addCommits(commits, remoteSyncId);
   }
 
@@ -58,7 +58,7 @@ export class MemoryLocalStore<
   }
 
   protected async broadcastLocal(
-    event: BroadcastEvent<EditMetadata, Delta, Presence>,
+    event: BroadcastEvent<CommitMetadata, Delta, Presence>,
   ): Promise<void> {
     if (this._closed) {
       return;
@@ -67,13 +67,13 @@ export class MemoryLocalStore<
   }
 
   protected async *getLocalCommits(): AsyncIterableIterator<
-    CommitsEvent<EditMetadata, Delta, Presence>
+    CommitsEvent<CommitMetadata, Delta, Presence>
   > {
     yield await this.store.getLocalCommitsEvent();
   }
 
   protected getCommitsForRemote(): AsyncIterableIterator<
-    CommitsEvent<EditMetadata, Delta, Presence>
+    CommitsEvent<CommitMetadata, Delta, Presence>
   > {
     return this.store.getCommitsForRemote();
   }
