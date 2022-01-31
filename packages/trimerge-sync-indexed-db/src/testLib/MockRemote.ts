@@ -20,6 +20,7 @@ class MockRemote implements Remote<any, any, any> {
     this.onEvent({ type: 'ready' });
   }
   send(event: SyncEvent<any, any, any>): void {
+    // broadcast to other clients
     switch (event.type) {
       case 'commits':
         const { newCommits, invalidRefs } = validateCommitOrder<any, any>(

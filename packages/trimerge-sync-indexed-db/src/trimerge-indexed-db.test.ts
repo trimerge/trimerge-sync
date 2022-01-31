@@ -723,27 +723,29 @@ describe('createIndexedDbBackendFactory', () => {
   });
 
   it('updates metadata from remote with two users', async () => {
-    const mockRemote = getMockRemoteWithMap(new Map(), (commit) => ({
+    const getMockRemoteFn = getMockRemoteWithMap(new Map(), (commit) => ({
       fromRemote: true,
       ref: commit.ref,
     }));
+
+    // TODO: this remote doesn't broadcast anything (commits, etc) back to clients
     const client1 = makeTestClient(
       'test',
       '1',
       'test-doc-remoteA',
       'test-doc-store',
-      mockRemote,
+      getMockRemoteFn,
     );
     const client2 = makeTestClient(
       'test',
       '2',
       'test-doc-remoteB',
       'test-doc-store',
-      mockRemote,
+      getMockRemoteFn,
     );
 
     // In this test, both users make the exact same edit, so we want to
-    // settled on the first one that makes it to the remote
+    // settle on the first one that makes it to the remote
     client1.updateDoc('hello', 'client 1');
     client2.updateDoc('hello', 'client 2');
 
@@ -845,7 +847,7 @@ describe('createIndexedDbBackendFactory', () => {
     );
 
     // In this test, both users make the exact same edit, so we want to
-    // settled on the first one that makes it to the remote
+    // settle on the first one that makes it to the remote
     client1.updateDoc('hello', 'client 1');
     client2.updateDoc('hello', 'client 2');
 
