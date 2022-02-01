@@ -47,8 +47,9 @@ export type CommitInfo<CommitMetadata> = {
   ref: string;
   baseRef?: string;
   mergeRef?: string;
-  metadata: CommitMetadata;
-};
+} & (CommitMetadata extends void
+  ? { metadata?: CommitMetadata }
+  : { metadata: CommitMetadata });
 
 export type Commit<CommitMetadata = unknown, Delta = unknown> =
   | MergeCommit<CommitMetadata, Delta>

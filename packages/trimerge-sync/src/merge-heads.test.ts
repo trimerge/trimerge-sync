@@ -1,4 +1,9 @@
-import { mergeHeads, MergeCommitsFn, SortRefsFn } from './merge-heads';
+import {
+  mergeHeads,
+  MergeCommitsFn,
+  SortRefsFn,
+  GetCommitFn,
+} from './merge-heads';
 import { CommitInfo } from './types';
 
 const basicSort: SortRefsFn = (a, b) => (a < b ? -1 : 1);
@@ -6,8 +11,10 @@ const basicMerge: MergeCommitsFn = (baseRef, leftRef, rightRef) => {
   return `(${baseRef ?? '-'}:${leftRef}+${rightRef})`;
 };
 
-function makeGetCommitFn(commits: CommitInfo[]) {
-  const map = new Map<string, CommitInfo>();
+function makeGetCommitFn(
+  commits: CommitInfo<void>[],
+): GetCommitFn<void, CommitInfo<void>> {
+  const map = new Map<string, CommitInfo<void>>();
   for (const commit of commits) {
     map.set(commit.ref, commit);
   }

@@ -15,7 +15,10 @@ export type MergeCommitsFn = (
 
 export type SortRefsFn = (refA: string, refB: string) => number;
 
-export type GetCommitFn<N extends CommitInfo<unknown>> = (ref: string) => N;
+export type GetCommitFn<
+  CommitMetadata,
+  N extends CommitInfo<CommitMetadata>,
+> = (ref: string) => N;
 
 /**
  * This function walks up the tree starting at the commits in a breadth-first manner, merging commits as common ancestors are found.
@@ -30,7 +33,7 @@ export function mergeHeads<
 >(
   headRefs: string[],
   sortRefs: SortRefsFn,
-  getCommit: GetCommitFn<N>,
+  getCommit: GetCommitFn<CommitMetadata, N>,
   merge: MergeCommitsFn,
 ): string | undefined {
   headRefs.sort(sortRefs);
