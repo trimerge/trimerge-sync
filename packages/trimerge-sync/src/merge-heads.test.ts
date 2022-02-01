@@ -12,11 +12,11 @@ const basicMerge: MergeCommitsFn = (baseRef, leftRef, rightRef) => {
 };
 
 function makeGetCommitFn(
-  commits: CommitInfo<void>[],
+  commits: Omit<CommitInfo<void>, 'metadata'>[],
 ): GetCommitFn<void, CommitInfo<void>> {
   const map = new Map<string, CommitInfo<void>>();
   for (const commit of commits) {
-    map.set(commit.ref, commit);
+    map.set(commit.ref, commit as CommitInfo<void>);
   }
   return (ref: string) => {
     const commit = map.get(ref);
