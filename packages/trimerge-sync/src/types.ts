@@ -43,10 +43,11 @@ export function isMergeCommit<CommitMetadata = unknown, Delta = unknown>(
   return (commit as MergeCommit).mergeRef !== undefined;
 }
 
-export type CommitInfo = {
+export type CommitInfo<CommitMetadata> = {
   ref: string;
   baseRef?: string;
   mergeRef?: string;
+  metadata: CommitMetadata;
 };
 
 export type Commit<CommitMetadata = unknown, Delta = unknown> =

@@ -34,7 +34,7 @@ export type MigrateDocFn<
 ) => DocAndMetadata<LatestDoc, CommitMetadata>;
 
 export type MergeHelpers<LatestDoc, CommitMetadata> = {
-  getCommitInfo(ref: string): CommitInfo;
+  getCommitInfo(ref: string): CommitInfo<CommitMetadata>;
   computeLatestDoc(ref: string): CommitDoc<LatestDoc, CommitMetadata>;
   addMerge(
     doc: LatestDoc,

@@ -15,7 +15,7 @@ export type MergeCommitsFn = (
 
 export type SortRefsFn = (refA: string, refB: string) => number;
 
-export type GetCommitFn<N extends CommitInfo> = (ref: string) => N;
+export type GetCommitFn<N extends CommitInfo<unknown>> = (ref: string) => N;
 
 /**
  * This function walks up the tree starting at the commits in a breadth-first manner, merging commits as common ancestors are found.
@@ -24,7 +24,10 @@ export type GetCommitFn<N extends CommitInfo> = (ref: string) => N;
  *
  * If there are completely un-connected commits, these will be merged with base === undefined
  */
-export function mergeHeads<N extends CommitInfo>(
+export function mergeHeads<
+  CommitMetadata,
+  N extends CommitInfo<CommitMetadata>,
+>(
   headRefs: string[],
   sortRefs: SortRefsFn,
   getCommit: GetCommitFn<N>,

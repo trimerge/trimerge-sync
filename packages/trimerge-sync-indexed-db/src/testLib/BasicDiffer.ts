@@ -1,4 +1,5 @@
 import type { Differ, MergeDocFn } from 'trimerge-sync';
+import { MergeAllBranchesFn, mergeAllHeads } from 'trimerge-sync';
 
 // Basic trimerge function that merges values, strings, and objects
 import {
@@ -10,7 +11,6 @@ import {
 import { create, Delta } from 'jsondiffpatch';
 import { produce } from 'immer';
 import { computeRef as computeShaRef } from 'trimerge-sync-hash';
-import { makeMergeAllBranchesFn, MergeAllBranchesFn } from 'trimerge-sync';
 
 const trimergeObjects = combineMergers(
   trimergeEquality,
@@ -24,8 +24,10 @@ export const merge: MergeDocFn<any, any> = (base, left, right) => ({
     message: `merge`,
   },
 });
-export const mergeAllBranches: MergeAllBranchesFn<any, any> =
-  makeMergeAllBranchesFn((a, b) => (a < b ? -1 : 1), merge);
+export const mergeAllBranches: MergeAllBranchesFn<any, any> = (
+  branchHeadRefs,
+  helpers,
+) => mergeAllHeads(branchHeadRefs, helpers, (a, b) => (a < b ? -1 : 1), merge);
 
 export const jdp = create({ textDiff: { minLength: 20 } });
 
