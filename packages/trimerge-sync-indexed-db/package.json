@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-indexed-db",
-  "version": "0.14.0",
+  "version": "v0.15.0-test.4",
   "description": "indexed-db backend for trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
@@ -19,17 +19,33 @@
     "type": "git",
     "url": "git+https://github.com/marcello3d/trimerge.git"
   },
-  "keywords": ["json", "three-way-merge", "diff", "diff3", "merge"],
+  "keywords": [
+    "json",
+    "three-way-merge",
+    "diff",
+    "diff3",
+    "merge"
+  ],
   "author": {
     "name": "Marcello Bastéa-Forte",
     "email": "marcello@cellosoft.com"
   },
   "license": "Zlib",
-  "bugs": { "url": "https://github.com/marcello3d/trimerge-sync/issues" },
+  "bugs": {
+    "url": "https://github.com/marcello3d/trimerge-sync/issues"
+  },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
-  "dependencies": { "broadcast-channel": "^4.2.0", "idb": "6.1.5" },
-  "peerDependencies": { "trimerge-sync": "0.14.0" },
-  "files": ["dist/**/*", "src/**/*"],
+  "dependencies": {
+    "broadcast-channel": "^4.2.0",
+    "idb": "6.1.5"
+  },
+  "peerDependencies": {
+    "trimerge-sync": "v0.15.0-test.4"
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "21.0.0",
     "@rollup/plugin-node-resolve": "13.0.6",
@@ -40,13 +56,19 @@
     "rollup": "2.58.0",
     "rollup-plugin-typescript2": "0.30.0",
     "trimerge": "^1.3.0-alpha.15",
-    "trimerge-sync": "0.14.0",
-    "trimerge-sync-hash": "0.14.0",
+    "trimerge-sync": "v0.15.0-test.4",
+    "trimerge-sync-hash": "v0.15.0-test.4",
     "typescript": "4.4.4"
   },
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "globals": { "ts-jest": { "diagnostics": { "warnOnly": true } } }
+    "globals": {
+      "ts-jest": {
+        "diagnostics": {
+          "warnOnly": true
+        }
+      }
+    }
   }
 }
