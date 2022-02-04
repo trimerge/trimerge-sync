@@ -318,7 +318,8 @@ class IndexedDbBackend<
               return;
             }
 
-            if (this.addStoreMetadata) {
+            // we should only be attaching store metadata to local commits.
+            if (this.addStoreMetadata && !remoteSyncId) {
               const localStoreId = await this.localStoreId;
               commit.metadata = this.addStoreMetadata(
                 commit,

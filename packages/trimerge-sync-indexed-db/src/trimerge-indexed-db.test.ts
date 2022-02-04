@@ -1,6 +1,11 @@
 import 'fake-indexeddb/auto';
 
-import type { Commit, GetRemoteFn } from 'trimerge-sync';
+import type {
+  Commit,
+  GetRemoteFn,
+  OnRemoteEventFn,
+  RemoteSyncInfo,
+} from 'trimerge-sync';
 import { TrimergeClient } from 'trimerge-sync';
 import {
   AddStoreMetadataFn,
@@ -299,6 +304,83 @@ describe('createIndexedDbBackendFactory', () => {
               ],
               "remotes": Array [
                 Object {
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
+  });
+
+  it('does not add metadata via addStoreMetadata for remote commits', async () => {
+    const docId = 'test-doc-collab';
+
+    const addStoreMetadata: AddStoreMetadataFn<any> = (
+      commit,
+      localStoreId,
+      commitIndex,
+    ) => {
+      return {
+        ...commit.metadata,
+        clientStore: { localStoreId, commitIndex },
+        hello: 'world',
+      };
+    };
+
+    let onEvent: OnRemoteEventFn<any, any, any> | undefined;
+    const client1 = makeTestClient(
+      'test',
+      '1',
+      docId,
+      'test-doc-store',
+      (
+        userId: string,
+        remoteSyncInfo: RemoteSyncInfo,
+        onRemoteEvent: OnRemoteEventFn<any, any, any>,
+      ) => {
+        onEvent = onRemoteEvent;
+        return getMockRemote(userId, remoteSyncInfo, onRemoteEvent);
+      },
+      addStoreMetadata,
+    );
+
+    // wait for remote to be created;
+    await timeout(100);
+
+    onEvent!({
+      type: 'commits',
+      commits: [
+        {
+          ref: 'blarg',
+          metadata: {
+            hello: 'there',
+          },
+        },
+      ],
+      syncId: '9',
+    });
+
+    await client1.shutdown();
+
+    await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
+            Object {
+              "commits": Array [
+                Object {
+                  "metadata": Object {
+                    "hello": "there",
+                  },
+                  "ref": "blarg",
+                  "remoteSyncId": "9",
+                  "syncId": 1,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "blarg",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "9",
                   "localStoreId": "test-doc-store",
                 },
               ],
