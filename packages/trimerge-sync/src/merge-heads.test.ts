@@ -223,4 +223,18 @@ describe('mergeHeads()', () => {
       '(root:(bar:baz+bar1)+foo)',
     );
   });
+
+  it('bad sort is still deterministic', () => {
+    const getCommit = makeGetCommitFn([
+      { ref: 'root' },
+      { ref: 'foo', baseRef: 'root' },
+      { ref: 'bar', baseRef: 'root' },
+    ]);
+    const mergeFn = jest.fn(basicMerge);
+    const heads = ['foo', 'bar'];
+    expect(mergeHeads(heads, () => 0, getCommit, mergeFn)).toEqual(
+      '(root:bar+foo)',
+    );
+    expect(mergeFn.mock.calls).toEqual([['root', 'bar', 'foo', 1]]);
+  });
 });
