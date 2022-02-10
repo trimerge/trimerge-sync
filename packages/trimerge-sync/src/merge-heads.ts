@@ -31,7 +31,7 @@ export function mergeHeads<N extends CommitInfo>(
   getCommit: GetCommitFn<N>,
   merge: MergeCommitsFn,
 ): string | undefined {
-  function sortFn(a: Visitor, b: Visitor): number {
+  function sortVisitors(a: Visitor, b: Visitor): number {
     const result = sortRefs(a.ref, b.ref);
     if (!result) {
       return a.ref > b.ref ? 1 : -1;
@@ -45,11 +45,11 @@ export function mergeHeads<N extends CommitInfo>(
       current: new Set([ref]),
       seenRefs: new Set([ref]),
     }))
-    .sort(sortFn);
+    .sort(sortVisitors);
   let depth = 0;
 
   function mergeVisitors(i: number, j: number, baseRef?: string) {
-    const [a, b] = [visitors[i], visitors[j]].sort(sortFn);
+    const [a, b] = [visitors[i], visitors[j]].sort(sortVisitors);
     const aRef = a.ref;
     const bRef = b.ref;
     if (baseRef === aRef || baseRef === bRef) {
@@ -60,7 +60,7 @@ export function mergeHeads<N extends CommitInfo>(
       current: new Set([...a.current, ...b.current]),
       seenRefs: new Set([...a.seenRefs, ...b.seenRefs]),
     };
-    visitors.splice(j, 1).sort(sortFn);
+    visitors.splice(j, 1).sort(sortVisitors);
   }
 
   // Use inner function because we want to be able to break out of 3 levels of for loop

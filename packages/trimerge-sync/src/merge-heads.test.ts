@@ -4,7 +4,7 @@ import { CommitInfo } from './types';
 
 const commitMap: Map<string, CommitInfo> = new Map();
 const sortMap: Map<string, number> = new Map();
-const basicSort: SortRefsFn = (a, b) => {
+const insertSequenceSort: SortRefsFn = (a, b) => {
   const aIdx = sortMap.get(a);
   if (aIdx === undefined) {
     throw new Error('unknown ref ' + a);
@@ -15,7 +15,7 @@ const basicSort: SortRefsFn = (a, b) => {
   }
   return aIdx - bIdx;
 };
-const reverseSort: SortRefsFn = (a, b) => (-1 * basicSort(a, b));
+const reverseSort: SortRefsFn = (a, b) => (-1 * insertSequenceSort(a, b));
 const basicMerge: MergeCommitsFn = (baseRef, leftRef, rightRef) => {
   const ref = `(${baseRef ?? '-'}:${leftRef}+${rightRef})`
   sortMap.set(ref, sortMap.size);
@@ -52,7 +52,7 @@ describe('mergeHeads()', () => {
     ]);
     const mergeFn = jest.fn(basicMerge);
     const heads = ['foo3', 'bar3'];
-    expect(mergeHeads(heads, basicSort, getCommit, mergeFn)).toEqual(
+    expect(mergeHeads(heads, insertSequenceSort, getCommit, mergeFn)).toEqual(
       '(-:foo3+bar3)',
     );
     expect(mergeFn.mock.calls).toEqual([[undefined, 'foo3', 'bar3', 4]]);
@@ -69,7 +69,7 @@ describe('mergeHeads()', () => {
     ]);
     const mergeFn = jest.fn(basicMerge);
     const heads = ['foo', 'bar', 'baz'];
-    expect(mergeHeads(heads, basicSort, getCommit, mergeFn),).toEqual(
+    expect(mergeHeads(heads, insertSequenceSort, getCommit, mergeFn),).toEqual(
       '(-:baz+(-:foo+bar))',
     );
     expect(mergeFn.mock.calls).toEqual([
@@ -90,7 +90,7 @@ describe('mergeHeads()', () => {
     ]);
     const mergeFn = jest.fn(basicMerge);
     const heads = ['fooA', 'fooB', 'foo'];
-    expect(mergeHeads(heads, basicSort, getCommit, mergeFn)).toEqual(
+    expect(mergeHeads(heads, insertSequenceSort, getCommit, mergeFn)).toEqual(
       '(-:foo+(bar:fooA+fooB))',
     );
     expect(mergeFn.mock.calls).toEqual([
@@ -110,7 +110,7 @@ describe('mergeHeads()', () => {
     ]);
     const mergeFn = jest.fn(basicMerge);
     const heads = ['foo', 'bar'];
-    expect(mergeHeads(heads, basicSort, getCommit, mergeFn)).toEqual(
+    expect(mergeHeads(heads, insertSequenceSort, getCommit, mergeFn)).toEqual(
       '(root:foo+bar)',
     );
     expect(mergeFn.mock.calls).toEqual([['root', 'foo', 'bar', 1]]);
@@ -126,7 +126,7 @@ describe('mergeHeads()', () => {
     ]);
     const mergeFn = jest.fn(basicMerge);
     expect(() =>
-      mergeHeads(['root', 'foo'], basicSort, getCommit, mergeFn),
+      mergeHeads(['root', 'foo'], insertSequenceSort, getCommit, mergeFn),
     ).toThrowErrorMatchingInlineSnapshot(
       `"unexpected merge with base === left/right"`,
     );
@@ -138,7 +138,7 @@ describe('mergeHeads()', () => {
       { ref: 'foo', baseRef: 'root' },
     ]);
     const mergeFn = jest.fn(basicMerge);
-    expect(mergeHeads([], basicSort, getCommit, mergeFn)).toBeUndefined();
+    expect(mergeHeads([], insertSequenceSort, getCommit, mergeFn)).toBeUndefined();
   });
 
   it('find common parent on v split', () => {
@@ -153,7 +153,7 @@ describe('mergeHeads()', () => {
     ]);
     const mergeFn = jest.fn(basicMerge);
     const heads = ['foo2', 'bar2'];
-    expect(mergeHeads(heads, basicSort, getCommit, mergeFn)).toEqual(
+    expect(mergeHeads(heads, insertSequenceSort, getCommit, mergeFn)).toEqual(
       '(root:foo2+bar2)',
     );
     expect(mergeFn.mock.calls).toEqual([['root', 'foo2', 'bar2', 3]]);
@@ -169,7 +169,7 @@ describe('mergeHeads()', () => {
     const getCommit = makeGetCommitFn([root, foo, bar, baz]);
     const mergeFn = jest.fn(basicMerge);
     const heads = ['foo', 'bar', 'baz'];
-    expect(mergeHeads(heads, basicSort, getCommit, mergeFn)).toEqual(
+    expect(mergeHeads(heads, insertSequenceSort, getCommit, mergeFn)).toEqual(
       '(root:baz+(root:foo+bar))',
     );
     expect(mergeFn.mock.calls).toEqual([
@@ -190,7 +190,7 @@ describe('mergeHeads()', () => {
     ]);
     const mergeFn = jest.fn(basicMerge);
     const heads = ['foo', 'bar', 'baz1'];
-    expect(mergeHeads(heads, basicSort, getCommit, mergeFn)).toEqual(
+    expect(mergeHeads(heads, insertSequenceSort, getCommit, mergeFn)).toEqual(
       '(root:baz1+(root:foo+bar))',
     );
     expect(mergeFn.mock.calls).toEqual([
@@ -212,7 +212,7 @@ describe('mergeHeads()', () => {
     ]);
     const mergeFn = jest.fn(basicMerge);
     const heads = ['foo', 'bar1', 'baz'];
-    expect(mergeHeads(heads, basicSort, getCommit, mergeFn)).toEqual(
+    expect(mergeHeads(heads, insertSequenceSort, getCommit, mergeFn)).toEqual(
       '(root:foo+(bar:bar1+baz))',
     );
     expect(mergeFn.mock.calls).toEqual([
