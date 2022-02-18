@@ -190,8 +190,8 @@ export class IndexedDbBackend<
     // it's conceivable that a commit could be "acked" twice
     // and we want to allow the metadata to be updated in that case.
     if (commit && remoteSyncId) {
-      // Unclear if this is the right thing to do here.
-      // This could probably be replaced with a remote acked bit.
+      // Unclear if overwriting the remoteSyncId is the right thing to do here.
+      // But currently, we're just using this as a synced bit so it's probably fine either way.
       commit.remoteSyncId = remoteSyncId;
       if (metadata !== undefined) {
         commit.metadata = metadata;
