@@ -101,7 +101,7 @@ export type AddStoreMetadataFn<CommitMetadata> = (
   commitIndex: number,
 ) => CommitMetadata;
 
-class IndexedDbBackend<
+export class IndexedDbBackend<
   CommitMetadata,
   Delta,
   Presence,
@@ -186,7 +186,12 @@ class IndexedDbBackend<
     metadata: CommitMetadata | undefined,
     remoteSyncId: string | undefined,
   ): commit is TrimergeSyncDbCommit<CommitMetadata, Delta> {
-    if (commit && !commit.remoteSyncId && remoteSyncId) {
+    // In the world where servers decide when to send merges,
+    // it's conceivable that a commit could be "acked" twice
+    // and we want to allow the metadata to be updated in that case.
+    if (commit && remoteSyncId) {
+      // Unclear if overwriting the remoteSyncId is the right thing to do here.
+      // But currently, we're just using this as a synced bit so it's probably fine either way.
       commit.remoteSyncId = remoteSyncId;
       if (metadata !== undefined) {
         commit.metadata = metadata;

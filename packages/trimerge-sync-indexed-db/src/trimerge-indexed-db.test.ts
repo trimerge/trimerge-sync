@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto';
 import type {
   Commit,
   GetRemoteFn,
+  LocalStore,
   OnRemoteEventFn,
   RemoteSyncInfo,
 } from 'trimerge-sync';
@@ -11,6 +12,7 @@ import {
   AddStoreMetadataFn,
   createIndexedDbBackendFactory,
   deleteDocDatabase,
+  IndexedDbBackend,
   resetDocRemoteSyncData,
 } from './trimerge-indexed-db';
 import { differ } from './testLib/BasicDiffer';
@@ -44,6 +46,52 @@ function makeTestClient(
     }),
     differ,
   );
+}
+
+async function makeTestClientWithRemoteOnEventHandle(
+  userId: string,
+  clientId: string,
+  docId: string,
+  storeId: string,
+  addStoreMetadata?: AddStoreMetadataFn<any>,
+): Promise<{
+  client: TrimergeClient<any, any, any, any, any>;
+  store: LocalStore<any, any, any>;
+  onEvent: OnRemoteEventFn<any, any, any>;
+}> {
+  let client: TrimergeClient<any, any, any, any, any> | undefined;
+  let store: LocalStore<any, any, any> | undefined;
+  let onRemoteEvent: OnRemoteEventFn<any, any, any> | undefined;
+
+  await new Promise<void>((resolve) => {
+    client = new TrimergeClient(
+      userId,
+      clientId,
+      (userId, clientId, onEvent) => {
+        store = new IndexedDbBackend(docId, userId, clientId, onEvent, {
+          localIdGenerator: () => storeId,
+          getRemote: (userId, remoteInfo, onEventParam) => {
+            onRemoteEvent = onEventParam;
+            const mockRemote = getMockRemote(userId, remoteInfo, onEventParam);
+            resolve();
+            return mockRemote;
+          },
+          networkSettings: {
+            initialDelayMs: 0,
+            reconnectBackoffMultiplier: 1,
+            maxReconnectDelayMs: 0,
+            electionTimeoutMs: 0,
+            heartbeatIntervalMs: 10,
+            heartbeatTimeoutMs: 50,
+          },
+          addStoreMetadata,
+        });
+        return store;
+      },
+      differ,
+    );
+  });
+  return { client: client!, store: store!, onEvent: onRemoteEvent! };
 }
 
 beforeEach(() => {
@@ -797,6 +845,64 @@ describe('createIndexedDbBackendFactory', () => {
               "remotes": Array [
                 Object {
                   "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
+  });
+
+  it('updates metadata from remote twice', async () => {
+    const docId = 'test-doc-update-metadata-twice';
+    const { client, store, onEvent } =
+      await makeTestClientWithRemoteOnEventHandle(
+        'test',
+        '1',
+        docId,
+        'test-doc-store',
+      );
+
+    store.update([{ ref: 'blah', metadata: { foo: 'bar' } }], undefined);
+
+    onEvent({
+      type: 'ack',
+      acks: [{ ref: 'blah', metadata: { bar: 'baz' } }],
+      syncId: 'blah',
+    });
+
+    // Wait for write
+    await timeout(100);
+
+    onEvent({
+      type: 'ack',
+      acks: [{ ref: 'blah', metadata: { qux: 'quux' } }],
+      syncId: 'blah2',
+    });
+
+    await timeout(100);
+
+    await client.shutdown();
+
+    await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
+            Object {
+              "commits": Array [
+                Object {
+                  "metadata": Object {
+                    "qux": "quux",
+                  },
+                  "ref": "blah",
+                  "remoteSyncId": "blah2",
+                  "syncId": 1,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "blah",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "blah2",
                   "localStoreId": "test-doc-store",
                 },
               ],
