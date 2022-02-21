@@ -1,16 +1,16 @@
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from '../TrimergeClient';
 import { Differ } from '../differ';
-import { MemoryStore } from './MemoryStore';
+import { MemoryStore } from '../testLib/MemoryStore';
 import {
   computeRef,
   diff,
   mergeAllBranches,
   migrate,
   patch,
-} from './MergeUtils';
+} from '../testLib/MergeUtils';
 import { getBasicGraph, getDotGraph } from './GraphVisualizers';
-import { timeout } from '../lib/Timeout';
+import { timeout } from './Timeout';
 
 type TestMetadata = string;
 type TestSavedDoc = any;
