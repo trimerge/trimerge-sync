@@ -7,7 +7,7 @@ import {
   mergeAllBranches,
   patch,
 } from './testLib/MergeUtils';
-import { getBasicGraph } from './testLib/GraphVisualizers';
+import { getBasicGraph } from './lib/GraphVisualizers';
 import { timeout } from './lib/Timeout';
 
 type TestMetadata = string;
