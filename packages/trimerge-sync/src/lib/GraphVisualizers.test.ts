@@ -108,8 +108,7 @@ Array [
 "digraph {
 \\"X1xFORPw\\" [shape=ellipse, label=\\"initialize\\"]
 \\"OscPQkG7\\" [shape=ellipse, label=\\"initialize\\"]
-\\"F7kQ39Rs\\" [shape=ellipse, label=\\"initialize\\"]
-\\"OscPQkG7\\" -> \\"F7kQ39Rs\\" [label=\\"{\\"world\\":\\"3\\"}\\"]
+\\"OscPQkG7:F7kQ39Rs\\" [shape=ellipse, label=\\"2 commits\\"]
 }"
 `);
   });

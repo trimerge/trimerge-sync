@@ -42,7 +42,7 @@ interface Node {
   get nodeType(): NodeType;
 }
 
-class CommitNode<CommitMetadata> implements Node {
+class CommitNode<CommitMetadata = unknown> implements Node {
   constructor(
     private readonly commit: Commit<CommitMetadata>,
     private readonly _getEditLabel: (
@@ -76,21 +76,137 @@ class CommitNode<CommitMetadata> implements Node {
   }
 }
 
-export function getDotGraphFromNodes(nodes: Iterable<Node>): string {
+// if there's just a single node in a list just return the node,
+function getNodeFromNodeArray(nodes: CommitNode[]): Node;
+function getNodeFromNodeArray(nodes: undefined): undefined;
+function getNodeFromNodeArray(
+  nodes: CommitNode[] | undefined,
+): Node | undefined {
+  if (!nodes) {
+    return undefined;
+  }
+
+  if (nodes.length === 1) {
+    return nodes[0];
+  }
+
+  return new MetaNode(nodes);
+}
+
+function updateNodeMap(nodeMap: Map<string, Node>, node: Node): void {
+  if (node instanceof MetaNode) {
+    for (const child of node.children) {
+      nodeMap.set(child.id, child);
+    }
+  } else {
+    nodeMap.set(node.id, node);
+  }
+}
+
+function splitMetaNode(
+  node: MetaNode,
+  ref: string,
+  nodeMap: Map<string, Node>,
+) {
+  let before: CommitNode[] | undefined;
+  let splitNode: CommitNode<unknown> | undefined;
+  let after: CommitNode[] | undefined;
+
+  for (const child of node.children) {
+    if (child.id === ref) {
+      splitNode = child;
+    } else {
+      if (!splitNode) {
+        if (!before) {
+          before = [];
+        }
+        before.push(child);
+      } else {
+        if (!after) {
+          after = [];
+        }
+        after.push(child);
+      }
+    }
+  }
+
+  if (before) {
+    updateNodeMap(nodeMap, getNodeFromNodeArray(before));
+  }
+
+  if (splitNode) {
+    updateNodeMap(nodeMap, splitNode);
+  }
+
+  if (after) {
+    updateNodeMap(nodeMap, getNodeFromNodeArray(after));
+  }
+}
+
+function isLastChild(node: MetaNode, ref: string): boolean {
+  // TODO: maintain tail of meta node?
+  return (
+    node.children.findIndex((child) => child.id === ref) ===
+    node.children.length - 1
+  );
+}
+
+class MetaNode implements Node {
+  // potentially this should be nodes
+  constructor(readonly children: CommitNode<unknown>[] = []) {
+    if (children.length < 2) {
+      throw new Error('MetaNode must have at least 2 children');
+    }
+  }
+
+  get id(): string {
+    return `${this.children[0].id}:${
+      this.children[this.children.length - 1].id
+    }`;
+  }
+  get label(): string {
+    return `${this.children.length} commits`;
+  }
+
+  get editLabel(): string {
+    return '';
+  }
+  get baseRef(): string | undefined {
+    return this.children[0].baseRef;
+  }
+  get mergeRef(): string | undefined {
+    // there should never be a merge commit in the meta node
+    return undefined;
+  }
+
+  get nodeType(): NodeType {
+    return 'meta';
+  }
+}
+
+export function getDotGraphFromNodes(nodes: Map<string, Node>): string {
   const lines: string[] = ['digraph {'];
-  for (const node of nodes) {
+  for (const node of nodes.values()) {
     lines.push(
       `"${node.id}" [shape=${
         node.nodeType === 'merge' ? 'rectangle' : 'ellipse'
       }, label="${node.label}"]`,
     );
     if (node.baseRef) {
+      const baseNode = nodes.get(node.baseRef);
+      if (!baseNode) {
+        throw new Error(`baseRef ${node.baseRef} not found`);
+      }
       if (node.mergeRef) {
-        lines.push(`"${node.baseRef}" -> "${node.id}" [label=left]`);
-        lines.push(`"${node.mergeRef}" -> "${node.id}" [label=right]`);
+        const mergeNode = nodes.get(node.mergeRef);
+        if (!mergeNode) {
+          throw new Error(`mergeRef ${node.mergeRef} not found`);
+        }
+        lines.push(`"${node.baseRef}" -> "${baseNode.id}" [label=left]`);
+        lines.push(`"${node.mergeRef}" -> "${mergeNode.id}" [label=right]`);
       } else {
         lines.push(
-          `"${node.baseRef}" -> "${node.id}" [label="${node.editLabel}"]`,
+          `"${node.baseRef}" -> "${baseNode.id}" [label="${node.editLabel}"]`,
         );
       }
     }
@@ -104,9 +220,37 @@ export function getDotGraph<CommitMetadata>(
   getEditLabel: (commit: Commit<CommitMetadata, any>) => string,
   getValue: (commit: Commit<CommitMetadata, any>) => string,
 ): string {
-  const nodes: Node[] = [];
+  const nodeMap = new Map<string, Node>();
   for (const commit of commits) {
-    nodes.push(new CommitNode<CommitMetadata>(commit, getEditLabel, getValue));
+    let node: Node = new CommitNode<CommitMetadata>(
+      commit,
+      getEditLabel,
+      getValue,
+    );
+
+    if (isMergeCommit(commit)) {
+      continue;
+    }
+
+    if (commit.baseRef) {
+      const baseNode = nodeMap.get(commit.baseRef);
+      if (!baseNode) {
+        throw new Error('commits should be partially ordered');
+      }
+      switch (baseNode.nodeType) {
+        case 'edit':
+          node = new MetaNode([baseNode as CommitNode, node as CommitNode]);
+          break;
+        case 'meta':
+          if (isLastChild(baseNode as MetaNode, commit.baseRef)) {
+            (baseNode as MetaNode).children.push(node as CommitNode);
+          } else {
+            splitMetaNode(baseNode as MetaNode, commit.baseRef, nodeMap);
+          }
+      }
+    }
+
+    nodeMap.set(commit.ref, node);
   }
-  return getDotGraphFromNodes(nodes);
+  return getDotGraphFromNodes(nodeMap);
 }
