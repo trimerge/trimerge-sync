@@ -447,6 +447,10 @@ export class TrimergeClient<
         this.clientId,
       );
     }
+
+    // Use the client-provided doc to maintain structural sharing
+    // for computing future diffs.
+    this.docs.set(ref, { doc: newDoc, ref, metadata });
     const commit: Commit<CommitMetadata, Delta> =
       mergeRef !== undefined
         ? { ref, baseRef, mergeRef, delta, metadata }

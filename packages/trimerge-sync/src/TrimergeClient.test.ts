@@ -163,10 +163,35 @@ Object {
     );
     await timeout();
   });
+
   it('fails on leader event with no leader', async () => {
     const { onEvent } = makeTrimergeClient();
     // This just logs a warning, added for code coverage
     onEvent({ type: 'leader', clientId: '', action: 'accept' }, false);
     await timeout();
+  });
+
+  it('preserves object references from client', async () => {
+    const { client } = makeTrimergeClient();
+
+    const nestedObject = {
+      field: 'value',
+    };
+
+    const doc = {
+      nested: nestedObject,
+    };
+
+    client.updateDoc(doc, 'message');
+
+    nestedObject.field = 'newValue';
+
+    const doc2 = {
+      nested: nestedObject,
+    };
+
+    client.updateDoc(doc2, 'message');
+
+    expect(client.doc.nested).toBe(nestedObject);
   });
 });
