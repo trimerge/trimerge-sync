@@ -222,7 +222,7 @@ export interface LocalStore<CommitMetadata, Delta, Presence> {
   update(
     commits: Commit<CommitMetadata, Delta>[],
     presence: ClientPresenceRef<Presence> | undefined,
-  ): void;
+  ): Promise<void>;
   isRemoteLeader: boolean;
   shutdown(): void | Promise<void>;
 }
