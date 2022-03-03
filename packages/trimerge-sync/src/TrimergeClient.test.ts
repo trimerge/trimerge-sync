@@ -4,7 +4,19 @@ import { OnStoreEventFn, SyncEvent } from './types';
 import { Differ } from './differ';
 import { migrate } from './testLib/MergeUtils';
 
-const differ: Differ<any, any, any, any> = {
+import { create } from 'jsondiffpatch';
+
+const jsonDiffPatch = create({ textDiff: { minLength: 20 } });
+
+const JDP_DIFFER: Differ<any, any, any, any> = {
+  migrate,
+  diff: (left, right) => JSON.stringify(jsonDiffPatch.diff(left, right)),
+  mergeAllBranches: () => null,
+  patch: (base, delta) => jsonDiffPatch.patch(base, JSON.parse(delta)),
+  computeRef: (baseRef, _, delta) => `${baseRef}-${JSON.stringify(delta)}`,
+};
+
+const NOOP_DIFFER: Differ<any, any, any, any> = {
   migrate,
   diff: () => null,
   mergeAllBranches: () => null,
@@ -14,6 +26,7 @@ const differ: Differ<any, any, any, any> = {
 
 function makeTrimergeClient(
   addNewCommitMetadata?: AddNewCommitMetadataFn<any>,
+  differ?: Differ<any, any, any, any>,
 ): {
   client: TrimergeClient<any, any, any, any, any>;
   onEvent: OnStoreEventFn<any, any, any>;
@@ -30,7 +43,7 @@ function makeTrimergeClient(
         isRemoteLeader: false,
       };
     },
-    differ,
+    differ ?? NOOP_DIFFER,
     addNewCommitMetadata,
   );
   if (!onEvent) {
@@ -163,10 +176,37 @@ Object {
     );
     await timeout();
   });
+
   it('fails on leader event with no leader', async () => {
     const { onEvent } = makeTrimergeClient();
     // This just logs a warning, added for code coverage
     onEvent({ type: 'leader', clientId: '', action: 'accept' }, false);
     await timeout();
+  });
+
+  it('preserves object references from client', async () => {
+    const { client } = makeTrimergeClient(undefined, JDP_DIFFER);
+
+    const nestedObject = {
+      field: 'value',
+    };
+
+    const doc = {
+      nested: nestedObject,
+    };
+
+    client.updateDoc(doc, 'message');
+
+    const array = [1, 2, 3];
+
+    const doc2 = {
+      nested: nestedObject,
+      array,
+    };
+
+    client.updateDoc(doc2, 'message');
+
+    expect(client.doc.array).toBe(array);
+    expect(client.doc.nested).toBe(nestedObject);
   });
 });
