@@ -207,5 +207,6 @@ Object {
     client.updateDoc(doc2, 'message');
 
     expect(client.doc.array).toBe(array);
+    expect(client.doc.nested).toBe(nestedObject);
   });
 });
