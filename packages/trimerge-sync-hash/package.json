@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-hash",
-  "version": "0.15.0-test.5",
+  "version": "0.16.0-alpha.1",
   "description": "SHA-256 based hash generator for use with trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
@@ -19,29 +19,16 @@
     "type": "git",
     "url": "git+https://github.com/marcello3d/trimerge.git"
   },
-  "keywords": [
-    "json",
-    "three-way-merge",
-    "diff",
-    "diff3",
-    "merge"
-  ],
+  "keywords": ["json", "three-way-merge", "diff", "diff3", "merge"],
   "author": {
     "name": "Marcello Bastéa-Forte",
     "email": "marcello@cellosoft.com"
   },
   "license": "Zlib",
-  "bugs": {
-    "url": "https://github.com/marcello3d/trimerge-sync/issues"
-  },
+  "bugs": { "url": "https://github.com/marcello3d/trimerge-sync/issues" },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
-  "dependencies": {
-    "jssha": "^3.2.0"
-  },
-  "files": [
-    "dist/**/*",
-    "src/**/*"
-  ],
+  "dependencies": { "jssha": "^3.2.0" },
+  "files": ["dist/**/*", "src/**/*"],
   "devDependencies": {
     "@rollup/plugin-commonjs": "21.0.0",
     "@rollup/plugin-node-resolve": "13.0.6",
@@ -53,12 +40,6 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "globals": {
-      "ts-jest": {
-        "diagnostics": {
-          "warnOnly": true
-        }
-      }
-    }
+    "globals": { "ts-jest": { "diagnostics": { "warnOnly": true } } }
   }
 }
