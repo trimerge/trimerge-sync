@@ -184,7 +184,7 @@ Object {
     await timeout();
   });
 
-  it.only('preserves object references from client', async () => {
+  it('preserves object references from client', async () => {
     const { client } = makeTrimergeClient(undefined, JDP_DIFFER);
 
     const nestedObject = {
