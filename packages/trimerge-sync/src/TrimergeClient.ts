@@ -338,7 +338,7 @@ export class TrimergeClient<
     this.clientList = Array.from(this.clientMap.values());
     this.clientListSubs.emitChange(event);
   }
-  private async sync() {
+  private async sync(): Promise<void> {
     const commits = this.unsyncedCommits;
     if (commits.length > 0 || this.newPresence !== undefined) {
       this.unsyncedCommits = [];
