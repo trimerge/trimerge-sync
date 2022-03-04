@@ -10,6 +10,7 @@ import {
   patch,
 } from './MergeUtils';
 import { getBasicGraph, getDotGraph } from './GraphVisualizers';
+import { timeout } from '../lib/Timeout';
 
 type TestMetadata = string;
 type TestSavedDoc = any;
@@ -74,11 +75,12 @@ describe('GraphVisualizers', () => {
     const store = newStore();
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
-    await Promise.all([
-      client1.updateDoc({ hello: '1' }, 'initialize'),
-      client2.updateDoc({ world: '2' }, 'initialize'),
-      client2.updateDoc({ world: '3' }, 'initialize'),
-    ]);
+    client1.updateDoc({ hello: '1' }, 'initialize');
+    client2.updateDoc({ world: '2' }, 'initialize');
+    client2.updateDoc({ world: '3' }, 'initialize');
+
+    await timeout(100);
+
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
 Array [
   Object {
