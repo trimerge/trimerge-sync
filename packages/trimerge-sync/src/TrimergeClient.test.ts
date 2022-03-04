@@ -38,7 +38,7 @@ function makeTrimergeClient(
     (userId, clientId, _onEvent) => {
       onEvent = _onEvent;
       return {
-        update: () => undefined,
+        update: () => Promise.resolve(),
         shutdown: () => undefined,
         isRemoteLeader: false,
       };
