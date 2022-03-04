@@ -238,7 +238,7 @@ export class TrimergeClient<
     metadata: CommitMetadata,
     presence?: Presence,
   ): Promise<void> {
-    const result = new Promise<void>((resolve) => {
+    return new Promise<void>((resolve) => {
       const ref = this.addNewCommit(
         doc,
         metadata,
@@ -252,7 +252,6 @@ export class TrimergeClient<
       this.docSubs.emitChange({ origin: 'self' });
       this.sync();
     });
-    return result;
   }
 
   updatePresence(state: Presence) {
