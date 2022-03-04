@@ -10,7 +10,6 @@ import {
   patch,
 } from './MergeUtils';
 import { getBasicGraph, getDotGraph } from './GraphVisualizers';
-import { timeout } from '../lib/Timeout';
 
 type TestMetadata = string;
 type TestSavedDoc = any;

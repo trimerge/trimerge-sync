@@ -1,5 +1,4 @@
 import { MemoryStore } from './MemoryStore';
-import { timeout } from '../lib/Timeout';
 
 describe('MemoryLocalStore', () => {
   it('can be shutdown twice', async () => {
