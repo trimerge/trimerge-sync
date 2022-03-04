@@ -38,8 +38,6 @@ export type AddNewCommitMetadataFn<CommitMetadata> = (
 
 type UnsyncedCommit<CommitMetadata, Delta> = {
   commit: Commit<CommitMetadata, Delta>;
-  resolve?: () => void;
-  reject?: (e: unknown) => void;
 };
 
 export class TrimergeClient<
@@ -88,7 +86,7 @@ export class TrimergeClient<
 
   private store: LocalStore<CommitMetadata, Delta, Presence>;
   private tempCommits = new Map<string, Commit<CommitMetadata, Delta>>();
-  private unsyncedCommits: UnsyncedCommit<CommitMetadata, Delta>[] = [];
+  private unsyncedCommits: Commit<CommitMetadata, Delta>[] = [];
 
   private newPresence: ClientInfo<Presence> | undefined;
 
@@ -234,26 +232,16 @@ export class TrimergeClient<
     return this.clientListSubs.subscribe(onChange, { origin: 'subscribe' });
   }
 
-  updateDoc(
+  async updateDoc(
     doc: LatestDoc,
     metadata: CommitMetadata,
     presence?: Presence,
   ): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      const ref = this.addNewCommit(
-        doc,
-        metadata,
-        false,
-        undefined,
-        undefined,
-        resolve,
-        reject,
-      );
-      this.setPresence(presence, ref);
-      this.mergeHeads();
-      this.docSubs.emitChange({ origin: 'self' });
-      this.sync();
-    });
+    const ref = this.addNewCommit(doc, metadata, false, undefined, undefined);
+    this.setPresence(presence, ref);
+    this.mergeHeads();
+    this.docSubs.emitChange({ origin: 'self' });
+    await this.sync();
   }
 
   updatePresence(state: Presence) {
@@ -343,24 +331,8 @@ export class TrimergeClient<
     if (commits.length > 0 || this.newPresence !== undefined) {
       this.unsyncedCommits = [];
       this.updateSyncState({ localSave: 'saving' });
-      try {
-        await this.store.update(
-          commits.map((c) => c.commit),
-          this.newPresence,
-        );
-      } catch (e) {
-        for (const commit of commits) {
-          if (commit.reject) {
-            commit.reject(e);
-          }
-        }
-      }
+      await this.store.update(commits, this.newPresence);
       this.newPresence = undefined;
-      for (const commit of commits) {
-        if (commit.resolve) {
-          commit.resolve();
-        }
-      }
     }
     this.updateSyncState({ localSave: 'ready' });
   }
@@ -391,8 +363,6 @@ export class TrimergeClient<
   private addCommit(
     commit: Commit<CommitMetadata, Delta>,
     type: AddCommitType,
-    resolve?: () => void,
-    reject?: (e: unknown) => void,
   ): void {
     const { ref, baseRef, mergeRef } = asCommitRefs(commit);
     if (this.commits.has(ref)) {
@@ -441,7 +411,7 @@ export class TrimergeClient<
       case 'local':
         this.promoteTempCommit(baseRef);
         this.promoteTempCommit(mergeRef);
-        this.unsyncedCommits.push({ commit, resolve, reject });
+        this.unsyncedCommits.push(commit);
         break;
     }
     if (type !== 'temp') {
@@ -460,7 +430,7 @@ export class TrimergeClient<
       this.promoteTempCommit(mergeRef);
       this.addHead(this.nonTempHeadRefs, commit);
       this.tempCommits.delete(ref);
-      this.unsyncedCommits.push({ commit });
+      this.unsyncedCommits.push(commit);
     }
     if (this.lastSavedDoc?.ref === ref) {
       this.lastNonTempDoc = this.lastSavedDoc;
@@ -473,8 +443,6 @@ export class TrimergeClient<
     temp: boolean,
     base: CommitDoc<SavedDoc, CommitMetadata> | undefined = this.lastSavedDoc,
     mergeRef?: string,
-    resolve?: () => void,
-    reject?: (e: unknown) => void,
   ): string {
     const delta = this.differ.diff(base?.doc, newDoc);
     const baseRef = base?.ref;
@@ -495,7 +463,7 @@ export class TrimergeClient<
       mergeRef !== undefined
         ? { ref, baseRef, mergeRef, delta, metadata }
         : { ref, baseRef, delta, metadata };
-    this.addCommit(commit, temp ? 'temp' : 'local', resolve, reject);
+    this.addCommit(commit, temp ? 'temp' : 'local');
     return ref;
   }
 
