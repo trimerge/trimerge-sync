@@ -60,7 +60,7 @@ export function mergeHeads<N extends CommitInfo>(
       current: new Set([...a.current, ...b.current]),
       seenRefs: new Set([...a.seenRefs, ...b.seenRefs]),
     };
-    visitors.splice(j, 1).sort(sortVisitors);
+    visitors.splice(j, 1);
   }
 
   // Use inner function because we want to be able to break out of 3 levels of for loop
