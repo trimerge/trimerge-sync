@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ClientList, Differ, SyncStatus, TrimergeClient } from 'trimerge-sync';
+import {
+  ClientList,
+  Differ,
+  PassthroughLocalStore,
+  SyncStatus,
+  TrimergeClient,
+} from 'trimerge-sync';
 import {
   createIndexedDbBackendFactory,
   deleteDocDatabase,
 } from 'trimerge-sync-indexed-db';
-import { WebsocketRemote } from 'trimerge-sync-basic-client';
+import {
+  SharedWorkerRemote,
+  WebsocketRemote,
+} from 'trimerge-sync-basic-client';
 import { randomId } from './randomId';
 
 export type UpdateDocFn<LatestDoc, CommitMetadata> = (
@@ -30,21 +39,21 @@ function getCachedTrimergeClient<
   differ: Differ<SavedDoc, LatestDoc, CommitMetadata, Delta>,
 ) {
   const key = `${docId}:${userId}:${clientId}`;
+
+  const worker = new SharedWorker(
+    new URL('./TrimergeShared.worker', import.meta.url),
+  );
+
   if (!TRIMERGE_CLIENT_CACHE[key]) {
     TRIMERGE_CLIENT_CACHE[key] = new TrimergeClient(
       userId,
       clientId,
-      createIndexedDbBackendFactory(docId, {
-        getRemote: (userId, lastSyncId, onEvent) =>
-          new WebsocketRemote(
-            { userId, readonly: false },
-            lastSyncId,
-            onEvent,
-            `ws://localhost:4444/${encodeURIComponent(docId)}`,
-          ),
-        localIdGenerator: randomId,
-        remoteId: 'localhost',
-      }),
+      (userId, clientId, onEvent) =>
+        new PassthroughLocalStore(
+          userId,
+          clientId,
+          new SharedWorkerRemote(onEvent, worker),
+        ),
       differ,
     );
   }

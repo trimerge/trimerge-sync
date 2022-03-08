@@ -9,6 +9,7 @@
     "build-all": "wsrun --serial build",
     "watch-all": "wsrun --parallel watch",
     "typecheck": "wsrun --serial tsc --noEmit",
+    "example": "wsrun -p trimerge-sync-example-broadcast-channel trimerge-sync-basic-server -c start",
     "lint": "eslint packages/*/src/**/*.ts",
     "bump-version": "node bump-version.mjs"
   },

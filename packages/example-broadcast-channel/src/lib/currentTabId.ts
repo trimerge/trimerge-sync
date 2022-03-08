@@ -4,16 +4,23 @@ import { randomId } from './randomId';
 const STORAGE_KEY = 'tabIdStorageKey';
 
 function initTabId() {
-  const sessionId = sessionStorage.getItem(STORAGE_KEY);
-  if (sessionId) {
-    sessionStorage.removeItem(STORAGE_KEY);
-    return sessionId;
+  try {
+    const sessionId = sessionStorage.getItem(STORAGE_KEY);
+    if (sessionId) {
+      sessionStorage.removeItem(STORAGE_KEY);
+      return sessionId;
+    }
+  } catch (e) {
+    console.error("Couldn't get sessionStorage", e);
   }
   return randomId();
 }
 
 export const currentTabId = initTabId();
 
-window.addEventListener('beforeunload', () => {
-  sessionStorage.setItem(STORAGE_KEY, currentTabId);
-});
+// TODO(matt): figure out how to do this in an isomorphic way
+// if (window) {
+//   window.addEventListener('beforeunload', () => {
+//     sessionStorage.setItem(STORAGE_KEY, currentTabId);
+//   });
+// }
