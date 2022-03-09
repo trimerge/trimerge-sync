@@ -90,6 +90,8 @@ export class TrimergeClient<
 
   private newPresence: ClientInfo<Presence> | undefined;
 
+  private numUnsavedCommits: number = 0;
+
   private syncState: SyncStatus = {
     localRead: 'loading',
     localSave: 'ready',
@@ -331,10 +333,28 @@ export class TrimergeClient<
     if (commits.length > 0 || this.newPresence !== undefined) {
       this.unsyncedCommits = [];
       this.updateSyncState({ localSave: 'saving' });
-      await this.store.update(commits, this.newPresence);
+      this.numUnsavedCommits++;
+      try {
+        await this.store.update(commits, this.newPresence);
+        if (this.numUnsavedCommits > 0) {
+          this.numUnsavedCommits--;
+          if (this.numUnsavedCommits === 0) {
+            this.updateSyncState({ localSave: 'ready' });
+          }
+        } else {
+          // potentially unneccessary
+          this.numUnsavedCommits = 0;
+        }
+      } catch (err) {
+        this.updateSyncState({ localSave: 'error' });
+        if (this.numUnsavedCommits > 0) {
+          this.numUnsavedCommits--;
+        }
+        throw err;
+      }
+
       this.newPresence = undefined;
     }
-    this.updateSyncState({ localSave: 'ready' });
   }
 
   private updateSyncState(update: Partial<SyncStatus>): void {
