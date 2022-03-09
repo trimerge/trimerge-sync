@@ -174,10 +174,10 @@ Array [
   },
   Object {
     "localRead": "ready",
-    "localSave": "ready",
+    "localSave": "saving",
     "remoteConnect": "offline",
     "remoteRead": "offline",
-    "remoteSave": "pending",
+    "remoteSave": "saving",
   },
   Object {
     "localRead": "ready",
@@ -386,10 +386,10 @@ Array [
   },
   Object {
     "localRead": "ready",
-    "localSave": "ready",
+    "localSave": "saving",
     "remoteConnect": "offline",
     "remoteRead": "offline",
-    "remoteSave": "pending",
+    "remoteSave": "saving",
   },
   Object {
     "localRead": "ready",
@@ -761,10 +761,10 @@ Array [
   },
   Object {
     "localRead": "ready",
-    "localSave": "ready",
+    "localSave": "saving",
     "remoteConnect": "offline",
     "remoteRead": "offline",
-    "remoteSave": "pending",
+    "remoteSave": "saving",
   },
   Object {
     "localRead": "ready",
@@ -845,10 +845,10 @@ Array [
   },
   Object {
     "localRead": "ready",
-    "localSave": "ready",
+    "localSave": "saving",
     "remoteConnect": "offline",
     "remoteRead": "offline",
-    "remoteSave": "pending",
+    "remoteSave": "saving",
   },
   Object {
     "localRead": "ready",
@@ -1091,24 +1091,24 @@ Array [
   },
   Object {
     "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
+    "localSave": "saving",
     "remoteConnect": "offline",
     "remoteRead": "offline",
     "remoteSave": "saving",
   },
   Object {
     "localRead": "ready",
-    "localSave": "ready",
+    "localSave": "saving",
     "remoteConnect": "offline",
     "remoteRead": "offline",
     "remoteSave": "pending",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "saving",
+    "remoteConnect": "offline",
+    "remoteRead": "offline",
+    "remoteSave": "saving",
   },
   Object {
     "localRead": "ready",
@@ -1221,17 +1221,17 @@ Array [
   },
   Object {
     "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
+    "localSave": "saving",
     "remoteConnect": "online",
     "remoteRead": "ready",
     "remoteSave": "ready",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "saving",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "saving",
   },
   Object {
     "localRead": "ready",
