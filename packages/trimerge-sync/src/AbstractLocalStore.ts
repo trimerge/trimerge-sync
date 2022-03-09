@@ -445,14 +445,14 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
       await this.sendEvent({ type: 'ready' }, { self: true });
     });
   }
-  update(
+  async update(
     commits: Commit<CommitMetadata, Delta>[],
     presence: ClientPresenceRef<Presence> | undefined,
-  ): void {
-    if (this.closed) {
+  ): Promise<void> {
+    if (this.closed || (commits.length === 0 && !presence)) {
       return;
     }
-    this.localQueue
+    return await this.localQueue
       .add(() => this.doUpdate(commits, presence))
       .catch(this.handleAsError('invalid-commits'));
   }

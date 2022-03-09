@@ -27,6 +27,7 @@ const NOOP_DIFFER: Differ<any, any, any, any> = {
 function makeTrimergeClient(
   addNewCommitMetadata?: AddNewCommitMetadataFn<any>,
   differ?: Differ<any, any, any, any>,
+  updateStore?: (commits: any[], presence: any) => Promise<void>,
 ): {
   client: TrimergeClient<any, any, any, any, any>;
   onEvent: OnStoreEventFn<any, any, any>;
@@ -38,7 +39,7 @@ function makeTrimergeClient(
     (userId, clientId, _onEvent) => {
       onEvent = _onEvent;
       return {
-        update: () => undefined,
+        update: updateStore ?? (() => Promise.resolve()),
         shutdown: () => undefined,
         isRemoteLeader: false,
       };
@@ -208,5 +209,26 @@ Object {
 
     expect(client.doc.array).toBe(array);
     expect(client.doc.nested).toBe(nestedObject);
+  });
+
+  it('rejects if commits failed to store', async () => {
+    const { client } = makeTrimergeClient(undefined, NOOP_DIFFER, () =>
+      Promise.reject(
+        new Error("Not a real error. Don't worry. It's only a test."),
+      ),
+    );
+
+    expect(client.updateDoc({ foo: 'bar' }, 'message')).rejects.toThrowError(
+      /Not a real error/,
+    );
+  });
+
+  it('throws if there is an invalid number of commits', async () => {
+    const { client } = makeTrimergeClient(undefined);
+    (client as any).numUnsavedCommits = -1;
+
+    expect(client.updateDoc({ foo: 'bar' }, 'message')).rejects.toThrowError(
+      /Assertion Error: numUnsavedCommits <= 0/,
+    );
   });
 });

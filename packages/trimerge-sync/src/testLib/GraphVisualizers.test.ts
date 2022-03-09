@@ -75,10 +75,13 @@ describe('GraphVisualizers', () => {
     const store = newStore();
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
-    client1.updateDoc({ hello: '1' }, 'initialize');
-    client2.updateDoc({ world: '2' }, 'initialize');
-    client2.updateDoc({ world: '3' }, 'initialize');
-    await timeout();
+
+    void client1.updateDoc({ hello: '1' }, 'initialize');
+    void client2.updateDoc({ world: '2' }, 'initialize');
+    void client2.updateDoc({ world: '3' }, 'initialize');
+
+    await timeout(100);
+
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
 Array [
   Object {

@@ -1,5 +1,4 @@
 import { MemoryStore } from './MemoryStore';
-import { timeout } from '../lib/Timeout';
 
 describe('MemoryLocalStore', () => {
   it('can be shutdown twice', async () => {
@@ -12,7 +11,7 @@ describe('MemoryLocalStore', () => {
     const store = new MemoryStore('test');
     const fn = jest.fn();
     const local = store.getLocalStore('test', 'test', fn);
-    local.update(
+    await local.update(
       [
         {
           ref: 'test1',
@@ -21,9 +20,6 @@ describe('MemoryLocalStore', () => {
       ],
       undefined,
     );
-
-    // Let everything flush out first
-    await timeout();
 
     expect(fn.mock.calls).toMatchInlineSnapshot(`
 Array [
@@ -80,7 +76,7 @@ Array [
 `);
 
     await local.shutdown();
-    local.update(
+    await local.update(
       [
         {
           ref: 'test2',

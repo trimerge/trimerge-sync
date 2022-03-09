@@ -467,9 +467,8 @@ describe('createIndexedDbBackendFactory', () => {
       'test-doc-store',
       getMockRemote,
     );
-    client1.updateDoc('hello remote', '');
-    // Wait for write
-    await timeout(100);
+    await client1.updateDoc('hello remote', '');
+
     await client1.shutdown();
 
     const client2 = makeTestClient(
@@ -485,6 +484,47 @@ describe('createIndexedDbBackendFactory', () => {
     await client2.shutdown();
   });
 
+  it('updateDoc resolves when relevant commits are stored', async () => {
+    const docId = 'test-doc-remote';
+    const client1 = makeTestClient(
+      'test',
+      '1',
+      docId,
+      'test-doc-store',
+      getMockRemote,
+    );
+    await client1.updateDoc('hello remote', '');
+
+    expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": undefined,
+      "delta": Array [
+        "hello remote",
+      ],
+      "metadata": "",
+      "ref": "F2C9k7m0",
+      "remoteSyncId": "",
+      "syncId": 1,
+    },
+  ],
+  "heads": Array [
+    Object {
+      "ref": "F2C9k7m0",
+    },
+  ],
+  "remotes": Array [
+    Object {
+      "localStoreId": "test-doc-store",
+    },
+  ],
+}
+`);
+
+    await client1.shutdown();
+  });
+
   it('resets remote data', async () => {
     const docId = 'test-doc-reset-remote';
     const client1 = makeTestClient(
@@ -494,9 +534,8 @@ describe('createIndexedDbBackendFactory', () => {
       'test-doc-store',
       getMockRemote,
     );
-    client1.updateDoc('hello remote', '');
-    // Wait for write
-    await timeout(100);
+    await client1.updateDoc('hello remote', '');
+
     await client1.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
@@ -593,9 +632,8 @@ describe('createIndexedDbBackendFactory', () => {
   it('works offline then with remote', async () => {
     const docId = 'test-doc-remote2';
     const client = makeTestClient('test', '1', docId, 'test-doc-store');
-    client.updateDoc('hello offline remote', '');
-    // Wait for write
-    await timeout(100);
+    await client.updateDoc('hello offline remote', '');
+
     await client.shutdown();
 
     const client2 = makeTestClient(
@@ -609,8 +647,7 @@ describe('createIndexedDbBackendFactory', () => {
     await timeout(100);
     expect(client2.doc).toEqual('hello offline remote');
 
-    client2.updateDoc('hello online remote', '');
-    await timeout(100);
+    await client2.updateDoc('hello online remote', '');
 
     await client2.shutdown();
 
@@ -657,15 +694,15 @@ describe('createIndexedDbBackendFactory', () => {
   it('works offline then with remote 2', async () => {
     const docId = 'test-doc-remote2';
     const client = makeTestClient('test', '1', docId, 'test-doc-store');
-    client.updateDoc(1, '');
-    client.updateDoc(2, '');
-    client.updateDoc(3, '');
-    client.updateDoc(4, '');
-    client.updateDoc(5, '');
-    client.updateDoc(6, '');
+    await Promise.all([
+      client.updateDoc(1, ''),
+      client.updateDoc(2, ''),
+      client.updateDoc(3, ''),
+      client.updateDoc(4, ''),
+      client.updateDoc(5, ''),
+      client.updateDoc(6, ''),
+    ]);
 
-    // Wait for write
-    await timeout(100);
     await client.shutdown();
 
     const commitMap = new Map<string, Commit<any, any>>();
@@ -775,12 +812,13 @@ describe('createIndexedDbBackendFactory', () => {
         oldMetadata: commit.metadata,
       })),
     );
-    client.updateDoc(1, 'hi');
-    client.updateDoc(2, 'there');
-    client.updateDoc(3, 'sup?');
 
-    // Wait for write
-    await timeout(100);
+    await Promise.all([
+      client.updateDoc(1, 'hi'),
+      client.updateDoc(2, 'there'),
+      client.updateDoc(3, 'sup?'),
+    ]);
+
     await client.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
@@ -862,16 +900,13 @@ describe('createIndexedDbBackendFactory', () => {
         'test-doc-store',
       );
 
-    store.update([{ ref: 'blah', metadata: { foo: 'bar' } }], undefined);
+    await store.update([{ ref: 'blah', metadata: { foo: 'bar' } }], undefined);
 
     onEvent({
       type: 'ack',
       acks: [{ ref: 'blah', metadata: { bar: 'baz' } }],
       syncId: 'blah',
     });
-
-    // Wait for write
-    await timeout(100);
 
     onEvent({
       type: 'ack',
@@ -934,11 +969,10 @@ describe('createIndexedDbBackendFactory', () => {
 
     // In this test, both users make the exact same edit, so we want to
     // settle on the first one that makes it to the remote
-    client1.updateDoc('hello', 'client 1');
-    client2.updateDoc('hello', 'client 2');
-
-    // Wait for read
-    await timeout(100);
+    await Promise.all([
+      client1.updateDoc('hello', 'client 1'),
+      client2.updateDoc('hello', 'client 2'),
+    ]);
 
     expect(client1.doc).toEqual('hello');
     expect(client2.doc).toEqual('hello');
@@ -1036,11 +1070,10 @@ describe('createIndexedDbBackendFactory', () => {
 
     // In this test, both users make the exact same edit, so we want to
     // settle on the first one that makes it to the remote
-    client1.updateDoc('hello', 'client 1');
-    client2.updateDoc('hello', 'client 2');
-
-    // Wait for read
-    await timeout(100);
+    await Promise.all([
+      client1.updateDoc('hello', 'client 1'),
+      client2.updateDoc('hello', 'client 2'),
+    ]);
 
     expect(client1.doc).toEqual('hello');
     await timeout(100);

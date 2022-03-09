@@ -36,6 +36,10 @@ export type AddNewCommitMetadataFn<CommitMetadata> = (
   clientId: string,
 ) => CommitMetadata;
 
+type UnsyncedCommit<CommitMetadata, Delta> = {
+  commit: Commit<CommitMetadata, Delta>;
+};
+
 export class TrimergeClient<
   SavedDoc,
   LatestDoc extends SavedDoc,
@@ -85,6 +89,8 @@ export class TrimergeClient<
   private unsyncedCommits: Commit<CommitMetadata, Delta>[] = [];
 
   private newPresence: ClientInfo<Presence> | undefined;
+
+  private numUnsavedCommits: number = 0;
 
   private syncState: SyncStatus = {
     localRead: 'loading',
@@ -228,12 +234,16 @@ export class TrimergeClient<
     return this.clientListSubs.subscribe(onChange, { origin: 'subscribe' });
   }
 
-  updateDoc(doc: LatestDoc, metadata: CommitMetadata, presence?: Presence) {
-    const ref = this.addNewCommit(doc, metadata, false);
+  async updateDoc(
+    doc: LatestDoc,
+    metadata: CommitMetadata,
+    presence?: Presence,
+  ): Promise<void> {
+    const ref = this.addNewCommit(doc, metadata, false, undefined, undefined);
     this.setPresence(presence, ref);
     this.mergeHeads();
     this.docSubs.emitChange({ origin: 'self' });
-    this.sync();
+    await this.sync();
   }
 
   updatePresence(state: Presence) {
@@ -318,15 +328,30 @@ export class TrimergeClient<
     this.clientList = Array.from(this.clientMap.values());
     this.clientListSubs.emitChange(event);
   }
-  private sync(): void {
+  private async sync(): Promise<void> {
     const commits = this.unsyncedCommits;
     if (commits.length > 0 || this.newPresence !== undefined) {
       this.unsyncedCommits = [];
       this.updateSyncState({ localSave: 'saving' });
-      this.store.update(commits, this.newPresence);
+      this.numUnsavedCommits++;
+      try {
+        await this.store.update(commits, this.newPresence);
+
+        if (this.numUnsavedCommits === 1) {
+          this.updateSyncState({ localSave: 'ready' });
+        }
+      } catch (err) {
+        this.updateSyncState({ localSave: 'error' });
+        throw err;
+      } finally {
+        if (this.numUnsavedCommits <= 0) {
+          throw new Error('Assertion Error: numUnsavedCommits <= 0');
+        }
+        this.numUnsavedCommits--;
+      }
+
       this.newPresence = undefined;
     }
-    this.updateSyncState({ localSave: 'ready' });
   }
 
   private updateSyncState(update: Partial<SyncStatus>): void {
