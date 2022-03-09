@@ -336,20 +336,22 @@ export class TrimergeClient<
       this.numUnsavedCommits++;
       try {
         await this.store.update(commits, this.newPresence);
-        if (this.numUnsavedCommits > 0) {
-          this.numUnsavedCommits--;
-          if (this.numUnsavedCommits === 0) {
-            this.updateSyncState({ localSave: 'ready' });
-          }
-        } else {
-          // potentially unneccessary
-          this.numUnsavedCommits = 0;
+
+        if (this.numUnsavedCommits <= 0) {
+          throw new Error('Assertion Error: numUnsavedCommits <= 0');
+        }
+
+        this.numUnsavedCommits--;
+        if (this.numUnsavedCommits === 0) {
+          this.updateSyncState({ localSave: 'ready' });
         }
       } catch (err) {
-        this.updateSyncState({ localSave: 'error' });
-        if (this.numUnsavedCommits > 0) {
-          this.numUnsavedCommits--;
+        if (this.numUnsavedCommits <= 0) {
+          throw new Error('Assertion Error: numUnsavedCommits <= 0');
         }
+
+        this.updateSyncState({ localSave: 'error' });
+        this.numUnsavedCommits--;
         throw err;
       }
 
