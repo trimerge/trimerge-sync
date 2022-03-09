@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-hash",
-  "version": "0.17.0-test.1",
+  "version": "0.17.0-test.2",
   "description": "SHA-256 based hash generator for use with trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
