@@ -222,4 +222,13 @@ Object {
       /Not a real error/,
     );
   });
+
+  it('throws if there is an invalid number of commits', async () => {
+    const { client } = makeTrimergeClient(undefined);
+    (client as any).numUnsavedCommits = -1;
+
+    expect(client.updateDoc({ foo: 'bar' }, 'message')).rejects.toThrowError(
+      /Assertion Error: numUnsavedCommits <= 0/,
+    );
+  });
 });
