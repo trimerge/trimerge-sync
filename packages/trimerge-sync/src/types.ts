@@ -110,6 +110,8 @@ export type InitEvent =
       localStoreId: string;
       lastSyncCursor: string | undefined;
       auth: unknown;
+      docId?: string;
+      userId?: string;
     };
 
 export type CommitAck<CommitMetadata = unknown> = {
