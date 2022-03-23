@@ -15,7 +15,7 @@ import {
 } from 'trimerge-sync';
 import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
 import { deleteDB, openDB } from 'idb';
-import { BroadcastChannel } from 'broadcast-channel';
+// import { BroadcastChannel } from 'broadcast-channel';
 import { timeout } from './lib/timeout';
 
 const COMMIT_PAGE_SIZE = 100;
@@ -110,9 +110,9 @@ export class IndexedDbBackend<
   private db: Promise<
     IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>
   >;
-  private readonly channel: BroadcastChannel<
-    BroadcastEvent<CommitMetadata, Delta, Presence>
-  >;
+  // private readonly channel: BroadcastChannel<
+  //   BroadcastEvent<CommitMetadata, Delta, Presence>
+  // >;
   private readonly remoteId: string;
   private readonly localIdGenerator: LocalIdGeneratorFn;
   private readonly addStoreMetadata?: AddStoreMetadataFn<CommitMetadata>;
@@ -140,8 +140,8 @@ export class IndexedDbBackend<
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.db = this.connect();
-    this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
-    this.channel.addEventListener('message', this.onLocalBroadcastEvent);
+    // this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
+    // this.channel.addEventListener('message', this.onLocalBroadcastEvent);
     this.initialize().catch(this.handleAsError('internal'));
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', this.shutdown);
@@ -154,7 +154,8 @@ export class IndexedDbBackend<
   protected broadcastLocal(
     event: BroadcastEvent<CommitMetadata, Delta, Presence>,
   ): Promise<void> {
-    return this.channel.postMessage(event).catch(this.handleAsError('network'));
+    // return this.channel.postMessage(event).catch(this.handleAsError('network'));
+    return Promise.resolve();
   }
 
   protected async *getCommitsForRemote(): AsyncIterableIterator<
@@ -403,7 +404,7 @@ export class IndexedDbBackend<
     if (typeof window !== 'undefined') {
       window.removeEventListener('beforeunload', this.shutdown);
     }
-    await this.channel.close();
+    // await this.channel.close();
 
     const db = await this.db;
     // To prevent reconnect
