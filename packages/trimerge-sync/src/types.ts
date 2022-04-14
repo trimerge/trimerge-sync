@@ -110,6 +110,8 @@ export type InitEvent =
       localStoreId: string;
       lastSyncCursor: string | undefined;
       auth: unknown;
+      docId?: string;
+      userId?: string;
     };
 
 export type CommitAck<CommitMetadata = unknown> = {
@@ -220,7 +222,7 @@ export type GetRemoteFn<CommitMetadata, Delta, Presence> = (
 
 export interface LocalStore<CommitMetadata, Delta, Presence> {
   update(
-    commits: Commit<CommitMetadata, Delta>[],
+    commits: readonly Commit<CommitMetadata, Delta>[],
     presence: ClientPresenceRef<Presence> | undefined,
   ): Promise<void>;
   isRemoteLeader: boolean;
