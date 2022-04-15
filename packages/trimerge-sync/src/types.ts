@@ -111,7 +111,6 @@ export type InitEvent =
       lastSyncCursor: string | undefined;
       auth: unknown;
       docId?: string;
-      userId?: string;
     };
 
 export type CommitAck<CommitMetadata = unknown> = {
