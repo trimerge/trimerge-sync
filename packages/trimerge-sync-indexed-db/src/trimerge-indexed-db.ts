@@ -140,7 +140,7 @@ export class IndexedDbBackend<
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.db = this.connect();
-    this.channel = new BroadcastChannel(dbName, { webWorkerSupport: false });
+    this.channel = new BroadcastChannel(dbName);
     this.channel.addEventListener('message', this.onLocalBroadcastEvent);
     this.initialize().catch(this.handleAsError('internal'));
     if (typeof window !== 'undefined') {
