@@ -36,7 +36,6 @@
   },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
   "dependencies": {
-    "broadcast-channel": "^4.2.0",
     "idb": "6.1.5"
   },
   "peerDependencies": {
@@ -50,6 +49,7 @@
     "@rollup/plugin-commonjs": "21.0.0",
     "@rollup/plugin-node-resolve": "13.0.6",
     "fake-indexeddb": "^3.1.4",
+    "broadcast-channel": "^4.2.0",
     "immer": "^9.0.6",
     "jest": "27.0.6",
     "jsondiffpatch": "^0.4.1",

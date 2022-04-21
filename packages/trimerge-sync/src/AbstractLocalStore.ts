@@ -34,6 +34,16 @@ export type BroadcastEvent<CommitMetadata, Delta, Presence> = {
   remoteOrigin: boolean;
 };
 
+export type EventChannel<CommitMetadata, Delta, Presence> = {
+  onEvent(
+    cb: (ev: BroadcastEvent<CommitMetadata, Delta, Presence>) => void,
+  ): void;
+  sendEvent(
+    ev: BroadcastEvent<CommitMetadata, Delta, Presence>,
+  ): void | Promise<void>;
+  shutdown(): void | Promise<void>;
+};
+
 const DEFAULT_SETTINGS: NetworkSettings = {
   initialDelayMs: 1_000,
   reconnectBackoffMultiplier: 2,
