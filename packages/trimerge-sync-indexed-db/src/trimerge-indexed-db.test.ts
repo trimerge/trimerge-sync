@@ -39,7 +39,9 @@ function makeTestBroadcastChannel(docId: string): EventChannel<any, any, any> {
     sendEvent: (ev: BroadcastEvent<any, any, any>) => {
       if (!channel) {
         throw new Error(
-          'attempting to send an event after channel has been shutdown',
+          `attempting to send an event after channel has been shutdown ${JSON.stringify(
+            ev,
+          )}`,
         );
       }
 
@@ -118,6 +120,7 @@ async function makeTestClientWithRemoteOnEventHandle(
             heartbeatTimeoutMs: 50,
           },
           addStoreMetadata,
+          localChannel: makeTestBroadcastChannel(docId),
         });
         return store;
       },
@@ -528,6 +531,9 @@ describe('createIndexedDbBackendFactory', () => {
     );
     await client1.updateDoc('hello remote', '');
 
+    // wait for all writes to settle.
+    await timeout(100);
+
     expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
 Object {
   "commits": Array [
@@ -538,7 +544,7 @@ Object {
       ],
       "metadata": "",
       "ref": "F2C9k7m0",
-      "remoteSyncId": "",
+      "remoteSyncId": "foo",
       "syncId": 1,
     },
   ],
@@ -549,6 +555,7 @@ Object {
   ],
   "remotes": Array [
     Object {
+      "lastSyncCursor": "foo",
       "localStoreId": "test-doc-store",
     },
   ],

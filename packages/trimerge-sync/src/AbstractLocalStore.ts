@@ -14,12 +14,12 @@ import {
   RemoteSyncInfo,
   SyncEvent,
 } from './types';
-import { PromiseQueue } from './lib/PromiseQueue';
 import {
   DEFAULT_LEADER_SETTINGS,
   LeaderManager,
   LeaderSettings,
 } from './lib/LeaderManager';
+import PQueue from 'p-queue';
 
 export type NetworkSettings = Readonly<
   {
@@ -69,8 +69,8 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
     read: 'offline',
   };
   private readonly unacknowledgedRefs = new Set<string>();
-  private readonly localQueue = new PromiseQueue();
-  private readonly remoteQueue = new PromiseQueue();
+  private readonly localQueue = new PQueue({ concurrency: 1 });
+  private readonly remoteQueue = new PQueue({ concurrency: 1 });
   private leaderManager?: LeaderManager = undefined;
   private readonly networkSettings: NetworkSettings;
   private initialized = false;
@@ -85,21 +85,19 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
     >,
     private readonly getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>,
     networkSettings: Partial<NetworkSettings> = {},
+    private localChannel?: EventChannel<CommitMetadata, Delta, Presence>,
   ) {
     this.networkSettings = { ...DEFAULT_SETTINGS, ...networkSettings };
     this.reconnectDelayMs = this.networkSettings.initialDelayMs;
+    localChannel?.onEvent(
+      (ev: BroadcastEvent<CommitMetadata, Delta, Presence>) =>
+        this.onLocalBroadcastEvent(ev),
+    );
   }
 
   public get isRemoteLeader(): boolean {
     return !!this.remote;
   }
-
-  /**
-   * Send to all *other* local clients
-   */
-  protected abstract broadcastLocal(
-    event: BroadcastEvent<CommitMetadata, Delta, Presence>,
-  ): Promise<void>;
 
   protected abstract getLocalCommits(): AsyncIterableIterator<
     CommitsEvent<CommitMetadata, Delta, Presence>
@@ -243,22 +241,27 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
     }
   }
 
-  protected readonly onLocalBroadcastEvent = ({
+  private onLocalBroadcastEvent({
     event,
     remoteOrigin,
-  }: BroadcastEvent<CommitMetadata, Delta, Presence>): void => {
+  }: BroadcastEvent<CommitMetadata, Delta, Presence>): void {
+    if (this.closed) {
+      return;
+    }
+
     this.localQueue
       .add(() =>
         this.processEvent(event, remoteOrigin ? 'remote-via-local' : 'local'),
       )
       .catch(this.handleAsError('network'));
-  };
+  }
 
   async shutdown(): Promise<void> {
     if (this.closed) {
       return;
     }
     this.closed = true;
+    await this.localQueue.onIdle();
     const { userId, clientId } = this;
     try {
       await this.sendEvent(
@@ -276,10 +279,12 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
     await this.closeRemote();
 
     try {
-      this.leaderManager?.close();
+      this.leaderManager?.shutdown();
     } catch (error) {
       console.warn('ignoring error while shutting down', error);
     }
+
+    await this.localChannel?.shutdown();
   }
 
   private closeRemote(reconnect: boolean = false): Promise<void> {
@@ -407,7 +412,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
       }
     }
     if (local) {
-      await this.broadcastLocal({ event, remoteOrigin });
+      await this.localChannel?.sendEvent({ event, remoteOrigin });
     }
     if (remote && this.remote) {
       await this.remote.send(event);
@@ -433,9 +438,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
           }
         },
         (event) => {
-          this.broadcastLocal({ event, remoteOrigin: false }).catch(
-            this.handleAsError('internal'),
-          );
+          this.localChannel?.sendEvent({ event, remoteOrigin: false });
         },
         networkSettings,
       );

@@ -40,7 +40,7 @@ function makeLeaderManager(
   );
   channel.onMessage = (event) => leaderManagement.receiveEvent(event);
   async function close(cleanShutdown: boolean | undefined) {
-    leaderManagement.close(cleanShutdown);
+    leaderManagement.shutdown(cleanShutdown);
     channel.close();
 
     // need to wait for messages to send
@@ -85,7 +85,7 @@ describe('LeaderManagement', () => {
         events.push(e);
       },
     );
-    lm.close();
+    lm.shutdown();
     await timeout();
     lm.receiveEvent({ type: 'leader', action: 'request', clientId: 'foo' });
     expect(events).toMatchInlineSnapshot(`
