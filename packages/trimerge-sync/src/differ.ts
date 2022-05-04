@@ -68,4 +68,6 @@ export interface Differ<
 
   /** Merge all head commits */
   readonly mergeAllBranches: MergeAllBranchesFn<LatestDoc, CommitMetadata>;
+
+  readonly headFilter?: (ref: string) => boolean;
 }

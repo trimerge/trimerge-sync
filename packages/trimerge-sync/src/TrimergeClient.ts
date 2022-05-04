@@ -12,6 +12,7 @@ import { CommitDoc, Differ, MergeHelpers } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { asCommitRefs, CommitRefs } from './lib/Commits';
+import { patch } from './testLib/MergeUtils';
 
 type AddCommitType =
   // Added from this client
@@ -362,6 +363,10 @@ export class TrimergeClient<
     headRefs: Set<string>,
     { ref, baseRef, mergeRef }: CommitRefs,
   ): void {
+    if (this.differ.headFilter && !this.differ.headFilter(ref)) {
+      return;
+    }
+
     if (baseRef !== undefined) {
       if (!this.commits.has(baseRef)) {
         throw new Error(`unknown baseRef ${baseRef}`);
