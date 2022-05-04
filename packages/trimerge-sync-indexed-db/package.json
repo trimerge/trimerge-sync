@@ -36,8 +36,7 @@
   },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
   "dependencies": {
-    "idb": "6.1.5",
-    "p-queue": "7.2.0"
+    "idb": "6.1.5"
   },
   "peerDependencies": {
     "trimerge-sync": "0.17.0"

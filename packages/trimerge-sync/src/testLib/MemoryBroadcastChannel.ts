@@ -1,3 +1,4 @@
+import { BroadcastEvent, EventChannel } from '../AbstractLocalStore';
 import { removeItem } from './Arrays';
 
 const ALL_CHANNELS = new Map<string, MemoryBroadcastChannel<any>[]>();
@@ -86,5 +87,46 @@ export class MemoryBroadcastChannel<T> {
     }
     this._closed = true;
     removeItem(this._channels, this);
+  }
+}
+
+export class MemoryEventChannel<CommitMetadata, Delta, Presence>
+  implements EventChannel<CommitMetadata, Delta, Presence>
+{
+  readonly broadcastChannel;
+  readonly onEventCallbacks: ((
+    e: BroadcastEvent<CommitMetadata, Delta, Presence>,
+  ) => void)[] = [];
+
+  constructor(channelName: string) {
+    this.broadcastChannel = new MemoryBroadcastChannel<
+      BroadcastEvent<CommitMetadata, Delta, Presence>
+    >(channelName, (event) => this._onMessage(event));
+  }
+
+  private _onMessage(event: BroadcastEvent<CommitMetadata, Delta, Presence>) {
+    for (const cb of this.onEventCallbacks) {
+      cb(event);
+    }
+  }
+
+  onEvent(
+    cb: (ev: BroadcastEvent<CommitMetadata, Delta, Presence>) => void,
+  ): void {
+    this.onEventCallbacks.push(cb);
+  }
+
+  async sendEvent(
+    ev: BroadcastEvent<CommitMetadata, Delta, Presence>,
+  ): Promise<void> {
+    await this.broadcastChannel.postMessage(ev);
+  }
+
+  shutdown(): void | Promise<void> {
+    this.broadcastChannel.close();
+  }
+
+  set paused(paused: boolean) {
+    this.broadcastChannel.paused = paused;
   }
 }

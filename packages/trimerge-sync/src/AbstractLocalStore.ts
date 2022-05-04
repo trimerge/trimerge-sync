@@ -19,7 +19,7 @@ import {
   LeaderManager,
   LeaderSettings,
 } from './lib/LeaderManager';
-import PQueue from 'p-queue';
+import { PromiseQueue } from './lib/PromiseQueue';
 
 export type NetworkSettings = Readonly<
   {
@@ -69,8 +69,8 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
     read: 'offline',
   };
   private readonly unacknowledgedRefs = new Set<string>();
-  private readonly localQueue = new PQueue({ concurrency: 1 });
-  private readonly remoteQueue = new PQueue({ concurrency: 1 });
+  private readonly localQueue = new PromiseQueue();
+  private readonly remoteQueue = new PromiseQueue();
   private leaderManager?: LeaderManager = undefined;
   private readonly networkSettings: NetworkSettings;
   private initialized = false;
@@ -260,8 +260,16 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
     if (this.closed) {
       return;
     }
-    this.closed = true;
-    await this.localQueue.onIdle();
+
+    // disconnect from the remote
+    await this.closeRemote();
+
+    try {
+      this.leaderManager?.shutdown();
+    } catch (error) {
+      console.warn('ignoring error while shutting down', error);
+    }
+
     const { userId, clientId } = this;
     try {
       await this.sendEvent(
@@ -276,18 +284,19 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
       console.warn('ignoring error while shutting down', error);
     }
 
-    await this.closeRemote();
-
-    try {
-      this.leaderManager?.shutdown();
-    } catch (error) {
-      console.warn('ignoring error while shutting down', error);
-    }
+    // stop processing events / reporting errors.
+    this.closed = true;
 
     await this.localChannel?.shutdown();
+
+    await this.localQueue.shutdown();
   }
 
-  private closeRemote(reconnect: boolean = false): Promise<void> {
+  private async closeRemote(reconnect: boolean = false): Promise<void> {
+    if (!this.remote) {
+      return;
+    }
+
     const p = this.remoteQueue
       .add(async () => {
         const remote = this.remote;
@@ -321,8 +330,10 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
         console.log(`[TRIMERGE-SYNC] reconnecting now...`);
         this.connectRemote();
       }, reconnectDelayMs);
+      return await p;
     }
-    return p;
+
+    return await this.remoteQueue.shutdown();
   }
 
   private connectRemote(): void {
