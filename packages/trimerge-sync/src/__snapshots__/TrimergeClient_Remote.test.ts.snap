@@ -1,0 +1,97 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Remote sync syncs two client stores to a remote store 1`] = `
+Array [
+  Object {
+    "graph": "undefined -> Zob0dMmD",
+    "step": "initialize",
+    "value": Object {},
+  },
+  Object {
+    "graph": "Zob0dMmD -> leySPlIR",
+    "step": "add hello",
+    "value": Object {
+      "hello": "world",
+    },
+  },
+  Object {
+    "graph": "leySPlIR -> x_n2sT7P",
+    "step": "change hello",
+    "value": Object {
+      "hello": "vorld",
+    },
+  },
+  Object {
+    "graph": "x_n2sT7P -> iOywLlrW",
+    "step": "add world",
+    "value": Object {
+      "hello": "vorld",
+      "world": "world",
+    },
+  },
+  Object {
+    "graph": "x_n2sT7P -> 1GWBJdqO",
+    "step": "change world",
+    "value": Object {
+      "hello": "vorld",
+      "world": "vorld",
+    },
+  },
+  Object {
+    "graph": "(1GWBJdqO + iOywLlrW) w/ base=unknown -> 9cW6L__U",
+    "step": "merge",
+    "value": Object {
+      "hello": "vorld",
+      "world": "vorldworld",
+    },
+  },
+]
+`;
+
+exports[`Remote sync syncs two client stores to a remote store 2`] = `
+Array [
+  Object {
+    "graph": "undefined -> Zob0dMmD",
+    "step": "initialize",
+    "value": Object {},
+  },
+  Object {
+    "graph": "Zob0dMmD -> leySPlIR",
+    "step": "add hello",
+    "value": Object {
+      "hello": "world",
+    },
+  },
+  Object {
+    "graph": "leySPlIR -> x_n2sT7P",
+    "step": "change hello",
+    "value": Object {
+      "hello": "vorld",
+    },
+  },
+  Object {
+    "graph": "x_n2sT7P -> 1GWBJdqO",
+    "step": "change world",
+    "value": Object {
+      "hello": "vorld",
+      "world": "vorld",
+    },
+  },
+  Object {
+    "graph": "x_n2sT7P -> iOywLlrW",
+    "step": "add world",
+    "value": Object {
+      "hello": "vorld",
+      "world": "world",
+    },
+  },
+  Object {
+    "graph": "(1GWBJdqO + iOywLlrW) w/ base=unknown -> 9cW6L__U",
+    "step": "merge",
+    "value": Object {
+      "hello": "vorld",
+      "world": "vorldworld",
+    },
+  },
+]
+`;

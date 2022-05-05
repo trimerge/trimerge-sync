@@ -391,7 +391,10 @@ export class TrimergeClient<
       if (type === 'external') {
         // Promote temp commit
         this.promoteTempCommit(ref);
-        // TODO: upsert commit metadata
+
+        // replace local commit with external commit.
+        // todo, should we support metadata merging?
+        this.commits.set(ref, commit);
       } else {
         console.warn(
           `[TRIMERGE-SYNC] skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (type=${type})`,

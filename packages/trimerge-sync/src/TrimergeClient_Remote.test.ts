@@ -10,11 +10,14 @@ import { MemoryStore } from './testLib/MemoryStore';
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { getBasicGraph } from './testLib/GraphVisualizers';
-import { SyncStatus } from './types';
+import { isMergeCommit, SyncStatus } from './types';
 import { timeout } from './lib/Timeout';
 import { resetAll } from './testLib/MemoryBroadcastChannel';
 
-type TestMetadata = string;
+type TestMetadata = {
+  msg: string;
+  main?: boolean;
+};
 type TestSavedDoc = any;
 type TestDoc = any;
 type TestPresence = any;
@@ -40,11 +43,13 @@ afterEach(async () => {
 function newStore(
   remote?: MemoryStore<TestMetadata, Delta, TestPresence>,
   online?: boolean,
+  setMain?: boolean,
 ) {
   const store = new MemoryStore<TestMetadata, Delta, TestPresence>(
     undefined,
     remote?.getRemote,
     online,
+    setMain,
   );
   stores.add(store);
   return store;
@@ -54,8 +59,12 @@ function makeClient(
   userId: string,
   clientId: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
+  headFilter?: (ref: string) => boolean,
 ): TrimergeClient<TestSavedDoc, TestDoc, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, clientId, store.getLocalStore, differ);
+  return new TrimergeClient(userId, clientId, store.getLocalStore, {
+    ...differ,
+    headFilter,
+  });
 }
 
 function basicGraph(
@@ -70,7 +79,7 @@ function basicGraph(
 ) {
   return getBasicGraph(
     store.getCommits(),
-    (commit) => commit.metadata,
+    (commit) => commit.metadata.msg,
     (commit) => client1.getCommitDoc(commit.ref).doc,
   );
 }
@@ -97,15 +106,15 @@ function newRemoteStore(online?: boolean) {
 
 describe('Remote sync', () => {
   it('syncs one client to a remote', async () => {
-    const remoteStore = newStore();
+    const remoteStore = newStore(undefined, undefined, true);
     const localStore = newStore(remoteStore);
     const client = makeClient('a', 'test', localStore);
 
     const syncUpdates: SyncStatus[] = [];
     client.subscribeSyncStatus((state) => syncUpdates.push(state));
 
-    client.updateDoc({}, 'initialize');
-    client.updateDoc({ hello: 'world' }, 'add hello');
+    void client.updateDoc({}, { msg: 'initialize' });
+    void client.updateDoc({ hello: 'world' }, { msg: 'add hello' });
 
     await timeout();
 
@@ -229,15 +238,15 @@ Array [
     const remoteStore = newRemoteStore(false);
     const localStore = newStore(remoteStore);
     const client = makeClient('a', 'test', localStore);
-    client.updateDoc({}, 'initialize');
-    client.updateDoc({ hello: 'world' }, 'add hello');
-    client.updateDoc({ hello: 'world 2' }, 'edit hello');
-    client.updateDoc({ hello: 'world 3' }, 'edit hello');
-    client.updateDoc({ hello: 'world 4' }, 'edit hello');
-    client.updateDoc({ hello: 'world 5' }, 'edit hello');
-    client.updateDoc({ hello: 'world 6' }, 'edit hello');
-    client.updateDoc({ hello: 'world 7' }, 'edit hello');
-    client.updateDoc({ hello: 'world 8' }, 'edit hello');
+    void client.updateDoc({}, { msg: 'initialize' });
+    void client.updateDoc({ hello: 'world' }, { msg: 'add hello' });
+    void client.updateDoc({ hello: 'world 2' }, { msg: 'edit hello' });
+    void client.updateDoc({ hello: 'world 3' }, { msg: 'edit hello' });
+    void client.updateDoc({ hello: 'world 4' }, { msg: 'edit hello' });
+    void client.updateDoc({ hello: 'world 5' }, { msg: 'edit hello' });
+    void client.updateDoc({ hello: 'world 6' }, { msg: 'edit hello' });
+    void client.updateDoc({ hello: 'world 7' }, { msg: 'edit hello' });
+    void client.updateDoc({ hello: 'world 8' }, { msg: 'edit hello' });
 
     await timeout();
 
@@ -326,8 +335,8 @@ Array [
     const client1Sub = jest.fn();
     client1.subscribeClientList(client1Sub);
 
-    client1.updateDoc({}, 'initialize');
-    client1.updateDoc({ hello: 'world' }, 'add hello');
+    void client1.updateDoc({}, { msg: 'initialize' });
+    void client1.updateDoc({ hello: 'world' }, { msg: 'add hello' });
 
     await timeout();
 
@@ -598,8 +607,8 @@ Array [
     const states2: TestDoc[] = [];
     client2.subscribeDoc((state) => states2.push(state));
 
-    client1.updateDoc({}, 'initialize');
-    client1.updateDoc({ hello: 'world' }, 'add hello');
+    void client1.updateDoc({}, { msg: 'initialize' });
+    void client1.updateDoc({ hello: 'world' }, { msg: 'add hello' });
 
     await timeout();
 
@@ -626,7 +635,10 @@ Array [
 
     await timeout();
 
-    client2.updateDoc({ hello: 'world', world: 'hello' }, 'add world');
+    void client2.updateDoc(
+      { hello: 'world', world: 'hello' },
+      { msg: 'add world' },
+    );
 
     await timeout(100);
 
@@ -693,16 +705,16 @@ Array [
     const syncUpdates: SyncStatus[] = [];
     client.subscribeSyncStatus((state) => syncUpdates.push(state));
 
-    client.updateDoc({}, 'initialize');
-    client.updateDoc({ hello: 'world' }, 'add hello');
+    void client.updateDoc({}, { msg: 'initialize' });
+    void client.updateDoc({ hello: 'world' }, { msg: 'add hello' });
 
     await timeout();
 
     // Kill the "connection"
     remoteStore.remotes[0].fail('testing', 'network');
 
-    client.updateDoc({ hello: 'vorld' }, 'change hello');
-    client.updateDoc({ hello: 'borld' }, 'change hello');
+    void client.updateDoc({ hello: 'vorld' }, { msg: 'change hello' });
+    void client.updateDoc({ hello: 'borld' }, { msg: 'change hello' });
 
     const localGraph2 = basicGraph(localStore, client);
     const remoteGraph2 = basicGraph(remoteStore, client);
@@ -957,12 +969,32 @@ Array [
     `);
   });
 
-  it('syncs two client stores to a remote store', async () => {
-    const remoteStore = newStore();
+  it.only('syncs two client stores to a remote store', async () => {
+    const remoteStore = newStore(undefined, true, true);
     const store1 = newStore(remoteStore);
     const store2 = newStore(remoteStore);
-    const client1 = makeClient('a', 'a', store1);
-    const client2 = makeClient('b', 'b', store2);
+    const client1 = makeClient('a', 'a', store1, (ref: string) => {
+      const commit = client1.getCommit(ref);
+      if (
+        isMergeCommit(commit) &&
+        commit.metadata.main !== undefined &&
+        !commit.metadata.main
+      ) {
+        return false;
+      }
+      return true;
+    });
+    const client2 = makeClient('b', 'b', store2, (ref: string) => {
+      const commit = client2.getCommit(ref);
+      if (
+        isMergeCommit(commit) &&
+        commit.metadata.main !== undefined &&
+        !commit.metadata.main
+      ) {
+        return false;
+      }
+      return true;
+    });
 
     const syncUpdates1: SyncStatus[] = [];
     const syncUpdates2: SyncStatus[] = [];
@@ -975,9 +1007,9 @@ Array [
     client1.subscribeClientList(client1ListSub);
     client2.subscribeClientList(client2ListSub);
 
-    client1.updateDoc({}, 'initialize');
-    client1.updateDoc({ hello: 'world' }, 'add hello');
-    client1.updateDoc({ hello: 'vorld' }, 'change hello');
+    void client1.updateDoc({}, { msg: 'initialize' });
+    void client1.updateDoc({ hello: 'world' }, { msg: 'add hello' });
+    void client1.updateDoc({ hello: 'vorld' }, { msg: 'change hello' });
 
     expect(client1.doc).toEqual({ hello: 'vorld' });
     expect(client2.doc).toEqual(undefined);
@@ -987,60 +1019,28 @@ Array [
     expect(client1.doc).toEqual({ hello: 'vorld' });
     expect(client2.doc).toEqual({ hello: 'vorld' });
 
-    client2.updateDoc({ hello: 'vorld', world: 'world' }, 'add world');
-    client2.updateDoc({ hello: 'vorld', world: 'vorld' }, 'change world');
+    void client1.updateDoc(
+      { hello: 'vorld', world: 'world' },
+      { msg: 'add world' },
+    );
+    void client2.updateDoc(
+      { hello: 'vorld', world: 'vorld' },
+      { msg: 'change world' },
+    );
 
-    // Now client 2 is updated but not client 1
-    expect(client1.doc).toEqual({ hello: 'vorld' });
+    // Now we have a conflict
+    expect(client1.doc).toEqual({ hello: 'vorld', world: 'world' });
     expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
     await timeout();
 
-    expect(client1.doc).toEqual({ hello: 'vorld', world: 'vorld' });
-    expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
+    expect(client1.doc).toEqual(client2.doc);
 
-    const graph1 = basicGraph(store1, client1);
-    const graph2 = basicGraph(store2, client1);
-    expect(graph1).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> Zob0dMmD",
-    "step": "initialize",
-    "value": Object {},
-  },
-  Object {
-    "graph": "Zob0dMmD -> leySPlIR",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
-    },
-  },
-  Object {
-    "graph": "leySPlIR -> x_n2sT7P",
-    "step": "change hello",
-    "value": Object {
-      "hello": "vorld",
-    },
-  },
-  Object {
-    "graph": "x_n2sT7P -> iOywLlrW",
-    "step": "add world",
-    "value": Object {
-      "hello": "vorld",
-      "world": "world",
-    },
-  },
-  Object {
-    "graph": "iOywLlrW -> ZLVXz73q",
-    "step": "change world",
-    "value": Object {
-      "hello": "vorld",
-      "world": "vorld",
-    },
-  },
-]
-`);
-    expect(graph2).toEqual(graph1);
+    const client1Graph = basicGraph(store1, client1);
+    const client2Graph = basicGraph(store2, client2);
+
+    expect(client1Graph).toMatchSnapshot();
+    expect(client2Graph).toMatchSnapshot();
 
     await client1.shutdown();
     await client2.shutdown();
@@ -1147,6 +1147,76 @@ Array [
   },
   Object {
     "localRead": "ready",
+    "localSave": "saving",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "ready",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "saving",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "pending",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "saving",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "saving",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "saving",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "ready",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "saving",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "ready",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "saving",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "pending",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "saving",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "saving",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "saving",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "ready",
+  },
+  Object {
+    "localRead": "ready",
     "localSave": "ready",
     "remoteConnect": "offline",
     "remoteRead": "offline",
@@ -1214,10 +1284,17 @@ Array [
   },
   Object {
     "localRead": "ready",
-    "localSave": "saving",
+    "localSave": "ready",
     "remoteConnect": "online",
     "remoteRead": "ready",
-    "remoteSave": "pending",
+    "remoteSave": "saving",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "ready",
   },
   Object {
     "localRead": "ready",
@@ -1225,6 +1302,13 @@ Array [
     "remoteConnect": "online",
     "remoteRead": "ready",
     "remoteSave": "ready",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "saving",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "pending",
   },
   Object {
     "localRead": "ready",
@@ -1381,34 +1465,53 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "x_n2sT7P",
+        "ref": "iOywLlrW",
         "self": true,
         "userId": "a",
       },
       Object {
         "clientId": "b",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "b",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
         "presence": undefined,
         "ref": "iOywLlrW",
-        "userId": "b",
-      },
-    ],
-    Object {
-      "origin": "remote",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": "x_n2sT7P",
         "self": true,
         "userId": "a",
       },
       Object {
         "clientId": "b",
         "presence": undefined,
-        "ref": "ZLVXz73q",
+        "ref": undefined,
+        "userId": "b",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "iOywLlrW",
+        "userId": "a",
+      },
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": undefined,
         "userId": "b",
       },
     ],
@@ -1421,8 +1524,26 @@ Array [
       Object {
         "clientId": "a",
         "presence": undefined,
-        "ref": "x_n2sT7P",
-        "self": true,
+        "ref": "iOywLlrW",
+        "userId": "a",
+      },
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": "1GWBJdqO",
+        "userId": "b",
+      },
+    ],
+    Object {
+      "origin": "remote",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "iOywLlrW",
         "userId": "a",
       },
     ],
@@ -1473,39 +1594,78 @@ Array [
       Object {
         "clientId": "b",
         "presence": undefined,
+        "ref": "1GWBJdqO",
+        "self": true,
+        "userId": "b",
+      },
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "x_n2sT7P",
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": "1GWBJdqO",
+        "self": true,
+        "userId": "b",
+      },
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "x_n2sT7P",
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "self",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": "1GWBJdqO",
+        "self": true,
+        "userId": "b",
+      },
+      Object {
+        "clientId": "a",
+        "presence": undefined,
         "ref": "iOywLlrW",
-        "self": true,
-        "userId": "b",
-      },
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": "x_n2sT7P",
         "userId": "a",
       },
     ],
     Object {
-      "origin": "self",
+      "origin": "remote",
     },
   ],
   Array [
     Array [
       Object {
         "clientId": "b",
+        "presence": undefined,
+        "ref": "1GWBJdqO",
+        "userId": "b",
+      },
+      Object {
+        "clientId": "a",
         "presence": undefined,
         "ref": "iOywLlrW",
-        "self": true,
-        "userId": "b",
-      },
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": "x_n2sT7P",
         "userId": "a",
       },
     ],
     Object {
-      "origin": "self",
+      "origin": "remote",
     },
   ],
   Array [
@@ -1513,48 +1673,7 @@ Array [
       Object {
         "clientId": "b",
         "presence": undefined,
-        "ref": "ZLVXz73q",
-        "self": true,
-        "userId": "b",
-      },
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": "x_n2sT7P",
-        "userId": "a",
-      },
-    ],
-    Object {
-      "origin": "self",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "b",
-        "presence": undefined,
-        "ref": "ZLVXz73q",
-        "self": true,
-        "userId": "b",
-      },
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": "x_n2sT7P",
-        "userId": "a",
-      },
-    ],
-    Object {
-      "origin": "self",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "b",
-        "presence": undefined,
-        "ref": "ZLVXz73q",
-        "self": true,
+        "ref": "1GWBJdqO",
         "userId": "b",
       },
     ],

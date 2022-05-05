@@ -111,13 +111,15 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
   ): Promise<void> {
     for (const remote of this.store.remotes) {
       // Don't send to other clients with the same userId/clientStoreId pair
+      // unless it's a commits message.
       if (
         remote.userId === this.userId &&
-        remote.clientStoreId === this.clientStoreId
+        remote.clientStoreId === this.clientStoreId &&
+        event.type !== 'commits'
       ) {
         continue;
       }
-      await remote.receive(event);
+      remote.receive(event);
     }
   }
 

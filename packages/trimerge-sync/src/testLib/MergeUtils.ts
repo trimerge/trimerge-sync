@@ -22,6 +22,7 @@ export const merge: MergeDocFn<any, any> = (base, left, right) => ({
     ref: `(${left.ref}+${right.ref})`,
     message: `merge`,
   },
+  temp: false,
 });
 
 export const mergeAllBranches: MergeAllBranchesFn<any, any> =

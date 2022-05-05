@@ -20,7 +20,11 @@ function randomId() {
   return generate({ words: 3, alliterative: true }).dashed;
 }
 
-export class MemoryStore<CommitMetadata, Delta, Presence> {
+type BaseMetadata = {
+  main?: boolean;
+};
+
+export class MemoryStore<CommitMetadata extends BaseMetadata, Delta, Presence> {
   public readonly remotes: MemoryRemote<CommitMetadata, Delta, Presence>[] = [];
   private commits: Commit<CommitMetadata, Delta>[] = [];
   private localCommitRefs = new Set<string>();
@@ -35,11 +39,13 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
   >[] = [];
 
   public writeErrorMode = false;
+  private headRef: string | undefined;
 
   constructor(
     public readonly channelName: string = randomId(),
     private readonly getRemoteFn?: GetRemoteFn<CommitMetadata, Delta, Presence>,
     public online = true,
+    private readonly setMain = false,
   ) {}
 
   public getCommits(): readonly Commit<CommitMetadata, Delta>[] {
@@ -92,9 +98,26 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     return this.queue.add(async () => {
       const refs = new Set<string>();
       for (const commit of commits) {
-        const { ref } = commit;
+        const {
+          ref,
+          baseRef,
+          mergeRef,
+        }: { ref: string; baseRef?: string; mergeRef?: string } = commit;
         if (!this.localCommitRefs.has(ref)) {
-          this.commits.push(commit);
+          const isMain =
+            this.headRef === undefined ||
+            this.headRef === mergeRef ||
+            this.headRef === baseRef;
+          if (isMain) {
+            this.headRef = ref;
+          }
+          this.commits.push({
+            ...commit,
+            metadata: {
+              ...commit.metadata,
+              main: this.setMain ? isMain : undefined,
+            },
+          });
           this.localCommitRefs.add(ref);
         }
         refs.add(ref);
