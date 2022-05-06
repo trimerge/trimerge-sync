@@ -1153,6 +1153,13 @@ Array [
     "remoteRead": "offline",
     "remoteSave": "ready",
   },
+  Object {
+    "localRead": "error",
+    "localSave": "ready",
+    "remoteConnect": "offline",
+    "remoteRead": "offline",
+    "remoteSave": "ready",
+  },
 ]
 `);
     expect(syncUpdates2).toMatchInlineSnapshot(`
@@ -1411,20 +1418,6 @@ Array [
         "presence": undefined,
         "ref": "ZLVXz73q",
         "userId": "b",
-      },
-    ],
-    Object {
-      "origin": "remote",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": "x_n2sT7P",
-        "self": true,
-        "userId": "a",
       },
     ],
     Object {
