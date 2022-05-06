@@ -6,7 +6,6 @@ import typescript from 'rollup-plugin-typescript2';
 
 export default {
   input: 'src/index.ts',
-  external: Object.keys(dependencies),
   plugins: [commonjs(), resolve(), typescript({ exclude: '**/*.test.ts' })],
   output: [
     {
