@@ -11,7 +11,6 @@ import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
 import { MemoryLocalStore } from './MemoryLocalStore';
 import { MemoryRemote } from './MemoryRemote';
-import { asCommitRefs } from '../lib/Commits';
 
 function getSyncCounter(syncCursor: string): number {
   return parseInt(syncCursor, 36);

@@ -12,7 +12,6 @@ import { CommitDoc, Differ, MergeHelpers } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { asCommitRefs, CommitRefs } from './lib/Commits';
-import { patch } from './testLib/MergeUtils';
 
 type AddCommitType =
   // Added from this client
@@ -363,10 +362,6 @@ export class TrimergeClient<
     headRefs: Set<string>,
     { ref, baseRef, mergeRef }: CommitRefs,
   ): void {
-    if (this.differ.headFilter && !this.differ.headFilter(ref)) {
-      return;
-    }
-
     if (baseRef !== undefined) {
       if (!this.commits.has(baseRef)) {
         throw new Error(`unknown baseRef ${baseRef}`);
@@ -432,6 +427,7 @@ export class TrimergeClient<
     switch (type) {
       case 'temp':
         this.tempCommits.set(commit.ref, commit);
+        this.unsyncedCommits.push(commit);
         break;
       case 'local':
         this.promoteTempCommit(baseRef);
@@ -450,6 +446,9 @@ export class TrimergeClient<
     }
     const commit = this.tempCommits.get(ref);
     if (commit) {
+      if (this.differ.headFilter && !this.differ.headFilter(ref)) {
+        return;
+      }
       const { baseRef, mergeRef } = asCommitRefs(commit);
       this.promoteTempCommit(baseRef);
       this.promoteTempCommit(mergeRef);
