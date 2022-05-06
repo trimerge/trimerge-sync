@@ -293,11 +293,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
     await this.localChannel?.shutdown();
   }
 
-  private async closeRemote(reconnect: boolean = false): Promise<void> {
-    if (!this.remote) {
-      return;
-    }
-
+  private closeRemote(reconnect: boolean = false): Promise<void> {
     const p = this.remoteQueue
       .add(async () => {
         const remote = this.remote;
@@ -331,8 +327,8 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
         console.log(`[TRIMERGE-SYNC] reconnecting now...`);
         this.connectRemote();
       }, reconnectDelayMs);
-      return await p;
     }
+    return p;
   }
 
   private connectRemote(): void {
