@@ -10,6 +10,7 @@ import {
 } from '../types';
 import { MemoryStore } from './MemoryStore';
 import { PromiseQueue } from '../lib/PromiseQueue';
+import { asCommitRefs } from '../lib/Commits';
 
 export class MemoryRemote<CommitMetadata, Delta, Presence>
   implements Remote<CommitMetadata, Delta, Presence>
@@ -17,6 +18,7 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
   private readonly remoteQueue = new PromiseQueue();
   private closed = false;
   private readonly clientStoreId: string;
+  private headRef: string | undefined;
 
   constructor(
     private readonly store: MemoryStore<CommitMetadata, Delta, Presence>,
@@ -39,9 +41,32 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
     switch (event.type) {
       case 'commits':
         // FIXME: check for commits with wrong userId
-        const ack = await this.addCommits(event.commits);
-        await this.onEvent(ack);
-        await this.broadcast({ ...event, syncId: ack.syncId });
+        const blessedCommits = [];
+        for (const commit of event.commits) {
+          const { ref, baseRef, mergeRef } = asCommitRefs(commit);
+          const main =
+            this.headRef === undefined ||
+            this.headRef === mergeRef ||
+            this.headRef === baseRef;
+          if (main) {
+            this.headRef = ref;
+          }
+          blessedCommits.push({
+            ...commit,
+            metadata: {
+              ...commit.metadata,
+              main,
+            },
+          });
+        }
+
+        const ack = await this.addCommits(blessedCommits);
+        this.onEvent(ack);
+        await this.broadcast({
+          ...event,
+          commits: blessedCommits,
+          syncId: ack.syncId,
+        });
         break;
 
       case 'ready':

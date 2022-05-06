@@ -43,13 +43,11 @@ afterEach(async () => {
 function newStore(
   remote?: MemoryStore<TestMetadata, Delta, TestPresence>,
   online?: boolean,
-  setMain?: boolean,
 ) {
   const store = new MemoryStore<TestMetadata, Delta, TestPresence>(
     undefined,
     remote?.getRemote,
     online,
-    setMain,
   );
   stores.add(store);
   return store;

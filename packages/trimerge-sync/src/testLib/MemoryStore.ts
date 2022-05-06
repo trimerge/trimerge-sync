@@ -11,6 +11,7 @@ import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
 import { MemoryLocalStore } from './MemoryLocalStore';
 import { MemoryRemote } from './MemoryRemote';
+import { asCommitRefs } from '../lib/Commits';
 
 function getSyncCounter(syncCursor: string): number {
   return parseInt(syncCursor, 36);
@@ -45,7 +46,6 @@ export class MemoryStore<CommitMetadata extends BaseMetadata, Delta, Presence> {
     public readonly channelName: string = randomId(),
     private readonly getRemoteFn?: GetRemoteFn<CommitMetadata, Delta, Presence>,
     public online = true,
-    private readonly setMain = false,
   ) {}
 
   public getCommits(): readonly Commit<CommitMetadata, Delta>[] {
@@ -98,26 +98,9 @@ export class MemoryStore<CommitMetadata extends BaseMetadata, Delta, Presence> {
     return this.queue.add(async () => {
       const refs = new Set<string>();
       for (const commit of commits) {
-        const {
-          ref,
-          baseRef,
-          mergeRef,
-        }: { ref: string; baseRef?: string; mergeRef?: string } = commit;
+        const { ref } = commit;
         if (!this.localCommitRefs.has(ref)) {
-          const isMain =
-            this.headRef === undefined ||
-            this.headRef === mergeRef ||
-            this.headRef === baseRef;
-          if (isMain) {
-            this.headRef = ref;
-          }
-          this.commits.push({
-            ...commit,
-            metadata: {
-              ...commit.metadata,
-              main: this.setMain ? isMain : undefined,
-            },
-          });
+          this.commits.push(commit);
           this.localCommitRefs.add(ref);
         }
         refs.add(ref);

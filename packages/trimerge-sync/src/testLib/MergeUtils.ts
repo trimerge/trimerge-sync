@@ -16,14 +16,17 @@ const trimergeObjects = combineMergers(
   trimergeString,
   trimergeObject,
 );
-export const merge: MergeDocFn<any, any> = (base, left, right) => ({
-  doc: trimergeObjects(base?.doc, left.doc, right.doc),
-  metadata: {
-    ref: `(${left.ref}+${right.ref})`,
-    message: `merge`,
-  },
-  temp: false,
-});
+export const merge: MergeDocFn<any, any> = (base, left, right) => {
+  console.log('merge', base?.ref, left.ref, right.ref);
+  return {
+    doc: trimergeObjects(base?.doc, left.doc, right.doc),
+    metadata: {
+      ref: `(${left.ref}+${right.ref})`,
+      message: `merge`,
+    },
+    temp: false,
+  };
+};
 
 export const mergeAllBranches: MergeAllBranchesFn<any, any> =
   makeMergeAllBranchesFn((a, b) => (a < b ? -1 : 1), merge);

@@ -10,6 +10,7 @@ import {
   patch,
 } from './testLib/MergeUtils';
 import { timeout } from './lib/Timeout';
+import { isMergeCommit } from './types';
 
 jest.setTimeout(10_000);
 
@@ -26,25 +27,45 @@ const differ: Differ<TestSavedDoc, TestDoc, TestMetadata, TestPresence> = {
   mergeAllBranches,
 };
 
-function newStore() {
-  return new MemoryStore<TestMetadata, Delta, TestPresence>();
+function newStore(remote?: MemoryStore<TestMetadata, Delta, TestPresence>) {
+  return new MemoryStore<TestMetadata, Delta, TestPresence>(
+    undefined,
+    remote?.getRemote,
+  );
 }
 
 function makeClient(
   userId: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<TestSavedDoc, TestDoc, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, differ);
+  const newClient = new TrimergeClient(userId, 'test', store.getLocalStore, {
+    ...differ,
+    headFilter: (ref: string) => {
+      const commit = newClient.getCommit(ref);
+      if (
+        isMergeCommit(commit) &&
+        commit.metadata.main !== undefined &&
+        !commit.metadata.main
+      ) {
+        return false;
+      }
+      return true;
+    },
+  });
+  return newClient;
 }
 
 describe('TrimergeClient Fuzz', () => {
   it('simultaneous edit', async () => {
-    const store = newStore();
-    const clientA = makeClient('a', store);
-    const clientB = makeClient('b', store);
-    const clientC = makeClient('c', store);
+    const remoteStore = newStore();
+    const storeA = newStore(remoteStore);
+    const storeB = newStore(remoteStore);
+    const storeC = newStore(remoteStore);
+    const clientA = makeClient('a', storeA);
+    const clientB = makeClient('b', storeB);
+    const clientC = makeClient('c', storeC);
 
-    clientA.updateDoc('', { ref: 'ROOT', message: 'init' });
+    void clientA.updateDoc('', { ref: 'ROOT', message: 'init' });
 
     await timeout();
 
@@ -55,22 +76,22 @@ describe('TrimergeClient Fuzz', () => {
     let bCount = 0;
     let cCount = 0;
 
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 10; i++) {
       switch (Math.floor(Math.random() * 4)) {
         case 0:
-          clientA.updateDoc(clientA.doc + 'A', '');
+          void clientA.updateDoc(clientA.doc + 'A', { message: '' });
           aCount++;
           break;
         case 1:
-          clientB.updateDoc(clientB.doc + 'B', '');
+          void clientB.updateDoc(clientB.doc + 'B', { message: '' });
           bCount++;
           break;
         case 2:
-          clientC.updateDoc(clientC.doc + 'C', '');
+          void clientC.updateDoc(clientC.doc + 'C', { message: '' });
           cCount++;
           break;
         case 3:
-          await timeout();
+          await timeout(10);
           break;
       }
     }

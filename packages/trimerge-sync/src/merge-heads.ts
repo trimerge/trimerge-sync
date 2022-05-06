@@ -40,11 +40,13 @@ export function mergeHeads<N extends CommitInfo>(
   }
 
   const visitors = headRefs
-    .map((ref): Visitor => ({
-      ref,
-      current: new Set([ref]),
-      seenRefs: new Set([ref]),
-    }))
+    .map(
+      (ref): Visitor => ({
+        ref,
+        current: new Set([ref]),
+        seenRefs: new Set([ref]),
+      }),
+    )
     .sort(sortVisitors);
   let depth = 0;
 
