@@ -245,10 +245,6 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
     event,
     remoteOrigin,
   }: BroadcastEvent<CommitMetadata, Delta, Presence>): void {
-    if (this.closed) {
-      return;
-    }
-
     this.localQueue
       .add(() =>
         this.processEvent(event, remoteOrigin ? 'remote-via-local' : 'local'),
