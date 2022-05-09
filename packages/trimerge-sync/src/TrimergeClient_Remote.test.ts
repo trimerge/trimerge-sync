@@ -96,7 +96,6 @@ function newRemoteStore(online?: boolean) {
 }
 
 describe('Remote sync', () => {
-  jest.setTimeout(1000000000);
   it('syncs one client to a remote', async () => {
     const remoteStore = newStore();
     const localStore = newStore(remoteStore);
