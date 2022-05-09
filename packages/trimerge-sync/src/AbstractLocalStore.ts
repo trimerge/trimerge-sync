@@ -257,7 +257,6 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
       return;
     }
 
-    // stop processing events / reporting errors.
     this.closed = true;
 
     const { userId, clientId } = this;
@@ -274,19 +273,13 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
       console.warn('ignoring error while shutting down', error);
     }
 
-    // disconnect from the remote
     await this.closeRemote();
-    await this.remoteQueue.shutdown();
 
     try {
       this.leaderManager?.shutdown();
     } catch (error) {
       console.warn('ignoring error while shutting down', error);
     }
-
-    await this.localQueue.shutdown();
-
-    await this.localChannel?.shutdown();
   }
 
   private closeRemote(reconnect: boolean = false): Promise<void> {
