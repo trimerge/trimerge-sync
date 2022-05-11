@@ -8,7 +8,7 @@
   "sideEffects": false,
   "scripts": {
     "test": "jest --watch",
-    "test-ci": "jest --coverage --reporters=@descript/jest-github-reporter --detectOpenHandles",
+    "test-ci": "jest --coverage --reporters=@descript/jest-github-reporter --forceExit",
     "test:update-snapshots": "jest --updateSnapshot",
     "build": "rollup -c",
     "watch": "rollup -c -w",
