@@ -113,109 +113,109 @@ describe('Remote sync', () => {
     const remoteGraph1 = basicGraph(remoteStore, client);
     expect(remoteGraph1).toEqual(localGraph1);
     expect(localGraph1).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> Zob0dMmD",
-    "step": "initialize",
-    "value": Object {},
-  },
-  Object {
-    "graph": "Zob0dMmD -> leySPlIR",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
-    },
-  },
-]
-`);
+      Array [
+        Object {
+          "graph": "undefined -> Zob0dMmD",
+          "step": "initialize",
+          "value": Object {},
+        },
+        Object {
+          "graph": "Zob0dMmD -> leySPlIR",
+          "step": "add hello",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+      ]
+    `);
     expect(syncUpdates).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "localRead": "loading",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "loading",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "connecting",
-    "remoteRead": "loading",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "loading",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "ready",
-  },
-]
-`);
+      Array [
+        Object {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "loading",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "connecting",
+          "remoteRead": "loading",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "loading",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "ready",
+        },
+      ]
+    `);
   });
   it('handles shutdown while connecting', async () => {
     const remoteStore = newRemoteStore(false);
@@ -250,70 +250,70 @@ Array [
     const remoteGraph1 = basicGraph(remoteStore, client);
     expect(remoteGraph1).toEqual(localGraph1);
     expect(localGraph1).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> Zob0dMmD",
-    "step": "initialize",
-    "value": Object {},
-  },
-  Object {
-    "graph": "Zob0dMmD -> leySPlIR",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
-    },
-  },
-  Object {
-    "graph": "leySPlIR -> DWZJPKBc",
-    "step": "edit hello",
-    "value": Object {
-      "hello": "world 2",
-    },
-  },
-  Object {
-    "graph": "DWZJPKBc -> EM9w-Vme",
-    "step": "edit hello",
-    "value": Object {
-      "hello": "world 3",
-    },
-  },
-  Object {
-    "graph": "EM9w-Vme -> bPTFg9aG",
-    "step": "edit hello",
-    "value": Object {
-      "hello": "world 4",
-    },
-  },
-  Object {
-    "graph": "bPTFg9aG -> SZgOrzaG",
-    "step": "edit hello",
-    "value": Object {
-      "hello": "world 5",
-    },
-  },
-  Object {
-    "graph": "SZgOrzaG -> s9y6mchq",
-    "step": "edit hello",
-    "value": Object {
-      "hello": "world 6",
-    },
-  },
-  Object {
-    "graph": "s9y6mchq -> DnqoAp6m",
-    "step": "edit hello",
-    "value": Object {
-      "hello": "world 7",
-    },
-  },
-  Object {
-    "graph": "DnqoAp6m -> _fOHZjAT",
-    "step": "edit hello",
-    "value": Object {
-      "hello": "world 8",
-    },
-  },
-]
-`);
+      Array [
+        Object {
+          "graph": "undefined -> Zob0dMmD",
+          "step": "initialize",
+          "value": Object {},
+        },
+        Object {
+          "graph": "Zob0dMmD -> leySPlIR",
+          "step": "add hello",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        Object {
+          "graph": "leySPlIR -> DWZJPKBc",
+          "step": "edit hello",
+          "value": Object {
+            "hello": "world 2",
+          },
+        },
+        Object {
+          "graph": "DWZJPKBc -> EM9w-Vme",
+          "step": "edit hello",
+          "value": Object {
+            "hello": "world 3",
+          },
+        },
+        Object {
+          "graph": "EM9w-Vme -> bPTFg9aG",
+          "step": "edit hello",
+          "value": Object {
+            "hello": "world 4",
+          },
+        },
+        Object {
+          "graph": "bPTFg9aG -> SZgOrzaG",
+          "step": "edit hello",
+          "value": Object {
+            "hello": "world 5",
+          },
+        },
+        Object {
+          "graph": "SZgOrzaG -> s9y6mchq",
+          "step": "edit hello",
+          "value": Object {
+            "hello": "world 6",
+          },
+        },
+        Object {
+          "graph": "s9y6mchq -> DnqoAp6m",
+          "step": "edit hello",
+          "value": Object {
+            "hello": "world 7",
+          },
+        },
+        Object {
+          "graph": "DnqoAp6m -> _fOHZjAT",
+          "step": "edit hello",
+          "value": Object {
+            "hello": "world 8",
+          },
+        },
+      ]
+    `);
   });
 
   it('syncs two clients to a remote', async () => {
@@ -341,250 +341,250 @@ Array [
     await timeout();
 
     expect(syncUpdates1).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "localRead": "loading",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "loading",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "connecting",
-    "remoteRead": "loading",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "loading",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "ready",
-  },
-]
-`);
+      Array [
+        Object {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "loading",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "connecting",
+          "remoteRead": "loading",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "loading",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "ready",
+        },
+      ]
+    `);
     expect(syncUpdates2).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "localRead": "loading",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "ready",
-  },
-]
-`);
+      Array [
+        Object {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "ready",
+        },
+      ]
+    `);
     expect(client1Sub.mock.calls).toMatchInlineSnapshot(`
-Array [
-  Array [
-    Array [
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "test",
-      },
-    ],
-    Object {
-      "origin": "subscribe",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": "Zob0dMmD",
-        "self": true,
-        "userId": "test",
-      },
-    ],
-    Object {
-      "origin": "self",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": "Zob0dMmD",
-        "self": true,
-        "userId": "test",
-      },
-    ],
-    Object {
-      "origin": "self",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": "leySPlIR",
-        "self": true,
-        "userId": "test",
-      },
-    ],
-    Object {
-      "origin": "self",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": "leySPlIR",
-        "self": true,
-        "userId": "test",
-      },
-    ],
-    Object {
-      "origin": "self",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": "leySPlIR",
-        "self": true,
-        "userId": "test",
-      },
-      Object {
-        "clientId": "b",
-        "presence": undefined,
-        "ref": undefined,
-        "userId": "test",
-      },
-    ],
-    Object {
-      "origin": "local",
-    },
-  ],
-]
-`);
+      Array [
+        Array [
+          Array [
+            Object {
+              "clientId": "a",
+              "presence": undefined,
+              "ref": undefined,
+              "self": true,
+              "userId": "test",
+            },
+          ],
+          Object {
+            "origin": "subscribe",
+          },
+        ],
+        Array [
+          Array [
+            Object {
+              "clientId": "a",
+              "presence": undefined,
+              "ref": "Zob0dMmD",
+              "self": true,
+              "userId": "test",
+            },
+          ],
+          Object {
+            "origin": "self",
+          },
+        ],
+        Array [
+          Array [
+            Object {
+              "clientId": "a",
+              "presence": undefined,
+              "ref": "Zob0dMmD",
+              "self": true,
+              "userId": "test",
+            },
+          ],
+          Object {
+            "origin": "self",
+          },
+        ],
+        Array [
+          Array [
+            Object {
+              "clientId": "a",
+              "presence": undefined,
+              "ref": "leySPlIR",
+              "self": true,
+              "userId": "test",
+            },
+          ],
+          Object {
+            "origin": "self",
+          },
+        ],
+        Array [
+          Array [
+            Object {
+              "clientId": "a",
+              "presence": undefined,
+              "ref": "leySPlIR",
+              "self": true,
+              "userId": "test",
+            },
+          ],
+          Object {
+            "origin": "self",
+          },
+        ],
+        Array [
+          Array [
+            Object {
+              "clientId": "a",
+              "presence": undefined,
+              "ref": "leySPlIR",
+              "self": true,
+              "userId": "test",
+            },
+            Object {
+              "clientId": "b",
+              "presence": undefined,
+              "ref": undefined,
+              "userId": "test",
+            },
+          ],
+          Object {
+            "origin": "local",
+          },
+        ],
+      ]
+    `);
     expect(client2Sub.mock.calls).toMatchInlineSnapshot(`
-Array [
-  Array [
-    Array [
-      Object {
-        "clientId": "b",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "test",
-      },
-    ],
-    Object {
-      "origin": "subscribe",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "b",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "test",
-      },
-      Object {
-        "clientId": "a",
-        "presence": undefined,
-        "ref": "leySPlIR",
-        "userId": "test",
-      },
-    ],
-    Object {
-      "origin": "local",
-    },
-  ],
-]
-`);
+      Array [
+        Array [
+          Array [
+            Object {
+              "clientId": "b",
+              "presence": undefined,
+              "ref": undefined,
+              "self": true,
+              "userId": "test",
+            },
+          ],
+          Object {
+            "origin": "subscribe",
+          },
+        ],
+        Array [
+          Array [
+            Object {
+              "clientId": "b",
+              "presence": undefined,
+              "ref": undefined,
+              "self": true,
+              "userId": "test",
+            },
+            Object {
+              "clientId": "a",
+              "presence": undefined,
+              "ref": "leySPlIR",
+              "userId": "test",
+            },
+          ],
+          Object {
+            "origin": "local",
+          },
+        ],
+      ]
+    `);
   });
 
   it('syncs two clients to remote with a local split', async () => {
@@ -613,14 +613,14 @@ Array [
       ]
     `);
     expect(states2).toMatchInlineSnapshot(`
-Array [
-  undefined,
-  Object {},
-  Object {
-    "hello": "world",
-  },
-]
-`);
+      Array [
+        undefined,
+        Object {},
+        Object {
+          "hello": "world",
+        },
+      ]
+    `);
 
     localStore.localNetworkPaused = true;
 
@@ -640,49 +640,49 @@ Array [
       ]
     `);
     expect(states2).toMatchInlineSnapshot(`
-Array [
-  undefined,
-  Object {},
-  Object {
-    "hello": "world",
-  },
-  Object {
-    "hello": "world",
-    "world": "hello",
-  },
-]
-`);
+      Array [
+        undefined,
+        Object {},
+        Object {
+          "hello": "world",
+        },
+        Object {
+          "hello": "world",
+          "world": "hello",
+        },
+      ]
+    `);
 
     localStore.localNetworkPaused = false;
 
     await timeout(100);
 
     expect(states1).toMatchInlineSnapshot(`
-Array [
-  undefined,
-  Object {},
-  Object {
-    "hello": "world",
-  },
-  Object {
-    "hello": "world",
-    "world": "hello",
-  },
-]
-`);
+      Array [
+        undefined,
+        Object {},
+        Object {
+          "hello": "world",
+        },
+        Object {
+          "hello": "world",
+          "world": "hello",
+        },
+      ]
+    `);
     expect(states2).toMatchInlineSnapshot(`
-Array [
-  undefined,
-  Object {},
-  Object {
-    "hello": "world",
-  },
-  Object {
-    "hello": "world",
-    "world": "hello",
-  },
-]
-`);
+      Array [
+        undefined,
+        Object {},
+        Object {
+          "hello": "world",
+        },
+        Object {
+          "hello": "world",
+          "world": "hello",
+        },
+      ]
+    `);
   });
 
   it('syncs one clients to a store multiple times', async () => {
@@ -716,177 +716,177 @@ Array [
     expect(remoteGraph3).toEqual(localGraph3);
 
     expect(syncUpdates).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "localRead": "loading",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "loading",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "connecting",
-    "remoteRead": "loading",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "loading",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "connecting",
-    "remoteRead": "loading",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "loading",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "ready",
-  },
-]
-`);
+      Array [
+        Object {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "loading",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "connecting",
+          "remoteRead": "loading",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "loading",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "connecting",
+          "remoteRead": "loading",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "loading",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "ready",
+        },
+      ]
+    `);
   });
 
   it('handles leader network split', async () => {
@@ -1002,260 +1002,260 @@ Array [
     const graph1 = basicGraph(store1, client1);
     const graph2 = basicGraph(store2, client1);
     expect(graph1).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> Zob0dMmD",
-    "step": "initialize",
-    "value": Object {},
-  },
-  Object {
-    "graph": "Zob0dMmD -> leySPlIR",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
-    },
-  },
-  Object {
-    "graph": "leySPlIR -> x_n2sT7P",
-    "step": "change hello",
-    "value": Object {
-      "hello": "vorld",
-    },
-  },
-  Object {
-    "graph": "x_n2sT7P -> iOywLlrW",
-    "step": "add world",
-    "value": Object {
-      "hello": "vorld",
-      "world": "world",
-    },
-  },
-  Object {
-    "graph": "iOywLlrW -> ZLVXz73q",
-    "step": "change world",
-    "value": Object {
-      "hello": "vorld",
-      "world": "vorld",
-    },
-  },
-]
-`);
+      Array [
+        Object {
+          "graph": "undefined -> Zob0dMmD",
+          "step": "initialize",
+          "value": Object {},
+        },
+        Object {
+          "graph": "Zob0dMmD -> leySPlIR",
+          "step": "add hello",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        Object {
+          "graph": "leySPlIR -> x_n2sT7P",
+          "step": "change hello",
+          "value": Object {
+            "hello": "vorld",
+          },
+        },
+        Object {
+          "graph": "x_n2sT7P -> iOywLlrW",
+          "step": "add world",
+          "value": Object {
+            "hello": "vorld",
+            "world": "world",
+          },
+        },
+        Object {
+          "graph": "iOywLlrW -> ZLVXz73q",
+          "step": "change world",
+          "value": Object {
+            "hello": "vorld",
+            "world": "vorld",
+          },
+        },
+      ]
+    `);
     expect(graph2).toEqual(graph1);
 
     await client1.shutdown();
     await client2.shutdown();
 
     expect(syncUpdates1).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "localRead": "loading",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "loading",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "connecting",
-    "remoteRead": "loading",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "loading",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-]
-`);
+      Array [
+        Object {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "loading",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "connecting",
+          "remoteRead": "loading",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "loading",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+      ]
+    `);
     expect(syncUpdates2).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "localRead": "loading",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "connecting",
-    "remoteRead": "loading",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "loading",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "pending",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "saving",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "saving",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "online",
-    "remoteRead": "ready",
-    "remoteSave": "ready",
-  },
-  Object {
-    "localRead": "ready",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "offline",
-    "remoteSave": "ready",
-  },
-]
-`);
+      Array [
+        Object {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "connecting",
+          "remoteRead": "loading",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "loading",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "pending",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "saving",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "saving",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "online",
+          "remoteRead": "ready",
+          "remoteSave": "ready",
+        },
+        Object {
+          "localRead": "ready",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+          "remoteSave": "ready",
+        },
+      ]
+    `);
     expect(client1ListSub.mock.calls).toMatchInlineSnapshot(`
 Array [
   Array [
@@ -1621,25 +1621,25 @@ Array [
     await timeout();
 
     expect(basicClients(client1)).toMatchInlineSnapshot(`
-Object {
-  "a:client1": "presence 1",
-  "b:client2": "presence 2",
-  "b:client3": "presence 3",
-}
-`);
+      Object {
+        "a:client1": "presence 1",
+        "b:client2": "presence 2",
+        "b:client3": "presence 3",
+      }
+    `);
     expect(basicClients(client2)).toMatchInlineSnapshot(`
-Object {
-  "a:client1": "presence 1",
-  "b:client2": "presence 2",
-  "b:client3": "presence 3",
-}
-`);
+      Object {
+        "a:client1": "presence 1",
+        "b:client2": "presence 2",
+        "b:client3": "presence 3",
+      }
+    `);
     expect(basicClients(client3)).toMatchInlineSnapshot(`
-Object {
-  "a:client1": "presence 1",
-  "b:client2": "presence 2",
-  "b:client3": "presence 3",
-}
-`);
+      Object {
+        "a:client1": "presence 1",
+        "b:client2": "presence 2",
+        "b:client3": "presence 3",
+      }
+    `);
   });
 });

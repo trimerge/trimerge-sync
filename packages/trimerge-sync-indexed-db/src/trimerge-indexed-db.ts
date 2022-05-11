@@ -15,8 +15,8 @@ import {
 } from 'trimerge-sync';
 import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
 import { deleteDB, openDB } from 'idb';
-import { BroadcastChannel } from 'broadcast-channel';
 import { timeout } from './lib/timeout';
+import { getBroadcastChannelEventChannel } from './BroadcastChannelEventChannel';
 
 const COMMIT_PAGE_SIZE = 100;
 
@@ -47,6 +47,8 @@ export type IndexedDbBackendOptions<CommitMetadata, Delta, Presence> = {
   localIdGenerator: LocalIdGeneratorFn;
   /** Add metadata to every local commit stored in client */
   addStoreMetadata?: AddStoreMetadataFn<CommitMetadata>;
+  /** how to communicate to other local stores if any */
+  localChannel?: EventChannel<CommitMetadata, Delta, Presence>;
 };
 
 export function createIndexedDbBackendFactory<CommitMetadata, Delta, Presence>(
@@ -101,6 +103,16 @@ export type AddStoreMetadataFn<CommitMetadata> = (
   commitIndex: number,
 ) => CommitMetadata;
 
+export type EventChannel<CommitMetadata, Delta, Presence> = {
+  onEvent(
+    cb: (ev: BroadcastEvent<CommitMetadata, Delta, Presence>) => void,
+  ): void;
+  sendEvent(
+    ev: BroadcastEvent<CommitMetadata, Delta, Presence>,
+  ): void | Promise<void>;
+  shutdown(): void | Promise<void>;
+};
+
 export class IndexedDbBackend<
   CommitMetadata,
   Delta,
@@ -109,9 +121,6 @@ export class IndexedDbBackend<
   private readonly dbName: string;
   private db: Promise<
     IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>
-  >;
-  private readonly channel: BroadcastChannel<
-    BroadcastEvent<CommitMetadata, Delta, Presence>
   >;
   private readonly remoteId: string;
   private readonly localIdGenerator: LocalIdGeneratorFn;
@@ -129,9 +138,17 @@ export class IndexedDbBackend<
       remoteId = 'origin',
       localIdGenerator,
       addStoreMetadata,
+      localChannel,
     }: IndexedDbBackendOptions<CommitMetadata, Delta, Presence>,
   ) {
-    super(userId, clientId, onStoreEvent, getRemote, networkSettings);
+    super(
+      userId,
+      clientId,
+      onStoreEvent,
+      getRemote,
+      networkSettings,
+      localChannel ?? getBroadcastChannelEventChannel(docId),
+    );
     this.remoteId = remoteId;
     this.localIdGenerator = localIdGenerator;
     this.addStoreMetadata = addStoreMetadata;
@@ -140,8 +157,7 @@ export class IndexedDbBackend<
     console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.db = this.connect();
-    this.channel = new BroadcastChannel(dbName);
-    this.channel.addEventListener('message', this.onLocalBroadcastEvent);
+
     this.initialize().catch(this.handleAsError('internal'));
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', this.shutdown);
@@ -149,12 +165,6 @@ export class IndexedDbBackend<
     this.localStoreId = this.getRemoteSyncInfo().then(
       ({ localStoreId }) => localStoreId,
     );
-  }
-
-  protected broadcastLocal(
-    event: BroadcastEvent<CommitMetadata, Delta, Presence>,
-  ): Promise<void> {
-    return this.channel.postMessage(event).catch(this.handleAsError('network'));
   }
 
   protected async *getCommitsForRemote(): AsyncIterableIterator<
@@ -403,7 +413,6 @@ export class IndexedDbBackend<
     if (typeof window !== 'undefined') {
       window.removeEventListener('beforeunload', this.shutdown);
     }
-    await this.channel.close();
 
     const db = await this.db;
     // To prevent reconnect

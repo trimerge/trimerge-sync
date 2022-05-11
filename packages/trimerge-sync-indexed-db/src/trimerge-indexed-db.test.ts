@@ -1,7 +1,9 @@
 import 'fake-indexeddb/auto';
 
 import type {
+  BroadcastEvent,
   Commit,
+  EventChannel,
   GetRemoteFn,
   LocalStore,
   OnRemoteEventFn,
@@ -19,6 +21,38 @@ import { differ } from './testLib/BasicDiffer';
 import { timeout } from './lib/timeout';
 import { getMockRemote, getMockRemoteWithMap } from './testLib/MockRemote';
 import { dumpDatabase, getIdbDatabases } from './testLib/IndexedDB';
+import { BroadcastChannel } from 'broadcast-channel';
+
+function makeTestBroadcastChannel(docId: string): EventChannel<any, any, any> {
+  let channel: BroadcastChannel | undefined = new BroadcastChannel(docId);
+
+  return {
+    onEvent: (cb: (ev: BroadcastEvent<any, any, any>) => void) => {
+      if (!channel) {
+        throw new Error(
+          'attempting to register an event callback after channel has been shutdown',
+        );
+      }
+
+      return channel?.addEventListener('message', (e) => cb(e));
+    },
+    sendEvent: (ev: BroadcastEvent<any, any, any>) => {
+      if (!channel) {
+        throw new Error(
+          `attempting to send an event after channel has been shutdown ${JSON.stringify(
+            ev,
+          )}`,
+        );
+      }
+
+      return channel?.postMessage(ev);
+    },
+    shutdown: () => {
+      channel?.close();
+      channel = undefined;
+    },
+  };
+}
 
 function makeTestClient(
   userId: string,
@@ -43,6 +77,7 @@ function makeTestClient(
         heartbeatTimeoutMs: 50,
       },
       addStoreMetadata,
+      localChannel: makeTestBroadcastChannel(docId),
     }),
     differ,
   );
@@ -85,6 +120,7 @@ async function makeTestClientWithRemoteOnEventHandle(
             heartbeatTimeoutMs: 50,
           },
           addStoreMetadata,
+          localChannel: makeTestBroadcastChannel(docId),
         });
         return store;
       },
@@ -495,6 +531,9 @@ describe('createIndexedDbBackendFactory', () => {
     );
     await client1.updateDoc('hello remote', '');
 
+    // wait for all writes to settle.
+    await timeout(100);
+
     expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
 Object {
   "commits": Array [
@@ -505,7 +544,7 @@ Object {
       ],
       "metadata": "",
       "ref": "F2C9k7m0",
-      "remoteSyncId": "",
+      "remoteSyncId": "foo",
       "syncId": 1,
     },
   ],
@@ -516,6 +555,7 @@ Object {
   ],
   "remotes": Array [
     Object {
+      "lastSyncCursor": "foo",
       "localStoreId": "test-doc-store",
     },
   ],

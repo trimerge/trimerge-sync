@@ -21,59 +21,73 @@ describe('MemoryLocalStore', () => {
       undefined,
     );
 
+    const callsBeforeShutdown = [...fn.mock.calls];
+
     expect(fn.mock.calls).toMatchInlineSnapshot(`
-Array [
-  Array [
-    Object {
-      "commits": Array [
-        Object {
-          "metadata": undefined,
-          "ref": "test1",
-        },
-      ],
-      "syncId": "0",
-      "type": "commits",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "type": "ready",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "connect": "offline",
-      "read": "offline",
-      "save": "pending",
-      "type": "remote-state",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "acks": Array [
-        Object {
-          "ref": "test1",
-        },
-      ],
-      "syncId": "1",
-      "type": "ack",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "connect": "offline",
-      "read": "offline",
-      "save": "saving",
-      "type": "remote-state",
-    },
-    false,
-  ],
-]
-`);
+      Array [
+        Array [
+          Object {
+            "commits": Array [
+              Object {
+                "metadata": undefined,
+                "ref": "test1",
+              },
+            ],
+            "syncId": "0",
+            "type": "commits",
+          },
+          false,
+        ],
+        Array [
+          Object {
+            "type": "ready",
+          },
+          false,
+        ],
+        Array [
+          Object {
+            "connect": "offline",
+            "read": "offline",
+            "save": "pending",
+            "type": "remote-state",
+          },
+          false,
+        ],
+        Array [
+          Object {
+            "acks": Array [
+              Object {
+                "ref": "test1",
+              },
+            ],
+            "syncId": "1",
+            "type": "ack",
+          },
+          false,
+        ],
+        Array [
+          Object {
+            "connect": "offline",
+            "read": "offline",
+            "save": "saving",
+            "type": "remote-state",
+          },
+          false,
+        ],
+        Array [
+          Object {
+            "info": Object {
+              "clientId": "test",
+              "presence": undefined,
+              "ref": undefined,
+              "userId": "test",
+            },
+            "type": "client-presence",
+          },
+          false,
+        ],
+      ]
+    `);
 
     await local.shutdown();
     await local.update(
@@ -85,58 +99,6 @@ Array [
       ],
       undefined,
     );
-    expect(fn.mock.calls).toMatchInlineSnapshot(`
-Array [
-  Array [
-    Object {
-      "commits": Array [
-        Object {
-          "metadata": undefined,
-          "ref": "test1",
-        },
-      ],
-      "syncId": "0",
-      "type": "commits",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "type": "ready",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "connect": "offline",
-      "read": "offline",
-      "save": "pending",
-      "type": "remote-state",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "acks": Array [
-        Object {
-          "ref": "test1",
-        },
-      ],
-      "syncId": "1",
-      "type": "ack",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "connect": "offline",
-      "read": "offline",
-      "save": "saving",
-      "type": "remote-state",
-    },
-    false,
-  ],
-]
-`);
+    expect(fn.mock.calls).toEqual(callsBeforeShutdown);
   });
 });

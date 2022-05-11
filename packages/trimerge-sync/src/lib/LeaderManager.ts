@@ -186,7 +186,7 @@ export class LeaderManager {
     }
   }
 
-  close(cleanShutdown: boolean = true) {
+  shutdown(cleanShutdown: boolean = true) {
     if (this.closed) {
       return;
     }
