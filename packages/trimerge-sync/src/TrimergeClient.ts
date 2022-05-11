@@ -96,7 +96,7 @@ export class TrimergeClient<
     localRead: 'loading',
     localSave: 'ready',
     remoteConnect: 'offline',
-    remoteRead: 'offline',
+    remoteRead: 'loading',
     remoteSave: 'ready',
   };
 
