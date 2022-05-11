@@ -1,4 +1,4 @@
-import { BroadcastEvent, EventChannel } from '../AbstractLocalStore';
+import { BroadcastEvent, EventChannel } from '../lib/EventChannel';
 import { removeItem } from './Arrays';
 
 const ALL_CHANNELS = new Map<string, MemoryBroadcastChannel<any>[]>();
