@@ -20,6 +20,7 @@ import {
   LeaderSettings,
 } from './lib/LeaderManager';
 import { PromiseQueue } from './lib/PromiseQueue';
+import { BroadcastEvent, EventChannel } from './lib/EventChannel';
 
 export type NetworkSettings = Readonly<
   {
@@ -28,21 +29,6 @@ export type NetworkSettings = Readonly<
     maxReconnectDelayMs: number;
   } & LeaderSettings
 >;
-
-export type BroadcastEvent<CommitMetadata, Delta, Presence> = {
-  event: SyncEvent<CommitMetadata, Delta, Presence>;
-  remoteOrigin: boolean;
-};
-
-export type EventChannel<CommitMetadata, Delta, Presence> = {
-  onEvent(
-    cb: (ev: BroadcastEvent<CommitMetadata, Delta, Presence>) => void,
-  ): void;
-  sendEvent(
-    ev: BroadcastEvent<CommitMetadata, Delta, Presence>,
-  ): void | Promise<void>;
-  shutdown(): void | Promise<void>;
-};
 
 const DEFAULT_SETTINGS: NetworkSettings = {
   initialDelayMs: 1_000,

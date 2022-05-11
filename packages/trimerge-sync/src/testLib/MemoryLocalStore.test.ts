@@ -21,7 +21,7 @@ describe('MemoryLocalStore', () => {
       undefined,
     );
 
-    const callsBeforeShutdown = fn.mock.calls;
+    const callsBeforeShutdown = [...fn.mock.calls];
 
     expect(fn.mock.calls).toMatchInlineSnapshot(`
       Array [
