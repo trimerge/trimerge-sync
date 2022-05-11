@@ -16,6 +16,7 @@ import {
 import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
 import { deleteDB, openDB } from 'idb';
 import { timeout } from './lib/timeout';
+import { getBroadcastChannelEventChannel } from './BroadcastChannelEventChannel';
 
 const COMMIT_PAGE_SIZE = 100;
 

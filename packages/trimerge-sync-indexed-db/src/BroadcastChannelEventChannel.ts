@@ -1,9 +1,11 @@
 import { BroadcastEvent, EventChannel } from 'trimerge-sync';
 
 /** This creates a native browser BroadcastChannel implementation of EventChannel */
-function getBroadcastChannelEventChannel<CommitMetadata, Delta, Presence>(
-  docId: string,
-): EventChannel<CommitMetadata, Delta, Presence> {
+export function getBroadcastChannelEventChannel<
+  CommitMetadata,
+  Delta,
+  Presence,
+>(docId: string): EventChannel<CommitMetadata, Delta, Presence> {
   let channel: BroadcastChannel | undefined = new BroadcastChannel(docId);
   const eventListenerCallbacks: ((e: MessageEvent) => void)[] = [];
 
