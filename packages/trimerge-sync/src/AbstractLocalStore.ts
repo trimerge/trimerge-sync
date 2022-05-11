@@ -51,8 +51,8 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
   private remoteSyncState: RemoteStateEvent = {
     type: 'remote-state',
     save: 'ready',
-    connect: 'disconnected',
-    read: 'offline',
+    connect: 'offline',
+    read: 'loading',
   };
   private readonly unacknowledgedRefs = new Set<string>();
   private readonly localQueue = new PromiseQueue();
@@ -279,7 +279,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
         await remote.shutdown();
         await this.setRemoteState({
           type: 'remote-state',
-          connect: 'disconnected',
+          connect: 'offline',
           read: 'offline',
         });
       })
@@ -316,7 +316,6 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
         await this.setRemoteState({
           type: 'remote-state',
           connect: 'connecting',
-          read: 'loading',
         });
         const remoteSyncInfo = await this.getRemoteSyncInfo();
         this.remote = await this.getRemote(
