@@ -51,7 +51,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
   private remoteSyncState: RemoteStateEvent = {
     type: 'remote-state',
     save: 'ready',
-    connect: 'offline',
+    connect: 'disconnected',
     read: 'offline',
   };
   private readonly unacknowledgedRefs = new Set<string>();
@@ -279,7 +279,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
         await remote.shutdown();
         await this.setRemoteState({
           type: 'remote-state',
-          connect: 'offline',
+          connect: 'disconnected',
           read: 'offline',
         });
       })
