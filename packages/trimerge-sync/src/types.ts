@@ -65,9 +65,9 @@ export type LocalSaveStatus =
   | 'saving'; /** sent changes to local store, no `ack` yet */
 
 export type RemoteConnectStatus =
-  | 'offline' // this indicates that we've attempted to start the remote but it has somehow gone offline
-  | 'connecting' // this indicates that we've started to connect to the remote
-  | 'online'; // thes indicates we've connected to the remote
+  | 'offline' 
+  | 'connecting' 
+  | 'online';
 
 export type RemoteReadStatus = 'offline' | 'loading' | 'ready';
 
