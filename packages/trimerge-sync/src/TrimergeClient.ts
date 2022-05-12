@@ -36,10 +36,6 @@ export type AddNewCommitMetadataFn<CommitMetadata> = (
   clientId: string,
 ) => CommitMetadata;
 
-type UnsyncedCommit<CommitMetadata, Delta> = {
-  commit: Commit<CommitMetadata, Delta>;
-};
-
 export class TrimergeClient<
   SavedDoc,
   LatestDoc extends SavedDoc,
@@ -56,8 +52,6 @@ export class TrimergeClient<
 
   // A cached migrated version of lastSavedDoc (could be instance equal)
   private latestDoc?: CommitDoc<LatestDoc, CommitMetadata>;
-
-  private lastLocalSyncId: string | undefined;
 
   private docSubs = new SubscriberList<LatestDoc | undefined, SubscribeEvent>(
     () => this.doc,
@@ -103,11 +97,7 @@ export class TrimergeClient<
   constructor(
     public readonly userId: string,
     public readonly clientId: string,
-    private readonly getLocalStore: GetLocalStoreFn<
-      CommitMetadata,
-      Delta,
-      Presence
-    >,
+    getLocalStore: GetLocalStoreFn<CommitMetadata, Delta, Presence>,
     private readonly differ: Differ<SavedDoc, LatestDoc, CommitMetadata, Delta>,
     /** Add metadata to every new commit created on this client */
     private readonly addNewCommitMetadata?: AddNewCommitMetadataFn<CommitMetadata>,
@@ -145,11 +135,10 @@ export class TrimergeClient<
 
     switch (event.type) {
       case 'commits': {
-        const { commits, syncId, clientInfo } = event;
+        const { commits, clientInfo } = event;
         for (const commit of commits) {
           this.addCommit(commit, 'external');
         }
-        this.lastLocalSyncId = syncId;
         this.mergeHeads();
         this.docSubs.emitChange({ origin });
         this.sync();
@@ -161,7 +150,6 @@ export class TrimergeClient<
       }
 
       case 'ack':
-        this.lastLocalSyncId = event.syncId;
         break;
 
       case 'client-leave':
