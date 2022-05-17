@@ -147,42 +147,42 @@ describe('createIndexedDbBackendFactory', () => {
     await client.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-Object {
-  "commits": Array [
-    Object {
-      "baseRef": undefined,
-      "delta": Array [
-        "hello",
-      ],
-      "metadata": "",
-      "ref": "G0a5Az3Q",
-      "remoteSyncId": "",
-      "syncId": 1,
-    },
-    Object {
-      "baseRef": "G0a5Az3Q",
-      "delta": Array [
-        "hello",
-        "hello there",
-      ],
-      "metadata": "",
-      "ref": "HwWFgzWO",
-      "remoteSyncId": "",
-      "syncId": 2,
-    },
-  ],
-  "heads": Array [
-    Object {
-      "ref": "HwWFgzWO",
-    },
-  ],
-  "remotes": Array [
-    Object {
-      "localStoreId": "test-doc-store",
-    },
-  ],
-}
-`);
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello",
+                  ],
+                  "metadata": "",
+                  "ref": "G0a5Az3Q",
+                  "remoteSyncId": "",
+                  "syncId": 1,
+                },
+                Object {
+                  "baseRef": "G0a5Az3Q",
+                  "delta": Array [
+                    "hello",
+                    "hello there",
+                  ],
+                  "metadata": "",
+                  "ref": "HwWFgzWO",
+                  "remoteSyncId": "",
+                  "syncId": 2,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "HwWFgzWO",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
   });
 
   it('creates indexed db and can read it', async () => {
@@ -205,6 +205,18 @@ Object {
     expect(client2.doc).toEqual('hello world');
 
     await client2.shutdown();
+  });
+
+  it.only('indicates read offline if there is no remote', async () => {
+    const docId = 'test-doc-read';
+    const client = makeTestClient('test', '1', docId, 'test-doc-store');
+
+    // Wait for leader election
+    await timeout(100);
+
+    expect(client.syncStatus.remoteRead).toEqual('offline');
+
+    await client.shutdown();
   });
 
   it('collaboration works', async () => {
@@ -535,32 +547,32 @@ Object {
     await timeout(100);
 
     expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-Object {
-  "commits": Array [
-    Object {
-      "baseRef": undefined,
-      "delta": Array [
-        "hello remote",
-      ],
-      "metadata": "",
-      "ref": "F2C9k7m0",
-      "remoteSyncId": "foo",
-      "syncId": 1,
-    },
-  ],
-  "heads": Array [
-    Object {
-      "ref": "F2C9k7m0",
-    },
-  ],
-  "remotes": Array [
-    Object {
-      "lastSyncCursor": "foo",
-      "localStoreId": "test-doc-store",
-    },
-  ],
-}
-`);
+      Object {
+        "commits": Array [
+          Object {
+            "baseRef": undefined,
+            "delta": Array [
+              "hello remote",
+            ],
+            "metadata": "",
+            "ref": "F2C9k7m0",
+            "remoteSyncId": "foo",
+            "syncId": 1,
+          },
+        ],
+        "heads": Array [
+          Object {
+            "ref": "F2C9k7m0",
+          },
+        ],
+        "remotes": Array [
+          Object {
+            "lastSyncCursor": "foo",
+            "localStoreId": "test-doc-store",
+          },
+        ],
+      }
+    `);
 
     await client1.shutdown();
   });
