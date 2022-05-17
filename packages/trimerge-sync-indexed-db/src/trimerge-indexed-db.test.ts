@@ -147,42 +147,42 @@ describe('createIndexedDbBackendFactory', () => {
     await client.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    "hello",
-                  ],
-                  "metadata": "",
-                  "ref": "G0a5Az3Q",
-                  "remoteSyncId": "",
-                  "syncId": 1,
-                },
-                Object {
-                  "baseRef": "G0a5Az3Q",
-                  "delta": Array [
-                    "hello",
-                    "hello there",
-                  ],
-                  "metadata": "",
-                  "ref": "HwWFgzWO",
-                  "remoteSyncId": "",
-                  "syncId": 2,
-                },
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "HwWFgzWO",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "localStoreId": "test-doc-store",
-                },
-              ],
-            }
-          `);
+Object {
+  "commits": Array [
+    Object {
+      "baseRef": undefined,
+      "delta": Array [
+        "hello",
+      ],
+      "metadata": "",
+      "ref": "G0a5Az3Q",
+      "remoteSyncId": "",
+      "syncId": 1,
+    },
+    Object {
+      "baseRef": "G0a5Az3Q",
+      "delta": Array [
+        "hello",
+        "hello there",
+      ],
+      "metadata": "",
+      "ref": "HwWFgzWO",
+      "remoteSyncId": "",
+      "syncId": 2,
+    },
+  ],
+  "heads": Array [
+    Object {
+      "ref": "HwWFgzWO",
+    },
+  ],
+  "remotes": Array [
+    Object {
+      "localStoreId": "test-doc-store",
+    },
+  ],
+}
+`);
   });
 
   it('creates indexed db and can read it', async () => {
