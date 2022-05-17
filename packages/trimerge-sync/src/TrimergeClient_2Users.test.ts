@@ -178,7 +178,7 @@ Array [
     expect(client1.doc).toBe(undefined);
     expect(client2.doc).toBe(undefined);
 
-    client1.updateDoc({}, 'initialize');
+    void client1.updateDoc({}, 'initialize');
 
     // Client 1 is updated, but not client2
     expect(client1.doc).toEqual({});
@@ -186,31 +186,25 @@ Array [
 
     await timeout();
 
-    expect(client1.syncStatus).toEqual({
-      localRead: 'ready',
-      localSave: 'ready',
-      remoteConnect: 'offline',
-      remoteRead: 'offline',
-      remoteSave: 'saving',
-    });
-    expect(client2.syncStatus).toMatchInlineSnapshot(
-      {
-        localRead: 'ready',
-        localSave: 'ready',
-        remoteConnect: 'offline',
-        remoteRead: 'offline',
-        remoteSave: 'saving',
-      },
-      `
+    expect(client1.syncStatus).toMatchInlineSnapshot(`
+Object {
+  "localRead": "ready",
+  "localSave": "ready",
+  "remoteConnect": "offline",
+  "remoteRead": "loading",
+  "remoteSave": "saving",
+}
+`);
+
+    expect(client2.syncStatus).toMatchInlineSnapshot(`
       Object {
         "localRead": "ready",
         "localSave": "ready",
         "remoteConnect": "offline",
-        "remoteRead": "offline",
+        "remoteRead": "loading",
         "remoteSave": "saving",
       }
-    `,
-    );
+    `);
 
     // Client2 is updated now
     expect(client1.doc).toEqual({});
