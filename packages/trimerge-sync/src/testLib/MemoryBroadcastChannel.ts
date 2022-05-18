@@ -37,7 +37,7 @@ export class MemoryBroadcastChannel<T> {
   private _onMessageQueue: T[] = [];
 
   constructor(
-    private readonly channelName: string,
+    channelName: string,
     private readonly _onMessage: (value: T) => void,
   ) {
     this._channels = getChannelsArray(channelName);

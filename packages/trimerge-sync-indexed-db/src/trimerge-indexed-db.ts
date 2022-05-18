@@ -128,7 +128,7 @@ export class IndexedDbBackend<
   private localStoreId: Promise<string>;
 
   public constructor(
-    private readonly docId: string,
+    docId: string,
     userId: string,
     clientId: string,
     onStoreEvent: OnStoreEventFn<CommitMetadata, Delta, Presence>,
