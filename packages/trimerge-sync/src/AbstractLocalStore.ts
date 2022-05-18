@@ -279,7 +279,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
         await remote.shutdown();
         await this.setRemoteState({
           type: 'remote-state',
-          connect: 'disconnected',
+          connect: 'offline',
           read: 'offline',
         });
       })
