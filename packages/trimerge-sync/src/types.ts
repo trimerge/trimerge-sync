@@ -64,10 +64,7 @@ export type LocalSaveStatus =
   | 'pending' /** changes in local memory, not sent to store yet */
   | 'saving'; /** sent changes to local store, no `ack` yet */
 
-export type RemoteConnectStatus =
-  | 'offline' 
-  | 'connecting' 
-  | 'online';
+export type RemoteConnectStatus = 'offline' | 'connecting' | 'online';
 
 export type RemoteReadStatus = 'offline' | 'loading' | 'ready';
 
