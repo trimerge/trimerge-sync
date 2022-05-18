@@ -174,6 +174,9 @@ Array [
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
 
+    // clear any client join state.
+    await timeout();
+
     // No values
     expect(client1.doc).toBe(undefined);
     expect(client2.doc).toBe(undefined);
@@ -186,13 +189,17 @@ Array [
 
     await writePromise;
 
+    // Client2 is updated now
+    expect(client1.doc).toEqual({});
+    expect(client2.doc).toEqual({});
+
     expect(client1.syncStatus).toMatchInlineSnapshot(`
 Object {
   "localRead": "ready",
   "localSave": "ready",
   "remoteConnect": "offline",
   "remoteRead": "offline",
-  "remoteSave": "ready",
+  "remoteSave": "saving",
 }
 `);
 
@@ -205,10 +212,6 @@ Object {
   "remoteSave": "saving",
 }
 `);
-
-    // Client2 is updated now
-    expect(client1.doc).toEqual({});
-    expect(client2.doc).toEqual({});
   });
 
   it('sends presence information correctly', async () => {
