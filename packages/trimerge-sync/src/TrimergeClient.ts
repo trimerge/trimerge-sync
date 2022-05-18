@@ -139,7 +139,6 @@ export class TrimergeClient<
         for (const commit of commits) {
           this.addCommit(commit, 'external');
         }
-        this.lastLocalSyncId = syncId;
         this.mergeHeads();
         this.docSubs.emitChange({ origin });
         this.sync();
@@ -151,7 +150,6 @@ export class TrimergeClient<
       }
 
       case 'ack':
-        this.lastLocalSyncId = event.syncId;
         break;
 
       case 'client-leave':
