@@ -178,13 +178,13 @@ Array [
     expect(client1.doc).toBe(undefined);
     expect(client2.doc).toBe(undefined);
 
-    void client1.updateDoc({}, 'initialize');
+    const writePromise = client1.updateDoc({}, 'initialize');
 
     // Client 1 is updated, but not client2
     expect(client1.doc).toEqual({});
     expect(client2.doc).toBe(undefined);
 
-    await timeout();
+    await writePromise;
 
     expect(client1.syncStatus).toMatchInlineSnapshot(`
 Object {
