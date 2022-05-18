@@ -27,6 +27,15 @@ describe('MemoryLocalStore', () => {
 Array [
   Array [
     Object {
+      "connect": "offline",
+      "read": "offline",
+      "save": "ready",
+      "type": "remote-state",
+    },
+    false,
+  ],
+  Array [
+    Object {
       "commits": Array [
         Object {
           "metadata": undefined,
@@ -47,7 +56,7 @@ Array [
   Array [
     Object {
       "connect": "offline",
-      "read": "loading",
+      "read": "offline",
       "save": "pending",
       "type": "remote-state",
     },
@@ -68,7 +77,7 @@ Array [
   Array [
     Object {
       "connect": "offline",
-      "read": "loading",
+      "read": "offline",
       "save": "saving",
       "type": "remote-state",
     },

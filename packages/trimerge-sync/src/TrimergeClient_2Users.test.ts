@@ -191,20 +191,20 @@ Object {
   "localRead": "ready",
   "localSave": "ready",
   "remoteConnect": "offline",
-  "remoteRead": "loading",
-  "remoteSave": "saving",
+  "remoteRead": "offline",
+  "remoteSave": "ready",
 }
 `);
 
     expect(client2.syncStatus).toMatchInlineSnapshot(`
-      Object {
-        "localRead": "ready",
-        "localSave": "ready",
-        "remoteConnect": "offline",
-        "remoteRead": "loading",
-        "remoteSave": "saving",
-      }
-    `);
+Object {
+  "localRead": "ready",
+  "localSave": "ready",
+  "remoteConnect": "offline",
+  "remoteRead": "offline",
+  "remoteSave": "saving",
+}
+`);
 
     // Client2 is updated now
     expect(client1.doc).toEqual({});
