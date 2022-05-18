@@ -207,7 +207,7 @@ describe('createIndexedDbBackendFactory', () => {
     await client2.shutdown();
   });
 
-  it.only('indicates read offline if there is no remote', async () => {
+  it('indicates read offline if there is no remote', async () => {
     const docId = 'test-doc-read';
     const client = makeTestClient('test', '1', docId, 'test-doc-store');
 
