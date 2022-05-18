@@ -3,15 +3,12 @@ import type {
   GetRemoteFn,
   OnRemoteEventFn,
   Remote,
-  RemoteSyncInfo,
   SyncEvent,
 } from 'trimerge-sync';
 import { addInvalidRefsToAckEvent, validateCommitOrder } from 'trimerge-sync';
 
 class MockRemote implements Remote<any, any, any> {
   constructor(
-    private readonly userId: string,
-    private readonly remoteSyncInfo: RemoteSyncInfo,
     private readonly onEvent: OnRemoteEventFn<any, any, any>,
     private readonly commits: Map<string, Commit<any, any>> = new Map(),
     private readonly getRemoteMetadata?: (commit: Commit<any, any>) => any,
