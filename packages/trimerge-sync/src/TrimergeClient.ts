@@ -135,7 +135,7 @@ export class TrimergeClient<
 
     switch (event.type) {
       case 'commits': {
-        const { commits, syncId, clientInfo } = event;
+        const { commits, clientInfo } = event;
         for (const commit of commits) {
           this.addCommit(commit, 'external');
         }
