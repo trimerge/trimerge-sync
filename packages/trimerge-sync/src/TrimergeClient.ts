@@ -84,13 +84,13 @@ export class TrimergeClient<
 
   private newPresence: ClientInfo<Presence> | undefined;
 
-  private numUnsavedCommits: number = 0;
+  private numPendingUpdates: number = 0;
 
   private syncState: SyncStatus = {
     localRead: 'loading',
     localSave: 'ready',
     remoteConnect: 'offline',
-    remoteRead: 'offline',
+    remoteRead: 'loading',
     remoteSave: 'ready',
   };
 
@@ -231,7 +231,7 @@ export class TrimergeClient<
     this.setPresence(presence, ref);
     this.mergeHeads();
     this.docSubs.emitChange({ origin: 'self' });
-    await this.sync();
+    return await this.sync();
   }
 
   updatePresence(state: Presence) {
@@ -321,21 +321,21 @@ export class TrimergeClient<
     if (commits.length > 0 || this.newPresence !== undefined) {
       this.unsyncedCommits = [];
       this.updateSyncState({ localSave: 'saving' });
-      this.numUnsavedCommits++;
+      this.numPendingUpdates++;
       try {
         await this.store.update(commits, this.newPresence);
 
-        if (this.numUnsavedCommits === 1) {
+        if (this.numPendingUpdates === 1) {
           this.updateSyncState({ localSave: 'ready' });
         }
       } catch (err) {
         this.updateSyncState({ localSave: 'error' });
         throw err;
       } finally {
-        if (this.numUnsavedCommits <= 0) {
+        if (this.numPendingUpdates <= 0) {
           throw new Error('Assertion Error: numUnsavedCommits <= 0');
         }
-        this.numUnsavedCommits--;
+        this.numPendingUpdates--;
       }
 
       this.newPresence = undefined;

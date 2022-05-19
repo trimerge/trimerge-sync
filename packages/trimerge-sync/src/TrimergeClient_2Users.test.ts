@@ -174,47 +174,44 @@ Array [
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
 
+    // clear any client join state.
+    await timeout();
+
     // No values
     expect(client1.doc).toBe(undefined);
     expect(client2.doc).toBe(undefined);
 
-    client1.updateDoc({}, 'initialize');
+    const writePromise = client1.updateDoc({}, 'initialize');
 
     // Client 1 is updated, but not client2
     expect(client1.doc).toEqual({});
     expect(client2.doc).toBe(undefined);
 
-    await timeout();
-
-    expect(client1.syncStatus).toEqual({
-      localRead: 'ready',
-      localSave: 'ready',
-      remoteConnect: 'offline',
-      remoteRead: 'offline',
-      remoteSave: 'saving',
-    });
-    expect(client2.syncStatus).toMatchInlineSnapshot(
-      {
-        localRead: 'ready',
-        localSave: 'ready',
-        remoteConnect: 'offline',
-        remoteRead: 'offline',
-        remoteSave: 'saving',
-      },
-      `
-      Object {
-        "localRead": "ready",
-        "localSave": "ready",
-        "remoteConnect": "offline",
-        "remoteRead": "offline",
-        "remoteSave": "saving",
-      }
-    `,
-    );
+    await writePromise;
 
     // Client2 is updated now
     expect(client1.doc).toEqual({});
     expect(client2.doc).toEqual({});
+
+    expect(client1.syncStatus).toMatchInlineSnapshot(`
+Object {
+  "localRead": "ready",
+  "localSave": "ready",
+  "remoteConnect": "offline",
+  "remoteRead": "offline",
+  "remoteSave": "saving",
+}
+`);
+
+    expect(client2.syncStatus).toMatchInlineSnapshot(`
+Object {
+  "localRead": "ready",
+  "localSave": "ready",
+  "remoteConnect": "offline",
+  "remoteRead": "offline",
+  "remoteSave": "saving",
+}
+`);
   });
 
   it('sends presence information correctly', async () => {
