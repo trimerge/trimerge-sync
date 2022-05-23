@@ -294,6 +294,7 @@ export class IndexedDbBackend<
     const refMetadata = new Map<string, CommitMetadata>();
     const refErrors: AckRefErrors = {};
 
+    // testing
     const commitExistsAlready = async (
       commit: Commit<CommitMetadata>,
     ): Promise<boolean> => {
