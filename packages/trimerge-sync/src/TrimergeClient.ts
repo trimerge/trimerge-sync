@@ -352,13 +352,13 @@ export class TrimergeClient<
   ): void {
     if (baseRef !== undefined) {
       if (!this.commits.has(baseRef)) {
-        throw new Error(`unknown baseRef ${baseRef}`);
+        throw new Error(`unknown baseRef for commit ${ref}: ${baseRef}`);
       }
       headRefs.delete(baseRef);
     }
     if (mergeRef !== undefined) {
       if (!this.commits.has(mergeRef)) {
-        throw new Error(`unknown mergeRef ${mergeRef}`);
+        throw new Error(`unknown mergeRef for commit ${ref}: ${mergeRef}`);
       }
       headRefs.delete(mergeRef);
     }
