@@ -70,7 +70,7 @@ export type RemoteReadStatus =
   | 'offline'
   | 'loading'
   | 'ready'
-  | 'invalid' /** the remote is in a bad state */;
+  | 'error' /** the remote is in a persistent state */;
 
 export type RemoteSaveStatus =
   | 'ready' /**  all local state has been synced to remote (though maybe local changes in memory) */
