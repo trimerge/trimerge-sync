@@ -66,7 +66,11 @@ export type LocalSaveStatus =
 
 export type RemoteConnectStatus = 'offline' | 'connecting' | 'online';
 
-export type RemoteReadStatus = 'offline' | 'loading' | 'ready';
+export type RemoteReadStatus =
+  | 'offline'
+  | 'loading'
+  | 'ready'
+  | 'invalid' /** the remote is in a bad state */;
 
 export type RemoteSaveStatus =
   | 'ready' /**  all local state has been synced to remote (though maybe local changes in memory) */
