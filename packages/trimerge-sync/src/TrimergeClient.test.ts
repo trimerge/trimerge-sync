@@ -115,7 +115,7 @@ Object {
         },
         false,
       ),
-    ).toThrowErrorMatchingInlineSnapshot(`"unknown baseRef unknown"`);
+    ).toThrowErrorMatchingInlineSnapshot(`"unknown baseRef for commit a: unknown"`);
   });
   it('handles event with invalid mergeRef', async () => {
     const { onEvent } = makeTrimergeClient();
@@ -133,7 +133,7 @@ Object {
         },
         false,
       ),
-    ).toThrowErrorMatchingInlineSnapshot(`"unknown mergeRef unknown"`);
+    ).toThrowErrorMatchingInlineSnapshot(`"unknown mergeRef for commit a: unknown"`);
   });
 
   it('handles internal error', async () => {
