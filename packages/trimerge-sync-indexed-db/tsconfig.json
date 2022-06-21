@@ -23,17 +23,7 @@
 
     "declaration": true,
 
-    "pretty": true,
-    "paths": {
-      "trimerge-sync-indexed-db": [
-        "packages/trimerge-sync-indexed-db/src/index.ts"
-      ],
-      "trimerge-sync-basic-client": [
-        "packages/trimerge-sync-basic-client/src/index.ts"
-      ],
-      "trimerge-sync-hash": ["packages/trimerge-sync-hash/src/index.ts"],
-      "trimerge-sync": ["packages/trimerge-sync/src/index.ts"]
-    }
+    "pretty": true
   },
   "include": ["src"]
 }
