@@ -1,5 +1,5 @@
 export {
-  createIndexedDbBackendFactory,
+  IndexedDbCommitRepository,
   deleteDocDatabase,
   resetDocRemoteSyncData,
 } from './IndexedDbCommitRepository';
