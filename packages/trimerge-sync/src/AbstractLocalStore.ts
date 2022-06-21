@@ -277,10 +277,13 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
         }
         this.remote = undefined;
         await remote.shutdown();
+
+        // If read was error when shutting down we leave it as error
+        // otherwise we set it to offline.
         await this.setRemoteState({
           type: 'remote-state',
           connect: 'offline',
-          read: 'offline',
+          read: this.remoteSyncState.read === 'error' ? 'error' : 'offline',
         });
       })
       .catch((e) => {
@@ -314,7 +317,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
           await this.setRemoteState({
             type: 'remote-state',
             connect: 'offline',
-            read: 'offline',
+            read: this.remoteSyncState.read === 'error' ? 'error' : 'offline',
           });
           return;
         }
