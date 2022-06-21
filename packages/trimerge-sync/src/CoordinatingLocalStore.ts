@@ -66,7 +66,11 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       Delta,
       Presence
     >,
-    private readonly commitRepo: CommitRepository<CommitMetadata, Delta, Presence>,
+    private readonly commitRepo: CommitRepository<
+      CommitMetadata,
+      Delta,
+      Presence
+    >,
     private readonly getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>,
     networkSettings: Partial<NetworkSettings> = {},
     private localChannel?: EventChannel<CommitMetadata, Delta, Presence>,
@@ -144,7 +148,10 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
 
       case 'ack':
         if (origin === 'remote') {
-          await this.commitRepo.acknowledgeRemoteCommits(event.acks, event.syncId);
+          await this.commitRepo.acknowledgeRemoteCommits(
+            event.acks,
+            event.syncId,
+          );
           for (const ref of event.acks) {
             this.unacknowledgedRefs.delete(ref.ref);
           }
@@ -245,6 +252,8 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     } catch (error) {
       console.warn('ignoring error while shutting down', error);
     }
+
+    this.commitRepo.shutdown();
   }
 
   private closeRemote(reconnect: boolean = false): Promise<void> {

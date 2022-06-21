@@ -1,22 +1,17 @@
 import {
-  AbstractLocalStore,
   AckCommitsEvent,
   AckRefErrors,
   BroadcastEvent,
   Commit,
   CommitAck,
   CommitsEvent,
-  GetLocalStoreFn,
-  GetRemoteFn,
   isMergeCommit,
-  NetworkSettings,
-  OnStoreEventFn,
   RemoteSyncInfo,
+  CommitRepository,
 } from 'trimerge-sync';
 import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
 import { deleteDB, openDB } from 'idb';
 import { timeout } from './lib/timeout';
-import { getBroadcastChannelEventChannel } from './BroadcastChannelEventChannel';
 
 const COMMIT_PAGE_SIZE = 100;
 
@@ -41,23 +36,11 @@ function toSyncNumber(syncId: string | undefined): number {
 
 type LocalIdGeneratorFn = () => Promise<string> | string;
 export type IndexedDbBackendOptions<CommitMetadata, Delta, Presence> = {
-  getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>;
-  networkSettings?: Partial<NetworkSettings>;
   remoteId?: string;
   localIdGenerator: LocalIdGeneratorFn;
   /** Add metadata to every local commit stored in client */
   addStoreMetadata?: AddStoreMetadataFn<CommitMetadata>;
-  /** how to communicate to other local stores if any */
-  localChannel?: EventChannel<CommitMetadata, Delta, Presence>;
 };
-
-export function createIndexedDbBackendFactory<CommitMetadata, Delta, Presence>(
-  docId: string,
-  options: IndexedDbBackendOptions<CommitMetadata, Delta, Presence>,
-): GetLocalStoreFn<CommitMetadata, Delta, Presence> {
-  return (userId, clientId, onEvent) =>
-    new IndexedDbBackend(docId, userId, clientId, onEvent, options);
-}
 
 function getDatabaseName(docId: string): string {
   return `trimerge-sync:${docId}`;
@@ -113,11 +96,9 @@ export type EventChannel<CommitMetadata, Delta, Presence> = {
   shutdown(): void | Promise<void>;
 };
 
-export class IndexedDbBackend<
-  CommitMetadata,
-  Delta,
-  Presence,
-> extends AbstractLocalStore<CommitMetadata, Delta, Presence> {
+export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
+  implements CommitRepository<CommitMetadata, Delta, Presence>
+{
   private readonly dbName: string;
   private db: Promise<
     IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>
@@ -129,26 +110,12 @@ export class IndexedDbBackend<
 
   public constructor(
     docId: string,
-    userId: string,
-    clientId: string,
-    onStoreEvent: OnStoreEventFn<CommitMetadata, Delta, Presence>,
     {
-      getRemote,
-      networkSettings,
       remoteId = 'origin',
       localIdGenerator,
       addStoreMetadata,
-      localChannel,
     }: IndexedDbBackendOptions<CommitMetadata, Delta, Presence>,
   ) {
-    super(
-      userId,
-      clientId,
-      onStoreEvent,
-      getRemote,
-      networkSettings,
-      localChannel ?? getBroadcastChannelEventChannel(docId),
-    );
     this.remoteId = remoteId;
     this.localIdGenerator = localIdGenerator;
     this.addStoreMetadata = addStoreMetadata;
@@ -158,7 +125,6 @@ export class IndexedDbBackend<
     this.dbName = dbName;
     this.db = this.connect();
 
-    this.initialize().catch(this.handleAsError('internal'));
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', this.shutdown);
     }
@@ -167,7 +133,7 @@ export class IndexedDbBackend<
     );
   }
 
-  protected async *getCommitsForRemote(): AsyncIterableIterator<
+  async *getCommitsForRemote(): AsyncIterableIterator<
     CommitsEvent<CommitMetadata, Delta, Presence>
   > {
     const db = await this.db;
@@ -211,7 +177,7 @@ export class IndexedDbBackend<
     return false;
   }
 
-  protected async acknowledgeRemoteCommits(
+  async acknowledgeRemoteCommits(
     acks: readonly CommitAck<CommitMetadata>[],
     remoteSyncId: string,
   ): Promise<void> {
@@ -227,13 +193,11 @@ export class IndexedDbBackend<
     await tx.done;
   }
 
-  protected async getRemoteSyncInfo(): Promise<RemoteSyncInfo> {
+  async getRemoteSyncInfo(): Promise<RemoteSyncInfo> {
     return this.upsertRemoteSyncInfo();
   }
 
-  protected async upsertRemoteSyncInfo(
-    syncCursor?: string,
-  ): Promise<RemoteSyncInfo> {
+  async upsertRemoteSyncInfo(syncCursor?: string): Promise<RemoteSyncInfo> {
     const db = await this.db;
     const tx = db.transaction(['remotes'], 'readwrite');
     const remotes = tx.objectStore('remotes');
@@ -270,7 +234,7 @@ export class IndexedDbBackend<
     return db;
   }
 
-  protected async addCommits(
+  async addCommits(
     commits: readonly Commit<CommitMetadata, Delta>[],
     remoteSyncId: string | undefined,
   ): Promise<AckCommitsEvent<CommitMetadata>> {
@@ -390,7 +354,7 @@ export class IndexedDbBackend<
     };
   }
 
-  protected async *getLocalCommits(): AsyncIterableIterator<
+  async *getLocalCommits(): AsyncIterableIterator<
     CommitsEvent<CommitMetadata, Delta, Presence>
   > {
     const lastSyncCounter = toSyncNumber(undefined);
@@ -409,7 +373,6 @@ export class IndexedDbBackend<
   }
 
   shutdown = async (): Promise<void> => {
-    await super.shutdown();
     if (typeof window !== 'undefined') {
       window.removeEventListener('beforeunload', this.shutdown);
     }

@@ -1,9 +1,11 @@
 import 'fake-indexeddb/auto';
 
-import type {
+import {
   BroadcastEvent,
   Commit,
+  CoordinatingLocalStore,
   EventChannel,
+  GetLocalStoreFn,
   GetRemoteFn,
   LocalStore,
   OnRemoteEventFn,
@@ -12,11 +14,10 @@ import type {
 import { TrimergeClient } from 'trimerge-sync';
 import {
   AddStoreMetadataFn,
-  createIndexedDbBackendFactory,
   deleteDocDatabase,
-  IndexedDbBackend,
+  IndexedDbCommitRepository,
   resetDocRemoteSyncData,
-} from './trimerge-indexed-db';
+} from './IndexedDbCommitRepository';
 import { differ } from './testLib/BasicDiffer';
 import { timeout } from './lib/timeout';
 import { getMockRemote, getMockRemoteWithMap } from './testLib/MockRemote';
@@ -54,6 +55,35 @@ function makeTestBroadcastChannel(docId: string): EventChannel<any, any, any> {
   };
 }
 
+function makeIndexedDbCoordinatingLocalStoreFactory(
+  docId: string,
+  storeId: string,
+  getRemote?: GetRemoteFn<any, any, any>,
+  addStoreMetadata?: AddStoreMetadataFn<any>,
+): GetLocalStoreFn<any, any, any> {
+  return (userId, clientId, onEvent) => {
+    return new CoordinatingLocalStore<any, any, any>(
+      userId,
+      clientId,
+      onEvent,
+      new IndexedDbCommitRepository(docId, {
+        localIdGenerator: () => storeId,
+        addStoreMetadata,
+      }),
+      getRemote,
+      {
+        initialDelayMs: 0,
+        reconnectBackoffMultiplier: 1,
+        maxReconnectDelayMs: 0,
+        electionTimeoutMs: 0,
+        heartbeatIntervalMs: 10,
+        heartbeatTimeoutMs: 50,
+      },
+      makeTestBroadcastChannel(docId),
+    );
+  };
+}
+
 function makeTestClient(
   userId: string,
   clientId: string,
@@ -65,20 +95,12 @@ function makeTestClient(
   return new TrimergeClient(
     userId,
     clientId,
-    createIndexedDbBackendFactory(docId, {
-      localIdGenerator: () => storeId,
+    makeIndexedDbCoordinatingLocalStoreFactory(
+      docId,
+      storeId,
       getRemote,
-      networkSettings: {
-        initialDelayMs: 0,
-        reconnectBackoffMultiplier: 1,
-        maxReconnectDelayMs: 0,
-        electionTimeoutMs: 0,
-        heartbeatIntervalMs: 10,
-        heartbeatTimeoutMs: 50,
-      },
       addStoreMetadata,
-      localChannel: makeTestBroadcastChannel(docId),
-    }),
+    ),
     differ,
   );
 }
@@ -103,25 +125,17 @@ async function makeTestClientWithRemoteOnEventHandle(
       userId,
       clientId,
       (userId, clientId, onEvent) => {
-        store = new IndexedDbBackend(docId, userId, clientId, onEvent, {
-          localIdGenerator: () => storeId,
-          getRemote: (userId, remoteInfo, onEventParam) => {
+        store = makeIndexedDbCoordinatingLocalStoreFactory(
+          docId,
+          storeId,
+          (userId, remoteInfo, onEventParam) => {
             onRemoteEvent = onEventParam;
             const mockRemote = getMockRemote(userId, remoteInfo, onEventParam);
             resolve();
             return mockRemote;
           },
-          networkSettings: {
-            initialDelayMs: 0,
-            reconnectBackoffMultiplier: 1,
-            maxReconnectDelayMs: 0,
-            electionTimeoutMs: 0,
-            heartbeatIntervalMs: 10,
-            heartbeatTimeoutMs: 50,
-          },
           addStoreMetadata,
-          localChannel: makeTestBroadcastChannel(docId),
-        });
+        )(userId, clientId, onEvent);
         return store;
       },
       differ,

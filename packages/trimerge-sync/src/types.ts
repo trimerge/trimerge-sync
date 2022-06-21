@@ -257,4 +257,6 @@ export interface CommitRepository<CommitMetadata, Delta, Presence> {
   ): Promise<void>;
 
   getRemoteSyncInfo(): Promise<RemoteSyncInfo>;
+
+  shutdown(): void | Promise<void>;
 }

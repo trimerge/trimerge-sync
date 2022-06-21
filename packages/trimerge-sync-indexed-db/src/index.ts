@@ -2,8 +2,8 @@ export {
   createIndexedDbBackendFactory,
   deleteDocDatabase,
   resetDocRemoteSyncData,
-} from './trimerge-indexed-db';
+} from './IndexedDbCommitRepository';
 export type {
   IndexedDbBackendOptions,
   AddStoreMetadataFn,
-} from './trimerge-indexed-db';
+} from './IndexedDbCommitRepository';
