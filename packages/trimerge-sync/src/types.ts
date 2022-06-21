@@ -236,3 +236,25 @@ export interface Remote<CommitMetadata, Delta, Presence> {
   send(event: SyncEvent<CommitMetadata, Delta, Presence>): void;
   shutdown(): void | Promise<void>;
 }
+
+export interface CommitRepository<CommitMetadata, Delta, Presence> {
+  getLocalCommits(): AsyncIterableIterator<
+    CommitsEvent<CommitMetadata, Delta, Presence>
+  >;
+
+  getCommitsForRemote(): AsyncIterableIterator<
+    CommitsEvent<CommitMetadata, Delta, Presence>
+  >;
+
+  addCommits(
+    commits: readonly Commit<CommitMetadata, Delta>[],
+    remoteSyncId: string | undefined,
+  ): Promise<AckCommitsEvent<CommitMetadata>>;
+
+  acknowledgeRemoteCommits(
+    refs: readonly CommitAck<CommitMetadata>[],
+    remoteSyncId: string,
+  ): Promise<void>;
+
+  getRemoteSyncInfo(): Promise<RemoteSyncInfo>;
+}

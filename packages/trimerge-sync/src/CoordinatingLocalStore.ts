@@ -1,17 +1,14 @@
 import {
-  AckCommitsEvent,
   ClientInfo,
   ClientPresenceRef,
   Commit,
-  CommitAck,
-  CommitsEvent,
+  CommitRepository,
   ErrorCode,
   GetRemoteFn,
   LocalStore,
   OnStoreEventFn,
   Remote,
   RemoteStateEvent,
-  RemoteSyncInfo,
   SyncEvent,
 } from './types';
 import {
@@ -37,7 +34,7 @@ const DEFAULT_SETTINGS: NetworkSettings = {
   ...DEFAULT_LEADER_SETTINGS,
 };
 
-export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
+export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   implements LocalStore<CommitMetadata, Delta, Presence>
 {
   private closed = false;
@@ -61,7 +58,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
   private readonly networkSettings: NetworkSettings;
   private initialized = false;
 
-  protected constructor(
+  constructor(
     protected readonly userId: string,
     protected readonly clientId: string,
     private readonly onStoreEvent: OnStoreEventFn<
@@ -69,6 +66,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
       Delta,
       Presence
     >,
+    private readonly commitRepo: CommitRepository<CommitMetadata, Delta, Presence>,
     private readonly getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>,
     networkSettings: Partial<NetworkSettings> = {},
     private localChannel?: EventChannel<CommitMetadata, Delta, Presence>,
@@ -79,31 +77,12 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
       (ev: BroadcastEvent<CommitMetadata, Delta, Presence>) =>
         this.onLocalBroadcastEvent(ev),
     );
+    this.initialize().catch(this.handleAsError('internal'));
   }
 
   public get isRemoteLeader(): boolean {
     return !!this.remote;
   }
-
-  protected abstract getLocalCommits(): AsyncIterableIterator<
-    CommitsEvent<CommitMetadata, Delta, Presence>
-  >;
-
-  protected abstract getCommitsForRemote(): AsyncIterableIterator<
-    CommitsEvent<CommitMetadata, Delta, Presence>
-  >;
-
-  protected abstract addCommits(
-    commits: readonly Commit<CommitMetadata, Delta>[],
-    remoteSyncId: string | undefined,
-  ): Promise<AckCommitsEvent<CommitMetadata>>;
-
-  protected abstract acknowledgeRemoteCommits(
-    refs: readonly CommitAck<CommitMetadata>[],
-    remoteSyncId: string,
-  ): Promise<void>;
-
-  protected abstract getRemoteSyncInfo(): Promise<RemoteSyncInfo>;
 
   private get clientInfo(): ClientInfo<Presence> {
     const { userId, clientId } = this;
@@ -159,13 +138,13 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
 
       case 'commits':
         if (origin === 'remote') {
-          await this.addCommits(event.commits, event.syncId);
+          await this.commitRepo.addCommits(event.commits, event.syncId);
         }
         break;
 
       case 'ack':
         if (origin === 'remote') {
-          await this.acknowledgeRemoteCommits(event.acks, event.syncId);
+          await this.commitRepo.acknowledgeRemoteCommits(event.acks, event.syncId);
           for (const ref of event.acks) {
             this.unacknowledgedRefs.delete(ref.ref);
           }
@@ -325,7 +304,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
           type: 'remote-state',
           connect: 'connecting',
         });
-        const remoteSyncInfo = await this.getRemoteSyncInfo();
+        const remoteSyncInfo = await this.commitRepo.getRemoteSyncInfo();
         this.remote = await this.getRemote(
           this.userId,
           remoteSyncInfo,
@@ -336,7 +315,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
           },
         );
         let saving = false;
-        for await (const event of this.getCommitsForRemote()) {
+        for await (const event of this.commitRepo.getCommitsForRemote()) {
           for (const { ref } of event.commits) {
             this.unacknowledgedRefs.add(ref);
           }
@@ -407,7 +386,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
     }
   }
 
-  protected initialize(): Promise<void> {
+  private initialize(): Promise<void> {
     const { getRemote, networkSettings, initialized } = this;
     if (initialized) {
       throw new Error('only call initialize() once');
@@ -450,7 +429,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
         },
         { local: true },
       );
-      for await (const event of this.getLocalCommits()) {
+      for await (const event of this.commitRepo.getLocalCommits()) {
         await this.sendEvent(event, { self: true });
       }
       await this.sendEvent({ type: 'ready' }, { self: true });
@@ -479,7 +458,7 @@ export abstract class AbstractLocalStore<CommitMetadata, Delta, Presence>
       await this.setRemoteState({ type: 'remote-state', save: 'pending' });
     }
 
-    const ack = await this.addCommits(commits, undefined);
+    const ack = await this.commitRepo.addCommits(commits, undefined);
     await this.sendEvent(ack, { self: true });
     const clientInfo: ClientInfo<Presence> | undefined = presenceRef && {
       ...presenceRef,
