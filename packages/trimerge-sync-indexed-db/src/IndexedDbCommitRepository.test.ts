@@ -780,7 +780,7 @@ describe('createIndexedDbBackendFactory', () => {
       getMockRemoteWithMap(commitMap),
     );
     // Wait for write
-    await timeout(100);
+    await timeout(500);
 
     expect(client2.doc).toEqual(6);
     expect(client2.syncStatus).toMatchInlineSnapshot(`
