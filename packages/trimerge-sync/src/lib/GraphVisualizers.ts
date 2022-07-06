@@ -289,7 +289,6 @@ export function getDotGraph<CommitMetadata>(
 ): string {
   const nodeMap = new Map<string, Node>();
   for (const commit of commits) {
-    // console.log('processing commit', commit.ref);
     let node: Node = new CommitNode<CommitMetadata>(
       commit,
       getEditLabel,
