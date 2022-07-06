@@ -199,7 +199,7 @@ class MetaNode implements Node {
   }
 
   get userId(): string | undefined {
-    return (this.children[0].commit.metadata as any)?.server?.userId;
+    return this.children[0].userId;
   }
 
   get isMain(): boolean {
