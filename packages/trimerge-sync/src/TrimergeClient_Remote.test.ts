@@ -9,7 +9,7 @@ import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
-import { getBasicGraph } from './testLib/GraphVisualizers';
+import { getBasicGraph } from './lib/GraphVisualizers';
 import { SyncStatus } from './types';
 import { timeout } from './lib/Timeout';
 import { resetAll } from './testLib/MemoryBroadcastChannel';

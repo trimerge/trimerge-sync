@@ -9,7 +9,7 @@ import {
   patch,
   computeRef,
 } from './testLib/MergeUtils';
-import { getBasicGraph } from './testLib/GraphVisualizers';
+import { getBasicGraph } from './lib/GraphVisualizers';
 
 type TestMetadata = { ref: string; message: string };
 type TestSavedDoc = any;

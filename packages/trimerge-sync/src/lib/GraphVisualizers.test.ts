@@ -1,16 +1,16 @@
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from '../TrimergeClient';
 import { Differ } from '../differ';
-import { MemoryStore } from './MemoryStore';
+import { MemoryStore } from '../testLib/MemoryStore';
 import {
   computeRef,
   diff,
   mergeAllBranches,
   migrate,
   patch,
-} from './MergeUtils';
+} from '../testLib/MergeUtils';
 import { getBasicGraph, getDotGraph } from './GraphVisualizers';
-import { timeout } from '../lib/Timeout';
+import { timeout } from './Timeout';
 
 type TestMetadata = string;
 type TestSavedDoc = any;
@@ -65,7 +65,7 @@ function dotGraph(
 ) {
   return getDotGraph(
     store.getCommits(),
-    (commit) => client1.getCommitDoc(commit.ref).doc,
+    (commit) => JSON.stringify(client1.getCommitDoc(commit.ref).doc),
     (commit) => commit.metadata,
   );
 }
@@ -111,8 +111,7 @@ Array [
 "digraph {
 \\"X1xFORPw\\" [shape=ellipse, label=\\"initialize\\"]
 \\"OscPQkG7\\" [shape=ellipse, label=\\"initialize\\"]
-\\"F7kQ39Rs\\" [shape=ellipse, label=\\"initialize\\"]
-\\"OscPQkG7\\" -> \\"F7kQ39Rs\\" [label={\\"world\\":\\"3\\"}]
+\\"OscPQkG7:F7kQ39Rs\\" [shape=ellipse, label=\\"2 commits\\"]
 }"
 `);
   });

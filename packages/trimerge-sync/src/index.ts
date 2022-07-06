@@ -6,3 +6,4 @@ export * from './validateCommits';
 export * from './lib/PromiseQueue';
 export * from './lib/EventChannel';
 export * from './merge-all-helper';
+export * from './lib/GraphVisualizers';
