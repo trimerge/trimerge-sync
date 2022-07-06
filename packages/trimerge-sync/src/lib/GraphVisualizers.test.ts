@@ -67,6 +67,8 @@ function dotGraph(
     store.getCommits(),
     (commit) => JSON.stringify(client1.getCommitDoc(commit.ref).doc),
     (commit) => commit.metadata,
+    () => 'test user',
+    () => false,
   );
 }
 
@@ -109,9 +111,8 @@ Array [
 `);
     expect(dotGraph(store, client1)).toMatchInlineSnapshot(`
 "digraph {
-\\"X1xFORPw\\" [shape=ellipse, label=\\"initialize\\"]
-\\"OscPQkG7\\" [shape=ellipse, label=\\"initialize\\"]
-\\"OscPQkG7:F7kQ39Rs\\" [shape=ellipse, label=\\"2 commits\\"]
+\\"X1xFORPw\\" [shape=ellipse, label=\\"initialize\\", color=black, fillcolor=azure, style=filled]
+\\"OscPQkG7:F7kQ39Rs\\" [shape=ellipse, label=\\"OscPQkG:F7kQ39R (2 commits)\\", color=black, fillcolor=beige, style=filled]
 }"
 `);
   });
