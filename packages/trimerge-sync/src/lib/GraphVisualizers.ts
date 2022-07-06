@@ -222,7 +222,7 @@ const COLORS = [
   'lightpink',
 ];
 
-export function getDotGraphFromNodes(nodes: Map<string, Node>): string {
+function getDotGraphFromNodes(nodes: Map<string, Node>): string {
   const lines: string[] = ['digraph {'];
   const renderedNodes = new Set<Node>();
   let nextColorIdx = 0;
@@ -272,6 +272,14 @@ export function getDotGraphFromNodes(nodes: Map<string, Node>): string {
   return lines.join('\n');
 }
 
+/**
+ * This function accepts a list of commits and creates a graphviz DOT digraph.
+ * It uses getEditLabel to label the edges of the graph and getValue to label the nodes.
+ * It uses getUserId to map a commit to its creator and color the nodes based on the creator.
+ * It will use isMain to highlight commits that are on the mainline.
+ *
+ * Chains of nodes created by the same user are grouped together.
+ */
 export function getDotGraph<CommitMetadata>(
   commits: Iterable<Commit<CommitMetadata, unknown>>,
   getEditLabel: (commit: Commit<CommitMetadata, any>) => string,
