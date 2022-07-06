@@ -165,7 +165,6 @@ function isLastChild(node: MetaNode, ref: string): boolean {
 }
 
 class MetaNode implements Node {
-  // potentially this should be nodes
   constructor(readonly children: CommitNode<unknown>[] = []) {
     if (children.length < 2) {
       throw new Error('MetaNode must have at least 2 children');
