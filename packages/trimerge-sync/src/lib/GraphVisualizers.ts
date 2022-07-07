@@ -296,7 +296,8 @@ export function getDotGraph<CommitMetadata>(
       isMain,
     );
 
-    if (commit.baseRef) {
+    // see if we can merge this into an existing node.
+    if (commit.baseRef && node.nodeType !== 'merge') {
       const baseNode = nodeMap.get(commit.baseRef);
       if (!baseNode) {
         throw new Error(
