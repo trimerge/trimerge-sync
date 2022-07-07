@@ -196,8 +196,11 @@ describe('GraphVisualizers', () => {
       \\"1\\" [shape=ellipse, label=\\"first\\", color=black, fillcolor=azure, style=filled]
       \\"2\\" [shape=ellipse, label=\\"second\\", color=black, fillcolor=azure, style=filled]
       \\"1\\" -> \\"2\\" [label=\\"second\\"]
-      \\"3:4\\" [shape=ellipse, label=\\"3:4 (2 commits)\\", color=black, fillcolor=azure, style=filled]
-      \\"1\\" -> \\"3:4\\" [label=\\"\\"]
+      \\"3\\" [shape=ellipse, label=\\"third\\", color=black, fillcolor=azure, style=filled]
+      \\"1\\" -> \\"3\\" [label=\\"third\\"]
+      \\"4\\" [shape=rectangle, label=\\"fourth\\", color=black, fillcolor=azure, style=filled]
+      \\"3\\" -> \\"4\\" [label=left]
+      \\"2\\" -> \\"4\\" [label=right]
       }"
     `);
   });
@@ -260,6 +263,8 @@ describe('GraphVisualizers', () => {
       },
     ];
 
+    console.log(getTestDotGraph(commits, (commit) => commit.metadata));
+
     expect(getTestDotGraph(commits, (commit) => commit.metadata))
       .toMatchInlineSnapshot(`
       "digraph {
@@ -281,6 +286,62 @@ describe('GraphVisualizers', () => {
       \\"merged4s\\" [shape=rectangle, label=\\"eighth\\", color=black, fillcolor=azure, style=filled]
       \\"4\\" -> \\"merged4s\\" [label=left]
       \\"4prime\\" -> \\"merged4s\\" [label=right]
+      }"
+    `);
+  });
+
+  it('doesnt merge merge commits into a metanode', async () => {
+    const commits: Commit<any, any>[] = [
+      {
+        ref: '1',
+        delta: '',
+        metadata: 'first',
+      },
+      {
+        ref: '2',
+        baseRef: '1',
+        delta: '',
+        metadata: 'second',
+      },
+      {
+        ref: '2prime',
+        baseRef: '1',
+        delta: '',
+        metadata: 'third',
+      },
+      {
+        ref: '3',
+        baseRef: '2',
+        delta: '',
+        metadata: 'fourth',
+      },
+      {
+        ref: '4',
+        baseRef: '3',
+        delta: '',
+        metadata: 'fifth',
+      },
+      {
+        ref: '5',
+        baseRef: '4',
+        mergeRef: '2prime',
+        metadata: 'sixth',
+      },
+    ];
+
+    console.log(getTestDotGraph(commits, (commit) => commit.metadata));
+
+    expect(getTestDotGraph(commits, (commit) => commit.metadata))
+      .toMatchInlineSnapshot(`
+      "digraph {
+      \\"1\\" [shape=ellipse, label=\\"first\\", color=black, fillcolor=azure, style=filled]
+      \\"2:4\\" [shape=ellipse, label=\\"2:4 (3 commits)\\", color=black, fillcolor=azure, style=filled]
+      \\"1\\" -> \\"2:4\\" [label=\\"\\"]
+      \\"2prime\\" [shape=ellipse, label=\\"third\\", color=black, fillcolor=azure, style=filled]
+      \\"1\\" -> \\"2prime\\" [label=\\"third\\"]
+      \\"5\\" [shape=rectangle, label=\\"sixth\\", color=black, fillcolor=azure, style=filled]
+      \\"2:4\\" -> \\"5\\" [label=left]
+      \\"2prime\\" -> \\"5\\" [label=right]
       }"
     `);
   });
