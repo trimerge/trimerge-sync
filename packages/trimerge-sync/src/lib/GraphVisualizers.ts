@@ -297,7 +297,7 @@ export function getDotGraph<CommitMetadata>(
     );
 
     // see if we can merge this into an existing node.
-    if (commit.baseRef && node.nodeType !== 'merge') {
+    if (commit.baseRef) {
       const baseNode = nodeMap.get(commit.baseRef);
       if (!baseNode) {
         throw new Error(
@@ -320,6 +320,19 @@ export function getDotGraph<CommitMetadata>(
           } else {
             splitMetaNode(baseNode as MetaNode, commit.baseRef, nodeMap);
           }
+          break;
+      }
+    }
+
+    if (isMergeCommit(commit)) {
+      const mergeNode = nodeMap.get(commit.mergeRef);
+      if (!mergeNode) {
+        throw new Error(
+          `commits should be partially ordered, but could not find ref ${commit.mergeRef}`,
+        );
+      }
+      if (mergeNode.nodeType === 'meta') {
+        splitMetaNode(mergeNode as MetaNode, commit.mergeRef, nodeMap);
       }
     }
 
