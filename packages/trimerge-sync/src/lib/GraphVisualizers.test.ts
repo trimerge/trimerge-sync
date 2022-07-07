@@ -61,7 +61,7 @@ function getTestDotGraph(
   return getDotGraph(
     commits,
     getEditLabel,
-    (commit) => commit.metadata,
+    (commit) => commit.ref,
     () => 'test user',
     () => false,
   );
@@ -121,8 +121,8 @@ describe('GraphVisualizers', () => {
     `);
     expect(dotGraph(store, client1)).toMatchInlineSnapshot(`
       "digraph {
-      \\"X1xFORPw\\" [shape=ellipse, label=\\"initialize\\", color=black, fillcolor=azure, style=filled]
-      \\"OscPQkG7:F7kQ39Rs\\" [shape=ellipse, label=\\"OscPQkG:F7kQ39R (2 commits)\\", color=black, fillcolor=azure, style=filled]
+      \\"X1xFORPw\\" [shape=ellipse, label=\\"X1xFORPw\\", color=black, fillcolor=azure, style=filled]
+      \\"OscPQkG7:F7kQ39Rs\\" [shape=ellipse, label=\\"OscPQkG7:F7kQ39Rs (2 commits)\\", color=black, fillcolor=azure, style=filled]
       }"
     `);
   });
@@ -193,12 +193,12 @@ describe('GraphVisualizers', () => {
     expect(getTestDotGraph(commits, (commit) => commit.metadata))
       .toMatchInlineSnapshot(`
       "digraph {
-      \\"1\\" [shape=ellipse, label=\\"first\\", color=black, fillcolor=azure, style=filled]
-      \\"2\\" [shape=ellipse, label=\\"second\\", color=black, fillcolor=azure, style=filled]
+      \\"1\\" [shape=ellipse, label=\\"1\\", color=black, fillcolor=azure, style=filled]
+      \\"2\\" [shape=ellipse, label=\\"2\\", color=black, fillcolor=azure, style=filled]
       \\"1\\" -> \\"2\\" [label=\\"second\\"]
-      \\"3\\" [shape=ellipse, label=\\"third\\", color=black, fillcolor=azure, style=filled]
+      \\"3\\" [shape=ellipse, label=\\"3\\", color=black, fillcolor=azure, style=filled]
       \\"1\\" -> \\"3\\" [label=\\"third\\"]
-      \\"4\\" [shape=rectangle, label=\\"fourth\\", color=black, fillcolor=azure, style=filled]
+      \\"4\\" [shape=rectangle, label=\\"4\\", color=black, fillcolor=azure, style=filled]
       \\"3\\" -> \\"4\\" [label=left]
       \\"2\\" -> \\"4\\" [label=right]
       }"
@@ -263,27 +263,25 @@ describe('GraphVisualizers', () => {
       },
     ];
 
-    console.log(getTestDotGraph(commits, (commit) => commit.metadata));
-
     expect(getTestDotGraph(commits, (commit) => commit.metadata))
       .toMatchInlineSnapshot(`
       "digraph {
-      \\"1\\" [shape=ellipse, label=\\"first\\", color=black, fillcolor=azure, style=filled]
-      \\"2\\" [shape=ellipse, label=\\"second\\", color=black, fillcolor=azure, style=filled]
+      \\"1\\" [shape=ellipse, label=\\"1\\", color=black, fillcolor=azure, style=filled]
+      \\"2\\" [shape=ellipse, label=\\"2\\", color=black, fillcolor=azure, style=filled]
       \\"1\\" -> \\"2\\" [label=\\"second\\"]
-      \\"3\\" [shape=ellipse, label=\\"third\\", color=black, fillcolor=azure, style=filled]
+      \\"3\\" [shape=ellipse, label=\\"3\\", color=black, fillcolor=azure, style=filled]
       \\"2\\" -> \\"3\\" [label=\\"third\\"]
-      \\"4\\" [shape=ellipse, label=\\"fourth\\", color=black, fillcolor=azure, style=filled]
+      \\"4\\" [shape=ellipse, label=\\"4\\", color=black, fillcolor=azure, style=filled]
       \\"3\\" -> \\"4\\" [label=\\"fourth\\"]
-      \\"5\\" [shape=ellipse, label=\\"fifth\\", color=black, fillcolor=azure, style=filled]
+      \\"5\\" [shape=ellipse, label=\\"5\\", color=black, fillcolor=azure, style=filled]
       \\"4\\" -> \\"5\\" [label=\\"fifth\\"]
-      \\"3prime\\" [shape=ellipse, label=\\"fifth\\", color=black, fillcolor=azure, style=filled]
+      \\"3prime\\" [shape=ellipse, label=\\"3prime\\", color=black, fillcolor=azure, style=filled]
       \\"2\\" -> \\"3prime\\" [label=\\"fifth\\"]
-      \\"4prime\\" [shape=ellipse, label=\\"sixth\\", color=black, fillcolor=azure, style=filled]
+      \\"4prime\\" [shape=ellipse, label=\\"4prime\\", color=black, fillcolor=azure, style=filled]
       \\"3prime\\" -> \\"4prime\\" [label=\\"sixth\\"]
-      \\"5prime\\" [shape=ellipse, label=\\"seventh\\", color=black, fillcolor=azure, style=filled]
+      \\"5prime\\" [shape=ellipse, label=\\"5prime\\", color=black, fillcolor=azure, style=filled]
       \\"4prime\\" -> \\"5prime\\" [label=\\"seventh\\"]
-      \\"merged4s\\" [shape=rectangle, label=\\"eighth\\", color=black, fillcolor=azure, style=filled]
+      \\"merged4s\\" [shape=rectangle, label=\\"merged4s\\", color=black, fillcolor=azure, style=filled]
       \\"4\\" -> \\"merged4s\\" [label=left]
       \\"4prime\\" -> \\"merged4s\\" [label=right]
       }"
@@ -329,17 +327,15 @@ describe('GraphVisualizers', () => {
       },
     ];
 
-    console.log(getTestDotGraph(commits, (commit) => commit.metadata));
-
     expect(getTestDotGraph(commits, (commit) => commit.metadata))
       .toMatchInlineSnapshot(`
       "digraph {
-      \\"1\\" [shape=ellipse, label=\\"first\\", color=black, fillcolor=azure, style=filled]
+      \\"1\\" [shape=ellipse, label=\\"1\\", color=black, fillcolor=azure, style=filled]
       \\"2:4\\" [shape=ellipse, label=\\"2:4 (3 commits)\\", color=black, fillcolor=azure, style=filled]
       \\"1\\" -> \\"2:4\\" [label=\\"\\"]
-      \\"2prime\\" [shape=ellipse, label=\\"third\\", color=black, fillcolor=azure, style=filled]
+      \\"2prime\\" [shape=ellipse, label=\\"2prime\\", color=black, fillcolor=azure, style=filled]
       \\"1\\" -> \\"2prime\\" [label=\\"third\\"]
-      \\"5\\" [shape=rectangle, label=\\"sixth\\", color=black, fillcolor=azure, style=filled]
+      \\"5\\" [shape=rectangle, label=\\"5\\", color=black, fillcolor=azure, style=filled]
       \\"2:4\\" -> \\"5\\" [label=left]
       \\"2prime\\" -> \\"5\\" [label=right]
       }"

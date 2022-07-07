@@ -177,9 +177,9 @@ class MetaNode implements Node {
     }`;
   }
   get label(): string {
-    return `${this.children[0].id.substring(0, 7)}:${this.children[
-      this.children.length - 1
-    ].id.substring(0, 7)} (${this.children.length} commits)`;
+    return `${this.children[0].label}:${
+      this.children[this.children.length - 1].label
+    } (${this.children.length} commits)`;
   }
 
   get editLabel(): string {
