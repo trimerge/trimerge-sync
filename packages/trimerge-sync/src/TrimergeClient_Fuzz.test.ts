@@ -24,6 +24,7 @@ const differ: Differ<TestSavedDoc, TestDoc, TestMetadata, TestPresence> = {
   patch,
   computeRef,
   mergeAllBranches,
+  isNoopDelta: (delta: Delta) => delta === undefined,
 };
 
 function newStore() {

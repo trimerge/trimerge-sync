@@ -34,6 +34,7 @@ export const differ: Differ<SavedAppDoc, LatestAppDoc, string, Delta> = {
   patch: (priorOrNext, delta) => patch(priorOrNext, delta) ?? defaultDoc,
   computeRef,
   mergeAllBranches,
+  isNoopDelta: (delta: Delta | undefined) => delta === undefined,
 };
 
 const DEMO_DOC_ID = 'demo';

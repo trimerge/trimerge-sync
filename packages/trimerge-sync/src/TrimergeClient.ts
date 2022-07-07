@@ -227,11 +227,13 @@ export class TrimergeClient<
     metadata: CommitMetadata,
     presence?: Presence,
   ): Promise<void> {
-    const ref = this.addNewCommit(doc, metadata, false, undefined, undefined);
-    this.setPresence(presence, ref);
-    this.mergeHeads();
-    this.docSubs.emitChange({ origin: 'self' });
-    return await this.sync();
+    const ref = this.addNewCommit(doc, metadata, false);
+    if (ref !== undefined) {
+      this.setPresence(presence, ref);
+      this.mergeHeads();
+      this.docSubs.emitChange({ origin: 'self' });
+      return await this.sync();
+    }
   }
 
   updatePresence(state: Presence) {
@@ -297,6 +299,9 @@ export class TrimergeClient<
       return commit as CommitDoc<LatestDoc, CommitMetadata>;
     }
     const ref = this.addNewCommit(doc, metadata, true, commit);
+    if (ref === undefined) {
+      return commit as CommitDoc<LatestDoc, CommitMetadata>;
+    }
     return { ref, doc, metadata };
   }
 
@@ -446,10 +451,30 @@ export class TrimergeClient<
     newDoc: LatestDoc,
     metadata: CommitMetadata,
     temp: boolean,
+    base: CommitDoc<SavedDoc, CommitMetadata> | undefined,
+    mergeRef: string,
+  ): string;
+  private addNewCommit(
+    newDoc: LatestDoc,
+    metadata: CommitMetadata,
+    temp: boolean,
+    base?: CommitDoc<SavedDoc, CommitMetadata> | undefined,
+    mergeRef?: string,
+  ): string | undefined;
+  private addNewCommit(
+    newDoc: LatestDoc,
+    metadata: CommitMetadata,
+    temp: boolean,
     base: CommitDoc<SavedDoc, CommitMetadata> | undefined = this.lastSavedDoc,
     mergeRef?: string,
-  ): string {
+  ): string | undefined {
     const delta = this.differ.diff(base?.doc, newDoc);
+    if (this.differ.isNoopDelta(delta) && mergeRef === undefined) {
+      if (base !== undefined) {
+        this.docs.set(base.ref, { ...base, doc: newDoc });
+      }
+      return;
+    }
     const baseRef = base?.ref;
     const ref = this.differ.computeRef(baseRef, mergeRef, delta);
     if (this.addNewCommitMetadata) {

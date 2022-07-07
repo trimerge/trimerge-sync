@@ -14,6 +14,7 @@ const JDP_DIFFER: Differ<any, any, any, any> = {
   mergeAllBranches: () => null,
   patch: (base, delta) => jsonDiffPatch.patch(base, JSON.parse(delta)),
   computeRef: (baseRef, _, delta) => `${baseRef}-${JSON.stringify(delta)}`,
+  isNoopDelta: (delta) => delta === undefined,
 };
 
 const NOOP_DIFFER: Differ<any, any, any, any> = {
@@ -22,6 +23,7 @@ const NOOP_DIFFER: Differ<any, any, any, any> = {
   mergeAllBranches: () => null,
   patch: () => null,
   computeRef: () => 'hash',
+  isNoopDelta: () => false,
 };
 
 function makeTrimergeClient(
@@ -115,7 +117,9 @@ Object {
         },
         false,
       ),
-    ).toThrowErrorMatchingInlineSnapshot(`"unknown baseRef for commit a: unknown"`);
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"unknown baseRef for commit a: unknown"`,
+    );
   });
   it('handles event with invalid mergeRef', async () => {
     const { onEvent } = makeTrimergeClient();
@@ -133,7 +137,9 @@ Object {
         },
         false,
       ),
-    ).toThrowErrorMatchingInlineSnapshot(`"unknown mergeRef for commit a: unknown"`);
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"unknown mergeRef for commit a: unknown"`,
+    );
   });
 
   it('handles internal error', async () => {

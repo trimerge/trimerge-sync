@@ -29,6 +29,7 @@ function makeClientV1(
     patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
     computeRef,
     mergeAllBranches,
+    isNoopDelta: (delta: Delta | undefined) => delta === undefined,
   });
 }
 function makeClientV2(
@@ -51,6 +52,7 @@ function makeClientV2(
     patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
     computeRef,
     mergeAllBranches,
+    isNoopDelta: (delta: Delta | undefined) => delta === undefined,
   });
 }
 
