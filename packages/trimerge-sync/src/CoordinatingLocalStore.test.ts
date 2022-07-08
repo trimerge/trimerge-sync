@@ -37,7 +37,9 @@ class MockCommitRepository
     //
   }
 
-  shutdown() {}
+  shutdown() {
+    //
+  }
 }
 
 class MockRemote implements Remote<unknown, unknown, unknown> {
