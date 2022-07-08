@@ -18,6 +18,7 @@ import {
 } from './lib/LeaderManager';
 import { PromiseQueue } from './lib/PromiseQueue';
 import { BroadcastEvent, EventChannel } from './lib/EventChannel';
+import { DeltaCodec } from './DeltaCodec';
 
 export type NetworkSettings = Readonly<
   {
@@ -34,15 +35,19 @@ const DEFAULT_SETTINGS: NetworkSettings = {
   ...DEFAULT_LEADER_SETTINGS,
 };
 
-export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
-  implements LocalStore<CommitMetadata, Delta, Presence>
+export class CoordinatingLocalStore<
+  CommitMetadata,
+  Delta,
+  Presence,
+  SerializedDelta,
+> implements LocalStore<CommitMetadata, Delta, Presence>
 {
   private closed = false;
   private presence: ClientPresenceRef<Presence> = {
     ref: undefined,
     presence: undefined,
   };
-  private remote: Remote<CommitMetadata, Delta, Presence> | undefined;
+  private remote: Remote<CommitMetadata, SerializedDelta, Presence> | undefined;
   private reconnectTimeout: ReturnType<typeof setTimeout> | undefined;
   private reconnectDelayMs: number;
   private remoteSyncState: RemoteStateEvent = {
@@ -61,24 +66,30 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   constructor(
     protected readonly userId: string,
     protected readonly clientId: string,
-    private readonly onStoreEvent: OnStoreEventFn<
-      CommitMetadata,
-      Delta,
-      Presence
-    >,
+    // These are the events that are consumed by the TrimergeClient
+    private readonly emit: OnStoreEventFn<CommitMetadata, Delta, Presence>,
     private readonly commitRepo: CommitRepository<
       CommitMetadata,
-      Delta,
+      SerializedDelta,
       Presence
     >,
-    private readonly getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>,
+    private readonly deltaCodec: DeltaCodec<Delta, SerializedDelta>,
+    private readonly getRemote?: GetRemoteFn<
+      CommitMetadata,
+      SerializedDelta,
+      Presence
+    >,
     networkSettings: Partial<NetworkSettings> = {},
-    private localChannel?: EventChannel<CommitMetadata, Delta, Presence>,
+    private localChannel?: EventChannel<
+      CommitMetadata,
+      SerializedDelta,
+      Presence
+    >,
   ) {
     this.networkSettings = { ...DEFAULT_SETTINGS, ...networkSettings };
     this.reconnectDelayMs = this.networkSettings.initialDelayMs;
     localChannel?.onEvent(
-      (ev: BroadcastEvent<CommitMetadata, Delta, Presence>) =>
+      (ev: BroadcastEvent<CommitMetadata, SerializedDelta, Presence>) =>
         this.onLocalBroadcastEvent(ev),
     );
     this.initialize().catch(this.handleAsError('internal'));
@@ -91,6 +102,24 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private get clientInfo(): ClientInfo<Presence> {
     const { userId, clientId } = this;
     return { userId, clientId, ...this.presence };
+  }
+
+  private serializeCommit(
+    commit: Commit<CommitMetadata, Delta>,
+  ): Commit<CommitMetadata, SerializedDelta> {
+    return {
+      ...commit,
+      delta: this.deltaCodec.encode(commit.delta),
+    };
+  }
+
+  private deserializeCommit(
+    commit: Commit<CommitMetadata, SerializedDelta>,
+  ): Commit<CommitMetadata, Delta> {
+    return {
+      ...commit,
+      delta: this.deltaCodec.decode(commit.delta),
+    };
   }
 
   private async setRemoteState(update: RemoteStateEvent): Promise<void> {
@@ -108,7 +137,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   }
 
   protected processEvent = async (
-    event: SyncEvent<CommitMetadata, Delta, Presence>,
+    event: SyncEvent<CommitMetadata, SerializedDelta, Presence>,
     // Three sources of events: local broadcast, remote broadcast, and remote via local broadcast
     origin: 'local' | 'remote' | 'remote-via-local',
   ): Promise<void> => {
@@ -216,7 +245,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private onLocalBroadcastEvent({
     event,
     remoteOrigin,
-  }: BroadcastEvent<CommitMetadata, Delta, Presence>): void {
+  }: BroadcastEvent<CommitMetadata, SerializedDelta, Presence>): void {
     this.localQueue
       .add(() =>
         this.processEvent(event, remoteOrigin ? 'remote-via-local' : 'local'),
@@ -369,8 +398,9 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       void this.shutdown();
     };
   }
+
   protected async sendEvent(
-    event: SyncEvent<CommitMetadata, Delta, Presence>,
+    event: SyncEvent<CommitMetadata, SerializedDelta, Presence>,
     {
       remote = false,
       local = false,
@@ -380,7 +410,17 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   ): Promise<void> {
     if (self) {
       try {
-        this.onStoreEvent(event, remoteOrigin);
+        const clientEvent: SyncEvent<CommitMetadata, Delta, Presence> =
+          event.type === 'commits'
+            ? {
+                ...event,
+                commits: event.commits.map(this.deserializeCommit) as Commit<
+                  CommitMetadata,
+                  Delta
+                >[],
+              }
+            : event;
+        this.emit(clientEvent, remoteOrigin);
       } catch (e) {
         console.error(`[TRIMERGE-SYNC] local error handling event`, e);
         void this.shutdown();
@@ -391,7 +431,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       await this.localChannel?.sendEvent({ event, remoteOrigin });
     }
     if (remote && this.remote) {
-      await this.remote.send(event);
+      this.remote.send(event);
     }
   }
 
@@ -467,7 +507,8 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       await this.setRemoteState({ type: 'remote-state', save: 'pending' });
     }
 
-    const ack = await this.commitRepo.addCommits(commits, undefined);
+    const serializedCommits = commits.map(this.serializeCommit);
+    const ack = await this.commitRepo.addCommits(serializedCommits, undefined);
     await this.sendEvent(ack, { self: true });
     const clientInfo: ClientInfo<Presence> | undefined = presenceRef && {
       ...presenceRef,
@@ -479,7 +520,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       await this.sendEvent(
         {
           type: 'commits',
-          commits,
+          commits: serializedCommits,
           syncId: ack.syncId,
           clientInfo,
         },

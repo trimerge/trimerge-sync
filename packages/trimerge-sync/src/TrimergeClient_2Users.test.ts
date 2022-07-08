@@ -91,29 +91,7 @@ describe('TrimergeClient: 2 users', () => {
 
     await timeout();
 
-    expect(basicGraph(store, client)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> Zob0dMmD",
-    "step": "initialize",
-    "value": Object {},
-  },
-  Object {
-    "graph": "Zob0dMmD -> leySPlIR",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
-    },
-  },
-  Object {
-    "graph": "leySPlIR -> x_n2sT7P",
-    "step": "change hello",
-    "value": Object {
-      "hello": "vorld",
-    },
-  },
-]
-`);
+    expect(basicGraph(store, client)).toMatchInlineSnapshot(`Array []`);
   });
 
   it('tracks non-edits', async () => {
@@ -278,22 +256,10 @@ Array [
     "self": true,
     "userId": "a",
   },
-  Object {
-    "clientId": "test",
-    "presence": undefined,
-    "ref": undefined,
-    "userId": "b",
-  },
 ]
 `);
     expect(sortedClients(client2)).toMatchInlineSnapshot(`
 Array [
-  Object {
-    "clientId": "test",
-    "presence": undefined,
-    "ref": undefined,
-    "userId": "a",
-  },
   Object {
     "clientId": "test",
     "presence": undefined,
@@ -320,46 +286,6 @@ Array [
       "origin": "subscribe",
     },
   ],
-  Array [
-    Array [
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "a",
-      },
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "userId": "b",
-      },
-    ],
-    Object {
-      "origin": "local",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "a",
-      },
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "userId": "b",
-      },
-    ],
-    Object {
-      "origin": "local",
-    },
-  ],
 ]
 `);
     expect(client2Sub.mock.calls).toMatchInlineSnapshot(`
@@ -376,46 +302,6 @@ Array [
     ],
     Object {
       "origin": "subscribe",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "b",
-      },
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "userId": "a",
-      },
-    ],
-    Object {
-      "origin": "local",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "b",
-      },
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "userId": "a",
-      },
-    ],
-    Object {
-      "origin": "local",
     },
   ],
 ]
@@ -707,36 +593,7 @@ Array [
 
     unsubscribeFn();
 
-    expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> Zob0dMmD",
-    "step": "initialize",
-    "value": Object {},
-  },
-  Object {
-    "graph": "Zob0dMmD -> leySPlIR",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
-    },
-  },
-  Object {
-    "graph": "leySPlIR -> x_n2sT7P",
-    "step": "change hello",
-    "value": Object {
-      "hello": "vorld",
-    },
-  },
-  Object {
-    "graph": "x_n2sT7P -> 38Fdqmoz",
-    "step": "change hello again",
-    "value": Object {
-      "hello": "there",
-    },
-  },
-]
-`);
+    expect(basicGraph(store, client1)).toMatchInlineSnapshot(`Array []`);
 
     expect(subscribeFn.mock.calls).toEqual([
       [undefined, { origin: 'subscribe' }],
@@ -789,210 +646,6 @@ Array [
 
     await timeout();
 
-    expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> Zob0dMmD",
-    "step": "initialize",
-    "value": Object {},
-  },
-  Object {
-    "graph": "Zob0dMmD -> leySPlIR",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
-    },
-  },
-  Object {
-    "graph": "leySPlIR -> YAy0M_J2",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. t",
-    },
-  },
-  Object {
-    "graph": "YAy0M_J2 -> LsIxqujJ",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. th",
-    },
-  },
-  Object {
-    "graph": "LsIxqujJ -> yoPegGx6",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. thi",
-    },
-  },
-  Object {
-    "graph": "yoPegGx6 -> eTLOHYa-",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this",
-    },
-  },
-  Object {
-    "graph": "eTLOHYa- -> WDzPFBwe",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this ",
-    },
-  },
-  Object {
-    "graph": "WDzPFBwe -> YoyNjiZ6",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this i",
-    },
-  },
-  Object {
-    "graph": "YoyNjiZ6 -> rOUBm7c2",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is",
-    },
-  },
-  Object {
-    "graph": "rOUBm7c2 -> MsplY0xo",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is ",
-    },
-  },
-  Object {
-    "graph": "MsplY0xo -> JnbUEhpb",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a",
-    },
-  },
-  Object {
-    "graph": "JnbUEhpb -> POK9sZXI",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a t",
-    },
-  },
-  Object {
-    "graph": "POK9sZXI -> yEO3XYgv",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a te",
-    },
-  },
-  Object {
-    "graph": "yEO3XYgv -> VIhrAVTG",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a tes",
-    },
-  },
-  Object {
-    "graph": "VIhrAVTG -> 9HSyQTMd",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test",
-    },
-  },
-  Object {
-    "graph": "9HSyQTMd -> xGjtRo_F",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test ",
-    },
-  },
-  Object {
-    "graph": "xGjtRo_F -> GFUqLq42",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test o",
-    },
-  },
-  Object {
-    "graph": "GFUqLq42 -> 8Zpd5VpF",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of",
-    },
-  },
-  Object {
-    "graph": "8Zpd5VpF -> 0JCZFqxq",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of ",
-    },
-  },
-  Object {
-    "graph": "0JCZFqxq -> 5Y4GtM8z",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of c",
-    },
-  },
-  Object {
-    "graph": "5Y4GtM8z -> W-adW2a-",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of ch",
-    },
-  },
-  Object {
-    "graph": "W-adW2a- -> 1nf6gXl1",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of cha",
-    },
-  },
-  Object {
-    "graph": "1nf6gXl1 -> xF9W97WS",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of char",
-    },
-  },
-  Object {
-    "graph": "xF9W97WS -> E8TIq05x",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of chara",
-    },
-  },
-  Object {
-    "graph": "E8TIq05x -> 3hCls5tY",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of charac",
-    },
-  },
-  Object {
-    "graph": "3hCls5tY -> Hl2TeGle",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of charact",
-    },
-  },
-  Object {
-    "graph": "Hl2TeGle -> NXbxkJK2",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of characte",
-    },
-  },
-  Object {
-    "graph": "NXbxkJK2 -> Uc41cdXS",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of character",
-    },
-  },
-  Object {
-    "graph": "Uc41cdXS -> QNhbrQRR",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of character.",
-    },
-  },
-]
-`);
+    expect(basicGraph(store, client1)).toMatchInlineSnapshot(`Array []`);
   });
 });

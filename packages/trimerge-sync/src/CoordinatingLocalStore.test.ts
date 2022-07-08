@@ -1,4 +1,5 @@
 import { CoordinatingLocalStore } from './CoordinatingLocalStore';
+import { JSON_DELTA_CODEC } from './DeltaCodec';
 import { timeout } from './lib/Timeout';
 import {
   AckCommitsEvent,
@@ -62,6 +63,7 @@ describe('CoordinatingLocalStore', () => {
       '',
       fn,
       new MockCommitRepository(),
+      JSON_DELTA_CODEC,
     );
     await store.shutdown();
     await store.shutdown();
@@ -89,7 +91,7 @@ describe('CoordinatingLocalStore', () => {
     const fn = jest.fn();
     let mockRemote: MockRemote;
     let sendSpy: jest.SpyInstance;
-    let localStore: CoordinatingLocalStore<unknown, unknown, unknown>;
+    let localStore: CoordinatingLocalStore<unknown, unknown, unknown, unknown>;
 
     await new Promise<void>((resolve) => {
       localStore = new CoordinatingLocalStore(
@@ -97,6 +99,7 @@ describe('CoordinatingLocalStore', () => {
         '',
         fn,
         new MockCommitRepository(),
+        JSON_DELTA_CODEC,
         (_, __, onEvent) => {
           mockRemote = new MockRemote(onEvent);
           sendSpy = jest.spyOn(mockRemote, 'send');
@@ -142,6 +145,7 @@ describe('CoordinatingLocalStore', () => {
       '',
       fn,
       new MockCommitRepository(),
+      JSON_DELTA_CODEC,
     );
     await store.update([], undefined);
     expect(fn.mock.calls).toMatchInlineSnapshot(`

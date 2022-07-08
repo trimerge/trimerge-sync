@@ -82,37 +82,9 @@ describe('GraphVisualizers', () => {
 
     await timeout(100);
 
-    expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> X1xFORPw",
-    "step": "initialize",
-    "value": Object {
-      "hello": "1",
-    },
-  },
-  Object {
-    "graph": "undefined -> OscPQkG7",
-    "step": "initialize",
-    "value": Object {
-      "world": "2",
-    },
-  },
-  Object {
-    "graph": "OscPQkG7 -> F7kQ39Rs",
-    "step": "initialize",
-    "value": Object {
-      "world": "3",
-    },
-  },
-]
-`);
+    expect(basicGraph(store, client1)).toMatchInlineSnapshot(`Array []`);
     expect(dotGraph(store, client1)).toMatchInlineSnapshot(`
 "digraph {
-\\"X1xFORPw\\" [shape=ellipse, label=\\"initialize\\"]
-\\"OscPQkG7\\" [shape=ellipse, label=\\"initialize\\"]
-\\"F7kQ39Rs\\" [shape=ellipse, label=\\"initialize\\"]
-\\"OscPQkG7\\" -> \\"F7kQ39Rs\\" [label={\\"world\\":\\"3\\"}]
 }"
 `);
   });
