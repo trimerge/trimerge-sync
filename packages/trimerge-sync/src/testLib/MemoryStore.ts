@@ -9,8 +9,10 @@ import {
 } from '../types';
 import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
-import { MemoryLocalStore } from './MemoryLocalStore';
+import { MemoryCommitRepository } from './MemoryCommitRepository';
 import { MemoryRemote } from './MemoryRemote';
+import { CoordinatingLocalStore } from '../CoordinatingLocalStore';
+import { MemoryEventChannel } from './MemoryBroadcastChannel';
 
 function getSyncCounter(syncCursor: string): number {
   return parseInt(syncCursor, 36);
@@ -28,11 +30,11 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
   private readonly localStoreId = randomId();
   private lastRemoteSyncCursor: string | undefined;
   private queue = new PromiseQueue();
-  private readonly localStores: MemoryLocalStore<
+  private readonly localStores: {store: CoordinatingLocalStore<
     CommitMetadata,
     Delta,
     Presence
-  >[] = [];
+  >, eventChannel: MemoryEventChannel<CommitMetadata, Delta, Presence>}[] = [];
 
   public writeErrorMode = false;
 
@@ -52,7 +54,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
 
   public set localNetworkPaused(paused: boolean) {
     for (const local of this.localStores) {
-      local.channel.paused = paused;
+      local.eventChannel.paused = paused;
     }
   }
 
@@ -61,14 +63,27 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     clientId,
     onEvent,
   ) => {
-    const store = new MemoryLocalStore(
-      this,
+
+    const eventChannel = new MemoryEventChannel<CommitMetadata, Delta, Presence>(
+        'local:' + this.channelName,
+      );
+    const store = new CoordinatingLocalStore(
       userId,
       clientId,
       onEvent,
+      new MemoryCommitRepository(this),
       this.getRemoteFn,
+      {
+        initialDelayMs: 0,
+        reconnectBackoffMultiplier: 1,
+        maxReconnectDelayMs: 0,
+        electionTimeoutMs: 0,
+        heartbeatIntervalMs: 10,
+        heartbeatTimeoutMs: 50,
+      },
+      eventChannel,
     );
-    this.localStores.push(store);
+    this.localStores.push({store, eventChannel});
     return store;
   };
 
@@ -164,7 +179,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
         await remote.shutdown();
       }
       for (const local of this.localStores) {
-        await local.shutdown();
+        await local.store.shutdown();
       }
     });
   }

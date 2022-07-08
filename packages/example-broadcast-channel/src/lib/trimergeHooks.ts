@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ClientList, Differ, SyncStatus, TrimergeClient } from 'trimerge-sync';
 import {
-  createIndexedDbBackendFactory,
+  ClientList,
+  CoordinatingLocalStore,
+  Differ,
+  SyncStatus,
+  TrimergeClient,
+  GetLocalStoreFn,
+} from 'trimerge-sync';
+import {
+  IndexedDbCommitRepository,
   deleteDocDatabase,
 } from 'trimerge-sync-indexed-db';
 import { WebsocketRemote } from 'trimerge-sync-basic-client';
@@ -17,6 +24,30 @@ const TRIMERGE_CLIENT_CACHE: Record<
   string,
   TrimergeClient<any, any, any, any, any>
 > = {};
+
+function createIndexedDbBackendFactory(
+  docId: string,
+): GetLocalStoreFn<any, any, any> {
+  return (userId, clientId, onEvent) => {
+    const store = new CoordinatingLocalStore(
+      userId,
+      clientId,
+      onEvent,
+      new IndexedDbCommitRepository(docId, {
+        localIdGenerator: randomId,
+        remoteId: 'localhost',
+      }),
+      (userId, lastSyncId, onEvent) =>
+        new WebsocketRemote(
+          { userId, readonly: false },
+          lastSyncId,
+          onEvent,
+          `ws://localhost:4444/${encodeURIComponent(docId)}`,
+        ),
+    );
+    return store;
+  };
+}
 
 function getCachedTrimergeClient<
   SavedDoc,
@@ -34,17 +65,7 @@ function getCachedTrimergeClient<
     TRIMERGE_CLIENT_CACHE[key] = new TrimergeClient(
       userId,
       clientId,
-      createIndexedDbBackendFactory(docId, {
-        getRemote: (userId, lastSyncId, onEvent) =>
-          new WebsocketRemote(
-            { userId, readonly: false },
-            lastSyncId,
-            onEvent,
-            `ws://localhost:4444/${encodeURIComponent(docId)}`,
-          ),
-        localIdGenerator: randomId,
-        remoteId: 'localhost',
-      }),
+      createIndexedDbBackendFactory(docId),
       differ,
     );
   }

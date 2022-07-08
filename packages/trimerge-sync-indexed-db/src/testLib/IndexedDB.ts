@@ -1,4 +1,4 @@
-import { getIDBPDatabase } from '../trimerge-indexed-db';
+import { getIDBPDatabase } from '../IndexedDbCommitRepository';
 
 export function getIdbDatabases(): Promise<
   { name: string; version: number }[]

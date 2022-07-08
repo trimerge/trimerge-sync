@@ -96,6 +96,7 @@ function newRemoteStore(online?: boolean) {
 }
 
 describe('Remote sync', () => {
+  jest.setTimeout(30000);
   it('syncs one client to a remote', async () => {
     const remoteStore = newStore();
     const localStore = newStore(remoteStore);
@@ -685,7 +686,7 @@ describe('Remote sync', () => {
     `);
   });
 
-  it('syncs one clients to a store multiple times', async () => {
+  it('syncs one client to a store multiple times', async () => {
     const remoteStore = newStore();
     const localStore = newStore(remoteStore);
     const client = makeClient('a', 'test', localStore);
@@ -696,7 +697,7 @@ describe('Remote sync', () => {
     await client.updateDoc({}, 'initialize');
     await client.updateDoc({ hello: 'world' }, 'add hello');
 
-    await timeout();
+    await timeout(100);
 
     // Kill the "connection"
     remoteStore.remotes[0].fail('testing', 'network');
