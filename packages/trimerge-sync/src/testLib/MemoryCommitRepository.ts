@@ -8,12 +8,9 @@ import {
 } from '../types';
 import { MemoryStore } from './MemoryStore';
 
-export class MemoryCommitRepository<
-  CommitMetadata,
-  Delta,
-  Presence,
-> implements CommitRepository<CommitMetadata, Delta, Presence> {
-
+export class MemoryCommitRepository<CommitMetadata, Delta, Presence>
+  implements CommitRepository<CommitMetadata, Delta, Presence>
+{
   constructor(
     private readonly store: MemoryStore<CommitMetadata, Delta, Presence>,
   ) {}
@@ -49,5 +46,6 @@ export class MemoryCommitRepository<
   }
 
   async shutdown(): Promise<void> {
+    // noop
   }
 }
