@@ -25,5 +25,5 @@
 
     "pretty": true
   },
-  "include": ["packages/*/src", "example/*/src"]
+  "include": ["packages/*/src"]
 }
