@@ -11,7 +11,7 @@ import {
   IndexedDbCommitRepository,
   deleteDocDatabase,
 } from 'trimerge-sync-indexed-db';
-import { WebsocketRemote } from 'submodules/trimerge-sync/example/trimerge-sync-basic-client/src';
+import { WebsocketRemote } from 'trimerge-sync-basic-client';
 import { randomId } from './randomId';
 
 export type UpdateDocFn<LatestDoc, CommitMetadata> = (
