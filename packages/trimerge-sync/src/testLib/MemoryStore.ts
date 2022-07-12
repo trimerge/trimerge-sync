@@ -67,7 +67,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     const eventChannel = new MemoryEventChannel<CommitMetadata, Delta, Presence>(
         'local:' + this.channelName,
       );
-    const store = new CoordinatingLocalStore(
+    const store = new CoordinatingLocalStore<CommitMetadata, Delta, Presence>(
       userId,
       clientId,
       onEvent,
