@@ -51,8 +51,16 @@ function getDatabaseName(docId: string): string {
  *
  * CAUSES DATA LOSS!
  */
-export function deleteDocDatabase(docId: string): Promise<void> {
-  return deleteDB(getDatabaseName(docId));
+export function deleteDocDatabase(
+  docId: string,
+  {
+    blocked,
+  }: {
+    /** callback to execute if the db has active connections. */
+    blocked: () => void;
+  },
+): Promise<void> {
+  return deleteDB(getDatabaseName(docId), { blocked });
 }
 
 /**
@@ -78,7 +86,7 @@ export async function resetDocRemoteSyncData(docId: string): Promise<void> {
 export function getIDBPDatabase<CommitMetadata, Delta>(
   docId: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
-  return createIndexedDb(getDatabaseName(docId));
+  return getDocDatabase(getDatabaseName(docId));
 }
 export type AddStoreMetadataFn<CommitMetadata> = (
   commit: Commit<CommitMetadata>,
@@ -227,7 +235,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
       );
       await timeout(3_000);
     }
-    const db = await createIndexedDb<CommitMetadata, Delta>(this.dbName);
+    const db = await getDocDatabase<CommitMetadata, Delta>(this.dbName);
     db.onclose = () => {
       this.db = this.connect(true);
     };
@@ -416,7 +424,13 @@ interface TrimergeSyncDbSchema<CommitMetadata, Delta> extends DBSchema {
   };
 }
 
-export function createIndexedDb<CommitMetadata, Delta>(
+export function getDocDatabase<CommitMetadata, Delta>(
+  docId: string,
+): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
+  return createIndexedDb(getDatabaseName(docId));
+}
+
+function createIndexedDb<CommitMetadata, Delta>(
   dbName: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
   return openDB(dbName, 2, {
