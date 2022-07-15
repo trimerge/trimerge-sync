@@ -86,7 +86,7 @@ export async function resetDocRemoteSyncData(docId: string): Promise<void> {
 export function getIDBPDatabase<CommitMetadata, Delta>(
   docId: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
-  return getDocDatabase(getDatabaseName(docId));
+  return createIndexedDb(getDatabaseName(docId));
 }
 export type AddStoreMetadataFn<CommitMetadata> = (
   commit: Commit<CommitMetadata>,
@@ -235,7 +235,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
       );
       await timeout(3_000);
     }
-    const db = await getDocDatabase<CommitMetadata, Delta>(this.dbName);
+    const db = await createIndexedDb<CommitMetadata, Delta>(this.dbName);
     db.onclose = () => {
       this.db = this.connect(true);
     };
@@ -422,12 +422,6 @@ interface TrimergeSyncDbSchema<CommitMetadata, Delta> extends DBSchema {
       lastSyncCursor?: string;
     };
   };
-}
-
-export function getDocDatabase<CommitMetadata, Delta>(
-  docId: string,
-): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
-  return createIndexedDb(getDatabaseName(docId));
 }
 
 function createIndexedDb<CommitMetadata, Delta>(

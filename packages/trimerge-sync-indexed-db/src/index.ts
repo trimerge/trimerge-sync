@@ -2,7 +2,7 @@ export {
   IndexedDbCommitRepository,
   deleteDocDatabase,
   resetDocRemoteSyncData,
-  getDocDatabase,
+  getIDBPDatabase,
 } from './IndexedDbCommitRepository';
 export type {
   IndexedDbBackendOptions,
