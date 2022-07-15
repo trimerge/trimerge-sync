@@ -416,7 +416,7 @@ interface TrimergeSyncDbSchema<CommitMetadata, Delta> extends DBSchema {
   };
 }
 
-function createIndexedDb<CommitMetadata, Delta>(
+export function createIndexedDb<CommitMetadata, Delta>(
   dbName: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
   return openDB(dbName, 2, {
