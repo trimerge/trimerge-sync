@@ -56,8 +56,8 @@ export function deleteDocDatabase(
   {
     blocked,
   }: {
-    /** callback to execute if the db has active connections. */
-    blocked: () => void;
+    /** callback to execute if the DB deletion was blocked due to the DB having active connections. */
+    blocked?: () => void;
   },
 ): Promise<void> {
   return deleteDB(getDatabaseName(docId), { blocked });
