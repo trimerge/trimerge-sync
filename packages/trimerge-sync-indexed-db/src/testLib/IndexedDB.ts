@@ -1,4 +1,4 @@
-import { getIDBPDatabase } from '../IndexedDbCommitRepository';
+import { getIdbpDatabase } from '../IndexedDbCommitRepository';
 
 export function getIdbDatabases(): Promise<
   { name: string; version: number }[]
@@ -9,7 +9,7 @@ export function getIdbDatabases(): Promise<
 }
 
 export async function dumpDatabase(docId: string): Promise<any> {
-  const idb = await getIDBPDatabase(docId);
+  const idb = await getIdbpDatabase(docId);
   const dump: any = {};
   for (const name of idb.objectStoreNames) {
     dump[name] = await idb.getAll(name);

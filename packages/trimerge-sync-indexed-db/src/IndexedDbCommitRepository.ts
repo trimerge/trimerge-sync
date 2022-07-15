@@ -69,7 +69,7 @@ export function deleteDocDatabase(
  * Should not cause data loss.
  */
 export async function resetDocRemoteSyncData(docId: string): Promise<void> {
-  const db = await getIDBPDatabase(docId);
+  const db = await getIdbpDatabase(docId);
   const tx = await db.transaction(['remotes', 'commits'], 'readwrite');
   const remotes = tx.objectStore('remotes');
   const commits = tx.objectStore('commits');
@@ -83,7 +83,7 @@ export async function resetDocRemoteSyncData(docId: string): Promise<void> {
   await tx.done;
 }
 
-export function getIDBPDatabase<CommitMetadata, Delta>(
+export function getIdbpDatabase<CommitMetadata, Delta>(
   docId: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
   return createIndexedDb(getDatabaseName(docId));
