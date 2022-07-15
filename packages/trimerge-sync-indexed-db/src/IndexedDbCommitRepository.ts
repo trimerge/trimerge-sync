@@ -51,8 +51,16 @@ function getDatabaseName(docId: string): string {
  *
  * CAUSES DATA LOSS!
  */
-export function deleteDocDatabase(docId: string): Promise<void> {
-  return deleteDB(getDatabaseName(docId));
+export function deleteDocDatabase(
+  docId: string,
+  {
+    blocked,
+  }: {
+    /** callback to execute if the DB deletion was blocked due to the DB having active connections. */
+    blocked?: () => void;
+  } = {},
+): Promise<void> {
+  return deleteDB(getDatabaseName(docId), { blocked });
 }
 
 /**
@@ -61,7 +69,7 @@ export function deleteDocDatabase(docId: string): Promise<void> {
  * Should not cause data loss.
  */
 export async function resetDocRemoteSyncData(docId: string): Promise<void> {
-  const db = await getIDBPDatabase(docId);
+  const db = await getIdbpDatabase(docId);
   const tx = await db.transaction(['remotes', 'commits'], 'readwrite');
   const remotes = tx.objectStore('remotes');
   const commits = tx.objectStore('commits');
@@ -75,7 +83,7 @@ export async function resetDocRemoteSyncData(docId: string): Promise<void> {
   await tx.done;
 }
 
-export function getIDBPDatabase<CommitMetadata, Delta>(
+export function getIdbpDatabase<CommitMetadata, Delta>(
   docId: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
   return createIndexedDb(getDatabaseName(docId));
