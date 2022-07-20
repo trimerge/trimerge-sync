@@ -7,3 +7,4 @@ export * from './lib/PromiseQueue';
 export * from './lib/EventChannel';
 export * from './lib/mergeMetadata';
 export * from './merge-all-helper';
+export * from './DeltaCodec';

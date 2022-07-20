@@ -10,6 +10,7 @@ import {
   LocalStore,
   OnRemoteEventFn,
   RemoteSyncInfo,
+  JSON_DELTA_CODEC,
 } from 'trimerge-sync';
 import { TrimergeClient } from 'trimerge-sync';
 import {
@@ -62,7 +63,7 @@ function makeIndexedDbCoordinatingLocalStoreFactory(
   addStoreMetadata?: AddStoreMetadataFn<any>,
 ): GetLocalStoreFn<any, any, any> {
   return (userId, clientId, onEvent) => {
-    return new CoordinatingLocalStore<any, any, any>(
+    return new CoordinatingLocalStore<any, any, any, string>(
       userId,
       clientId,
       onEvent,
@@ -70,6 +71,7 @@ function makeIndexedDbCoordinatingLocalStoreFactory(
         localIdGenerator: () => storeId,
         addStoreMetadata,
       }),
+      JSON_DELTA_CODEC,
       getRemote,
       {
         initialDelayMs: 0,

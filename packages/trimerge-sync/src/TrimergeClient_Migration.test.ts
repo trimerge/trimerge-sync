@@ -16,12 +16,12 @@ type DocV2 = { v: 2; field: string };
 type TestPresence = any;
 
 function newStore() {
-  return new MemoryStore<TestMetadata, Delta, TestPresence, string>();
+  return new MemoryStore<TestMetadata, Delta, TestPresence>();
 }
 
 function makeClientV1(
   userId: string,
-  store: MemoryStore<TestMetadata, Delta, TestPresence, string>,
+  store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1, DocV1, TestMetadata, Delta, TestPresence> {
   return new TrimergeClient(userId, 'test', store.getLocalStore, {
     migrate: (doc, metadata) => ({ doc, metadata }),
@@ -33,7 +33,7 @@ function makeClientV1(
 }
 function makeClientV2(
   userId: string,
-  store: MemoryStore<TestMetadata, Delta, TestPresence, string>,
+  store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1 | DocV2, DocV2, TestMetadata, Delta, TestPresence> {
   return new TrimergeClient(userId, 'test', store.getLocalStore, {
     migrate: (doc, metadata) => {
@@ -55,7 +55,7 @@ function makeClientV2(
 }
 
 function basicGraph(
-  store: MemoryStore<TestMetadata, Delta, TestPresence, string>,
+  store: MemoryStore<TestMetadata, Delta, TestPresence>,
   client1: TrimergeClient<any, any, any, any, any>,
 ) {
   return getBasicGraph(
