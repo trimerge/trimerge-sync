@@ -13,6 +13,7 @@ import { MemoryCommitRepository } from './MemoryCommitRepository';
 import { MemoryRemote } from './MemoryRemote';
 import { CoordinatingLocalStore } from '../CoordinatingLocalStore';
 import { MemoryEventChannel } from './MemoryBroadcastChannel';
+import { getNoopDeltaCodec } from '../DeltaCodec';
 
 function getSyncCounter(syncCursor: string): number {
   return parseInt(syncCursor, 36);
@@ -30,11 +31,10 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
   private readonly localStoreId = randomId();
   private lastRemoteSyncCursor: string | undefined;
   private queue = new PromiseQueue();
-  private readonly localStores: {store: CoordinatingLocalStore<
-    CommitMetadata,
-    Delta,
-    Presence
-  >, eventChannel: MemoryEventChannel<CommitMetadata, Delta, Presence>}[] = [];
+  private readonly localStores: {
+    store: CoordinatingLocalStore<CommitMetadata, Delta, Presence, Delta>;
+    eventChannel: MemoryEventChannel<CommitMetadata, Delta, Presence>;
+  }[] = [];
 
   public writeErrorMode = false;
 
@@ -63,15 +63,22 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     clientId,
     onEvent,
   ) => {
-
-    const eventChannel = new MemoryEventChannel<CommitMetadata, Delta, Presence>(
-        'local:' + this.channelName,
-      );
-    const store = new CoordinatingLocalStore<CommitMetadata, Delta, Presence>(
+    const eventChannel = new MemoryEventChannel<
+      CommitMetadata,
+      Delta,
+      Presence
+    >('local:' + this.channelName);
+    const store = new CoordinatingLocalStore<
+      CommitMetadata,
+      Delta,
+      Presence,
+      Delta
+    >(
       userId,
       clientId,
       onEvent,
-      new MemoryCommitRepository(this),
+      new MemoryCommitRepository<CommitMetadata, Delta, Presence>(this),
+      getNoopDeltaCodec<Delta>(),
       this.getRemoteFn,
       {
         initialDelayMs: 0,
@@ -83,7 +90,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
       },
       eventChannel,
     );
-    this.localStores.push({store, eventChannel});
+    this.localStores.push({ store, eventChannel });
     return store;
   };
 

@@ -250,6 +250,34 @@ Array [
     "remoteRead": "loading",
     "remoteSave": "pending",
   },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "connecting",
+    "remoteRead": "loading",
+    "remoteSave": "ready",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "online",
+    "remoteRead": "loading",
+    "remoteSave": "ready",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "offline",
+    "remoteRead": "ready",
+    "remoteSave": "pending",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
+    "remoteSave": "ready",
+  },
 ]
 `);
     expect(syncUpdates2).toMatchInlineSnapshot(`
@@ -266,6 +294,34 @@ Array [
     "localSave": "ready",
     "remoteConnect": "offline",
     "remoteRead": "loading",
+    "remoteSave": "ready",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "connecting",
+    "remoteRead": "loading",
+    "remoteSave": "ready",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "online",
+    "remoteRead": "loading",
+    "remoteSave": "ready",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "offline",
+    "remoteRead": "ready",
+    "remoteSave": "pending",
+  },
+  Object {
+    "localRead": "ready",
+    "localSave": "ready",
+    "remoteConnect": "online",
+    "remoteRead": "ready",
     "remoteSave": "ready",
   },
 ]
@@ -342,6 +398,46 @@ Array [
       "origin": "self",
     },
   ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "leySPlIR",
+        "self": true,
+        "userId": "test",
+      },
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "test",
+      },
+    ],
+    Object {
+      "origin": "local",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "leySPlIR",
+        "self": true,
+        "userId": "test",
+      },
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "test",
+      },
+    ],
+    Object {
+      "origin": "local",
+    },
+  ],
 ]
 `);
     expect(client2Sub.mock.calls).toMatchInlineSnapshot(`
@@ -358,6 +454,46 @@ Array [
     ],
     Object {
       "origin": "subscribe",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "test",
+      },
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "leySPlIR",
+        "userId": "test",
+      },
+    ],
+    Object {
+      "origin": "local",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "b",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "test",
+      },
+      Object {
+        "clientId": "a",
+        "presence": undefined,
+        "ref": "leySPlIR",
+        "userId": "test",
+      },
+    ],
+    Object {
+      "origin": "local",
     },
   ],
 ]
@@ -1391,15 +1527,21 @@ Array [
     expect(basicClients(client1)).toMatchInlineSnapshot(`
 Object {
   "a:client1": undefined,
+  "b:client2": undefined,
+  "b:client3": undefined,
 }
 `);
     expect(basicClients(client2)).toMatchInlineSnapshot(`
 Object {
+  "a:client1": undefined,
   "b:client2": undefined,
+  "b:client3": undefined,
 }
 `);
     expect(basicClients(client3)).toMatchInlineSnapshot(`
 Object {
+  "a:client1": undefined,
+  "b:client2": undefined,
   "b:client3": undefined,
 }
 `);
@@ -1413,15 +1555,21 @@ Object {
     expect(basicClients(client1)).toMatchInlineSnapshot(`
 Object {
   "a:client1": "presence 1",
+  "b:client2": "presence 2",
+  "b:client3": "presence 3",
 }
 `);
     expect(basicClients(client2)).toMatchInlineSnapshot(`
 Object {
+  "a:client1": "presence 1",
   "b:client2": "presence 2",
+  "b:client3": "presence 3",
 }
 `);
     expect(basicClients(client3)).toMatchInlineSnapshot(`
 Object {
+  "a:client1": "presence 1",
+  "b:client2": "presence 2",
   "b:client3": "presence 3",
 }
 `);

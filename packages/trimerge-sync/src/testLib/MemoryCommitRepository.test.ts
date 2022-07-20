@@ -27,6 +27,15 @@ describe('MemoryLocalStore', () => {
 Array [
   Array [
     Object {
+      "connect": "offline",
+      "read": "offline",
+      "save": "ready",
+      "type": "remote-state",
+    },
+    false,
+  ],
+  Array [
+    Object {
       "commits": Array [],
       "syncId": "0",
       "type": "commits",
@@ -42,7 +51,7 @@ Array [
   Array [
     Object {
       "connect": "offline",
-      "read": "loading",
+      "read": "offline",
       "save": "pending",
       "type": "remote-state",
     },
@@ -54,6 +63,18 @@ Array [
       "fatal": true,
       "message": "Cannot read properties of undefined (reading 'deltaCodec')",
       "type": "error",
+    },
+    false,
+  ],
+  Array [
+    Object {
+      "info": Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "test",
+      },
+      "type": "client-presence",
     },
     false,
   ],

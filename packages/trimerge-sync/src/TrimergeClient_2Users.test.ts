@@ -256,10 +256,22 @@ Array [
     "self": true,
     "userId": "a",
   },
+  Object {
+    "clientId": "test",
+    "presence": undefined,
+    "ref": undefined,
+    "userId": "b",
+  },
 ]
 `);
     expect(sortedClients(client2)).toMatchInlineSnapshot(`
 Array [
+  Object {
+    "clientId": "test",
+    "presence": undefined,
+    "ref": undefined,
+    "userId": "a",
+  },
   Object {
     "clientId": "test",
     "presence": undefined,
@@ -286,6 +298,46 @@ Array [
       "origin": "subscribe",
     },
   ],
+  Array [
+    Array [
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "a",
+      },
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "b",
+      },
+    ],
+    Object {
+      "origin": "local",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "a",
+      },
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "b",
+      },
+    ],
+    Object {
+      "origin": "local",
+    },
+  ],
 ]
 `);
     expect(client2Sub.mock.calls).toMatchInlineSnapshot(`
@@ -302,6 +354,46 @@ Array [
     ],
     Object {
       "origin": "subscribe",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "b",
+      },
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "local",
+    },
+  ],
+  Array [
+    Array [
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "b",
+      },
+      Object {
+        "clientId": "test",
+        "presence": undefined,
+        "ref": undefined,
+        "userId": "a",
+      },
+    ],
+    Object {
+      "origin": "local",
     },
   ],
 ]
