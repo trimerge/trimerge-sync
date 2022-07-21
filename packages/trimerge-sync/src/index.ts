@@ -5,4 +5,5 @@ export * from './CoordinatingLocalStore';
 export * from './validateCommits';
 export * from './lib/PromiseQueue';
 export * from './lib/EventChannel';
+export * from './lib/mergeMetadata';
 export * from './merge-all-helper';

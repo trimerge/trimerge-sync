@@ -8,6 +8,7 @@ import {
   isMergeCommit,
   RemoteSyncInfo,
   CommitRepository,
+  mergeMetadata,
 } from 'trimerge-sync';
 import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
 import { deleteDB, openDB } from 'idb';
@@ -178,7 +179,10 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
       // But currently, we're just using this as a synced bit so it's probably fine either way.
       commit.remoteSyncId = remoteSyncId;
       if (metadata !== undefined) {
-        commit.metadata = metadata;
+        commit.metadata = mergeMetadata(
+          commit.metadata,
+          metadata,
+        ) as CommitMetadata;
       }
       return true;
     }

@@ -12,6 +12,7 @@ import { CommitDoc, Differ, MergeHelpers } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { asCommitRefs, CommitRefs } from './lib/Commits';
+import { mergeMetadata } from './lib/mergeMetadata';
 
 type AddCommitType =
   // Added from this client
@@ -443,9 +444,18 @@ export class TrimergeClient<
   }
 
   private updateCommitFromRemote(commit: Commit<CommitMetadata, Delta>) {
-    if (!this.commits.has(commit.ref)) {
+    const existingCommit = this.commits.get(commit.ref);
+    if (!existingCommit) {
       return;
     }
+
+    this.commits.set(commit.ref, {
+      ...commit,
+      metadata: mergeMetadata(
+        existingCommit.metadata,
+        commit.metadata,
+      ) as CommitMetadata,
+    });
 
     if (this.tempCommits.has(commit.ref)) {
       this.promoteTempCommit(commit.ref);

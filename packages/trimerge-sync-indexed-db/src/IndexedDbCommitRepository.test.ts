@@ -985,30 +985,32 @@ describe('createIndexedDbBackendFactory', () => {
     await client.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "metadata": Object {
-                    "qux": "quux",
-                  },
-                  "ref": "blah",
-                  "remoteSyncId": "blah2",
-                  "syncId": 1,
-                },
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "blah",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "blah2",
-                  "localStoreId": "test-doc-store",
-                },
-              ],
-            }
-          `);
+Object {
+  "commits": Array [
+    Object {
+      "metadata": Object {
+        "bar": "baz",
+        "foo": "bar",
+        "qux": "quux",
+      },
+      "ref": "blah",
+      "remoteSyncId": "blah2",
+      "syncId": 1,
+    },
+  ],
+  "heads": Array [
+    Object {
+      "ref": "blah",
+    },
+  ],
+  "remotes": Array [
+    Object {
+      "lastSyncCursor": "blah2",
+      "localStoreId": "test-doc-store",
+    },
+  ],
+}
+`);
   });
 
   it('updates metadata from remote with two users', async () => {
