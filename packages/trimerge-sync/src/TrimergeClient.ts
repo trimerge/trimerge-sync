@@ -373,7 +373,7 @@ export class TrimergeClient<
     if (this.commits.has(ref)) {
       if (type === 'external') {
         // Promote temp commit
-        this.promoteTempCommit(ref);
+        this.updateCommitFromRemote(commit);
         // TODO: upsert commit metadata
       } else {
         console.warn(
@@ -439,6 +439,16 @@ export class TrimergeClient<
     }
     if (this.lastSavedDoc?.ref === ref) {
       this.lastNonTempDoc = this.lastSavedDoc;
+    }
+  }
+
+  private updateCommitFromRemote(commit: Commit<CommitMetadata, Delta>) {
+    if (!this.commits.has(commit.ref)) {
+      return;
+    }
+
+    if (this.tempCommits.has(commit.ref)) {
+      this.promoteTempCommit(commit.ref);
     }
   }
 
