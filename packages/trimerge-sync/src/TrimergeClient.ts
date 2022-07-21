@@ -373,9 +373,7 @@ export class TrimergeClient<
     const { ref, baseRef, mergeRef } = asCommitRefs(commit);
     if (this.commits.has(ref)) {
       if (type === 'external') {
-        // Promote temp commit
         this.updateCommitFromRemote(commit);
-        // TODO: upsert commit metadata
       } else {
         console.warn(
           `[TRIMERGE-SYNC] skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (type=${type})`,

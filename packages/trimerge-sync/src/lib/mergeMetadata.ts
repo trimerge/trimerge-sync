@@ -5,18 +5,28 @@ export function mergeMetadata(
   existingMetadata: unknown,
   newMetadata: unknown,
 ): unknown {
+  // check for null
   if (existingMetadata === undefined || existingMetadata === null) {
     return newMetadata;
   }
   if (newMetadata === undefined || newMetadata === null) {
     return existingMetadata;
   }
+
+  // check for mismatched types
   if (
     typeof existingMetadata !== typeof newMetadata ||
     Array.isArray(existingMetadata) !== Array.isArray(newMetadata)
   ) {
     return newMetadata;
   }
+
+  // bail on arrays, just take newMetadata's value
+  if (Array.isArray(existingMetadata) && Array.isArray(newMetadata)) {
+    return newMetadata;
+  }
+
+  // combine sets
   if (existingMetadata instanceof Set && newMetadata instanceof Set) {
     const merged = new Set(existingMetadata);
     for (const item of newMetadata) {
@@ -24,6 +34,8 @@ export function mergeMetadata(
     }
     return merged;
   }
+
+  // recursively merge maps
   if (existingMetadata instanceof Map && newMetadata instanceof Map) {
     const merged = new Map(existingMetadata);
     for (const [key, value] of newMetadata) {
@@ -31,9 +43,8 @@ export function mergeMetadata(
     }
     return merged;
   }
-  if (Array.isArray(existingMetadata) && Array.isArray(newMetadata)) {
-    return newMetadata;
-  }
+
+  // recursively merge objects
   if (
     typeof existingMetadata === 'object' &&
     typeof newMetadata === 'object' &&
@@ -56,5 +67,7 @@ export function mergeMetadata(
     }
     return result;
   }
+
+  // when in doubt, just return newMetadata
   return newMetadata;
 }
