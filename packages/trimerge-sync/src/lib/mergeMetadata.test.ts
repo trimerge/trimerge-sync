@@ -58,7 +58,7 @@ describe('mergeMetadata', () => {
     const existingMetadata = new Set([1, 2]);
     const newMetadata = new Set([3, 4]);
     expect(mergeMetadata(existingMetadata, newMetadata)).toEqual(
-      new Set([1, 2, 3, 4]),
+      new Set([3, 4]),
     );
   });
 
@@ -100,26 +100,25 @@ describe('mergeMetadata', () => {
       ]),
     };
     expect(mergeMetadata(existingMetadata, newMetadata)).toMatchInlineSnapshot(`
-      Object {
-        "a": 3,
-        "b": Object {
-          "c": 4,
-          "d": 5,
-        },
-        "x": Array [
-          1,
-          2,
-        ],
-        "y": Map {
-          "a" => 1,
-          "b" => 2,
-          "c" => Set {
-            1,
-            2,
-            3,
-          },
-        },
-      }
-    `);
+Object {
+  "a": 3,
+  "b": Object {
+    "c": 4,
+    "d": 5,
+  },
+  "x": Array [
+    1,
+    2,
+  ],
+  "y": Map {
+    "a" => 1,
+    "b" => 2,
+    "c" => Set {
+      2,
+      3,
+    },
+  },
+}
+`);
   });
 });

@@ -1,5 +1,5 @@
 /**  Attempts to recursively merge two values, preferring newMetadata if there's ambiguity.
- *   This does not merge arrays but it will combine sets and recursively merge objects and maps.
+ *   This does not merge arrays or sets but it will recursively merge objects and maps.
  */
 export function mergeMetadata(
   existingMetadata: unknown,
@@ -21,18 +21,12 @@ export function mergeMetadata(
     return newMetadata;
   }
 
-  // bail on arrays, just take newMetadata's value
-  if (Array.isArray(existingMetadata) && Array.isArray(newMetadata)) {
+  // bail on arrays and sets, just take newMetadata's value
+  if (
+    (Array.isArray(existingMetadata) && Array.isArray(newMetadata)) ||
+    (existingMetadata instanceof Set && newMetadata instanceof Set)
+  ) {
     return newMetadata;
-  }
-
-  // combine sets
-  if (existingMetadata instanceof Set && newMetadata instanceof Set) {
-    const merged = new Set(existingMetadata);
-    for (const item of newMetadata) {
-      merged.add(item);
-    }
-    return merged;
   }
 
   // recursively merge maps
