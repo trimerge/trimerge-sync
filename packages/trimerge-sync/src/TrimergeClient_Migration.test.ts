@@ -75,7 +75,18 @@ describe('TrimergeClient: Migration', () => {
 
     await timeout();
 
-    expect(basicGraph(store, client1)).toMatchInlineSnapshot(`Array []`);
+    expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "graph": "undefined -> wkRuq_cr",
+    "step": "initialize",
+    "value": Object {
+      "field": 123,
+      "v": 1,
+    },
+  },
+]
+`);
 
     const client2 = makeClientV2('a', store);
 

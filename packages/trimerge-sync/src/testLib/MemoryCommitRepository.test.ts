@@ -59,10 +59,22 @@ Array [
   ],
   Array [
     Object {
-      "code": "invalid-commits",
-      "fatal": true,
-      "message": "Cannot read properties of undefined (reading 'deltaCodec')",
-      "type": "error",
+      "acks": Array [
+        Object {
+          "ref": "test1",
+        },
+      ],
+      "syncId": "1",
+      "type": "ack",
+    },
+    false,
+  ],
+  Array [
+    Object {
+      "connect": "offline",
+      "read": "offline",
+      "save": "saving",
+      "type": "remote-state",
     },
     false,
   ],

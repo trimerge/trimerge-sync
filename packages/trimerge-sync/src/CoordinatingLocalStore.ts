@@ -414,10 +414,9 @@ export class CoordinatingLocalStore<
           event.type === 'commits'
             ? {
                 ...event,
-                commits: event.commits.map(this.deserializeCommit) as Commit<
-                  CommitMetadata,
-                  Delta
-                >[],
+                commits: event.commits.map((c) =>
+                  this.deserializeCommit(c),
+                ) as Commit<CommitMetadata, Delta>[],
               }
             : event;
         this.emit(clientEvent, remoteOrigin);
@@ -507,7 +506,7 @@ export class CoordinatingLocalStore<
       await this.setRemoteState({ type: 'remote-state', save: 'pending' });
     }
 
-    const serializedCommits = commits.map(this.serializeCommit);
+    const serializedCommits = commits.map((c) => this.serializeCommit(c));
     const ack = await this.commitRepo.addCommits(serializedCommits, undefined);
     await this.sendEvent(ack, { self: true });
     const clientInfo: ClientInfo<Presence> | undefined = presenceRef && {
