@@ -20,5 +20,5 @@ jobs:
       - run: npm publish --access public packages/trimerge-sync
       - run: npm publish --access public packages/trimerge-sync-hash
       - run: npm publish --access public packages/trimerge-sync-indexed-db
-      - run: npm publish --access public packages/trimerge-sync-basic-server
-      - run: npm publish --access public packages/trimerge-sync-basic-client
+      - run: npm publish --access public examples/trimerge-sync-basic-server
+      - run: npm publish --access public examples/trimerge-sync-basic-client
