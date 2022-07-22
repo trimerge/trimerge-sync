@@ -68,19 +68,80 @@ describe('TrimergeClient', () => {
     );
     client.updateDoc('hello', 'hi');
     expect(client.getCommit('hash')).toMatchInlineSnapshot(`
-Object {
-  "baseRef": undefined,
-  "delta": null,
-  "metadata": Object {
-    "added": "on client",
-    "clientId": "",
-    "commitRef": "hash",
-    "message": "hi",
-    "userId": "",
-  },
-  "ref": "hash",
-}
-`);
+      Object {
+        "baseRef": undefined,
+        "delta": null,
+        "metadata": Object {
+          "added": "on client",
+          "clientId": "",
+          "commitRef": "hash",
+          "message": "hi",
+          "userId": "",
+        },
+        "ref": "hash",
+      }
+    `);
+  });
+
+  it('merges metadata from server', async () => {
+    const { client, onEvent } = makeTrimergeClient(
+      (metadata, commitRef, userId, clientId) => {
+        return {
+          message: metadata,
+          added: 'on client',
+          userId,
+          clientId,
+          commitRef,
+        };
+      },
+    );
+    client.updateDoc('hello', 'hi');
+
+    expect(client.getCommit('hash')).toMatchInlineSnapshot(`
+      Object {
+        "baseRef": undefined,
+        "delta": null,
+        "metadata": Object {
+          "added": "on client",
+          "clientId": "",
+          "commitRef": "hash",
+          "message": "hi",
+          "userId": "",
+        },
+        "ref": "hash",
+      }
+    `);
+    onEvent(
+      {
+        type: 'commits',
+        commits: [
+          {
+            ref: 'hash',
+            delta: null,
+            metadata: {
+              added: 'on server',
+              main: true,
+            },
+          },
+        ],
+      },
+      true,
+    );
+
+    expect(client.getCommit('hash')).toMatchInlineSnapshot(`
+      Object {
+        "delta": null,
+        "metadata": Object {
+          "added": "on server",
+          "clientId": "",
+          "commitRef": "hash",
+          "main": true,
+          "message": "hi",
+          "userId": "",
+        },
+        "ref": "hash",
+      }
+    `);
   });
 
   it('handles bad getCommit', async () => {
@@ -89,13 +150,13 @@ Object {
     client.updateDoc('hello2', 'hi');
     client.updateDoc('hello3', 'hi');
     expect(client.getCommit('hash')).toMatchInlineSnapshot(`
-Object {
-  "baseRef": undefined,
-  "delta": null,
-  "metadata": "hi",
-  "ref": "hash",
-}
-`);
+      Object {
+        "baseRef": undefined,
+        "delta": null,
+        "metadata": "hi",
+        "ref": "hash",
+      }
+    `);
     expect(() => client.getCommit('xxx')).toThrowError(`unknown ref "xxx"`);
   });
 
@@ -115,7 +176,9 @@ Object {
         },
         false,
       ),
-    ).toThrowErrorMatchingInlineSnapshot(`"unknown baseRef for commit a: unknown"`);
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"unknown baseRef for commit a: unknown"`,
+    );
   });
   it('handles event with invalid mergeRef', async () => {
     const { onEvent } = makeTrimergeClient();
@@ -133,7 +196,9 @@ Object {
         },
         false,
       ),
-    ).toThrowErrorMatchingInlineSnapshot(`"unknown mergeRef for commit a: unknown"`);
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"unknown mergeRef for commit a: unknown"`,
+    );
   });
 
   it('handles internal error', async () => {

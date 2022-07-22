@@ -12,6 +12,7 @@ import { CommitDoc, Differ, MergeHelpers } from './differ';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { asCommitRefs, CommitRefs } from './lib/Commits';
+import { mergeMetadata } from './lib/mergeMetadata';
 
 type AddCommitType =
   // Added from this client
@@ -372,9 +373,7 @@ export class TrimergeClient<
     const { ref, baseRef, mergeRef } = asCommitRefs(commit);
     if (this.commits.has(ref)) {
       if (type === 'external') {
-        // Promote temp commit
-        this.promoteTempCommit(ref);
-        // TODO: upsert commit metadata
+        this.updateCommitFromRemote(commit);
       } else {
         console.warn(
           `[TRIMERGE-SYNC] skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (type=${type})`,
@@ -439,6 +438,25 @@ export class TrimergeClient<
     }
     if (this.lastSavedDoc?.ref === ref) {
       this.lastNonTempDoc = this.lastSavedDoc;
+    }
+  }
+
+  private updateCommitFromRemote(commit: Commit<CommitMetadata, Delta>) {
+    const existingCommit = this.commits.get(commit.ref);
+    if (!existingCommit) {
+      return;
+    }
+
+    this.commits.set(commit.ref, {
+      ...commit,
+      metadata: mergeMetadata(
+        existingCommit.metadata,
+        commit.metadata,
+      ) as CommitMetadata,
+    });
+
+    if (this.tempCommits.has(commit.ref)) {
+      this.promoteTempCommit(commit.ref);
     }
   }
 
