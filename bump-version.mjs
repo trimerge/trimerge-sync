@@ -13,10 +13,32 @@ function readLine(question) {
 const root = resolve('.');
 const spawnOptions = { cwd: root, shell: true };
 
-const packagesRoot = resolve(root, 'packages');
-const packageNames = (await fs.readdir(packagesRoot, { withFileTypes: true }))
-  .filter((x) => x.isDirectory() && x.name[0] !== '.')
-  .map(({ name }) => name);
+async function getPackages(packagesRoot) {
+  const result = [];
+  for (const packageName of await fs.readdir(packagesRoot, {
+    withFileTypes: true,
+  })) {
+    if (packageName.isDirectory() && packageName.name[0] !== '.') {
+      result.push({
+        name: packageName.name,
+        packageJsonPath: getPackageJsonPath({
+          name: packageName.name,
+          root: packagesRoot,
+        }),
+      });
+    }
+  }
+  return result;
+}
+
+function getPackageJsonPath(packageObj) {
+  return resolve(packageObj.root, packageObj.name, 'package.json');
+}
+
+const packages = [
+  ...(await getPackages(resolve(root, 'packages'))),
+  ...(await getPackages(resolve(root, 'examples'))),
+];
 
 function* iterateDependencies(json) {
   for (const dependencyType of [
@@ -27,7 +49,7 @@ function* iterateDependencies(json) {
     if (!json[dependencyType]) {
       continue;
     }
-    for (const dependencyName of packageNames) {
+    for (const { name: dependencyName } of packages) {
       if (json[dependencyType][dependencyName]) {
         yield { dependencyType, dependencyName };
       }
@@ -35,12 +57,8 @@ function* iterateDependencies(json) {
   }
 }
 
-function getPackageJsonPath(packageName) {
-  return resolve(packagesRoot, packageName, 'package.json');
-}
-
-for (const packageName of packageNames) {
-  const json = await fs.readJson(getPackageJsonPath(packageName));
+for (const { name: packageName, packageJsonPath } of packages) {
+  const json = await fs.readJson(packageJsonPath);
   console.log(`Found package ${packageName} version ${json.version}`);
   for (const { dependencyType, dependencyName } of iterateDependencies(json)) {
     console.log(
@@ -58,9 +76,8 @@ if (!newVersion) {
 
 const prettierConfig = await fs.readJson('./.prettierrc');
 
-for (const name of packageNames) {
+for (const { name, packageJsonPath } of packages) {
   console.log(`Setting ${name} to version ${newVersion}`);
-  const packageJsonPath = getPackageJsonPath(name);
   const json = await fs.readJson(packageJsonPath);
   console.log(`Set ${name} version -> ${newVersion}`);
   json.version = newVersion;
