@@ -1,29 +1,11 @@
 {
+  "extends": "./tsconfig.shared",
   "compilerOptions": {
-    "target": "es2018",
-    "module": "esnext",
-    "moduleResolution": "node",
-    "lib": ["es2018", "DOM"],
-
-    "rootDir": "packages",
-    "outDir": "dist",
-
-    "strict": true,
-    "alwaysStrict": true,
-    "strictFunctionTypes": true,
-    "strictNullChecks": true,
-    "strictPropertyInitialization": true,
-    "esModuleInterop": true,
-
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noFallthroughCasesInSwitch": true,
-
-    "declaration": true,
-
-    "pretty": true
+    "baseUrl": ".",
+    "paths": {
+      "trimerge-sync": ["packages/trimerge-sync/src/index.ts"],
+      "trimerge-sync-hash": ["packages/trimerge-sync-hash/src/index.ts"]
+    }
   },
   "include": ["packages/*/src"]
 }

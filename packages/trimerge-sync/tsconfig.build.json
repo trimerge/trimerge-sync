@@ -3,9 +3,7 @@
     "target": "es2018",
     "module": "esnext",
     "moduleResolution": "node",
-    "lib": [
-      "es2018"
-    ],
+    "lib": ["es2018"],
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
@@ -29,7 +27,5 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }
