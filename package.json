@@ -9,7 +9,7 @@
     "test:update-all-snapshots": "wsrun --serial test:update-snapshots",
     "build-all": "wsrun --serial build",
     "watch-all": "wsrun --parallel watch",
-    "typecheck": "wsrun --serial tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint packages/*/src/**/*.ts",
     "bump-version": "node bump-version.mjs"
   },
