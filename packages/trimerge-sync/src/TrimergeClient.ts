@@ -321,7 +321,10 @@ export class TrimergeClient<
     const commits = this.unsyncedCommits;
     if (commits.length > 0 || this.newPresence !== undefined) {
       this.unsyncedCommits = [];
-      this.updateSyncState({ localSave: 'saving' });
+      // only indicate local save if we're syncing commits.
+      if (commits.length > 0) {
+        this.updateSyncState({ localSave: 'saving' });
+      }
       this.numPendingUpdates++;
       try {
         await this.store.update(commits, this.newPresence);
