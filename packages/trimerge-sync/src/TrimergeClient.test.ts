@@ -1,6 +1,6 @@
 import { AddNewCommitMetadataFn, TrimergeClient } from './TrimergeClient';
 import { timeout } from './lib/Timeout';
-import { OnStoreEventFn, SyncEvent } from './types';
+import { OnStoreEventFn, SyncEvent, SyncStatus } from './types';
 import { Differ } from './differ';
 import { migrate } from './testLib/MergeUtils';
 
@@ -297,5 +297,26 @@ describe('TrimergeClient', () => {
     expect(client.updateDoc({ foo: 'bar' }, 'message')).rejects.toThrowError(
       /Assertion Error: numUnsavedCommits <= 0/,
     );
+  });
+
+  it('does not update local save status for presence-only updates', async () => {
+    const { client } = makeTrimergeClient(undefined);
+
+    const syncUpdates1: SyncStatus[] = [];
+    client.subscribeSyncStatus((state) => syncUpdates1.push(state));
+
+    expect(client.updatePresence({ foo: 'bar' }));
+
+    expect(syncUpdates1).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "localRead": "loading",
+    "localSave": "ready",
+    "remoteConnect": "offline",
+    "remoteRead": "loading",
+    "remoteSave": "ready",
+  },
+]
+`);
   });
 });
