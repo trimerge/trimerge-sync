@@ -13,7 +13,9 @@ import { getBasicGraph } from './testLib/GraphVisualizers';
 import { ClientInfo } from './types';
 import { timeout } from './lib/Timeout';
 
-type TestMetadata = string;
+type TestMetadata = {
+  message: string;
+};
 type TestSavedDoc = any;
 type TestDoc = any;
 type TestPresence = any;
@@ -49,7 +51,7 @@ function basicGraph(
 ) {
   return getBasicGraph(
     store.getCommits(),
-    (commit) => commit.metadata,
+    (commit) => commit.metadata.message,
     (commit) => client1.getCommitDoc(commit.ref).doc,
   );
 }
@@ -83,37 +85,37 @@ describe('TrimergeClient: 2 users', () => {
     const store = newStore();
     const client = makeClient('a', store);
 
-    client.updateDoc({}, 'initialize');
-    client.updateDoc({ hello: 'world' }, 'add hello');
-    client.updateDoc({ hello: 'vorld' }, 'change hello');
+    client.updateDoc({}, { message: 'initialize' });
+    client.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    client.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
 
     expect(client.doc).toEqual({ hello: 'vorld' });
 
     await timeout();
 
     expect(basicGraph(store, client)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> Zob0dMmD",
-    "step": "initialize",
-    "value": Object {},
-  },
-  Object {
-    "graph": "Zob0dMmD -> leySPlIR",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
-    },
-  },
-  Object {
-    "graph": "leySPlIR -> x_n2sT7P",
-    "step": "change hello",
-    "value": Object {
-      "hello": "vorld",
-    },
-  },
-]
-`);
+      Array [
+        Object {
+          "graph": "undefined -> Zob0dMmD",
+          "step": "initialize",
+          "value": Object {},
+        },
+        Object {
+          "graph": "Zob0dMmD -> leySPlIR",
+          "step": "add hello",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        Object {
+          "graph": "leySPlIR -> x_n2sT7P",
+          "step": "change hello",
+          "value": Object {
+            "hello": "vorld",
+          },
+        },
+      ]
+    `);
   });
 
   it('tracks non-edits', async () => {
@@ -122,21 +124,21 @@ Array [
 
     const onStateChange = jest.fn();
     const unsub = client.subscribeDoc(onStateChange);
-    client.updateDoc(undefined, 'initialize');
+    client.updateDoc(undefined, { message: 'initialize' });
     await timeout();
-    client.updateDoc(undefined, 'initialize');
+    client.updateDoc(undefined, { message: 'initialize' });
     await timeout();
 
     expect(onStateChange.mock.calls).toMatchInlineSnapshot(`
-Array [
-  Array [
-    undefined,
-    Object {
-      "origin": "subscribe",
-    },
-  ],
-]
-`);
+      Array [
+        Array [
+          undefined,
+          Object {
+            "origin": "subscribe",
+          },
+        ],
+      ]
+    `);
     unsub();
   });
   it('tracks presence', async () => {
@@ -145,27 +147,27 @@ Array [
 
     const onStateChange = jest.fn();
     const unsub = client.subscribeClientList(onStateChange);
-    client.updatePresence('blah');
+    client.updatePresence({ message: 'blah' });
     await timeout();
 
     expect(onStateChange.mock.calls.slice(-1)).toMatchInlineSnapshot(`
-Array [
-  Array [
-    Array [
-      Object {
-        "clientId": "test",
-        "presence": "blah",
-        "ref": undefined,
-        "self": true,
-        "userId": "a",
-      },
-    ],
-    Object {
-      "origin": "self",
-    },
-  ],
-]
-`);
+      Array [
+        Array [
+          Array [
+            Object {
+              "clientId": "test",
+              "presence": "blah",
+              "ref": undefined,
+              "self": true,
+              "userId": "a",
+            },
+          ],
+          Object {
+            "origin": "self",
+          },
+        ],
+      ]
+    `);
     unsub();
   });
 
@@ -181,7 +183,7 @@ Array [
     expect(client1.doc).toBe(undefined);
     expect(client2.doc).toBe(undefined);
 
-    const writePromise = client1.updateDoc({}, 'initialize');
+    const writePromise = client1.updateDoc({}, { message: 'initialize' });
 
     // Client 1 is updated, but not client2
     expect(client1.doc).toEqual({});
@@ -194,24 +196,24 @@ Array [
     expect(client2.doc).toEqual({});
 
     expect(client1.syncStatus).toMatchInlineSnapshot(`
-Object {
-  "localRead": "ready",
-  "localSave": "ready",
-  "remoteConnect": "offline",
-  "remoteRead": "offline",
-  "remoteSave": "saving",
-}
-`);
+      Object {
+        "localRead": "ready",
+        "localSave": "ready",
+        "remoteConnect": "offline",
+        "remoteRead": "offline",
+        "remoteSave": "saving",
+      }
+    `);
 
     expect(client2.syncStatus).toMatchInlineSnapshot(`
-Object {
-  "localRead": "ready",
-  "localSave": "ready",
-  "remoteConnect": "offline",
-  "remoteRead": "offline",
-  "remoteSave": "saving",
-}
-`);
+      Object {
+        "localRead": "ready",
+        "localSave": "ready",
+        "remoteConnect": "offline",
+        "remoteRead": "offline",
+        "remoteSave": "saving",
+      }
+    `);
   });
 
   it('sends presence information correctly', async () => {
@@ -270,156 +272,156 @@ Object {
 
     // Client2 is updated now
     expect(sortedClients(client1)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "clientId": "test",
-    "presence": undefined,
-    "ref": undefined,
-    "self": true,
-    "userId": "a",
-  },
-  Object {
-    "clientId": "test",
-    "presence": undefined,
-    "ref": undefined,
-    "userId": "b",
-  },
-]
-`);
+      Array [
+        Object {
+          "clientId": "test",
+          "presence": undefined,
+          "ref": undefined,
+          "self": true,
+          "userId": "a",
+        },
+        Object {
+          "clientId": "test",
+          "presence": undefined,
+          "ref": undefined,
+          "userId": "b",
+        },
+      ]
+    `);
     expect(sortedClients(client2)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "clientId": "test",
-    "presence": undefined,
-    "ref": undefined,
-    "userId": "a",
-  },
-  Object {
-    "clientId": "test",
-    "presence": undefined,
-    "ref": undefined,
-    "self": true,
-    "userId": "b",
-  },
-]
-`);
+      Array [
+        Object {
+          "clientId": "test",
+          "presence": undefined,
+          "ref": undefined,
+          "userId": "a",
+        },
+        Object {
+          "clientId": "test",
+          "presence": undefined,
+          "ref": undefined,
+          "self": true,
+          "userId": "b",
+        },
+      ]
+    `);
 
     expect(client1Sub.mock.calls).toMatchInlineSnapshot(`
-Array [
-  Array [
-    Array [
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "a",
-      },
-    ],
-    Object {
-      "origin": "subscribe",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "a",
-      },
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "userId": "b",
-      },
-    ],
-    Object {
-      "origin": "local",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "a",
-      },
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "userId": "b",
-      },
-    ],
-    Object {
-      "origin": "local",
-    },
-  ],
-]
-`);
+      Array [
+        Array [
+          Array [
+            Object {
+              "clientId": "test",
+              "presence": undefined,
+              "ref": undefined,
+              "self": true,
+              "userId": "a",
+            },
+          ],
+          Object {
+            "origin": "subscribe",
+          },
+        ],
+        Array [
+          Array [
+            Object {
+              "clientId": "test",
+              "presence": undefined,
+              "ref": undefined,
+              "self": true,
+              "userId": "a",
+            },
+            Object {
+              "clientId": "test",
+              "presence": undefined,
+              "ref": undefined,
+              "userId": "b",
+            },
+          ],
+          Object {
+            "origin": "local",
+          },
+        ],
+        Array [
+          Array [
+            Object {
+              "clientId": "test",
+              "presence": undefined,
+              "ref": undefined,
+              "self": true,
+              "userId": "a",
+            },
+            Object {
+              "clientId": "test",
+              "presence": undefined,
+              "ref": undefined,
+              "userId": "b",
+            },
+          ],
+          Object {
+            "origin": "local",
+          },
+        ],
+      ]
+    `);
     expect(client2Sub.mock.calls).toMatchInlineSnapshot(`
-Array [
-  Array [
-    Array [
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "b",
-      },
-    ],
-    Object {
-      "origin": "subscribe",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "b",
-      },
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "userId": "a",
-      },
-    ],
-    Object {
-      "origin": "local",
-    },
-  ],
-  Array [
-    Array [
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "self": true,
-        "userId": "b",
-      },
-      Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "userId": "a",
-      },
-    ],
-    Object {
-      "origin": "local",
-    },
-  ],
-]
-`);
+      Array [
+        Array [
+          Array [
+            Object {
+              "clientId": "test",
+              "presence": undefined,
+              "ref": undefined,
+              "self": true,
+              "userId": "b",
+            },
+          ],
+          Object {
+            "origin": "subscribe",
+          },
+        ],
+        Array [
+          Array [
+            Object {
+              "clientId": "test",
+              "presence": undefined,
+              "ref": undefined,
+              "self": true,
+              "userId": "b",
+            },
+            Object {
+              "clientId": "test",
+              "presence": undefined,
+              "ref": undefined,
+              "userId": "a",
+            },
+          ],
+          Object {
+            "origin": "local",
+          },
+        ],
+        Array [
+          Array [
+            Object {
+              "clientId": "test",
+              "presence": undefined,
+              "ref": undefined,
+              "self": true,
+              "userId": "b",
+            },
+            Object {
+              "clientId": "test",
+              "presence": undefined,
+              "ref": undefined,
+              "userId": "a",
+            },
+          ],
+          Object {
+            "origin": "local",
+          },
+        ],
+      ]
+    `);
     client1Unsub();
     client2Unsub();
   });
@@ -521,8 +523,8 @@ Array [
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
 
-    client1.updateDoc({}, 'initialize');
-    client1.updateDoc({ edit: true }, 'edit');
+    client1.updateDoc({}, { message: 'initialize' });
+    client1.updateDoc({ edit: true }, { message: 'edit' });
 
     // Client 1 is updated, but not client2
     expect(client1.doc).toEqual({ edit: true });
@@ -538,17 +540,23 @@ Array [
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
 
-    client1.updateDoc({}, 'initialize');
-    client1.updateDoc({ hello: 'world' }, 'add hello');
-    client1.updateDoc({ hello: 'vorld' }, 'change hello');
+    client1.updateDoc({}, { message: 'initialize' });
+    client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
 
     await timeout();
 
     expect(client1.doc).toEqual({ hello: 'vorld' });
     expect(client2.doc).toEqual({ hello: 'vorld' });
 
-    client2.updateDoc({ hello: 'vorld', world: 'world' }, 'add world');
-    client2.updateDoc({ hello: 'vorld', world: 'vorld' }, 'change world');
+    client2.updateDoc(
+      { hello: 'vorld', world: 'world' },
+      { message: 'add world' },
+    );
+    client2.updateDoc(
+      { hello: 'vorld', world: 'vorld' },
+      { message: 'change world' },
+    );
 
     // Now client 2 is updated but not client 1
     expect(client1.doc).toEqual({ hello: 'vorld' });
@@ -565,7 +573,7 @@ Array [
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
 
-    client1.updateDoc({}, 'initialize');
+    client1.updateDoc({}, { message: 'initialize' });
 
     // Synchronized
     expect(client1.doc).toEqual({});
@@ -575,11 +583,11 @@ Array [
 
     expect(client2.doc).toEqual({});
 
-    client1.updateDoc({ hello: 'world' }, 'add hello');
-    client1.updateDoc({ hello: 'vorld' }, 'change hello');
+    client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
 
-    client2.updateDoc({ world: 'world' }, 'add world');
-    client2.updateDoc({ world: 'vorld' }, 'change world');
+    client2.updateDoc({ world: 'world' }, { message: 'add world' });
+    client2.updateDoc({ world: 'vorld' }, { message: 'change world' });
 
     // Now client 1 and client 2 have different changes
     expect(client1.doc).toEqual({ hello: 'vorld' });
@@ -601,51 +609,51 @@ Array [
     await client2.shutdown();
 
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> Zob0dMmD",
-    "step": "initialize",
-    "value": Object {},
-  },
-  Object {
-    "graph": "Zob0dMmD -> leySPlIR",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
-    },
-  },
-  Object {
-    "graph": "Zob0dMmD -> JQGldkEn",
-    "step": "add world",
-    "value": Object {
-      "world": "world",
-    },
-  },
-  Object {
-    "graph": "leySPlIR -> x_n2sT7P",
-    "step": "change hello",
-    "value": Object {
-      "hello": "vorld",
-    },
-  },
-  Object {
-    "graph": "JQGldkEn -> ImI6Nmiz",
-    "step": "change world",
-    "value": Object {
-      "world": "vorld",
-    },
-  },
-]
-`);
+      Array [
+        Object {
+          "graph": "undefined -> Zob0dMmD",
+          "step": "initialize",
+          "value": Object {},
+        },
+        Object {
+          "graph": "Zob0dMmD -> leySPlIR",
+          "step": "add hello",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        Object {
+          "graph": "Zob0dMmD -> JQGldkEn",
+          "step": "add world",
+          "value": Object {
+            "world": "world",
+          },
+        },
+        Object {
+          "graph": "leySPlIR -> x_n2sT7P",
+          "step": "change hello",
+          "value": Object {
+            "hello": "vorld",
+          },
+        },
+        Object {
+          "graph": "JQGldkEn -> ImI6Nmiz",
+          "step": "change world",
+          "value": Object {
+            "world": "vorld",
+          },
+        },
+      ]
+    `);
   });
 
   it('sync up when second client comes in later', async () => {
     const store = newStore();
     const client1 = makeClient('a', store);
 
-    client1.updateDoc({}, 'initialize');
-    client1.updateDoc({ hello: 'world' }, 'add hello');
-    client1.updateDoc({ hello: 'vorld' }, 'change hello');
+    client1.updateDoc({}, { message: 'initialize' });
+    client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
 
     await timeout();
 
@@ -657,28 +665,28 @@ Array [
     expect(client2.doc).toEqual({ hello: 'vorld' });
 
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> Zob0dMmD",
-    "step": "initialize",
-    "value": Object {},
-  },
-  Object {
-    "graph": "Zob0dMmD -> leySPlIR",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
-    },
-  },
-  Object {
-    "graph": "leySPlIR -> x_n2sT7P",
-    "step": "change hello",
-    "value": Object {
-      "hello": "vorld",
-    },
-  },
-]
-`);
+      Array [
+        Object {
+          "graph": "undefined -> Zob0dMmD",
+          "step": "initialize",
+          "value": Object {},
+        },
+        Object {
+          "graph": "Zob0dMmD -> leySPlIR",
+          "step": "add hello",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        Object {
+          "graph": "leySPlIR -> x_n2sT7P",
+          "step": "change hello",
+          "value": Object {
+            "hello": "vorld",
+          },
+        },
+      ]
+    `);
   });
 
   it('subscription works', async () => {
@@ -688,9 +696,9 @@ Array [
 
     const unsubscribeFn = client1.subscribeDoc(subscribeFn);
 
-    client1.updateDoc({}, 'initialize');
-    client1.updateDoc({ hello: 'world' }, 'add hello');
-    client1.updateDoc({ hello: 'vorld' }, 'change hello');
+    client1.updateDoc({}, { message: 'initialize' });
+    client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
 
     await timeout();
 
@@ -701,42 +709,42 @@ Array [
 
     await timeout();
 
-    client1.updateDoc({ hello: 'there' }, 'change hello again');
+    client1.updateDoc({ hello: 'there' }, { message: 'change hello again' });
 
     await timeout();
 
     unsubscribeFn();
 
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> Zob0dMmD",
-    "step": "initialize",
-    "value": Object {},
-  },
-  Object {
-    "graph": "Zob0dMmD -> leySPlIR",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
-    },
-  },
-  Object {
-    "graph": "leySPlIR -> x_n2sT7P",
-    "step": "change hello",
-    "value": Object {
-      "hello": "vorld",
-    },
-  },
-  Object {
-    "graph": "x_n2sT7P -> 38Fdqmoz",
-    "step": "change hello again",
-    "value": Object {
-      "hello": "there",
-    },
-  },
-]
-`);
+      Array [
+        Object {
+          "graph": "undefined -> Zob0dMmD",
+          "step": "initialize",
+          "value": Object {},
+        },
+        Object {
+          "graph": "Zob0dMmD -> leySPlIR",
+          "step": "add hello",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        Object {
+          "graph": "leySPlIR -> x_n2sT7P",
+          "step": "change hello",
+          "value": Object {
+            "hello": "vorld",
+          },
+        },
+        Object {
+          "graph": "x_n2sT7P -> 38Fdqmoz",
+          "step": "change hello again",
+          "value": Object {
+            "hello": "there",
+          },
+        },
+      ]
+    `);
 
     expect(subscribeFn.mock.calls).toEqual([
       [undefined, { origin: 'subscribe' }],
@@ -751,246 +759,398 @@ Array [
     const store = newStore();
     const client1 = makeClient('a', store);
 
-    client1.updateDoc({}, 'initialize');
-    client1.updateDoc({ hello: 'world' }, 'add hello');
-    client1.updateDoc({ hello: 'world. t' }, 'typing');
-    client1.updateDoc({ hello: 'world. th' }, 'typing');
-    client1.updateDoc({ hello: 'world. thi' }, 'typing');
-    client1.updateDoc({ hello: 'world. this' }, 'typing');
-    client1.updateDoc({ hello: 'world. this ' }, 'typing');
-    client1.updateDoc({ hello: 'world. this i' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is ' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a t' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a te' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a tes' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test ' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test o' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test of' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test of ' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test of c' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test of ch' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test of cha' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test of char' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test of chara' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test of charac' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test of charact' }, 'typing');
-    client1.updateDoc({ hello: 'world. this is a test of characte' }, 'typing');
+    client1.updateDoc({}, { message: 'initialize' });
+    client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    client1.updateDoc({ hello: 'world. t' }, { message: 'typing' });
+    client1.updateDoc({ hello: 'world. th' }, { message: 'typing' });
+    client1.updateDoc({ hello: 'world. thi' }, { message: 'typing' });
+    client1.updateDoc({ hello: 'world. this' }, { message: 'typing' });
+    client1.updateDoc({ hello: 'world. this ' }, { message: 'typing' });
+    client1.updateDoc({ hello: 'world. this i' }, { message: 'typing' });
+    client1.updateDoc({ hello: 'world. this is' }, { message: 'typing' });
+    client1.updateDoc({ hello: 'world. this is ' }, { message: 'typing' });
+    client1.updateDoc({ hello: 'world. this is a' }, { message: 'typing' });
+    client1.updateDoc({ hello: 'world. this is a t' }, { message: 'typing' });
+    client1.updateDoc({ hello: 'world. this is a te' }, { message: 'typing' });
+    client1.updateDoc({ hello: 'world. this is a tes' }, { message: 'typing' });
+    client1.updateDoc(
+      { hello: 'world. this is a test' },
+      { message: 'typing' },
+    );
+    client1.updateDoc(
+      { hello: 'world. this is a test ' },
+      { message: 'typing' },
+    );
+    client1.updateDoc(
+      { hello: 'world. this is a test o' },
+      { message: 'typing' },
+    );
+    client1.updateDoc(
+      { hello: 'world. this is a test of' },
+      { message: 'typing' },
+    );
+    client1.updateDoc(
+      { hello: 'world. this is a test of ' },
+      { message: 'typing' },
+    );
+    client1.updateDoc(
+      { hello: 'world. this is a test of c' },
+      { message: 'typing' },
+    );
+    client1.updateDoc(
+      { hello: 'world. this is a test of ch' },
+      { message: 'typing' },
+    );
+    client1.updateDoc(
+      { hello: 'world. this is a test of cha' },
+      { message: 'typing' },
+    );
+    client1.updateDoc(
+      { hello: 'world. this is a test of char' },
+      { message: 'typing' },
+    );
+    client1.updateDoc(
+      { hello: 'world. this is a test of chara' },
+      { message: 'typing' },
+    );
+    client1.updateDoc(
+      { hello: 'world. this is a test of charac' },
+      { message: 'typing' },
+    );
+    client1.updateDoc(
+      { hello: 'world. this is a test of charact' },
+      { message: 'typing' },
+    );
+    client1.updateDoc(
+      { hello: 'world. this is a test of characte' },
+      { message: 'typing' },
+    );
     client1.updateDoc(
       { hello: 'world. this is a test of character' },
-      'typing',
+      { message: 'typing' },
     );
     client1.updateDoc(
       { hello: 'world. this is a test of character.' },
-      'typing',
+      { message: 'typing' },
     );
 
     await timeout();
 
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "graph": "undefined -> Zob0dMmD",
+          "step": "initialize",
+          "value": Object {},
+        },
+        Object {
+          "graph": "Zob0dMmD -> leySPlIR",
+          "step": "add hello",
+          "value": Object {
+            "hello": "world",
+          },
+        },
+        Object {
+          "graph": "leySPlIR -> YAy0M_J2",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. t",
+          },
+        },
+        Object {
+          "graph": "YAy0M_J2 -> LsIxqujJ",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. th",
+          },
+        },
+        Object {
+          "graph": "LsIxqujJ -> yoPegGx6",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. thi",
+          },
+        },
+        Object {
+          "graph": "yoPegGx6 -> eTLOHYa-",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this",
+          },
+        },
+        Object {
+          "graph": "eTLOHYa- -> WDzPFBwe",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this ",
+          },
+        },
+        Object {
+          "graph": "WDzPFBwe -> YoyNjiZ6",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this i",
+          },
+        },
+        Object {
+          "graph": "YoyNjiZ6 -> rOUBm7c2",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is",
+          },
+        },
+        Object {
+          "graph": "rOUBm7c2 -> MsplY0xo",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is ",
+          },
+        },
+        Object {
+          "graph": "MsplY0xo -> JnbUEhpb",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a",
+          },
+        },
+        Object {
+          "graph": "JnbUEhpb -> POK9sZXI",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a t",
+          },
+        },
+        Object {
+          "graph": "POK9sZXI -> yEO3XYgv",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a te",
+          },
+        },
+        Object {
+          "graph": "yEO3XYgv -> VIhrAVTG",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a tes",
+          },
+        },
+        Object {
+          "graph": "VIhrAVTG -> 9HSyQTMd",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test",
+          },
+        },
+        Object {
+          "graph": "9HSyQTMd -> xGjtRo_F",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test ",
+          },
+        },
+        Object {
+          "graph": "xGjtRo_F -> GFUqLq42",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test o",
+          },
+        },
+        Object {
+          "graph": "GFUqLq42 -> 8Zpd5VpF",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test of",
+          },
+        },
+        Object {
+          "graph": "8Zpd5VpF -> 0JCZFqxq",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test of ",
+          },
+        },
+        Object {
+          "graph": "0JCZFqxq -> 5Y4GtM8z",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test of c",
+          },
+        },
+        Object {
+          "graph": "5Y4GtM8z -> W-adW2a-",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test of ch",
+          },
+        },
+        Object {
+          "graph": "W-adW2a- -> 1nf6gXl1",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test of cha",
+          },
+        },
+        Object {
+          "graph": "1nf6gXl1 -> xF9W97WS",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test of char",
+          },
+        },
+        Object {
+          "graph": "xF9W97WS -> E8TIq05x",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test of chara",
+          },
+        },
+        Object {
+          "graph": "E8TIq05x -> 3hCls5tY",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test of charac",
+          },
+        },
+        Object {
+          "graph": "3hCls5tY -> Hl2TeGle",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test of charact",
+          },
+        },
+        Object {
+          "graph": "Hl2TeGle -> NXbxkJK2",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test of characte",
+          },
+        },
+        Object {
+          "graph": "NXbxkJK2 -> Uc41cdXS",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test of character",
+          },
+        },
+        Object {
+          "graph": "Uc41cdXS -> QNhbrQRR",
+          "step": "typing",
+          "value": Object {
+            "hello": "world. this is a test of character.",
+          },
+        },
+      ]
+    `);
+  });
+
+  it('does not generate a new commit if docs are deep equal but not reference equal', async () => {
+    const store = newStore();
+    const client = makeClient('a', store);
+
+    await client.updateDoc(
+      {
+        foo: 'bar',
+      },
+      { message: 'message' },
+    );
+
+    await client.updateDoc(
+      {
+        foo: 'bar',
+      },
+      { message: 'message' },
+    );
+
+    const commits = store.getCommits();
+    expect(commits).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "baseRef": undefined,
+          "delta": Array [
+            Object {
+              "foo": "bar",
+            },
+          ],
+          "metadata": "message",
+          "ref": "0OUcxXho",
+        },
+      ]
+    `);
+  });
+
+  it('it still generates merge commits even when deltas are noop', async () => {
+    const store = newStore();
+    const clientA = makeClient('a', store);
+    const clientB = makeClient('a', store);
+
+    // These docs were explicitly chosen to have refs such that the
+    // first doc is sorted as the base ref when they're merged.
+    clientA.updateDoc({ hi: 'world', other: 'world' }, { message: 'blah' });
+    clientB.updateDoc({ hi: 'world' }, { message: 'blah' });
+
+    expect(clientA.doc).toEqual({ hi: 'world', other: 'world' });
+    expect(clientB.doc).toEqual({ hi: 'world' });
+
+    await timeout();
+
+    expect(clientA.doc).toEqual({ hi: 'world', other: 'world' });
+    expect(clientB.doc).toEqual({ hi: 'world', other: 'world' });
+
+    // final update to finalize the merge commit
+    await clientA.updateDoc(
+      { hi: 'world', other: 'worldly' },
+      { message: 'blah' },
+    );
+
+    expect(store.getCommits()).toMatchInlineSnapshot(`
 Array [
   Object {
-    "graph": "undefined -> Zob0dMmD",
-    "step": "initialize",
-    "value": Object {},
+    "baseRef": undefined,
+    "delta": Array [
+      Object {
+        "hi": "world",
+        "other": "world",
+      },
+    ],
+    "metadata": Object {
+      "message": "blah",
+    },
+    "ref": "83C7ugjw",
   },
   Object {
-    "graph": "Zob0dMmD -> leySPlIR",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
+    "baseRef": undefined,
+    "delta": Array [
+      Object {
+        "hi": "world",
+      },
+    ],
+    "metadata": Object {
+      "message": "blah",
     },
+    "ref": "guqurHSi",
   },
   Object {
-    "graph": "leySPlIR -> YAy0M_J2",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. t",
+    "baseRef": "83C7ugjw",
+    "delta": undefined,
+    "mergeRef": "guqurHSi",
+    "metadata": Object {
+      "message": "merge",
+      "ref": "(83C7ugjw+guqurHSi)",
     },
+    "ref": "jBSIed8b",
   },
   Object {
-    "graph": "YAy0M_J2 -> LsIxqujJ",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. th",
+    "baseRef": "jBSIed8b",
+    "delta": Object {
+      "other": Array [
+        "world",
+        "worldly",
+      ],
     },
-  },
-  Object {
-    "graph": "LsIxqujJ -> yoPegGx6",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. thi",
+    "metadata": Object {
+      "message": "blah",
     },
-  },
-  Object {
-    "graph": "yoPegGx6 -> eTLOHYa-",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this",
-    },
-  },
-  Object {
-    "graph": "eTLOHYa- -> WDzPFBwe",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this ",
-    },
-  },
-  Object {
-    "graph": "WDzPFBwe -> YoyNjiZ6",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this i",
-    },
-  },
-  Object {
-    "graph": "YoyNjiZ6 -> rOUBm7c2",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is",
-    },
-  },
-  Object {
-    "graph": "rOUBm7c2 -> MsplY0xo",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is ",
-    },
-  },
-  Object {
-    "graph": "MsplY0xo -> JnbUEhpb",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a",
-    },
-  },
-  Object {
-    "graph": "JnbUEhpb -> POK9sZXI",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a t",
-    },
-  },
-  Object {
-    "graph": "POK9sZXI -> yEO3XYgv",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a te",
-    },
-  },
-  Object {
-    "graph": "yEO3XYgv -> VIhrAVTG",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a tes",
-    },
-  },
-  Object {
-    "graph": "VIhrAVTG -> 9HSyQTMd",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test",
-    },
-  },
-  Object {
-    "graph": "9HSyQTMd -> xGjtRo_F",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test ",
-    },
-  },
-  Object {
-    "graph": "xGjtRo_F -> GFUqLq42",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test o",
-    },
-  },
-  Object {
-    "graph": "GFUqLq42 -> 8Zpd5VpF",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of",
-    },
-  },
-  Object {
-    "graph": "8Zpd5VpF -> 0JCZFqxq",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of ",
-    },
-  },
-  Object {
-    "graph": "0JCZFqxq -> 5Y4GtM8z",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of c",
-    },
-  },
-  Object {
-    "graph": "5Y4GtM8z -> W-adW2a-",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of ch",
-    },
-  },
-  Object {
-    "graph": "W-adW2a- -> 1nf6gXl1",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of cha",
-    },
-  },
-  Object {
-    "graph": "1nf6gXl1 -> xF9W97WS",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of char",
-    },
-  },
-  Object {
-    "graph": "xF9W97WS -> E8TIq05x",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of chara",
-    },
-  },
-  Object {
-    "graph": "E8TIq05x -> 3hCls5tY",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of charac",
-    },
-  },
-  Object {
-    "graph": "3hCls5tY -> Hl2TeGle",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of charact",
-    },
-  },
-  Object {
-    "graph": "Hl2TeGle -> NXbxkJK2",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of characte",
-    },
-  },
-  Object {
-    "graph": "NXbxkJK2 -> Uc41cdXS",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of character",
-    },
-  },
-  Object {
-    "graph": "Uc41cdXS -> QNhbrQRR",
-    "step": "typing",
-    "value": Object {
-      "hello": "world. this is a test of character.",
-    },
+    "ref": "FM-iAbj3",
   },
 ]
 `);
