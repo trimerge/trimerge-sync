@@ -156,7 +156,9 @@ describe('TrimergeClient: 2 users', () => {
           Array [
             Object {
               "clientId": "test",
-              "presence": "blah",
+              "presence": Object {
+                "message": "blah",
+              },
               "ref": undefined,
               "self": true,
               "userId": "a",
@@ -1071,7 +1073,9 @@ describe('TrimergeClient: 2 users', () => {
               "foo": "bar",
             },
           ],
-          "metadata": "message",
+          "metadata": Object {
+            "message": "message",
+          },
           "ref": "0OUcxXho",
         },
       ]
@@ -1103,56 +1107,56 @@ describe('TrimergeClient: 2 users', () => {
     );
 
     expect(store.getCommits()).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "baseRef": undefined,
-    "delta": Array [
-      Object {
-        "hi": "world",
-        "other": "world",
-      },
-    ],
-    "metadata": Object {
-      "message": "blah",
-    },
-    "ref": "83C7ugjw",
-  },
-  Object {
-    "baseRef": undefined,
-    "delta": Array [
-      Object {
-        "hi": "world",
-      },
-    ],
-    "metadata": Object {
-      "message": "blah",
-    },
-    "ref": "guqurHSi",
-  },
-  Object {
-    "baseRef": "83C7ugjw",
-    "delta": undefined,
-    "mergeRef": "guqurHSi",
-    "metadata": Object {
-      "message": "merge",
-      "ref": "(83C7ugjw+guqurHSi)",
-    },
-    "ref": "jBSIed8b",
-  },
-  Object {
-    "baseRef": "jBSIed8b",
-    "delta": Object {
-      "other": Array [
-        "world",
-        "worldly",
-      ],
-    },
-    "metadata": Object {
-      "message": "blah",
-    },
-    "ref": "FM-iAbj3",
-  },
-]
-`);
+      Array [
+        Object {
+          "baseRef": undefined,
+          "delta": Array [
+            Object {
+              "hi": "world",
+              "other": "world",
+            },
+          ],
+          "metadata": Object {
+            "message": "blah",
+          },
+          "ref": "83C7ugjw",
+        },
+        Object {
+          "baseRef": undefined,
+          "delta": Array [
+            Object {
+              "hi": "world",
+            },
+          ],
+          "metadata": Object {
+            "message": "blah",
+          },
+          "ref": "guqurHSi",
+        },
+        Object {
+          "baseRef": "83C7ugjw",
+          "delta": undefined,
+          "mergeRef": "guqurHSi",
+          "metadata": Object {
+            "message": "merge",
+            "ref": "(83C7ugjw+guqurHSi)",
+          },
+          "ref": "jBSIed8b",
+        },
+        Object {
+          "baseRef": "jBSIed8b",
+          "delta": Object {
+            "other": Array [
+              "world",
+              "worldly",
+            ],
+          },
+          "metadata": Object {
+            "message": "blah",
+          },
+          "ref": "FM-iAbj3",
+        },
+      ]
+    `);
   });
 });
