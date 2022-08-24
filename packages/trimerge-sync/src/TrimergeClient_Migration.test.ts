@@ -54,6 +54,21 @@ function makeClientV2(
   });
 }
 
+function makeNonReferenceEqualMigrationClient(
+  userId: string,
+  store: MemoryStore<TestMetadata, Delta, TestPresence>,
+): TrimergeClient<DocV1, DocV1, TestMetadata, Delta, TestPresence> {
+  return new TrimergeClient(userId, 'test', store.getLocalStore, {
+    migrate: (doc, metadata) => {
+      return { doc: { ...doc }, metadata };
+    },
+    diff,
+    patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
+    computeRef,
+    mergeAllBranches,
+  });
+}
+
 function basicGraph(
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
   client1: TrimergeClient<any, any, any, any, any>,
@@ -183,6 +198,44 @@ Array [
       "field": 456,
       "v": 1,
     },
+  },
+]
+`);
+  });
+
+  it('doesnt make a commit for a noop migration commit', async () => {
+    const store = newStore();
+
+    const client1 = makeNonReferenceEqualMigrationClient('a', store);
+    client1.updateDoc({ v: 1, field: 123 }, 'initialize');
+    expect(client1.doc).toEqual({ v: 1, field: 123 });
+
+    client1.updateDoc({ v: 1, field: 124 }, 'update field');
+    await timeout();
+
+    expect(store.getCommits()).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "baseRef": undefined,
+    "delta": Array [
+      Object {
+        "field": 123,
+        "v": 1,
+      },
+    ],
+    "metadata": "initialize",
+    "ref": "wkRuq_cr",
+  },
+  Object {
+    "baseRef": "wkRuq_cr",
+    "delta": Object {
+      "field": Array [
+        123,
+        124,
+      ],
+    },
+    "metadata": "update field",
+    "ref": "d7exbdh_",
   },
 ]
 `);
