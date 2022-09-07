@@ -112,7 +112,6 @@ async function makeTestClientWithRemoteOnEventHandle(
   docId: string,
   storeId: string,
   addStoreMetadata?: AddStoreMetadataFn<any>,
-  computeRef?: ComputeRefFn<any>,
 ): Promise<{
   client: TrimergeClient<any, any, any, any, any>;
   store: LocalStore<any, any, any>;
@@ -140,7 +139,7 @@ async function makeTestClientWithRemoteOnEventHandle(
         )(userId, clientId, onEvent);
         return store;
       },
-      { ...differ, computeRef: computeRef || differ.computeRef },
+      differ,
     );
   });
   return { client: client!, store: store!, sendRemoteEvent: onRemoteEvent! };
@@ -1198,7 +1197,6 @@ Object {
         docId,
         'test-doc-store',
         (commit: Commit<any>) => ({ ...commit.metadata, O_o: '^_^' }),
-        () => 'test',
       );
 
     sendRemoteEvent({
@@ -1215,37 +1213,46 @@ Object {
       ],
     });
 
-    // wait for write to indexedDB
     await timeout(100);
 
-    await client.updateDoc('hello', 'client 1');
+    void store.update(
+      [
+        {
+          ref: 'test',
+          delta: ['hello'],
+          metadata: {
+            clientId: 'client1',
+          },
+        },
+      ],
+      undefined,
+    );
 
     // Wait for write
     await timeout(100);
 
     await client.shutdown();
 
-    await expect(dumpDatabase('test-doc-remote4')).resolves
-      .toMatchInlineSnapshot(`
+    await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
             Object {
               "commits": Array [
                 Object {
-                  "baseRef": undefined,
                   "delta": Array [
                     "hello",
                   ],
                   "metadata": Object {
-                    "fromRemote": true,
-                    "ref": "G0a5Az3Q",
+                    "O_o": "^_^",
+                    "clientId": "client1",
+                    "existingStuff": "boring",
                   },
-                  "ref": "G0a5Az3Q",
+                  "ref": "test",
                   "remoteSyncId": "foo",
                   "syncId": 1,
                 },
               ],
               "heads": Array [
                 Object {
-                  "ref": "G0a5Az3Q",
+                  "ref": "test",
                 },
               ],
               "remotes": Array [
