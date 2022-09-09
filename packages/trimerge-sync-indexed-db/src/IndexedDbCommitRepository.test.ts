@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto';
 import {
   BroadcastEvent,
   Commit,
+  ComputeRefFn,
   CoordinatingLocalStore,
   EventChannel,
   GetLocalStoreFn,
@@ -114,7 +115,7 @@ async function makeTestClientWithRemoteOnEventHandle(
 ): Promise<{
   client: TrimergeClient<any, any, any, any, any>;
   store: LocalStore<any, any, any>;
-  onEvent: OnRemoteEventFn<any, any, any>;
+  sendRemoteEvent: OnRemoteEventFn<any, any, any>;
 }> {
   let client: TrimergeClient<any, any, any, any, any> | undefined;
   let store: LocalStore<any, any, any> | undefined;
@@ -141,7 +142,7 @@ async function makeTestClientWithRemoteOnEventHandle(
       differ,
     );
   });
-  return { client: client!, store: store!, onEvent: onRemoteEvent! };
+  return { client: client!, store: store!, sendRemoteEvent: onRemoteEvent! };
 }
 
 beforeEach(() => {
@@ -958,7 +959,7 @@ describe('createIndexedDbBackendFactory', () => {
 
   it('updates metadata from remote twice', async () => {
     const docId = 'test-doc-update-metadata-twice';
-    const { client, store, onEvent } =
+    const { client, store, sendRemoteEvent } =
       await makeTestClientWithRemoteOnEventHandle(
         'test',
         '1',
@@ -968,13 +969,13 @@ describe('createIndexedDbBackendFactory', () => {
 
     await store.update([{ ref: 'blah', metadata: { foo: 'bar' } }], undefined);
 
-    onEvent({
+    sendRemoteEvent({
       type: 'ack',
       acks: [{ ref: 'blah', metadata: { bar: 'baz' } }],
       syncId: 'blah',
     });
 
-    onEvent({
+    sendRemoteEvent({
       type: 'ack',
       acks: [{ ref: 'blah', metadata: { qux: 'quux' } }],
       syncId: 'blah2',
@@ -1174,6 +1175,84 @@ Object {
               "heads": Array [
                 Object {
                   "ref": "G0a5Az3Q",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
+  });
+
+  it('updates the commit in the local DB with client info even if it already exists', async () => {
+    const docId = 'test-doc-remote4';
+
+    const { client, store, sendRemoteEvent } =
+      await makeTestClientWithRemoteOnEventHandle(
+        'test',
+        '1',
+        docId,
+        'test-doc-store',
+        (commit: Commit<any>) => ({ ...commit.metadata, O_o: '^_^' }),
+      );
+
+    sendRemoteEvent({
+      type: 'commits',
+      commits: [
+        {
+          ref: 'test',
+          // jdp between undefined and hello,
+          delta: ['hello'],
+          metadata: {
+            existingStuff: 'boring',
+          },
+        },
+      ],
+    });
+
+    await timeout(100);
+
+    void store.update(
+      [
+        {
+          ref: 'test',
+          delta: ['hello'],
+          metadata: {
+            clientId: 'client1',
+          },
+        },
+      ],
+      undefined,
+    );
+
+    // Wait for write
+    await timeout(100);
+
+    await client.shutdown();
+
+    await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
+            Object {
+              "commits": Array [
+                Object {
+                  "delta": Array [
+                    "hello",
+                  ],
+                  "metadata": Object {
+                    "O_o": "^_^",
+                    "clientId": "client1",
+                    "existingStuff": "boring",
+                  },
+                  "ref": "test",
+                  "remoteSyncId": "foo",
+                  "syncId": 1,
+                },
+              ],
+              "heads": Array [
+                Object {
+                  "ref": "test",
                 },
               ],
               "remotes": Array [
