@@ -3,7 +3,6 @@ import 'fake-indexeddb/auto';
 import {
   BroadcastEvent,
   Commit,
-  ComputeRefFn,
   CoordinatingLocalStore,
   EventChannel,
   GetLocalStoreFn,
