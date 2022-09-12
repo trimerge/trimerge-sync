@@ -9,7 +9,7 @@ import {
   migrate,
   patch,
 } from './testLib/MergeUtils';
-import { getBasicGraph } from './testLib/GraphVisualizers';
+import { getBasicGraph } from './lib/GraphVisualizers';
 import { ClientInfo } from './types';
 import { timeout } from './lib/Timeout';
 
