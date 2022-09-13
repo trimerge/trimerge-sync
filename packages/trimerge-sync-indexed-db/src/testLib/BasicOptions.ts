@@ -1,4 +1,4 @@
-import type { Differ, MergeDocFn } from 'trimerge-sync';
+import type { MergeDocFn, TrimergeClientOptions } from 'trimerge-sync';
 
 // Basic trimerge function that merges values, strings, and objects
 import {
@@ -53,11 +53,14 @@ type TestSavedDoc = any;
 type TestDoc = any;
 type TestPresence = any;
 
-export const differ: Differ<TestSavedDoc, TestDoc, TestMetadata, TestPresence> =
-  {
-    migrate: (doc, metadata) => ({ doc, metadata }),
+export const opts: Pick<
+  TrimergeClientOptions<TestSavedDoc, TestDoc, TestMetadata, any, TestPresence>,
+  'differ' | 'computeRef' | 'mergeAllBranches'
+> = {
+  differ: {
     diff,
     patch,
-    computeRef,
-    mergeAllBranches,
-  };
+  },
+  computeRef,
+  mergeAllBranches,
+};

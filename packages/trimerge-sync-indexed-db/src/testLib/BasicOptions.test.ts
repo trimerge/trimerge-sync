@@ -1,4 +1,4 @@
-import { merge, patch } from './BasicDiffer';
+import { merge, patch } from './BasicOptions';
 
 describe('patch', () => {
   it('patches undefined', () => {

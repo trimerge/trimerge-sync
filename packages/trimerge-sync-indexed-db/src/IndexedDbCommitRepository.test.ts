@@ -18,7 +18,7 @@ import {
   IndexedDbCommitRepository,
   resetDocRemoteSyncData,
 } from './IndexedDbCommitRepository';
-import { differ } from './testLib/BasicDiffer';
+import { opts } from './testLib/BasicOptions';
 import { timeout } from './lib/timeout';
 import { getMockRemote, getMockRemoteWithMap } from './testLib/MockRemote';
 import { dumpDatabase, getIdbDatabases } from './testLib/IndexedDB';
@@ -92,17 +92,15 @@ function makeTestClient(
   getRemote?: GetRemoteFn<any, any, any>,
   addStoreMetadata?: AddStoreMetadataFn<any>,
 ) {
-  return new TrimergeClient(
-    userId,
-    clientId,
-    makeIndexedDbCoordinatingLocalStoreFactory(
+  return new TrimergeClient(userId, clientId, {
+    ...opts,
+    getLocalStore: makeIndexedDbCoordinatingLocalStoreFactory(
       docId,
       storeId,
       getRemote,
       addStoreMetadata,
     ),
-    differ,
-  );
+  });
 }
 
 async function makeTestClientWithRemoteOnEventHandle(
@@ -121,10 +119,9 @@ async function makeTestClientWithRemoteOnEventHandle(
   let onRemoteEvent: OnRemoteEventFn<any, any, any> | undefined;
 
   await new Promise<void>((resolve) => {
-    client = new TrimergeClient(
-      userId,
-      clientId,
-      (userId, clientId, onEvent) => {
+    client = new TrimergeClient(userId, clientId, {
+      ...opts,
+      getLocalStore: (userId, clientId, onEvent) => {
         store = makeIndexedDbCoordinatingLocalStoreFactory(
           docId,
           storeId,
@@ -138,8 +135,7 @@ async function makeTestClientWithRemoteOnEventHandle(
         )(userId, clientId, onEvent);
         return store;
       },
-      differ,
-    );
+    });
   });
   return { client: client!, store: store!, sendRemoteEvent: onRemoteEvent! };
 }
