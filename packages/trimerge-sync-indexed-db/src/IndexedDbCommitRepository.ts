@@ -241,8 +241,8 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
     const readTx = db.transaction(['remotes'], 'readonly');
     const remotes = readTx.objectStore('remotes');
     const remote = (await remotes.get(this.remoteId)) ?? {};
+    await readTx.done;
     if (!remote.localStoreId) {
-      await readTx.done;
       remote.localStoreId = await this.localIdGenerator();
       const writeTx = db.transaction(['remotes'], 'readwrite');
       await writeTx.objectStore('remotes').put(remote, this.remoteId);
