@@ -211,7 +211,6 @@ export type GetLocalStoreFn<CommitMetadata, Delta, Presence> = (
 ) => LocalStore<CommitMetadata, Delta, Presence>;
 
 export type RemoteSyncInfo = {
-  localStoreId: string;
   lastSyncCursor: string | undefined;
 };
 
