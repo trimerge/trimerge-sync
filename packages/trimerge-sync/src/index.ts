@@ -1,4 +1,4 @@
-export * from './differ';
+export * from './TrimergeClientOptions';
 export * from './TrimergeClient';
 export * from './types';
 export * from './CoordinatingLocalStore';
