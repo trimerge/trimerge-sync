@@ -186,26 +186,6 @@ describe('TrimergeClient', () => {
       `"unknown baseRef for commit a: unknown"`,
     );
   });
-  it('handles event with invalid mergeRef', async () => {
-    const { onEvent } = makeTrimergeClient();
-    expect(() =>
-      onEvent(
-        {
-          type: 'commits',
-          commits: [
-            {
-              ref: 'a',
-              mergeRef: 'unknown',
-              metadata: '',
-            },
-          ],
-        },
-        false,
-      ),
-    ).toThrowErrorMatchingInlineSnapshot(
-      `"unknown mergeRef for commit a: unknown"`,
-    );
-  });
 
   it('handles internal error', async () => {
     const { onEvent, client } = makeTrimergeClient();
@@ -353,6 +333,42 @@ Array [
         commits: [
           {
             baseRef: 'test-base-ref',
+            ref: 'test-ref',
+            delta,
+            metadata: 'testCommitOnTopOfSnapshotDocValue',
+          },
+        ],
+      },
+      true,
+    );
+
+    expect(client.doc).toEqual(commitOnTopOfSnapshotDoc);
+  });
+
+  it('it does not fail on a missing a merge ref', () => {
+    const testDocCache = new InMemoryDocCache<string, string>();
+    const { client, onEvent: sendLocalStoreEvent } = makeTrimergeClient(
+      undefined,
+      { docCache: testDocCache, differ: JDP_DIFFER },
+    );
+
+    const snapshotDoc = 'hello';
+    const commitOnTopOfSnapshotDoc = 'hello world';
+    const delta = JDP_DIFFER.diff(snapshotDoc, commitOnTopOfSnapshotDoc);
+
+    testDocCache.set('test-base-ref', {
+      ref: 'test-base-ref',
+      doc: 'hello',
+      metadata: 'testSnapshotDocValue',
+    });
+
+    sendLocalStoreEvent(
+      {
+        type: 'commits',
+        commits: [
+          {
+            baseRef: 'test-base-ref',
+            mergeRef: 'test-merge-ref',
             ref: 'test-ref',
             delta,
             metadata: 'testCommitOnTopOfSnapshotDocValue',

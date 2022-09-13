@@ -418,9 +418,6 @@ export class TrimergeClient<
       headRefs.delete(baseRef);
     }
     if (mergeRef !== undefined) {
-      if (!this.commits.has(mergeRef)) {
-        throw new Error(`unknown mergeRef for commit ${ref}: ${mergeRef}`);
-      }
       headRefs.delete(mergeRef);
     }
     headRefs.add(ref);
@@ -461,7 +458,7 @@ export class TrimergeClient<
     this.commits.set(ref, commit);
     this.addHead(this.allHeadRefs, commit);
     const currentRef = this.lastSavedDoc?.ref;
-    if (currentRef === baseRef || currentRef === mergeRef) {
+    if (!currentRef || currentRef === baseRef || currentRef === mergeRef) {
       this.lastSavedDoc = this.getCommitDoc(commit.ref);
       if (type !== 'temp') {
         this.lastNonTempDoc = this.lastSavedDoc;
