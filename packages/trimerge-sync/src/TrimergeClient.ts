@@ -12,6 +12,7 @@ import {
   CommitDoc,
   ComputeRefFn,
   Differ,
+  DocCache,
   MergeAllBranchesFn,
   MergeHelpers,
   MigrateDocFn,
@@ -37,6 +38,22 @@ export type SubscribeEvent = {
     | 'local' // Another client on the same store updated the value
     | 'remote'; // A remote client updated the value
 };
+
+class InMemoryDocCache<SavedDoc, CommitMetadata>
+  implements DocCache<SavedDoc, CommitMetadata>
+{
+  private readonly docs: Map<string, CommitDoc<SavedDoc, CommitMetadata>> =
+    new Map();
+  get(ref: string) {
+    return this.docs.get(ref);
+  }
+  set(ref: string, doc: CommitDoc<SavedDoc, CommitMetadata>) {
+    this.docs.set(ref, doc);
+  }
+  delete(ref: string) {
+    this.docs.delete(ref);
+  }
+}
 
 export class TrimergeClient<
   SavedDoc,
@@ -76,7 +93,6 @@ export class TrimergeClient<
   private clientList: ClientList<Presence> = [];
 
   private commits = new Map<string, Commit<CommitMetadata, Delta>>();
-  private docs = new Map<string, CommitDoc<SavedDoc, CommitMetadata>>();
   private allHeadRefs = new Set<string>();
   private nonTempHeadRefs = new Set<string>();
 
@@ -91,6 +107,7 @@ export class TrimergeClient<
   private readonly addNewCommitMetadata:
     | AddNewCommitMetadataFn<CommitMetadata>
     | undefined;
+  private readonly docCache: DocCache<SavedDoc, CommitMetadata>;
   private tempCommits = new Map<string, Commit<CommitMetadata, Delta>>();
   private unsyncedCommits: Commit<CommitMetadata, Delta>[] = [];
 
@@ -116,6 +133,7 @@ export class TrimergeClient<
       computeRef,
       getLocalStore,
       addNewCommitMetadata,
+      docCache,
     }: TrimergeClientOptions<
       SavedDoc,
       LatestDoc,
@@ -135,6 +153,8 @@ export class TrimergeClient<
     this.mergeAllBranches = mergeAllBranches;
     this.computeRef = computeRef;
     this.addNewCommitMetadata = addNewCommitMetadata;
+    this.docCache =
+      docCache ?? new InMemoryDocCache<SavedDoc, CommitMetadata>();
     this.store = getLocalStore(userId, clientId, this.onStoreEvent);
     this.setClientInfo(
       {
@@ -309,7 +329,7 @@ export class TrimergeClient<
   };
 
   getCommitDoc(ref: string): CommitDoc<SavedDoc, CommitMetadata> {
-    const doc = this.docs.get(ref);
+    const doc = this.docCache.get(ref);
     if (doc !== undefined) {
       return doc;
     }
@@ -320,7 +340,7 @@ export class TrimergeClient<
       doc: this.differ.patch(baseValue, delta),
       metadata,
     };
-    this.docs.set(ref, commitDoc);
+    this.docCache.set(ref, commitDoc);
     return commitDoc;
   }
 
@@ -428,7 +448,7 @@ export class TrimergeClient<
       // Remove all temp commits
       for (const ref1 of this.tempCommits.keys()) {
         this.commits.delete(ref1);
-        this.docs.delete(ref1);
+        this.docCache.delete(ref1);
       }
       // Roll back heads
       this.allHeadRefs = new Set(this.nonTempHeadRefs);
@@ -521,7 +541,7 @@ export class TrimergeClient<
     const delta = this.differ.diff(base?.doc, newDoc);
     if (delta === undefined && mergeRef === undefined) {
       if (base) {
-        this.docs.set(base?.ref, { ...base, doc: newDoc });
+        this.docCache.set(base?.ref, { ...base, doc: newDoc });
       }
       return undefined;
     }
@@ -538,7 +558,7 @@ export class TrimergeClient<
 
     // Use the client-provided doc to maintain structural sharing
     // for computing future diffs.
-    this.docs.set(ref, { doc: newDoc, ref, metadata });
+    this.docCache.set(ref, { doc: newDoc, ref, metadata });
     const commit: Commit<CommitMetadata, Delta> =
       mergeRef !== undefined
         ? { ref, baseRef, mergeRef, delta, metadata }
