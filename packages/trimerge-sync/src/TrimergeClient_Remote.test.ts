@@ -1,11 +1,3 @@
-import {
-  computeRef,
-  diff,
-  mergeAllBranches,
-  migrate,
-  patch,
-} from './testLib/MergeUtils';
-import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
@@ -13,19 +5,14 @@ import { getBasicGraph } from './lib/GraphVisualizers';
 import { SyncStatus } from './types';
 import { timeout } from './lib/Timeout';
 import { resetAll } from './testLib/MemoryBroadcastChannel';
+import {
+  TEST_OPTS,
+  TestDoc,
+  TestPresence,
+  TestSavedDoc,
+} from './testLib/MergeUtils';
 
 type TestMetadata = string;
-type TestSavedDoc = any;
-type TestDoc = any;
-type TestPresence = any;
-
-const differ: Differ<TestSavedDoc, TestDoc, TestMetadata, TestPresence> = {
-  migrate,
-  diff,
-  patch,
-  computeRef,
-  mergeAllBranches,
-};
 
 const stores = new Set<MemoryStore<TestMetadata, Delta, TestPresence>>();
 
@@ -55,7 +42,10 @@ function makeClient(
   clientId: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<TestSavedDoc, TestDoc, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, clientId, store.getLocalStore, differ);
+  return new TrimergeClient(userId, clientId, {
+    ...TEST_OPTS,
+    getLocalStore: store.getLocalStore,
+  });
 }
 
 function basicGraph(

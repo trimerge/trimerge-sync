@@ -1,4 +1,4 @@
-import { MigrateDocFn } from './differ';
+import { MigrateDocFn } from './TrimergeClientOptions';
 
 describe('migrate type tests', () => {
   it('migrates', () => {

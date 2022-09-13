@@ -1,30 +1,17 @@
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
-import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
-import {
-  computeRef,
-  diff,
-  mergeAllBranches,
-  migrate,
-  patch,
-} from './testLib/MergeUtils';
 import { timeout } from './lib/Timeout';
-
-jest.setTimeout(10_000);
+import {
+  TEST_OPTS,
+  TestDoc,
+  TestPresence,
+  TestSavedDoc,
+} from './testLib/MergeUtils';
 
 type TestMetadata = any;
-type TestSavedDoc = any;
-type TestDoc = any;
-type TestPresence = any;
 
-const differ: Differ<TestSavedDoc, TestDoc, TestMetadata, TestPresence> = {
-  migrate,
-  diff,
-  patch,
-  computeRef,
-  mergeAllBranches,
-};
+jest.setTimeout(10_000);
 
 function newStore() {
   return new MemoryStore<TestMetadata, Delta, TestPresence>();
@@ -34,7 +21,10 @@ function makeClient(
   userId: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<TestSavedDoc, TestDoc, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, differ);
+  return new TrimergeClient(userId, 'test', {
+    ...TEST_OPTS,
+    getLocalStore: store.getLocalStore,
+  });
 }
 
 describe('TrimergeClient Fuzz', () => {
