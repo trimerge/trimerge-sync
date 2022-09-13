@@ -8,6 +8,7 @@ import {
 } from './TrimergeClientOptions';
 
 import { create } from 'jsondiffpatch';
+import { computeRef } from 'trimerge-sync-hash';
 
 const jsonDiffPatch = create({ textDiff: { minLength: 20 } });
 
@@ -254,7 +255,10 @@ describe('TrimergeClient', () => {
   });
 
   it('preserves object references from client', async () => {
-    const { client } = makeTrimergeClient(undefined, { differ: JDP_DIFFER });
+    const { client } = makeTrimergeClient(undefined, {
+      differ: JDP_DIFFER,
+      computeRef,
+    });
 
     const nestedObject = {
       field: 'value',
