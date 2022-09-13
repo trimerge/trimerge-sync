@@ -85,7 +85,7 @@ describe('TrimergeClient: Migration', () => {
     const store = newStore();
 
     const client1 = makeClientV1('a', store);
-    client1.updateDoc({ v: 1, field: 123 }, 'initialize');
+    void client1.updateDoc({ v: 1, field: 123 }, 'initialize');
     expect(client1.doc).toEqual({ v: 1, field: 123 });
 
     await timeout();
@@ -122,7 +122,7 @@ Array [
 ]
 `);
 
-    client2.updateDoc({ v: 2, field: '456' }, 'update field');
+    void client2.updateDoc({ v: 2, field: '456' }, 'update field');
     expect(client2.doc).toEqual({ v: 2, field: '456' });
 
     await timeout();
@@ -160,7 +160,7 @@ Array [
     const store = newStore();
 
     const client1 = makeClientV1('a', store);
-    client1.updateDoc({ v: 1, field: 123 }, 'initialize');
+    void client1.updateDoc({ v: 1, field: 123 }, 'initialize');
     expect(client1.doc).toEqual({ v: 1, field: 123 });
 
     await timeout();
@@ -171,7 +171,7 @@ Array [
 
     expect(client2.doc).toEqual({ v: 2, field: '123' });
 
-    client1.updateDoc({ v: 1, field: 456 }, 'update field');
+    void client1.updateDoc({ v: 1, field: 456 }, 'update field');
 
     expect(client1.doc).toEqual({ v: 1, field: 456 });
 
@@ -207,10 +207,10 @@ Array [
     const store = newStore();
 
     const client1 = makeNonReferenceEqualMigrationClient('a', store);
-    client1.updateDoc({ v: 1, field: 123 }, 'initialize');
+    void client1.updateDoc({ v: 1, field: 123 }, 'initialize');
     expect(client1.doc).toEqual({ v: 1, field: 123 });
 
-    client1.updateDoc({ v: 1, field: 124 }, 'update field');
+    void client1.updateDoc({ v: 1, field: 124 }, 'update field');
     await timeout();
 
     expect(store.getCommits()).toMatchInlineSnapshot(`

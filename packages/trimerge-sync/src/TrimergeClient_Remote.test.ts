@@ -105,8 +105,8 @@ describe('Remote sync', () => {
     const syncUpdates: SyncStatus[] = [];
     client.subscribeSyncStatus((state) => syncUpdates.push(state));
 
-    client.updateDoc({}, 'initialize');
-    client.updateDoc({ hello: 'world' }, 'add hello');
+    void client.updateDoc({}, 'initialize');
+    void client.updateDoc({ hello: 'world' }, 'add hello');
 
     await timeout();
 
@@ -230,15 +230,15 @@ describe('Remote sync', () => {
     const remoteStore = newRemoteStore(false);
     const localStore = newStore(remoteStore);
     const client = makeClient('a', 'test', localStore);
-    client.updateDoc({}, 'initialize');
-    client.updateDoc({ hello: 'world' }, 'add hello');
-    client.updateDoc({ hello: 'world 2' }, 'edit hello');
-    client.updateDoc({ hello: 'world 3' }, 'edit hello');
-    client.updateDoc({ hello: 'world 4' }, 'edit hello');
-    client.updateDoc({ hello: 'world 5' }, 'edit hello');
-    client.updateDoc({ hello: 'world 6' }, 'edit hello');
-    client.updateDoc({ hello: 'world 7' }, 'edit hello');
-    client.updateDoc({ hello: 'world 8' }, 'edit hello');
+    void client.updateDoc({}, 'initialize');
+    void client.updateDoc({ hello: 'world' }, 'add hello');
+    void client.updateDoc({ hello: 'world 2' }, 'edit hello');
+    void client.updateDoc({ hello: 'world 3' }, 'edit hello');
+    void client.updateDoc({ hello: 'world 4' }, 'edit hello');
+    void client.updateDoc({ hello: 'world 5' }, 'edit hello');
+    void client.updateDoc({ hello: 'world 6' }, 'edit hello');
+    void client.updateDoc({ hello: 'world 7' }, 'edit hello');
+    void client.updateDoc({ hello: 'world 8' }, 'edit hello');
 
     await timeout();
 
@@ -327,8 +327,8 @@ describe('Remote sync', () => {
     const client1Sub = jest.fn();
     client1.subscribeClientList(client1Sub);
 
-    client1.updateDoc({}, 'initialize');
-    client1.updateDoc({ hello: 'world' }, 'add hello');
+    void client1.updateDoc({}, 'initialize');
+    void client1.updateDoc({ hello: 'world' }, 'add hello');
 
     await timeout();
 
@@ -599,8 +599,8 @@ describe('Remote sync', () => {
     const states2: TestDoc[] = [];
     client2.subscribeDoc((state) => states2.push(state));
 
-    client1.updateDoc({}, 'initialize');
-    client1.updateDoc({ hello: 'world' }, 'add hello');
+    void client1.updateDoc({}, 'initialize');
+    void client1.updateDoc({ hello: 'world' }, 'add hello');
 
     await timeout();
 
@@ -627,7 +627,7 @@ describe('Remote sync', () => {
 
     await timeout();
 
-    client2.updateDoc({ hello: 'world', world: 'hello' }, 'add world');
+    void client2.updateDoc({ hello: 'world', world: 'hello' }, 'add world');
 
     await timeout(100);
 
@@ -1011,9 +1011,9 @@ describe('Remote sync', () => {
     client1.subscribeClientList(client1ListSub);
     client2.subscribeClientList(client2ListSub);
 
-    client1.updateDoc({}, 'initialize');
-    client1.updateDoc({ hello: 'world' }, 'add hello');
-    client1.updateDoc({ hello: 'vorld' }, 'change hello');
+    void client1.updateDoc({}, 'initialize');
+    void client1.updateDoc({ hello: 'world' }, 'add hello');
+    void client1.updateDoc({ hello: 'vorld' }, 'change hello');
 
     expect(client1.doc).toEqual({ hello: 'vorld' });
     expect(client2.doc).toEqual(undefined);
@@ -1023,8 +1023,8 @@ describe('Remote sync', () => {
     expect(client1.doc).toEqual({ hello: 'vorld' });
     expect(client2.doc).toEqual({ hello: 'vorld' });
 
-    client2.updateDoc({ hello: 'vorld', world: 'world' }, 'add world');
-    client2.updateDoc({ hello: 'vorld', world: 'vorld' }, 'change world');
+    void client2.updateDoc({ hello: 'vorld', world: 'world' }, 'add world');
+    void client2.updateDoc({ hello: 'vorld', world: 'vorld' }, 'change world');
 
     // Now client 2 is updated but not client 1
     expect(client1.doc).toEqual({ hello: 'vorld' });

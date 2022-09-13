@@ -85,9 +85,9 @@ describe('TrimergeClient: 2 users', () => {
     const store = newStore();
     const client = makeClient('a', store);
 
-    client.updateDoc({}, { message: 'initialize' });
-    client.updateDoc({ hello: 'world' }, { message: 'add hello' });
-    client.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
+    void client.updateDoc({}, { message: 'initialize' });
+    void client.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    void client.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
 
     expect(client.doc).toEqual({ hello: 'vorld' });
 
@@ -124,9 +124,9 @@ describe('TrimergeClient: 2 users', () => {
 
     const onStateChange = jest.fn();
     const unsub = client.subscribeDoc(onStateChange);
-    client.updateDoc(undefined, { message: 'initialize' });
+    void client.updateDoc(undefined, { message: 'initialize' });
     await timeout();
-    client.updateDoc(undefined, { message: 'initialize' });
+    void client.updateDoc(undefined, { message: 'initialize' });
     await timeout();
 
     expect(onStateChange.mock.calls).toMatchInlineSnapshot(`
@@ -525,8 +525,8 @@ describe('TrimergeClient: 2 users', () => {
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
 
-    client1.updateDoc({}, { message: 'initialize' });
-    client1.updateDoc({ edit: true }, { message: 'edit' });
+    void client1.updateDoc({}, { message: 'initialize' });
+    void client1.updateDoc({ edit: true }, { message: 'edit' });
 
     // Client 1 is updated, but not client2
     expect(client1.doc).toEqual({ edit: true });
@@ -542,20 +542,20 @@ describe('TrimergeClient: 2 users', () => {
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
 
-    client1.updateDoc({}, { message: 'initialize' });
-    client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
-    client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
+    void client1.updateDoc({}, { message: 'initialize' });
+    void client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    void client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
 
     await timeout();
 
     expect(client1.doc).toEqual({ hello: 'vorld' });
     expect(client2.doc).toEqual({ hello: 'vorld' });
 
-    client2.updateDoc(
+    void client2.updateDoc(
       { hello: 'vorld', world: 'world' },
       { message: 'add world' },
     );
-    client2.updateDoc(
+    void client2.updateDoc(
       { hello: 'vorld', world: 'vorld' },
       { message: 'change world' },
     );
@@ -575,7 +575,7 @@ describe('TrimergeClient: 2 users', () => {
     const client1 = makeClient('a', store);
     const client2 = makeClient('b', store);
 
-    client1.updateDoc({}, { message: 'initialize' });
+    void client1.updateDoc({}, { message: 'initialize' });
 
     // Synchronized
     expect(client1.doc).toEqual({});
@@ -585,11 +585,11 @@ describe('TrimergeClient: 2 users', () => {
 
     expect(client2.doc).toEqual({});
 
-    client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
-    client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
+    void client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    void client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
 
-    client2.updateDoc({ world: 'world' }, { message: 'add world' });
-    client2.updateDoc({ world: 'vorld' }, { message: 'change world' });
+    void client2.updateDoc({ world: 'world' }, { message: 'add world' });
+    void client2.updateDoc({ world: 'vorld' }, { message: 'change world' });
 
     // Now client 1 and client 2 have different changes
     expect(client1.doc).toEqual({ hello: 'vorld' });
@@ -653,9 +653,9 @@ describe('TrimergeClient: 2 users', () => {
     const store = newStore();
     const client1 = makeClient('a', store);
 
-    client1.updateDoc({}, { message: 'initialize' });
-    client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
-    client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
+    void client1.updateDoc({}, { message: 'initialize' });
+    void client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    void client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
 
     await timeout();
 
@@ -698,9 +698,9 @@ describe('TrimergeClient: 2 users', () => {
 
     const unsubscribeFn = client1.subscribeDoc(subscribeFn);
 
-    client1.updateDoc({}, { message: 'initialize' });
-    client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
-    client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
+    void client1.updateDoc({}, { message: 'initialize' });
+    void client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    void client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
 
     await timeout();
 
@@ -711,7 +711,10 @@ describe('TrimergeClient: 2 users', () => {
 
     await timeout();
 
-    client1.updateDoc({ hello: 'there' }, { message: 'change hello again' });
+    void client1.updateDoc(
+      { hello: 'there' },
+      { message: 'change hello again' },
+    );
 
     await timeout();
 
@@ -761,77 +764,89 @@ describe('TrimergeClient: 2 users', () => {
     const store = newStore();
     const client1 = makeClient('a', store);
 
-    client1.updateDoc({}, { message: 'initialize' });
-    client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
-    client1.updateDoc({ hello: 'world. t' }, { message: 'typing' });
-    client1.updateDoc({ hello: 'world. th' }, { message: 'typing' });
-    client1.updateDoc({ hello: 'world. thi' }, { message: 'typing' });
-    client1.updateDoc({ hello: 'world. this' }, { message: 'typing' });
-    client1.updateDoc({ hello: 'world. this ' }, { message: 'typing' });
-    client1.updateDoc({ hello: 'world. this i' }, { message: 'typing' });
-    client1.updateDoc({ hello: 'world. this is' }, { message: 'typing' });
-    client1.updateDoc({ hello: 'world. this is ' }, { message: 'typing' });
-    client1.updateDoc({ hello: 'world. this is a' }, { message: 'typing' });
-    client1.updateDoc({ hello: 'world. this is a t' }, { message: 'typing' });
-    client1.updateDoc({ hello: 'world. this is a te' }, { message: 'typing' });
-    client1.updateDoc({ hello: 'world. this is a tes' }, { message: 'typing' });
-    client1.updateDoc(
+    void client1.updateDoc({}, { message: 'initialize' });
+    void client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    void client1.updateDoc({ hello: 'world. t' }, { message: 'typing' });
+    void client1.updateDoc({ hello: 'world. th' }, { message: 'typing' });
+    void client1.updateDoc({ hello: 'world. thi' }, { message: 'typing' });
+    void client1.updateDoc({ hello: 'world. this' }, { message: 'typing' });
+    void client1.updateDoc({ hello: 'world. this ' }, { message: 'typing' });
+    void client1.updateDoc({ hello: 'world. this i' }, { message: 'typing' });
+    void client1.updateDoc({ hello: 'world. this is' }, { message: 'typing' });
+    void client1.updateDoc({ hello: 'world. this is ' }, { message: 'typing' });
+    void client1.updateDoc(
+      { hello: 'world. this is a' },
+      { message: 'typing' },
+    );
+    void client1.updateDoc(
+      { hello: 'world. this is a t' },
+      { message: 'typing' },
+    );
+    void client1.updateDoc(
+      { hello: 'world. this is a te' },
+      { message: 'typing' },
+    );
+    void client1.updateDoc(
+      { hello: 'world. this is a tes' },
+      { message: 'typing' },
+    );
+    void client1.updateDoc(
       { hello: 'world. this is a test' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test ' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test o' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test of' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test of ' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test of c' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test of ch' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test of cha' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test of char' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test of chara' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test of charac' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test of charact' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test of characte' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test of character' },
       { message: 'typing' },
     );
-    client1.updateDoc(
+    void client1.updateDoc(
       { hello: 'world. this is a test of character.' },
       { message: 'typing' },
     );
@@ -1089,8 +1104,11 @@ describe('TrimergeClient: 2 users', () => {
 
     // These docs were explicitly chosen to have refs such that the
     // first doc is sorted as the base ref when they're merged.
-    clientA.updateDoc({ hi: 'world', other: 'world' }, { message: 'blah' });
-    clientB.updateDoc({ hi: 'world' }, { message: 'blah' });
+    void clientA.updateDoc(
+      { hi: 'world', other: 'world' },
+      { message: 'blah' },
+    );
+    void clientB.updateDoc({ hi: 'world' }, { message: 'blah' });
 
     expect(clientA.doc).toEqual({ hi: 'world', other: 'world' });
     expect(clientB.doc).toEqual({ hi: 'world' });

@@ -44,7 +44,7 @@ describe('TrimergeClient Fuzz', () => {
     const clientB = makeClient('b', store);
     const clientC = makeClient('c', store);
 
-    clientA.updateDoc('', { ref: 'ROOT', message: 'init' });
+    void clientA.updateDoc('', { ref: 'ROOT', message: 'init' });
 
     await timeout();
 
@@ -58,15 +58,15 @@ describe('TrimergeClient Fuzz', () => {
     for (let i = 0; i < 1000; i++) {
       switch (Math.floor(Math.random() * 4)) {
         case 0:
-          clientA.updateDoc(clientA.doc + 'A', '');
+          void clientA.updateDoc(clientA.doc + 'A', '');
           aCount++;
           break;
         case 1:
-          clientB.updateDoc(clientB.doc + 'B', '');
+          void clientB.updateDoc(clientB.doc + 'B', '');
           bCount++;
           break;
         case 2:
-          clientC.updateDoc(clientC.doc + 'C', '');
+          void clientC.updateDoc(clientC.doc + 'C', '');
           cCount++;
           break;
         case 3:

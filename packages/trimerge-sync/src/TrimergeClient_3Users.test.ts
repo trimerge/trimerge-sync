@@ -63,7 +63,7 @@ describe('TrimergeClient: 3 users', () => {
     const clientB = makeClient('b', store);
     const clientC = makeClient('c', store);
 
-    clientA.updateDoc({ text: '' }, { ref: 'ROOT', message: 'init' });
+    void clientA.updateDoc({ text: '' }, { ref: 'ROOT', message: 'init' });
 
     await timeout();
 
@@ -72,9 +72,9 @@ describe('TrimergeClient: 3 users', () => {
     expect(clientB.doc).toEqual({ text: '' });
     expect(clientC.doc).toEqual({ text: '' });
 
-    clientA.updateDoc({ text: 'a' }, { ref: 'a1', message: 'set text' });
-    clientB.updateDoc({ text: 'b' }, { ref: 'b1', message: 'set text' });
-    clientC.updateDoc({ text: 'c' }, { ref: 'c1', message: 'set text' });
+    void clientA.updateDoc({ text: 'a' }, { ref: 'a1', message: 'set text' });
+    void clientB.updateDoc({ text: 'b' }, { ref: 'b1', message: 'set text' });
+    void clientC.updateDoc({ text: 'c' }, { ref: 'c1', message: 'set text' });
 
     // Now all clients have different changes
     expect(clientA.doc).toEqual({ text: 'a' });
@@ -131,13 +131,19 @@ Array [
     const clientA = makeClient('a', store);
     const clientB = makeClient('b', store);
 
-    clientA.updateDoc({ hello: 'world' }, { ref: 'a1', message: 'add hello' });
-    clientA.updateDoc(
+    void clientA.updateDoc(
+      { hello: 'world' },
+      { ref: 'a1', message: 'add hello' },
+    );
+    void clientA.updateDoc(
       { hello: 'vorld' },
       { ref: 'a2', message: 'change hello' },
     );
-    clientB.updateDoc({ world: 'world' }, { ref: 'b1', message: 'add world' });
-    clientB.updateDoc(
+    void clientB.updateDoc(
+      { world: 'world' },
+      { ref: 'b1', message: 'add world' },
+    );
+    void clientB.updateDoc(
       { world: 'vorld' },
       { ref: 'b2', message: 'change world' },
     );
@@ -156,7 +162,7 @@ Array [
     expect(clientB.doc).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(clientC.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
-    clientC.updateDoc(
+    void clientC.updateDoc(
       { hello: 'world', world: 'vorld' },
       { ref: 'c1', message: 'change hello' },
     );

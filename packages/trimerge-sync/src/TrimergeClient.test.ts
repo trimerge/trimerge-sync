@@ -95,7 +95,7 @@ describe('TrimergeClient', () => {
         };
       },
     );
-    client.updateDoc('hello', 'hi');
+    void client.updateDoc('hello', 'hi');
 
     expect(client.getCommit('hash')).toMatchInlineSnapshot(`
       Object {
@@ -146,9 +146,9 @@ describe('TrimergeClient', () => {
 
   it('handles bad getCommit', async () => {
     const { client } = makeTrimergeClient();
-    client.updateDoc('hello', 'hi');
-    client.updateDoc('hello2', 'hi');
-    client.updateDoc('hello3', 'hi');
+    void client.updateDoc('hello', 'hi');
+    void client.updateDoc('hello2', 'hi');
+    void client.updateDoc('hello3', 'hi');
     expect(client.getCommit('hash')).toMatchInlineSnapshot(`
       Object {
         "baseRef": undefined,
@@ -261,7 +261,7 @@ describe('TrimergeClient', () => {
       nested: nestedObject,
     };
 
-    client.updateDoc(doc, 'message');
+    void client.updateDoc(doc, 'message');
 
     const array = [1, 2, 3];
 
@@ -270,7 +270,7 @@ describe('TrimergeClient', () => {
       array,
     };
 
-    client.updateDoc(doc2, 'message');
+    void client.updateDoc(doc2, 'message');
 
     expect(client.doc.array).toBe(array);
     expect(client.doc.nested).toBe(nestedObject);
@@ -283,20 +283,21 @@ describe('TrimergeClient', () => {
       ),
     );
 
-    expect(client.updateDoc({ foo: 'bar' }, 'message')).rejects.toThrowError(
-      /Not a real error/,
-    );
+    await expect(
+      client.updateDoc({ foo: 'bar' }, 'message'),
+    ).rejects.toThrowError(/Not a real error/);
   });
 
   it('throws if there is an invalid number of commits', async () => {
     const { client } = makeTrimergeClient(undefined);
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore: accessing private field
     client.numPendingUpdates = -1;
 
-    expect(client.updateDoc({ foo: 'bar' }, 'message')).rejects.toThrowError(
-      /Assertion Error: numUnsavedCommits <= 0/,
-    );
+    await expect(
+      client.updateDoc({ foo: 'bar' }, 'message'),
+    ).rejects.toThrowError(/Assertion Error: numUnsavedCommits <= 0/);
   });
 
   it('does not update local save status for presence-only updates', async () => {
