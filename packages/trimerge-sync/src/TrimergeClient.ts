@@ -39,7 +39,7 @@ export type SubscribeEvent = {
     | 'remote'; // A remote client updated the value
 };
 
-class InMemoryDocCache<SavedDoc, CommitMetadata>
+export class InMemoryDocCache<SavedDoc, CommitMetadata>
   implements DocCache<SavedDoc, CommitMetadata>
 {
   private readonly docs: Map<string, CommitDoc<SavedDoc, CommitMetadata>> =
@@ -49,6 +49,9 @@ class InMemoryDocCache<SavedDoc, CommitMetadata>
   }
   set(ref: string, doc: CommitDoc<SavedDoc, CommitMetadata>) {
     this.docs.set(ref, doc);
+  }
+  has(ref: string) {
+    return this.docs.has(ref);
   }
   delete(ref: string) {
     this.docs.delete(ref);
@@ -409,7 +412,7 @@ export class TrimergeClient<
     { ref, baseRef, mergeRef }: CommitRefs,
   ): void {
     if (baseRef !== undefined) {
-      if (!this.commits.has(baseRef)) {
+      if (!this.commits.has(baseRef) && !this.docCache.has(baseRef)) {
         throw new Error(`unknown baseRef for commit ${ref}: ${baseRef}`);
       }
       headRefs.delete(baseRef);

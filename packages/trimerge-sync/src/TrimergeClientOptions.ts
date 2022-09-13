@@ -34,6 +34,7 @@ export type AddNewCommitMetadataFn<CommitMetadata> = (
 export interface DocCache<SavedDoc, CommitMetadata> {
   get: (ref: string) => CommitDoc<SavedDoc, CommitMetadata> | undefined;
   set: (ref: string, doc: CommitDoc<SavedDoc, CommitMetadata>) => void;
+  has: (ref: string) => boolean;
   delete: (ref: string) => void;
 }
 

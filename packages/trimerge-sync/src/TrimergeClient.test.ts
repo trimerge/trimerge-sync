@@ -1,4 +1,4 @@
-import { TrimergeClient } from './TrimergeClient';
+import { InMemoryDocCache, TrimergeClient } from './TrimergeClient';
 import { timeout } from './lib/Timeout';
 import { OnStoreEventFn, SyncEvent, SyncStatus } from './types';
 import {
@@ -27,8 +27,9 @@ function makeTrimergeClient(
   {
     computeRef = () => 'hash',
     differ = NOOP_DIFFER,
-    migrate,
     mergeAllBranches = () => null,
+    migrate,
+    docCache,
   }: Partial<TrimergeClientOptions<any, any, any, any, any>> = {},
   updateStore?: (commits: any[], presence: any) => Promise<void>,
 ): {
@@ -50,6 +51,7 @@ function makeTrimergeClient(
       };
     },
     addNewCommitMetadata,
+    docCache,
   });
   if (!onEvent) {
     throw new Error('could not get onEvent');
@@ -326,5 +328,40 @@ Array [
   },
 ]
 `);
+  });
+
+  it('it can reference pre-hydrated documents from doc cache', () => {
+    const testDocCache = new InMemoryDocCache<string, string>();
+    const { client, onEvent: sendLocalStoreEvent } = makeTrimergeClient(
+      undefined,
+      { docCache: testDocCache, differ: JDP_DIFFER },
+    );
+
+    const snapshotDoc = 'hello';
+    const commitOnTopOfSnapshotDoc = 'hello world';
+    const delta = JDP_DIFFER.diff(snapshotDoc, commitOnTopOfSnapshotDoc);
+
+    testDocCache.set('test-base-ref', {
+      ref: 'test-base-ref',
+      doc: 'hello',
+      metadata: 'testSnapshotDocValue',
+    });
+
+    sendLocalStoreEvent(
+      {
+        type: 'commits',
+        commits: [
+          {
+            baseRef: 'test-base-ref',
+            ref: 'test-ref',
+            delta,
+            metadata: 'testCommitOnTopOfSnapshotDocValue',
+          },
+        ],
+      },
+      true,
+    );
+
+    expect(client.doc).toEqual(commitOnTopOfSnapshotDoc);
   });
 });
