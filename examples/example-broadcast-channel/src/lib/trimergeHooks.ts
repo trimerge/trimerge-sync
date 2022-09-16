@@ -1,18 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ClientList,
-  CoordinatingLocalStore,
-  Differ,
   SyncStatus,
   TrimergeClient,
-  GetLocalStoreFn,
+  TrimergeClientOptions,
 } from 'trimerge-sync';
-import {
-  IndexedDbCommitRepository,
-  deleteDocDatabase,
-} from 'trimerge-sync-indexed-db';
-import { WebsocketRemote } from 'trimerge-sync-basic-client';
-import { randomId } from './randomId';
+import { deleteDocDatabase } from 'trimerge-sync-indexed-db';
 
 export type UpdateDocFn<LatestDoc, CommitMetadata> = (
   doc: LatestDoc,
@@ -25,30 +18,6 @@ const TRIMERGE_CLIENT_CACHE: Record<
   TrimergeClient<any, any, any, any, any>
 > = {};
 
-function createIndexedDbBackendFactory(
-  docId: string,
-): GetLocalStoreFn<any, any, any> {
-  return (userId, clientId, onEvent) => {
-    const store = new CoordinatingLocalStore(
-      userId,
-      clientId,
-      onEvent,
-      new IndexedDbCommitRepository(docId, {
-        localIdGenerator: randomId,
-        remoteId: 'localhost',
-      }),
-      (userId, lastSyncId, onEvent) =>
-        new WebsocketRemote(
-          { userId, readonly: false },
-          lastSyncId,
-          onEvent,
-          `ws://localhost:4444/${encodeURIComponent(docId)}`,
-        ),
-    );
-    return store;
-  };
-}
-
 function getCachedTrimergeClient<
   SavedDoc,
   LatestDoc extends SavedDoc,
@@ -58,16 +27,17 @@ function getCachedTrimergeClient<
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<SavedDoc, LatestDoc, CommitMetadata, Delta>,
+  opts: TrimergeClientOptions<
+    SavedDoc,
+    LatestDoc,
+    CommitMetadata,
+    Delta,
+    unknown
+  >,
 ) {
   const key = `${docId}:${userId}:${clientId}`;
   if (!TRIMERGE_CLIENT_CACHE[key]) {
-    TRIMERGE_CLIENT_CACHE[key] = new TrimergeClient(
-      userId,
-      clientId,
-      createIndexedDbBackendFactory(docId),
-      differ,
-    );
+    TRIMERGE_CLIENT_CACHE[key] = new TrimergeClient(userId, clientId, opts);
   }
   return TRIMERGE_CLIENT_CACHE[key];
 }
@@ -81,9 +51,15 @@ export function useTrimergeStateShutdown<
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<SavedDoc, LatestDoc, CommitMetadata, Delta>,
+  opts: TrimergeClientOptions<
+    SavedDoc,
+    LatestDoc,
+    CommitMetadata,
+    Delta,
+    unknown
+  >,
 ): void {
-  const client = getCachedTrimergeClient(docId, userId, clientId, differ);
+  const client = getCachedTrimergeClient(docId, userId, clientId, opts);
 
   // Setup client
   useEffect(() => {
@@ -102,9 +78,15 @@ export function useTrimergeDeleteDatabase<
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<SavedDoc, LatestDoc, CommitMetadata, Delta>,
+  opts: TrimergeClientOptions<
+    SavedDoc,
+    LatestDoc,
+    CommitMetadata,
+    Delta,
+    unknown
+  >,
 ): () => Promise<void> {
-  const client = getCachedTrimergeClient(docId, userId, clientId, differ);
+  const client = getCachedTrimergeClient(docId, userId, clientId, opts);
 
   return useCallback(async () => {
     if (window.confirm('Are you sure you want to clear your local database?')) {
@@ -124,9 +106,15 @@ export function useTrimergeDoc<
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<SavedDoc, LatestDoc, CommitMetadata, Delta>,
+  opts: TrimergeClientOptions<
+    SavedDoc,
+    LatestDoc,
+    CommitMetadata,
+    Delta,
+    unknown
+  >,
 ): [LatestDoc, UpdateDocFn<LatestDoc, CommitMetadata>] {
-  const client = getCachedTrimergeClient(docId, userId, clientId, differ);
+  const client = getCachedTrimergeClient(docId, userId, clientId, opts);
   const [doc, setDoc] = useState(client.doc);
 
   const updateState = useMemo(() => client.updateDoc.bind(client), [client]);
@@ -146,9 +134,15 @@ export function useTrimergeClientList<
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<SavedDoc, LatestDoc, CommitMetadata, Delta>,
+  opts: TrimergeClientOptions<
+    SavedDoc,
+    LatestDoc,
+    CommitMetadata,
+    Delta,
+    unknown
+  >,
 ): [ClientList<Presence>, UpdatePresenceFn<Presence>] {
-  const client = getCachedTrimergeClient(docId, userId, clientId, differ);
+  const client = getCachedTrimergeClient(docId, userId, clientId, opts);
   const [clients, setClients] = useState(client.clients);
 
   const updatePresence = useMemo(
@@ -170,7 +164,13 @@ export function useTrimergeSyncStatus<
   docId: string,
   userId: string,
   clientId: string,
-  differ: Differ<SavedDoc, LatestDoc, CommitMetadata, Delta>,
+  differ: TrimergeClientOptions<
+    SavedDoc,
+    LatestDoc,
+    CommitMetadata,
+    Delta,
+    unknown
+  >,
 ): SyncStatus {
   const client = getCachedTrimergeClient(docId, userId, clientId, differ);
   const [status, setStatus] = useState(client.syncStatus);

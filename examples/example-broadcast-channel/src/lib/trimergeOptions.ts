@@ -6,6 +6,8 @@ import {
   trimergeString,
 } from 'trimerge';
 import {
+  CoordinatingLocalStore,
+  GetLocalStoreFn,
   makeMergeAllBranchesFn,
   MergeAllBranchesFn,
   MergeDocFn,
@@ -13,6 +15,9 @@ import {
 import { create, Delta } from 'jsondiffpatch';
 import { produce } from 'immer';
 import { trimergeNumber } from './trimergeNumber';
+import { IndexedDbCommitRepository } from 'trimerge-sync-indexed-db';
+import { WebsocketRemote } from 'trimerge-sync-basic-client';
+import { randomId } from './randomId';
 
 const trimergeObjects = combineMergers(
   trimergeEquality,
@@ -40,3 +45,27 @@ export function patch<T>(base: T, delta: Delta | undefined): T {
 
 export const diff = <T extends any>(left: T, right: T): Delta | undefined =>
   jdp.diff(left, right);
+
+export function createLocalStoreFactory(
+  docId: string,
+): GetLocalStoreFn<any, any, any> {
+  return (userId, clientId, onEvent) => {
+    const store = new CoordinatingLocalStore(
+      userId,
+      clientId,
+      onEvent,
+      new IndexedDbCommitRepository(docId, {
+        localIdGenerator: randomId,
+        remoteId: 'localhost',
+      }),
+      (userId, lastSyncId, onEvent) =>
+        new WebsocketRemote(
+          { userId, readonly: false },
+          lastSyncId,
+          onEvent,
+          `ws://localhost:4444/${encodeURIComponent(docId)}`,
+        ),
+    );
+    return store;
+  };
+}

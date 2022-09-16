@@ -2,13 +2,21 @@ import type {
   ClientInfo,
   ClientList,
   Commit,
-  GetLocalStoreFn,
   LocalClientInfo,
   LocalStore,
   OnStoreEventFn,
   SyncStatus,
 } from './types';
-import { CommitDoc, Differ, MergeHelpers } from './differ';
+import {
+  AddNewCommitMetadataFn,
+  CommitDoc,
+  ComputeRefFn,
+  Differ,
+  MergeAllBranchesFn,
+  MergeHelpers,
+  MigrateDocFn,
+  TrimergeClientOptions,
+} from './TrimergeClientOptions';
 import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { asCommitRefs, CommitRefs } from './lib/Commits';
@@ -29,13 +37,6 @@ export type SubscribeEvent = {
     | 'local' // Another client on the same store updated the value
     | 'remote'; // A remote client updated the value
 };
-
-export type AddNewCommitMetadataFn<CommitMetadata> = (
-  metadata: CommitMetadata,
-  commitRef: string,
-  userId: string,
-  clientId: string,
-) => CommitMetadata;
 
 export class TrimergeClient<
   SavedDoc,
@@ -80,6 +81,16 @@ export class TrimergeClient<
   private nonTempHeadRefs = new Set<string>();
 
   private store: LocalStore<CommitMetadata, Delta, Presence>;
+  private readonly differ: Differ<SavedDoc, Delta>;
+  private readonly migrate: MigrateDocFn<SavedDoc, LatestDoc, CommitMetadata>;
+  private readonly mergeAllBranches: MergeAllBranchesFn<
+    LatestDoc,
+    CommitMetadata
+  >;
+  private readonly computeRef: ComputeRefFn<Delta>;
+  private readonly addNewCommitMetadata:
+    | AddNewCommitMetadataFn<CommitMetadata>
+    | undefined;
   private tempCommits = new Map<string, Commit<CommitMetadata, Delta>>();
   private unsyncedCommits: Commit<CommitMetadata, Delta>[] = [];
 
@@ -98,11 +109,32 @@ export class TrimergeClient<
   constructor(
     public readonly userId: string,
     public readonly clientId: string,
-    getLocalStore: GetLocalStoreFn<CommitMetadata, Delta, Presence>,
-    private readonly differ: Differ<SavedDoc, LatestDoc, CommitMetadata, Delta>,
-    /** Add metadata to every new commit created on this client */
-    private readonly addNewCommitMetadata?: AddNewCommitMetadataFn<CommitMetadata>,
+    {
+      differ,
+      migrate,
+      mergeAllBranches,
+      computeRef,
+      getLocalStore,
+      addNewCommitMetadata,
+    }: TrimergeClientOptions<
+      SavedDoc,
+      LatestDoc,
+      CommitMetadata,
+      Delta,
+      Presence
+    >,
   ) {
+    this.differ = differ;
+    this.migrate =
+      migrate ??
+      (((doc, metadata) => ({ doc, metadata })) as MigrateDocFn<
+        SavedDoc,
+        LatestDoc,
+        CommitMetadata
+      >);
+    this.mergeAllBranches = mergeAllBranches;
+    this.computeRef = computeRef;
+    this.addNewCommitMetadata = addNewCommitMetadata;
     this.store = getLocalStore(userId, clientId, this.onStoreEvent);
     this.setClientInfo(
       {
@@ -142,7 +174,7 @@ export class TrimergeClient<
         }
         this.mergeHeads();
         this.docSubs.emitChange({ origin });
-        this.sync();
+        void this.sync();
         if (clientInfo) {
           this.setClientInfo(clientInfo, { origin });
         }
@@ -239,7 +271,7 @@ export class TrimergeClient<
 
   updatePresence(state: Presence) {
     this.setPresence(state);
-    this.sync();
+    void this.sync();
   }
 
   private setPresence(
@@ -295,7 +327,7 @@ export class TrimergeClient<
   private migrateCommit(
     commit: CommitDoc<SavedDoc, CommitMetadata>,
   ): CommitDoc<LatestDoc, CommitMetadata> {
-    const { doc, metadata } = this.differ.migrate(commit.doc, commit.metadata);
+    const { doc, metadata } = this.migrate(commit.doc, commit.metadata);
     if (commit.doc === doc) {
       return commit as CommitDoc<LatestDoc, CommitMetadata>;
     }
@@ -310,10 +342,7 @@ export class TrimergeClient<
     if (this.allHeadRefs.size <= 1) {
       return;
     }
-    this.differ.mergeAllBranches(
-      Array.from(this.allHeadRefs),
-      this.mergeHelpers,
-    );
+    this.mergeAllBranches(Array.from(this.allHeadRefs), this.mergeHelpers);
     // TODO: update Presence(s) based on this merge
     // TODO: can we clear out commits we don't need anymore?
   }
@@ -497,7 +526,7 @@ export class TrimergeClient<
       return undefined;
     }
     const baseRef = base?.ref;
-    const ref = this.differ.computeRef(baseRef, mergeRef, delta);
+    const ref = this.computeRef(baseRef, mergeRef, delta);
     if (this.addNewCommitMetadata) {
       metadata = this.addNewCommitMetadata(
         metadata,

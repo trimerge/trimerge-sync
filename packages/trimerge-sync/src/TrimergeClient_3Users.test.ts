@@ -1,28 +1,15 @@
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
-import { Differ } from './differ';
 import { MemoryStore } from './testLib/MemoryStore';
 import {
-  diff,
-  mergeAllBranches,
-  migrate,
-  patch,
-  computeRef,
+  TEST_OPTS,
+  TestDoc,
+  TestPresence,
+  TestSavedDoc,
 } from './testLib/MergeUtils';
 import { getBasicGraph } from './lib/GraphVisualizers';
 
 type TestMetadata = { ref: string; message: string };
-type TestSavedDoc = any;
-type TestDoc = any;
-type TestPresence = any;
-
-const differ: Differ<TestSavedDoc, TestDoc, TestMetadata, TestPresence> = {
-  migrate,
-  diff,
-  patch,
-  computeRef,
-  mergeAllBranches,
-};
 
 function newStore() {
   return new MemoryStore<TestMetadata, Delta, TestPresence>();
@@ -32,7 +19,10 @@ function makeClient(
   userId: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<TestSavedDoc, TestDoc, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, differ);
+  return new TrimergeClient(userId, 'test', {
+    ...TEST_OPTS,
+    getLocalStore: store.getLocalStore,
+  });
 }
 
 function timeout() {
@@ -63,7 +53,7 @@ describe('TrimergeClient: 3 users', () => {
     const clientB = makeClient('b', store);
     const clientC = makeClient('c', store);
 
-    clientA.updateDoc({ text: '' }, { ref: 'ROOT', message: 'init' });
+    void clientA.updateDoc({ text: '' }, { ref: 'ROOT', message: 'init' });
 
     await timeout();
 
@@ -72,9 +62,9 @@ describe('TrimergeClient: 3 users', () => {
     expect(clientB.doc).toEqual({ text: '' });
     expect(clientC.doc).toEqual({ text: '' });
 
-    clientA.updateDoc({ text: 'a' }, { ref: 'a1', message: 'set text' });
-    clientB.updateDoc({ text: 'b' }, { ref: 'b1', message: 'set text' });
-    clientC.updateDoc({ text: 'c' }, { ref: 'c1', message: 'set text' });
+    void clientA.updateDoc({ text: 'a' }, { ref: 'a1', message: 'set text' });
+    void clientB.updateDoc({ text: 'b' }, { ref: 'b1', message: 'set text' });
+    void clientC.updateDoc({ text: 'c' }, { ref: 'c1', message: 'set text' });
 
     // Now all clients have different changes
     expect(clientA.doc).toEqual({ text: 'a' });
@@ -131,13 +121,19 @@ Array [
     const clientA = makeClient('a', store);
     const clientB = makeClient('b', store);
 
-    clientA.updateDoc({ hello: 'world' }, { ref: 'a1', message: 'add hello' });
-    clientA.updateDoc(
+    void clientA.updateDoc(
+      { hello: 'world' },
+      { ref: 'a1', message: 'add hello' },
+    );
+    void clientA.updateDoc(
       { hello: 'vorld' },
       { ref: 'a2', message: 'change hello' },
     );
-    clientB.updateDoc({ world: 'world' }, { ref: 'b1', message: 'add world' });
-    clientB.updateDoc(
+    void clientB.updateDoc(
+      { world: 'world' },
+      { ref: 'b1', message: 'add world' },
+    );
+    void clientB.updateDoc(
       { world: 'vorld' },
       { ref: 'b2', message: 'change world' },
     );
@@ -156,7 +152,7 @@ Array [
     expect(clientB.doc).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(clientC.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
-    clientC.updateDoc(
+    void clientC.updateDoc(
       { hello: 'world', world: 'vorld' },
       { ref: 'c1', message: 'change hello' },
     );

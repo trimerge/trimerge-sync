@@ -18,7 +18,7 @@ import {
   IndexedDbCommitRepository,
   resetDocRemoteSyncData,
 } from './IndexedDbCommitRepository';
-import { differ } from './testLib/BasicDiffer';
+import { opts } from './testLib/BasicOptions';
 import { timeout } from './lib/timeout';
 import { getMockRemote, getMockRemoteWithMap } from './testLib/MockRemote';
 import { dumpDatabase, getIdbDatabases } from './testLib/IndexedDB';
@@ -92,17 +92,15 @@ function makeTestClient(
   getRemote?: GetRemoteFn<any, any, any>,
   addStoreMetadata?: AddStoreMetadataFn<any>,
 ) {
-  return new TrimergeClient(
-    userId,
-    clientId,
-    makeIndexedDbCoordinatingLocalStoreFactory(
+  return new TrimergeClient(userId, clientId, {
+    ...opts,
+    getLocalStore: makeIndexedDbCoordinatingLocalStoreFactory(
       docId,
       storeId,
       getRemote,
       addStoreMetadata,
     ),
-    differ,
-  );
+  });
 }
 
 async function makeTestClientWithRemoteOnEventHandle(
@@ -121,10 +119,9 @@ async function makeTestClientWithRemoteOnEventHandle(
   let onRemoteEvent: OnRemoteEventFn<any, any, any> | undefined;
 
   await new Promise<void>((resolve) => {
-    client = new TrimergeClient(
-      userId,
-      clientId,
-      (userId, clientId, onEvent) => {
+    client = new TrimergeClient(userId, clientId, {
+      ...opts,
+      getLocalStore: (userId, clientId, onEvent) => {
         store = makeIndexedDbCoordinatingLocalStoreFactory(
           docId,
           storeId,
@@ -138,8 +135,7 @@ async function makeTestClientWithRemoteOnEventHandle(
         )(userId, clientId, onEvent);
         return store;
       },
-      differ,
-    );
+    });
   });
   return { client: client!, store: store!, sendRemoteEvent: onRemoteEvent! };
 }
@@ -153,8 +149,8 @@ describe('createIndexedDbBackendFactory', () => {
   it('creates indexed db', async () => {
     const docId = 'test-doc-create';
     const client = makeTestClient('test', '1', docId, 'test-doc-store');
-    client.updateDoc('hello', '');
-    client.updateDoc('hello there', '');
+    void client.updateDoc('hello', '');
+    void client.updateDoc('hello there', '');
 
     // Wait for write
     await timeout(100);
@@ -202,9 +198,9 @@ describe('createIndexedDbBackendFactory', () => {
   it('creates indexed db and can read it', async () => {
     const docId = 'test-doc-read';
     const client = makeTestClient('test', '1', docId, 'test-doc-store');
-    client.updateDoc('hello', '');
-    client.updateDoc('hello there', '');
-    client.updateDoc('hello world', '');
+    void client.updateDoc('hello', '');
+    void client.updateDoc('hello there', '');
+    void client.updateDoc('hello world', '');
     // Wait for write
     await timeout(100);
     await client.shutdown();
@@ -236,8 +232,8 @@ describe('createIndexedDbBackendFactory', () => {
   it('collaboration works', async () => {
     const docId = 'test-doc-collab';
     const client1 = makeTestClient('test', '1', docId, 'test-doc-store');
-    client1.updateDoc('hello', '');
-    client1.updateDoc('hello world', '');
+    void client1.updateDoc('hello', '');
+    void client1.updateDoc('hello world', '');
     // Wait for write
     await timeout(100);
 
@@ -247,9 +243,9 @@ describe('createIndexedDbBackendFactory', () => {
     await timeout(100);
     expect(client2.doc).toEqual('hello world');
 
-    client1.updateDoc('hello there', '');
+    void client1.updateDoc('hello there', '');
     await timeout();
-    client2.updateDoc('oh hello', '');
+    void client2.updateDoc('oh hello', '');
 
     // Wait for read
     await timeout(100);
@@ -344,7 +340,7 @@ describe('createIndexedDbBackendFactory', () => {
       undefined,
       addStoreMetadata,
     );
-    client1.updateDoc('hello', '');
+    void client1.updateDoc('hello', '');
     // Wait for write
     await timeout(100);
 
@@ -360,7 +356,7 @@ describe('createIndexedDbBackendFactory', () => {
     // Wait for read
     await timeout(100);
 
-    client2.updateDoc('hello there', '');
+    void client2.updateDoc('hello there', '');
 
     // Wait for read
     await timeout(100);
@@ -501,7 +497,7 @@ describe('createIndexedDbBackendFactory', () => {
   it('deletes indexed db with deleteDocDatabase', async () => {
     const docId = 'test-doc-delete';
     const client1 = makeTestClient('test', '1', docId, 'test-doc-store');
-    client1.updateDoc('hello world', '');
+    void client1.updateDoc('hello world', '');
     // Wait for write
     await timeout(1000);
     await client1.shutdown();
@@ -560,7 +556,7 @@ describe('createIndexedDbBackendFactory', () => {
     // wait for all writes to settle.
     await timeout(100);
 
-    expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
+    void expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
       Object {
         "commits": Array [
           Object {

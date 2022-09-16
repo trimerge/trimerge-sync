@@ -1,41 +1,52 @@
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { MemoryStore } from './testLib/MemoryStore';
-import {
-  computeRef,
-  diff,
-  mergeAllBranches,
-  patch,
-} from './testLib/MergeUtils';
+import { diff, patch, TestPresence, TEST_OPTS } from './testLib/MergeUtils';
 import { getBasicGraph } from './lib/GraphVisualizers';
 import { timeout } from './lib/Timeout';
+import { TrimergeClientOptions } from './TrimergeClientOptions';
 
 type TestMetadata = string;
 type DocV1 = { v: 1; field: number };
 type DocV2 = { v: 2; field: string };
-type TestPresence = any;
 
 function newStore() {
   return new MemoryStore<TestMetadata, Delta, TestPresence>();
 }
 
+const migrationOpts: Pick<
+  TrimergeClientOptions<any, any, TestMetadata, Delta, TestPresence>,
+  'differ' | 'computeRef' | 'mergeAllBranches'
+> = {
+  ...TEST_OPTS,
+  differ: {
+    diff,
+    patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
+  },
+};
+
 function makeClientV1(
   userId: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1, DocV1, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, {
-    migrate: (doc, metadata) => ({ doc, metadata }),
-    diff,
-    patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
-    computeRef,
-    mergeAllBranches,
+  return new TrimergeClient(userId, 'test', {
+    ...migrationOpts,
+    getLocalStore: store.getLocalStore,
   });
 }
 function makeClientV2(
   userId: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1 | DocV2, DocV2, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, {
+  return new TrimergeClient<
+    DocV1 | DocV2,
+    DocV2,
+    TestMetadata,
+    Delta,
+    TestPresence
+  >(userId, 'test', {
+    ...migrationOpts,
+    getLocalStore: store.getLocalStore,
     migrate: (doc, metadata) => {
       switch (doc.v) {
         case 1:
@@ -47,10 +58,6 @@ function makeClientV2(
           return { doc, metadata };
       }
     },
-    diff,
-    patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
-    computeRef,
-    mergeAllBranches,
   });
 }
 
@@ -58,14 +65,12 @@ function makeNonReferenceEqualMigrationClient(
   userId: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1, DocV1, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, 'test', store.getLocalStore, {
+  return new TrimergeClient(userId, 'test', {
+    ...TEST_OPTS,
+    getLocalStore: store.getLocalStore,
     migrate: (doc, metadata) => {
       return { doc: { ...doc }, metadata };
     },
-    diff,
-    patch: (priorOrNext, delta) => patch(priorOrNext as any, delta),
-    computeRef,
-    mergeAllBranches,
   });
 }
 
@@ -85,7 +90,7 @@ describe('TrimergeClient: Migration', () => {
     const store = newStore();
 
     const client1 = makeClientV1('a', store);
-    client1.updateDoc({ v: 1, field: 123 }, 'initialize');
+    void client1.updateDoc({ v: 1, field: 123 }, 'initialize');
     expect(client1.doc).toEqual({ v: 1, field: 123 });
 
     await timeout();
@@ -122,7 +127,7 @@ Array [
 ]
 `);
 
-    client2.updateDoc({ v: 2, field: '456' }, 'update field');
+    void client2.updateDoc({ v: 2, field: '456' }, 'update field');
     expect(client2.doc).toEqual({ v: 2, field: '456' });
 
     await timeout();
@@ -160,7 +165,7 @@ Array [
     const store = newStore();
 
     const client1 = makeClientV1('a', store);
-    client1.updateDoc({ v: 1, field: 123 }, 'initialize');
+    void client1.updateDoc({ v: 1, field: 123 }, 'initialize');
     expect(client1.doc).toEqual({ v: 1, field: 123 });
 
     await timeout();
@@ -171,7 +176,7 @@ Array [
 
     expect(client2.doc).toEqual({ v: 2, field: '123' });
 
-    client1.updateDoc({ v: 1, field: 456 }, 'update field');
+    void client1.updateDoc({ v: 1, field: 456 }, 'update field');
 
     expect(client1.doc).toEqual({ v: 1, field: 456 });
 
@@ -207,10 +212,10 @@ Array [
     const store = newStore();
 
     const client1 = makeNonReferenceEqualMigrationClient('a', store);
-    client1.updateDoc({ v: 1, field: 123 }, 'initialize');
+    void client1.updateDoc({ v: 1, field: 123 }, 'initialize');
     expect(client1.doc).toEqual({ v: 1, field: 123 });
 
-    client1.updateDoc({ v: 1, field: 124 }, 'update field');
+    void client1.updateDoc({ v: 1, field: 124 }, 'update field');
     await timeout();
 
     expect(store.getCommits()).toMatchInlineSnapshot(`

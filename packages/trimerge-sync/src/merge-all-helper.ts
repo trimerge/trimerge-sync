@@ -1,4 +1,8 @@
-import { MergeAllBranchesFn, CommitDoc, DocAndMetadata } from './differ';
+import {
+  MergeAllBranchesFn,
+  CommitDoc,
+  DocAndMetadata,
+} from './TrimergeClientOptions';
 import { mergeHeads, SortRefsFn } from './merge-heads';
 
 export type MergeResult<LatestDoc, CommitMetadata> = {

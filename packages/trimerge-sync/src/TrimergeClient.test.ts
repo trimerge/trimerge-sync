@@ -1,42 +1,47 @@
-import { AddNewCommitMetadataFn, TrimergeClient } from './TrimergeClient';
+import { TrimergeClient } from './TrimergeClient';
 import { timeout } from './lib/Timeout';
 import { OnStoreEventFn, SyncEvent, SyncStatus } from './types';
-import { Differ } from './differ';
-import { migrate } from './testLib/MergeUtils';
+import {
+  Differ,
+  TrimergeClientOptions,
+  AddNewCommitMetadataFn,
+} from './TrimergeClientOptions';
 
 import { create } from 'jsondiffpatch';
+import { computeRef } from 'trimerge-sync-hash';
 
 const jsonDiffPatch = create({ textDiff: { minLength: 20 } });
 
-const JDP_DIFFER: Differ<any, any, any, any> = {
-  migrate,
+const JDP_DIFFER: Differ<any, any> = {
   diff: (left, right) => JSON.stringify(jsonDiffPatch.diff(left, right)),
-  mergeAllBranches: () => null,
   patch: (base, delta) => jsonDiffPatch.patch(base, JSON.parse(delta)),
-  computeRef: (baseRef, _, delta) => `${baseRef}-${JSON.stringify(delta)}`,
 };
 
-const NOOP_DIFFER: Differ<any, any, any, any> = {
-  migrate,
+const NOOP_DIFFER: Differ<any, any> = {
   diff: () => null,
-  mergeAllBranches: () => null,
   patch: () => null,
-  computeRef: () => 'hash',
 };
 
 function makeTrimergeClient(
   addNewCommitMetadata?: AddNewCommitMetadataFn<any>,
-  differ?: Differ<any, any, any, any>,
+  {
+    computeRef = () => 'hash',
+    differ = NOOP_DIFFER,
+    migrate,
+    mergeAllBranches = () => null,
+  }: Partial<TrimergeClientOptions<any, any, any, any, any>> = {},
   updateStore?: (commits: any[], presence: any) => Promise<void>,
 ): {
   client: TrimergeClient<any, any, any, any, any>;
   onEvent: OnStoreEventFn<any, any, any>;
 } {
   let onEvent: OnStoreEventFn<any, any, any> | undefined;
-  const client = new TrimergeClient(
-    '',
-    '',
-    (userId, clientId, _onEvent) => {
+  const client = new TrimergeClient('', '', {
+    computeRef,
+    differ,
+    migrate,
+    mergeAllBranches,
+    getLocalStore: (userId, clientId, _onEvent) => {
       onEvent = _onEvent;
       return {
         update: updateStore ?? (() => Promise.resolve()),
@@ -44,9 +49,8 @@ function makeTrimergeClient(
         isRemoteLeader: false,
       };
     },
-    differ ?? NOOP_DIFFER,
     addNewCommitMetadata,
-  );
+  });
   if (!onEvent) {
     throw new Error('could not get onEvent');
   }
@@ -66,7 +70,7 @@ describe('TrimergeClient', () => {
         };
       },
     );
-    client.updateDoc('hello', 'hi');
+    void client.updateDoc('hello', 'hi');
     expect(client.getCommit('hash')).toMatchInlineSnapshot(`
       Object {
         "baseRef": undefined,
@@ -95,7 +99,7 @@ describe('TrimergeClient', () => {
         };
       },
     );
-    client.updateDoc('hello', 'hi');
+    void client.updateDoc('hello', 'hi');
 
     expect(client.getCommit('hash')).toMatchInlineSnapshot(`
       Object {
@@ -146,9 +150,9 @@ describe('TrimergeClient', () => {
 
   it('handles bad getCommit', async () => {
     const { client } = makeTrimergeClient();
-    client.updateDoc('hello', 'hi');
-    client.updateDoc('hello2', 'hi');
-    client.updateDoc('hello3', 'hi');
+    void client.updateDoc('hello', 'hi');
+    void client.updateDoc('hello2', 'hi');
+    void client.updateDoc('hello3', 'hi');
     expect(client.getCommit('hash')).toMatchInlineSnapshot(`
       Object {
         "baseRef": undefined,
@@ -251,7 +255,10 @@ describe('TrimergeClient', () => {
   });
 
   it('preserves object references from client', async () => {
-    const { client } = makeTrimergeClient(undefined, JDP_DIFFER);
+    const { client } = makeTrimergeClient(undefined, {
+      differ: JDP_DIFFER,
+      computeRef,
+    });
 
     const nestedObject = {
       field: 'value',
@@ -261,7 +268,7 @@ describe('TrimergeClient', () => {
       nested: nestedObject,
     };
 
-    client.updateDoc(doc, 'message');
+    void client.updateDoc(doc, 'message');
 
     const array = [1, 2, 3];
 
@@ -270,33 +277,34 @@ describe('TrimergeClient', () => {
       array,
     };
 
-    client.updateDoc(doc2, 'message');
+    void client.updateDoc(doc2, 'message');
 
     expect(client.doc.array).toBe(array);
     expect(client.doc.nested).toBe(nestedObject);
   });
 
   it('rejects if commits failed to store', async () => {
-    const { client } = makeTrimergeClient(undefined, NOOP_DIFFER, () =>
+    const { client } = makeTrimergeClient(undefined, {}, () =>
       Promise.reject(
         new Error("Not a real error. Don't worry. It's only a test."),
       ),
     );
 
-    expect(client.updateDoc({ foo: 'bar' }, 'message')).rejects.toThrowError(
-      /Not a real error/,
-    );
+    await expect(
+      client.updateDoc({ foo: 'bar' }, 'message'),
+    ).rejects.toThrowError(/Not a real error/);
   });
 
   it('throws if there is an invalid number of commits', async () => {
     const { client } = makeTrimergeClient(undefined);
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore: accessing private field
     client.numPendingUpdates = -1;
 
-    expect(client.updateDoc({ foo: 'bar' }, 'message')).rejects.toThrowError(
-      /Assertion Error: numUnsavedCommits <= 0/,
-    );
+    await expect(
+      client.updateDoc({ foo: 'bar' }, 'message'),
+    ).rejects.toThrowError(/Assertion Error: numUnsavedCommits <= 0/);
   });
 
   it('does not update local save status for presence-only updates', async () => {

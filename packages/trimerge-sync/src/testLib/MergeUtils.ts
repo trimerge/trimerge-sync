@@ -6,7 +6,10 @@ import {
   trimergeString,
 } from 'trimerge';
 import { create, Delta } from 'jsondiffpatch';
-import { DocAndMetadata, MergeAllBranchesFn } from '../differ';
+import {
+  MergeAllBranchesFn,
+  TrimergeClientOptions,
+} from '../TrimergeClientOptions';
 import { produce } from 'immer';
 import { computeRef as computeShaRef } from 'trimerge-sync-hash';
 import { makeMergeAllBranchesFn, MergeDocFn } from '../merge-all-helper';
@@ -40,14 +43,6 @@ export function diff<T>(left: T, right: T) {
   return jdp.diff(left, right);
 }
 
-// Simple no-op migration for unit tests
-export function migrate<Doc, CommitMetadata>(
-  doc: Doc,
-  metadata: CommitMetadata,
-): DocAndMetadata<Doc, CommitMetadata> {
-  return { doc, metadata };
-}
-
 export function computeRef(
   baseRef: string | undefined,
   mergeRef: string | undefined,
@@ -55,3 +50,19 @@ export function computeRef(
 ): string {
   return computeShaRef(baseRef, mergeRef, delta).slice(0, 8);
 }
+
+export type TestSavedDoc = any;
+export type TestDoc = any;
+export type TestPresence = any;
+
+export const TEST_OPTS: Pick<
+  TrimergeClientOptions<TestSavedDoc, TestDoc, any, any, TestPresence>,
+  'differ' | 'computeRef' | 'mergeAllBranches'
+> = {
+  differ: {
+    diff,
+    patch,
+  },
+  computeRef,
+  mergeAllBranches,
+};

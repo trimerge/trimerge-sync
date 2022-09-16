@@ -7,8 +7,13 @@ import {
   useTrimergeStateShutdown,
   useTrimergeSyncStatus,
 } from './lib/trimergeHooks';
-import { diff, mergeAllBranches, patch } from './lib/trimergeDiffer';
-import { Differ } from 'trimerge-sync';
+import {
+  createLocalStoreFactory,
+  diff,
+  mergeAllBranches,
+  patch,
+} from './lib/trimergeOptions';
+import { TrimergeClientOptions } from 'trimerge-sync';
 import { computeRef } from 'trimerge-sync-hash';
 import { currentTabId } from './lib/currentTabId';
 import { FocusPresence } from './lib/FocusPresence';
@@ -28,13 +33,25 @@ export const defaultDoc = {
   slider: 0,
 };
 
-export const differ: Differ<SavedAppDoc, LatestAppDoc, string, Delta> = {
-  migrate: (doc, metadata) => ({ doc, metadata }),
-  diff,
-  patch: (priorOrNext, delta) => patch(priorOrNext, delta) ?? defaultDoc,
-  computeRef,
-  mergeAllBranches,
-};
+function getOpts(
+  docId: string,
+): TrimergeClientOptions<
+  SavedAppDoc,
+  LatestAppDoc,
+  string,
+  Delta,
+  FocusPresence
+> {
+  return {
+    differ: {
+      diff,
+      patch: (priorOrNext, delta) => patch(priorOrNext, delta) ?? defaultDoc,
+    },
+    computeRef,
+    mergeAllBranches,
+    getLocalStore: createLocalStoreFactory(docId),
+  };
+}
 
 const DEMO_DOC_ID = 'demo';
 const DEMO_USER_ID = 'local';
@@ -43,7 +60,7 @@ export function useDemoAppDoc() {
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,
-    differ,
+    getOpts(DEMO_DOC_ID),
   );
 }
 
@@ -52,7 +69,7 @@ export function useDemoAppDeleteDatabase() {
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,
-    differ,
+    getOpts(DEMO_DOC_ID),
   );
 }
 
@@ -63,14 +80,14 @@ export function useDemoAppClientList() {
     string,
     Delta,
     FocusPresence
-  >(DEMO_DOC_ID, DEMO_USER_ID, currentTabId, differ);
+  >(DEMO_DOC_ID, DEMO_USER_ID, currentTabId, getOpts(DEMO_DOC_ID));
 }
 export function useDemoAppSyncStatus() {
   return useTrimergeSyncStatus<SavedAppDoc, LatestAppDoc, string, Delta>(
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,
-    differ,
+    getOpts(DEMO_DOC_ID),
   );
 }
 export function useDemoAppShutdown() {
@@ -78,6 +95,6 @@ export function useDemoAppShutdown() {
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,
-    differ,
+    getOpts(DEMO_DOC_ID),
   );
 }
