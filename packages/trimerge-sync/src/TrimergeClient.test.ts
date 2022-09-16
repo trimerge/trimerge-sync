@@ -1,4 +1,4 @@
-import { InMemoryDocCache, TrimergeClient } from './TrimergeClient';
+import { TrimergeClient } from './TrimergeClient';
 import { timeout } from './lib/Timeout';
 import { OnStoreEventFn, SyncEvent, SyncStatus } from './types';
 import {
@@ -9,6 +9,7 @@ import {
 
 import { create } from 'jsondiffpatch';
 import { computeRef } from 'trimerge-sync-hash';
+import { InMemoryDocCache } from './InMemoryDocCache';
 
 const jsonDiffPatch = create({ textDiff: { minLength: 20 } });
 
