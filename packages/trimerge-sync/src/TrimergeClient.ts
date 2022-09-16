@@ -22,6 +22,7 @@ import { getFullId } from './util';
 import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { asCommitRefs, CommitRefs } from './lib/Commits';
 import { mergeMetadata } from './lib/mergeMetadata';
+import { InMemoryDocCache } from './InMemoryDocCache';
 
 type AddCommitType =
   // Added from this client
@@ -38,25 +39,6 @@ export type SubscribeEvent = {
     | 'local' // Another client on the same store updated the value
     | 'remote'; // A remote client updated the value
 };
-
-export class InMemoryDocCache<SavedDoc, CommitMetadata>
-  implements DocCache<SavedDoc, CommitMetadata>
-{
-  private readonly docs: Map<string, CommitDoc<SavedDoc, CommitMetadata>> =
-    new Map();
-  get(ref: string) {
-    return this.docs.get(ref);
-  }
-  set(ref: string, doc: CommitDoc<SavedDoc, CommitMetadata>) {
-    this.docs.set(ref, doc);
-  }
-  has(ref: string) {
-    return this.docs.has(ref);
-  }
-  delete(ref: string) {
-    this.docs.delete(ref);
-  }
-}
 
 export class TrimergeClient<
   SavedDoc,
@@ -131,12 +113,12 @@ export class TrimergeClient<
     public readonly clientId: string,
     {
       differ,
-      migrate,
+      migrate = (doc, metadata) => ({ doc: doc as LatestDoc, metadata }),
       mergeAllBranches,
       computeRef,
       getLocalStore,
       addNewCommitMetadata,
-      docCache,
+      docCache = new InMemoryDocCache(),
     }: TrimergeClientOptions<
       SavedDoc,
       LatestDoc,
@@ -146,18 +128,11 @@ export class TrimergeClient<
     >,
   ) {
     this.differ = differ;
-    this.migrate =
-      migrate ??
-      (((doc, metadata) => ({ doc, metadata })) as MigrateDocFn<
-        SavedDoc,
-        LatestDoc,
-        CommitMetadata
-      >);
+    this.migrate = migrate;
     this.mergeAllBranches = mergeAllBranches;
     this.computeRef = computeRef;
     this.addNewCommitMetadata = addNewCommitMetadata;
-    this.docCache =
-      docCache ?? new InMemoryDocCache<SavedDoc, CommitMetadata>();
+    this.docCache = docCache;
     this.store = getLocalStore(userId, clientId, this.onStoreEvent);
     this.setClientInfo(
       {
