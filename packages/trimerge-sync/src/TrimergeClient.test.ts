@@ -9,6 +9,7 @@ import {
 
 import { create } from 'jsondiffpatch';
 import { computeRef } from 'trimerge-sync-hash';
+import { InMemoryDocCache } from './InMemoryDocCache';
 
 const jsonDiffPatch = create({ textDiff: { minLength: 20 } });
 
@@ -27,8 +28,9 @@ function makeTrimergeClient(
   {
     computeRef = () => 'hash',
     differ = NOOP_DIFFER,
-    migrate,
     mergeAllBranches = () => null,
+    migrate,
+    docCache,
   }: Partial<TrimergeClientOptions<any, any, any, any, any>> = {},
   updateStore?: (commits: any[], presence: any) => Promise<void>,
 ): {
@@ -50,6 +52,7 @@ function makeTrimergeClient(
       };
     },
     addNewCommitMetadata,
+    docCache,
   });
   if (!onEvent) {
     throw new Error('could not get onEvent');
@@ -184,26 +187,6 @@ describe('TrimergeClient', () => {
       `"unknown baseRef for commit a: unknown"`,
     );
   });
-  it('handles event with invalid mergeRef', async () => {
-    const { onEvent } = makeTrimergeClient();
-    expect(() =>
-      onEvent(
-        {
-          type: 'commits',
-          commits: [
-            {
-              ref: 'a',
-              mergeRef: 'unknown',
-              metadata: '',
-            },
-          ],
-        },
-        false,
-      ),
-    ).toThrowErrorMatchingInlineSnapshot(
-      `"unknown mergeRef for commit a: unknown"`,
-    );
-  });
 
   it('handles internal error', async () => {
     const { onEvent, client } = makeTrimergeClient();
@@ -326,5 +309,76 @@ Array [
   },
 ]
 `);
+  });
+
+  it('it can reference pre-hydrated documents from doc cache', () => {
+    const testDocCache = new InMemoryDocCache<string, string>();
+    const { client, onEvent: sendLocalStoreEvent } = makeTrimergeClient(
+      undefined,
+      { docCache: testDocCache, differ: JDP_DIFFER },
+    );
+
+    const snapshotDoc = 'hello';
+    const commitOnTopOfSnapshotDoc = 'hello world';
+    const delta = JDP_DIFFER.diff(snapshotDoc, commitOnTopOfSnapshotDoc);
+
+    testDocCache.set('test-base-ref', {
+      ref: 'test-base-ref',
+      doc: 'hello',
+      metadata: 'testSnapshotDocValue',
+    });
+
+    sendLocalStoreEvent(
+      {
+        type: 'commits',
+        commits: [
+          {
+            baseRef: 'test-base-ref',
+            ref: 'test-ref',
+            delta,
+            metadata: 'testCommitOnTopOfSnapshotDocValue',
+          },
+        ],
+      },
+      true,
+    );
+
+    expect(client.doc).toEqual(commitOnTopOfSnapshotDoc);
+  });
+
+  it('it does not fail on a missing a merge ref', () => {
+    const testDocCache = new InMemoryDocCache<string, string>();
+    const { client, onEvent: sendLocalStoreEvent } = makeTrimergeClient(
+      undefined,
+      { docCache: testDocCache, differ: JDP_DIFFER },
+    );
+
+    const snapshotDoc = 'hello';
+    const commitOnTopOfSnapshotDoc = 'hello world';
+    const delta = JDP_DIFFER.diff(snapshotDoc, commitOnTopOfSnapshotDoc);
+
+    testDocCache.set('test-base-ref', {
+      ref: 'test-base-ref',
+      doc: 'hello',
+      metadata: 'testSnapshotDocValue',
+    });
+
+    sendLocalStoreEvent(
+      {
+        type: 'commits',
+        commits: [
+          {
+            baseRef: 'test-base-ref',
+            mergeRef: 'test-merge-ref',
+            ref: 'test-ref',
+            delta,
+            metadata: 'testCommitOnTopOfSnapshotDocValue',
+          },
+        ],
+      },
+      true,
+    );
+
+    expect(client.doc).toEqual(commitOnTopOfSnapshotDoc);
   });
 });

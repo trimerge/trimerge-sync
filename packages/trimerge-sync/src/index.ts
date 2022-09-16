@@ -1,5 +1,6 @@
 export * from './TrimergeClientOptions';
 export * from './TrimergeClient';
+export * from './InMemoryDocCache';
 export * from './types';
 export * from './CoordinatingLocalStore';
 export * from './validateCommits';

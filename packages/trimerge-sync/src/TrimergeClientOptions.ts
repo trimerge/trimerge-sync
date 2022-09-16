@@ -31,6 +31,13 @@ export type AddNewCommitMetadataFn<CommitMetadata> = (
   clientId: string,
 ) => CommitMetadata;
 
+export interface DocCache<SavedDoc, CommitMetadata> {
+  get: (ref: string) => CommitDoc<SavedDoc, CommitMetadata> | undefined;
+  set: (ref: string, doc: CommitDoc<SavedDoc, CommitMetadata>) => void;
+  has: (ref: string) => boolean;
+  delete: (ref: string) => void;
+}
+
 export type MergeHelpers<LatestDoc, CommitMetadata> = {
   getCommitInfo(ref: string): CommitInfo;
   computeLatestDoc(ref: string): CommitDoc<LatestDoc, CommitMetadata>;
@@ -88,4 +95,10 @@ export type TrimergeClientOptions<
   readonly migrate?: MigrateDocFn<SavedDoc, LatestDoc, CommitMetadata>;
 
   readonly addNewCommitMetadata?: AddNewCommitMetadataFn<CommitMetadata>;
+
+  /** This is an optional entry point to an alternative storage system for documents. This allows
+   *  consumers of TrimergeClient to create snapshots of the document and cut off the recursive
+   *  building up of the Document.
+   */
+  readonly docCache?: DocCache<SavedDoc, CommitMetadata>;
 };
