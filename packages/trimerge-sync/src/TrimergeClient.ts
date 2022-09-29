@@ -387,8 +387,20 @@ export class TrimergeClient<
     { ref, baseRef, mergeRef }: CommitRefs,
   ): void {
     if (baseRef !== undefined) {
-      if (!this.commits.has(baseRef) && !this.docCache.has(baseRef)) {
-        throw new Error(`unknown baseRef for commit ${ref}: ${baseRef}`);
+      // When adding a head ref, we need to be able to resolve the document at ref.
+      // That can be accomplished if any of the following are true:
+      //
+      //  1. the doc cache has a document for ref
+      //  2. we have a commit for ref and we have a snapshot for baseRef
+      //  3. we have a commit for ref and we have a commit for baseRef
+      if (
+        !this.docCache.has(ref) &&
+        !this.commits.has(baseRef) &&
+        !this.docCache.has(baseRef)
+      ) {
+        throw new Error(
+          `no way to resolve ${ref}: no cached doc for ${ref} and no cached doc or commit for ${baseRef}`,
+        );
       }
       headRefs.delete(baseRef);
     }
