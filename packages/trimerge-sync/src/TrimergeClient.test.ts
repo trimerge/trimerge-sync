@@ -181,10 +181,11 @@ describe('TrimergeClient', () => {
             },
           ],
         },
+
         false,
       ),
     ).toThrowErrorMatchingInlineSnapshot(
-      `"unknown baseRef for commit a: unknown"`,
+      `"no way to resolve a: no cached doc for a and no cached doc or commit for unknown"`,
     );
   });
 
@@ -344,6 +345,41 @@ Array [
     );
 
     expect(client.doc).toEqual(commitOnTopOfSnapshotDoc);
+  });
+
+  it('allows missing baseref, if doc exists in doc cache', () => {
+    const testDocCache = new InMemoryDocCache<string, string>();
+    const { client, onEvent: sendLocalStoreEvent } = makeTrimergeClient(
+      undefined,
+      { docCache: testDocCache, differ: JDP_DIFFER },
+    );
+
+    const unknownBaseDocument = 'hello';
+    const docWithUnknownBaseRef = 'hello world';
+    const delta = JDP_DIFFER.diff(unknownBaseDocument, docWithUnknownBaseRef);
+
+    testDocCache.set('test-ref', {
+      ref: 'test-ref',
+      doc: docWithUnknownBaseRef,
+      metadata: 'testCommitOnTopOfSnapshotDocValue',
+    });
+
+    sendLocalStoreEvent(
+      {
+        type: 'commits',
+        commits: [
+          {
+            baseRef: 'test-base-ref',
+            ref: 'test-ref',
+            delta,
+            metadata: 'testCommitOnTopOfSnapshotDocValue',
+          },
+        ],
+      },
+      true,
+    );
+
+    expect(client.doc).toEqual(docWithUnknownBaseRef);
   });
 
   it('it does not fail on a missing a merge ref', () => {
