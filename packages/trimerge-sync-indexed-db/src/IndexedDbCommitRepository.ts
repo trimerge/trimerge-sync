@@ -15,6 +15,7 @@ import { deleteDB, openDB } from 'idb';
 import { timeout } from './lib/timeout';
 
 const COMMIT_PAGE_SIZE = 100;
+const IDB_SCHEMA_VERSION = 3;
 
 function getSyncCounter<CommitMetadata, Delta>(
   commits: StoreValue<TrimergeSyncDbSchema<CommitMetadata, Delta>, 'commits'>[],
@@ -410,6 +411,8 @@ type TrimergeSyncDbCommit<CommitMetadata, Delta> = Commit<
   syncId: number;
   remoteSyncId: string;
 };
+
+type ConfigValue = string | number | boolean;
 
 interface TrimergeSyncDbSchema<CommitMetadata, Delta> extends DBSchema {
   heads: {
