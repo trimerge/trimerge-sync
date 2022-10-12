@@ -216,7 +216,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
     const { db } = await this.dbInfo;
     const tx = db.transaction(['remotes'], 'readwrite');
     const remotes = tx.objectStore('remotes');
-    const remote = (await remotes.get(this.remoteId)) ?? {};
+    const remote: RemoteSyncInfo = (await remotes.get(this.remoteId)) ?? {};
     if (syncCursor !== undefined && remote.lastSyncCursor !== syncCursor) {
       remote.lastSyncCursor = syncCursor;
       await remotes.put(remote, this.remoteId);
@@ -239,17 +239,19 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
     db.onclose = () => {
       this.dbInfo = this.connect(true);
     };
-    const readTx = db.transaction(['remotes'], 'readonly');
-    const remotes = readTx.objectStore('remotes');
-    const remote = (await remotes.get(this.remoteId)) ?? {};
+    const readTx = db.transaction(['config'], 'readonly');
+    const configStore = readTx.objectStore('config');
+    let localStoreId = (await configStore.get('localStoreId')) as
+      | string
+      | undefined;
     await readTx.done;
-    if (!remote.localStoreId) {
-      remote.localStoreId = await this.localIdGenerator();
-      const writeTx = db.transaction(['remotes'], 'readwrite');
-      await writeTx.objectStore('remotes').put(remote, this.remoteId);
+    if (!localStoreId) {
+      localStoreId = await this.localIdGenerator();
+      const writeTx = db.transaction(['config'], 'readwrite');
+      await writeTx.objectStore('config').put(localStoreId, 'localStoreId');
       await writeTx.done;
     }
-    return { db, localStoreId: remote.localStoreId };
+    return { db, localStoreId };
   }
 
   async addCommits(
@@ -412,6 +414,7 @@ type TrimergeSyncDbCommit<CommitMetadata, Delta> = Commit<
   remoteSyncId: string;
 };
 
+type ConfigKey = 'localStoreId';
 type ConfigValue = string | number | boolean;
 
 interface TrimergeSyncDbSchema<CommitMetadata, Delta> extends DBSchema {
@@ -431,13 +434,10 @@ interface TrimergeSyncDbSchema<CommitMetadata, Delta> extends DBSchema {
   };
   remotes: {
     key: string;
-    value: {
-      localStoreId?: string;
-      lastSyncCursor?: string;
-    };
+    value: RemoteSyncInfo;
   };
   config: {
-    key: string;
+    key: ConfigKey;
     value: ConfigValue;
   };
 }

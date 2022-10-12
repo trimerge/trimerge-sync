@@ -212,10 +212,10 @@ export type GetLocalStoreFn<CommitMetadata, Delta, Presence> = (
 
 export type RemoteSyncInfo = {
   /** The latest cursor that we're aware of from this remote. */
-  lastSyncCursor: string | undefined;
+  lastSyncCursor?: string;
 
   /** The first cursor after we've been syncing all changes. */
-  firstSyncCursor: string | undefined;
+  firstSyncCursor?: string;
 };
 
 export type GetRemoteFn<CommitMetadata, Delta, Presence> = (
