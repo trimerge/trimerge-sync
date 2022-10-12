@@ -181,6 +181,7 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 2,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "HwWFgzWO",
@@ -302,6 +303,7 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 4,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "YFy1LPs2",
@@ -403,6 +405,7 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 2,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "HwWFgzWO",
@@ -479,6 +482,7 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "blarg",
@@ -503,13 +507,13 @@ describe('createIndexedDbBackendFactory', () => {
     await client1.shutdown();
 
     await expect(getIdbDatabases()).resolves.toMatchInlineSnapshot(`
-                  Array [
-                    Object {
-                      "name": "trimerge-sync:test-doc-delete",
-                      "version": 2,
-                    },
-                  ]
-              `);
+            Array [
+              Object {
+                "name": "trimerge-sync:test-doc-delete",
+                "version": 3,
+              },
+            ]
+          `);
 
     await deleteDocDatabase(docId);
 
@@ -557,32 +561,33 @@ describe('createIndexedDbBackendFactory', () => {
     await timeout(100);
 
     void expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-      Object {
-        "commits": Array [
-          Object {
-            "baseRef": undefined,
-            "delta": Array [
-              "hello remote",
-            ],
-            "metadata": "",
-            "ref": "F2C9k7m0",
-            "remoteSyncId": "foo",
-            "syncId": 1,
-          },
-        ],
-        "heads": Array [
-          Object {
-            "ref": "F2C9k7m0",
-          },
-        ],
-        "remotes": Array [
-          Object {
-            "lastSyncCursor": "foo",
-            "localStoreId": "test-doc-store",
-          },
-        ],
-      }
-    `);
+            Object {
+              "commits": Array [
+                Object {
+                  "baseRef": undefined,
+                  "delta": Array [
+                    "hello remote",
+                  ],
+                  "metadata": "",
+                  "ref": "F2C9k7m0",
+                  "remoteSyncId": "foo",
+                  "syncId": 1,
+                },
+              ],
+              "config": Array [],
+              "heads": Array [
+                Object {
+                  "ref": "F2C9k7m0",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
 
     await client1.shutdown();
   });
@@ -614,6 +619,7 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "F2C9k7m0",
@@ -642,6 +648,7 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "F2C9k7m0",
@@ -676,6 +683,7 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "F2C9k7m0",
@@ -738,6 +746,7 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 2,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "YSkdCqy1",
@@ -937,6 +946,7 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 3,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "uBHlRZDM",
@@ -981,32 +991,33 @@ describe('createIndexedDbBackendFactory', () => {
     await client.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-Object {
-  "commits": Array [
-    Object {
-      "metadata": Object {
-        "bar": "baz",
-        "foo": "bar",
-        "qux": "quux",
-      },
-      "ref": "blah",
-      "remoteSyncId": "blah2",
-      "syncId": 1,
-    },
-  ],
-  "heads": Array [
-    Object {
-      "ref": "blah",
-    },
-  ],
-  "remotes": Array [
-    Object {
-      "lastSyncCursor": "blah2",
-      "localStoreId": "test-doc-store",
-    },
-  ],
-}
-`);
+            Object {
+              "commits": Array [
+                Object {
+                  "metadata": Object {
+                    "bar": "baz",
+                    "foo": "bar",
+                    "qux": "quux",
+                  },
+                  "ref": "blah",
+                  "remoteSyncId": "blah2",
+                  "syncId": 1,
+                },
+              ],
+              "config": Array [],
+              "heads": Array [
+                Object {
+                  "ref": "blah",
+                },
+              ],
+              "remotes": Array [
+                Object {
+                  "lastSyncCursor": "blah2",
+                  "localStoreId": "test-doc-store",
+                },
+              ],
+            }
+          `);
   });
 
   it('updates metadata from remote with two users', async () => {
@@ -1065,6 +1076,7 @@ Object {
                   "syncId": 1,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "G0a5Az3Q",
@@ -1097,6 +1109,7 @@ Object {
                   "syncId": 1,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "G0a5Az3Q",
@@ -1167,6 +1180,7 @@ Object {
                   "syncId": 1,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "G0a5Az3Q",
@@ -1245,6 +1259,7 @@ Object {
                   "syncId": 1,
                 },
               ],
+              "config": Array [],
               "heads": Array [
                 Object {
                   "ref": "test",
