@@ -433,12 +433,16 @@ interface TrimergeSyncDbSchema<CommitMetadata, Delta> extends DBSchema {
       lastSyncCursor?: string;
     };
   };
+  config: {
+    key: string;
+    value: ConfigValue;
+  };
 }
 
 function createIndexedDb<CommitMetadata, Delta>(
   dbName: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
-  return openDB(dbName, 2, {
+  return openDB(dbName, IDB_SCHEMA_VERSION, {
     upgrade(db, oldVersion, newVersion, tx) {
       let commits;
       if (oldVersion < 1) {
@@ -451,6 +455,9 @@ function createIndexedDb<CommitMetadata, Delta>(
       if (oldVersion < 2) {
         db.createObjectStore('remotes');
         commits.createIndex('remoteSyncId', 'remoteSyncId');
+      }
+      if (oldVersion < 3) {
+        db.createObjectStore('config');
       }
     },
   });

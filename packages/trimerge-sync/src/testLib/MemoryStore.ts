@@ -153,8 +153,8 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
   }
   getRemoteSyncInfo(): Promise<RemoteSyncInfo> {
     return this.queue.add(async () => ({
-      localStoreId: this.localStoreId,
       lastSyncCursor: this.lastRemoteSyncCursor,
+      firstSyncCursor: undefined,
     }));
   }
 

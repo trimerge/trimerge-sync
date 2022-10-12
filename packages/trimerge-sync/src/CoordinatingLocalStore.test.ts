@@ -22,7 +22,7 @@ class MockCommitRepository
   }
 
   async getRemoteSyncInfo(): Promise<RemoteSyncInfo> {
-    return { localStoreId: '', lastSyncCursor: undefined };
+    return { lastSyncCursor: undefined, firstSyncCursor: undefined };
   }
 
   async *getLocalCommits(): AsyncIterableIterator<
