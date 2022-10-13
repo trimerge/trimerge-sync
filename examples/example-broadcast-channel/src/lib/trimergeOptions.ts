@@ -53,15 +53,16 @@ export function createLocalStoreFactory(
     const store = new CoordinatingLocalStore(
       userId,
       clientId,
+      randomId(),
       onEvent,
       new IndexedDbCommitRepository(docId, {
         localIdGenerator: randomId,
         remoteId: 'localhost',
       }),
-      (userId, lastSyncInfo, onEvent) =>
+      (userId, localStoreId, lastSyncInfo, onEvent) =>
         new WebsocketRemote(
           { userId, readonly: false },
-
+          localStoreId,
           lastSyncInfo,
           onEvent,
           `ws://localhost:4444/${encodeURIComponent(docId)}`,
