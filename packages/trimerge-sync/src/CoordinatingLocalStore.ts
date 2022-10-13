@@ -9,6 +9,7 @@ import {
   OnStoreEventFn,
   Remote,
   RemoteStateEvent,
+  StoreConfigRepository,
   SyncEvent,
 } from './types';
 import {
@@ -71,6 +72,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       Delta,
       Presence
     >,
+    private readonly configRepo: StoreConfigRepository,
     private readonly getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>,
     networkSettings: Partial<NetworkSettings> = {},
     private localChannel?: EventChannel<CommitMetadata, Delta, Presence>,
@@ -253,7 +255,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       console.warn('ignoring error while shutting down', error);
     }
 
-    this.commitRepo.shutdown();
+    await this.commitRepo.shutdown();
   }
 
   private closeRemote(reconnect: boolean = false): Promise<void> {

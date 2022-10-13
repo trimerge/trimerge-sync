@@ -58,10 +58,11 @@ export function createLocalStoreFactory(
         localIdGenerator: randomId,
         remoteId: 'localhost',
       }),
-      (userId, lastSyncId, onEvent) =>
+      (userId, lastSyncInfo, onEvent) =>
         new WebsocketRemote(
           { userId, readonly: false },
-          lastSyncId,
+
+          lastSyncInfo,
           onEvent,
           `ws://localhost:4444/${encodeURIComponent(docId)}`,
         ),

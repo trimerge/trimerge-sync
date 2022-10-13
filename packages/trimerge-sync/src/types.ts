@@ -1,3 +1,5 @@
+import type { JSONValue } from 'trimerge';
+
 export type ErrorCode =
   | 'invalid-sync-id'
   | 'invalid-commits'
@@ -220,6 +222,7 @@ export type RemoteSyncInfo = {
 
 export type GetRemoteFn<CommitMetadata, Delta, Presence> = (
   userId: string,
+  localStoreId: string,
   remoteSyncInfo: RemoteSyncInfo,
   onRemoteEvent: OnRemoteEventFn<CommitMetadata, Delta, Presence>,
 ) =>
@@ -238,6 +241,28 @@ export interface LocalStore<CommitMetadata, Delta, Presence> {
 export interface Remote<CommitMetadata, Delta, Presence> {
   send(event: SyncEvent<CommitMetadata, Delta, Presence>): void;
   shutdown(): void | Promise<void>;
+}
+
+type ExtendsFrom<Parent, Subtype extends Parent> = Subtype;
+
+/** Settings stored for a project using the ConfigRepository. */
+export type BaseStoreConfig = ExtendsFrom<
+  Record<string, JSONValue>,
+  {
+    localStoreId: string;
+  }
+>;
+
+export type BaseStoreConfigKey = keyof BaseStoreConfig;
+
+/** Repository for storing project-specific settings (e.g. whether live collab is operating in "sparse mode") */
+export interface StoreConfigRepository<Config extends BaseStoreConfig> {
+  get<K extends keyof Config>(key: K): Promise<Config[K] | undefined>;
+
+  set<K extends keyof Config>(
+    key: K,
+    value: Config[K] | undefined,
+  ): Promise<void>;
 }
 
 export interface CommitRepository<CommitMetadata, Delta, Presence> {
