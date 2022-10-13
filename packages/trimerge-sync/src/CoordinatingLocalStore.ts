@@ -9,7 +9,6 @@ import {
   OnStoreEventFn,
   Remote,
   RemoteStateEvent,
-  StoreConfigRepository,
   SyncEvent,
 } from './types';
 import {
@@ -60,8 +59,9 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private initialized = false;
 
   constructor(
-    protected readonly userId: string,
-    protected readonly clientId: string,
+    private readonly userId: string,
+    private readonly clientId: string,
+    private readonly localStoreId: string,
     private readonly onStoreEvent: OnStoreEventFn<
       CommitMetadata,
       Delta,
@@ -72,7 +72,6 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       Delta,
       Presence
     >,
-    private readonly configRepo: StoreConfigRepository,
     private readonly getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>,
     networkSettings: Partial<NetworkSettings> = {},
     private localChannel?: EventChannel<CommitMetadata, Delta, Presence>,
@@ -318,6 +317,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         const remoteSyncInfo = await this.commitRepo.getRemoteSyncInfo();
         this.remote = await this.getRemote(
           this.userId,
+          this.localStoreId,
           remoteSyncInfo,
           (event) => {
             this.remoteQueue

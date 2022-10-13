@@ -70,6 +70,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     const store = new CoordinatingLocalStore<CommitMetadata, Delta, Presence>(
       userId,
       clientId,
+      this.localStoreId,
       onEvent,
       new MemoryCommitRepository(this),
       this.getRemoteFn,
@@ -89,6 +90,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
 
   getRemote: GetRemoteFn<CommitMetadata, Delta, Presence> = (
     userId: string,
+    localStoreId: string,
     remoteSyncInfo,
     onEvent,
   ) => {
@@ -98,7 +100,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     const be = new MemoryRemote(
       this,
       userId,
-      this.localStoreId,
+      localStoreId,
       remoteSyncInfo,
       onEvent,
     );

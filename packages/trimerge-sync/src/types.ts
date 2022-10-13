@@ -243,28 +243,6 @@ export interface Remote<CommitMetadata, Delta, Presence> {
   shutdown(): void | Promise<void>;
 }
 
-type ExtendsFrom<Parent, Subtype extends Parent> = Subtype;
-
-/** Settings stored for a project using the ConfigRepository. */
-export type BaseStoreConfig = ExtendsFrom<
-  Record<string, JSONValue>,
-  {
-    localStoreId: string;
-  }
->;
-
-export type BaseStoreConfigKey = keyof BaseStoreConfig;
-
-/** Repository for storing project-specific settings (e.g. whether live collab is operating in "sparse mode") */
-export interface StoreConfigRepository<Config extends BaseStoreConfig> {
-  get<K extends keyof Config>(key: K): Promise<Config[K] | undefined>;
-
-  set<K extends keyof Config>(
-    key: K,
-    value: Config[K] | undefined,
-  ): Promise<void>;
-}
-
 export interface CommitRepository<CommitMetadata, Delta, Presence> {
   getLocalCommits(): AsyncIterableIterator<
     CommitsEvent<CommitMetadata, Delta, Presence>
