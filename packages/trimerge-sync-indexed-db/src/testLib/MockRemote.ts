@@ -59,6 +59,6 @@ export function getMockRemoteWithMap(
   commits?: Map<string, Commit<any, any>>,
   getRemoteMetadata?: (commit: Commit<any, any>) => any,
 ): GetRemoteFn<any, any, any> {
-  return (_userId, _remoteSyncInfo, onEvent) =>
+  return (_userId, _localStoreId, _remoteSyncInfo, onEvent) =>
     new MockRemote(onEvent, commits, getRemoteMetadata);
 }
