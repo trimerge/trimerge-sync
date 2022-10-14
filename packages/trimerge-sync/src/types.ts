@@ -1,5 +1,3 @@
-import type { JSONValue } from 'trimerge';
-
 export type ErrorCode =
   | 'invalid-sync-id'
   | 'invalid-commits'
