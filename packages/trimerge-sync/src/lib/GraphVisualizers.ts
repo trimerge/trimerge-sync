@@ -258,11 +258,13 @@ function getDotGraphFromNodes(nodes: Map<string, Node>): string {
       }
       if (node.mergeRef) {
         const mergeNode = nodes.get(node.mergeRef);
-        if (!mergeNode) {
-          throw new Error(`mergeRef ${node.mergeRef} not found`);
-        }
+
         lines.push(`"${baseNode.id}" -> "${node.id}" [label=left]`);
-        lines.push(`"${mergeNode.id}" -> "${node.id}" [label=right]`);
+        if (mergeNode) {
+          lines.push(`"${mergeNode.id}" -> "${node.id}" [label=right]`);
+        } else {
+          console.warn('mergeNode not found: ', node.mergeRef);
+        }
       } else {
         lines.push(
           `"${baseNode.id}" -> "${node.id}" [label="${node.editLabel}"]`,
@@ -338,13 +340,10 @@ export function getDotGraph<CommitMetadata>(
 
     if (isMergeCommit(commit)) {
       const mergeNode = nodeMap.get(commit.mergeRef);
-      if (!mergeNode) {
-        throw new Error(
-          `commits should be partially ordered, but could not find ref ${commit.mergeRef}`,
-        );
-      }
-      if (mergeNode.nodeType === 'meta') {
-        splitMetaNode(mergeNode as MetaNode, commit.mergeRef, nodeMap);
+      if (mergeNode) {
+        if (mergeNode.nodeType === 'meta') {
+          splitMetaNode(mergeNode as MetaNode, commit.mergeRef, nodeMap);
+        }
       }
       mergeNode.isReferenced = true;
     }
