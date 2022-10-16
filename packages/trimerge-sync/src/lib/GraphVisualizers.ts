@@ -42,9 +42,11 @@ interface Node {
   get nodeType(): NodeType;
   get userId(): string | undefined;
   get isMain(): boolean;
+  isReferenced: boolean;
 }
 
 class CommitNode<CommitMetadata = unknown> implements Node {
+  isReferenced = false;
   constructor(
     readonly commit: Commit<CommitMetadata>,
     private readonly _getEditLabel: (
@@ -165,6 +167,7 @@ function isLastChild(node: MetaNode, ref: string): boolean {
 }
 
 class MetaNode implements Node {
+  isReferenced = false;
   constructor(readonly children: CommitNode<unknown>[] = []) {
     if (children.length < 2) {
       throw new Error('MetaNode must have at least 2 children');
@@ -306,14 +309,22 @@ export function getDotGraph<CommitMetadata>(
       }
       switch (baseNode.nodeType) {
         case 'edit':
-          if (baseNode.userId === node.userId && node.nodeType !== 'merge') {
+          if (
+            baseNode.userId === node.userId &&
+            node.nodeType !== 'merge' &&
+            !baseNode.isReferenced
+          ) {
             node = new MetaNode([baseNode as CommitNode, node as CommitNode]);
             nodeMap.set(commit.baseRef, node);
           }
           break;
         case 'meta':
           if (isLastChild(baseNode as MetaNode, commit.baseRef)) {
-            if (baseNode.userId === node.userId && node.nodeType !== 'merge') {
+            if (
+              baseNode.userId === node.userId &&
+              node.nodeType !== 'merge' &&
+              !baseNode.isReferenced
+            ) {
               (baseNode as MetaNode).children.push(node as CommitNode);
               node = baseNode;
             }
@@ -322,6 +333,7 @@ export function getDotGraph<CommitMetadata>(
           }
           break;
       }
+      baseNode.isReferenced = true;
     }
 
     if (isMergeCommit(commit)) {
@@ -334,6 +346,7 @@ export function getDotGraph<CommitMetadata>(
       if (mergeNode.nodeType === 'meta') {
         splitMetaNode(mergeNode as MetaNode, commit.mergeRef, nodeMap);
       }
+      mergeNode.isReferenced = true;
     }
 
     nodeMap.set(commit.ref, node);
