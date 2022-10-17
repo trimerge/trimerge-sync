@@ -34,6 +34,7 @@ export function getBasicGraph<CommitMetadata>(
 type NodeType = 'edit' | 'merge' | 'meta';
 
 interface Node {
+  isReferenced: boolean;
   get id(): string;
   get label(): string;
   get editLabel(): string;
@@ -45,6 +46,7 @@ interface Node {
 }
 
 class CommitNode<CommitMetadata = unknown> implements Node {
+  isReferenced = false;
   constructor(
     readonly commit: Commit<CommitMetadata>,
     private readonly _getEditLabel: (
@@ -164,8 +166,9 @@ function isLastChild(node: MetaNode, ref: string): boolean {
   );
 }
 
-class MetaNode implements Node {
-  constructor(readonly children: CommitNode<unknown>[] = []) {
+class MetaNode<CommitMetadata = unknown> implements Node {
+  isReferenced = false;
+  constructor(readonly children: CommitNode<CommitMetadata>[] = []) {
     if (children.length < 2) {
       throw new Error('MetaNode must have at least 2 children');
     }
@@ -221,12 +224,18 @@ const COLORS = [
   'lightpink',
 ];
 
-function getDotGraphFromNodes(nodes: Map<string, Node>): string {
+function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
+  graph: string;
+  commits: Commit<CommitMetadata, unknown>[];
+} {
   const lines: string[] = ['digraph {'];
   const renderedNodes = new Set<Node>();
   let nextColorIdx = 0;
   const userColors = new Map<string | undefined, string>();
+  const commits: Commit<CommitMetadata, unknown>[] = [];
   for (const node of nodes.values()) {
+    // The structure of the map is that multiple commit refs can refer to a single node object
+    // so we only want to render each node once
     if (renderedNodes.has(node)) {
       continue;
     }
@@ -248,6 +257,11 @@ function getDotGraphFromNodes(nodes: Map<string, Node>): string {
         node.isMain ? 'red' : 'black'
       }, fillcolor=${color}, style=filled]`,
     );
+    if (node.nodeType === 'meta') {
+      commits.push((node as MetaNode<CommitMetadata>).children.at(-1)!.commit);
+    } else {
+      commits.push((node as CommitNode<CommitMetadata>).commit);
+    }
     if (node.baseRef) {
       const baseNode = nodes.get(node.baseRef);
       if (!baseNode) {
@@ -270,7 +284,7 @@ function getDotGraphFromNodes(nodes: Map<string, Node>): string {
     }
   }
   lines.push('}');
-  return lines.join('\n');
+  return { graph: lines.join('\n'), commits };
 }
 
 /**
@@ -287,8 +301,9 @@ export function getDotGraph<CommitMetadata>(
   getValue: (commit: Commit<CommitMetadata, any>) => string,
   getUserId: (commit: Commit<CommitMetadata, any>) => string,
   isMain: (commit: Commit<CommitMetadata, any>) => boolean,
-): string {
+): { graph: string; commits: Commit<CommitMetadata, unknown>[] } {
   const nodeMap = new Map<string, Node>();
+
   for (const commit of commits) {
     let node: Node = new CommitNode<CommitMetadata>(
       commit,
@@ -327,15 +342,25 @@ export function getDotGraph<CommitMetadata>(
     }
 
     if (isMergeCommit(commit)) {
-      const mergeNode = nodeMap.get(commit.mergeRef);
+      let mergeNode = nodeMap.get(commit.mergeRef);
+
+      // Allow for the possibility that we don't have the
+      // commit that corresponds to the mergeRef.
       if (mergeNode) {
         if (mergeNode.nodeType === 'meta') {
           splitMetaNode(mergeNode as MetaNode, commit.mergeRef, nodeMap);
         }
+
+        mergeNode = nodeMap.get(commit.mergeRef);
+        if (!mergeNode) {
+          throw new Error(`mergeNode not found: ${commit.mergeRef}`);
+        }
+        mergeNode.isReferenced = true;
       }
     }
 
     nodeMap.set(commit.ref, node);
   }
+
   return getDotGraphFromNodes(nodeMap);
 }
