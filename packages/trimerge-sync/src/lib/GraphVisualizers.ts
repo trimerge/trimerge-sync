@@ -250,18 +250,22 @@ function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
 
     const color = userColors.get(node.userId);
 
+    // keep track of the commits that the nodes in the digraph represent.
+    // if the node is a meta node, we just say that it represents the last commit.
+    const representedCommit =
+      node.nodeType === 'meta'
+        ? (node as MetaNode<CommitMetadata>).children.at(-1)!.commit
+        : (node as CommitNode<CommitMetadata>).commit;
+    commits.push(representedCommit);
+
     lines.push(
       `"${node.id}" [shape=${
         node.nodeType === 'merge' ? 'rectangle' : 'ellipse'
       }, label="${node.label}", color=${
         node.isMain ? 'red' : 'black'
-      }, fillcolor=${color}, style=filled]`,
+      }, fillcolor=${color}, style=filled, id="${representedCommit.ref}"];`,
     );
-    if (node.nodeType === 'meta') {
-      commits.push((node as MetaNode<CommitMetadata>).children.at(-1)!.commit);
-    } else {
-      commits.push((node as CommitNode<CommitMetadata>).commit);
-    }
+
     if (node.baseRef) {
       const baseNode = nodes.get(node.baseRef);
       if (!baseNode) {
