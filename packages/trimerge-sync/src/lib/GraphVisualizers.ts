@@ -254,8 +254,15 @@ function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
     // if the node is a meta node, we just say that it represents the last commit.
     const representedCommit =
       node.nodeType === 'meta'
-        ? (node as MetaNode<CommitMetadata>).children.at(-1)!.commit
+        ? (node as MetaNode<CommitMetadata>).children.at(-1)?.commit
         : (node as CommitNode<CommitMetadata>).commit;
+
+    if (!representedCommit) {
+      throw new Error(
+        'Represented commit is undefined. Probably an empty meta node.',
+      );
+    }
+
     commits.push(representedCommit);
 
     lines.push(
