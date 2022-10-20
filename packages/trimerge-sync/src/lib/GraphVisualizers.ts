@@ -224,7 +224,14 @@ const COLORS = [
   'lightpink',
 ];
 
-function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
+export type DotGraphOptions = {
+  rankSort?: (a: Node, b: Node) => number;
+};
+
+function getDotGraphFromNodes<CommitMetadata>(
+  nodes: Map<string, Node>,
+  { rankSort }: DotGraphOptions,
+): {
   graph: string;
   commits: Commit<CommitMetadata, unknown>[];
 } {
@@ -299,6 +306,18 @@ function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
       }
     }
   }
+
+  if (rankSort) {
+    const sortedNodes = Array.from(nodes.values()).sort(rankSort);
+    for (let i = 0; i < sortedNodes.length - 1; i++) {
+      const node = sortedNodes[i];
+      const nextNode = sortedNodes[i + 1];
+      lines.push(`x${i} [label="",width=.1,style=invis]`);
+      lines.push(`"${node.id}" -> x${i} [style=invis]`);
+      lines.push(`{rank=same "x${i}->${nextNode.id}" [style=invis]}`);
+    }
+  }
+
   lines.push('}');
   return { graph: lines.join('\n'), commits };
 }
@@ -317,6 +336,7 @@ export function getDotGraph<CommitMetadata>(
   getValue: (commit: Commit<CommitMetadata, any>) => string,
   getUserId: (commit: Commit<CommitMetadata, any>) => string,
   isMain: (commit: Commit<CommitMetadata, any>) => boolean,
+  { rankSort }: DotGraphOptions = {},
 ): { graph: string; commits: Commit<CommitMetadata, unknown>[] } {
   const nodeMap = new Map<string, Node>();
 
@@ -382,6 +402,5 @@ export function getDotGraph<CommitMetadata>(
 
     nodeMap.set(commit.ref, node);
   }
-
-  return getDotGraphFromNodes(nodeMap);
+  return getDotGraphFromNodes(nodeMap, { rankSort });
 }
