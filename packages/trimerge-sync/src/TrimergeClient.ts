@@ -448,6 +448,10 @@ export class TrimergeClient<
       // Roll back heads
       this.allHeadRefs = new Set(this.nonTempHeadRefs);
       this.tempCommits.clear();
+
+      if (this.isMain?.(commit)) {
+        this.mainDoc = this.getCommitDoc(commit.ref);
+      }
     }
 
     this.commits.set(ref, commit);
