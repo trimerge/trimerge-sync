@@ -166,9 +166,9 @@ function isLastChild(node: MetaNode, ref: string): boolean {
   );
 }
 
-class MetaNode implements Node {
+class MetaNode<CommitMetadata = unknown> implements Node {
   isReferenced = false;
-  constructor(readonly children: CommitNode<unknown>[] = []) {
+  constructor(readonly children: CommitNode<CommitMetadata>[] = []) {
     if (children.length < 2) {
       throw new Error('MetaNode must have at least 2 children');
     }
@@ -224,12 +224,18 @@ const COLORS = [
   'lightpink',
 ];
 
-function getDotGraphFromNodes(nodes: Map<string, Node>): string {
+function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
+  graph: string;
+  commits: Commit<CommitMetadata, unknown>[];
+} {
   const lines: string[] = ['digraph {'];
   const renderedNodes = new Set<Node>();
   let nextColorIdx = 0;
   const userColors = new Map<string | undefined, string>();
+  const commits: Commit<CommitMetadata, unknown>[] = [];
   for (const node of nodes.values()) {
+    // The structure of the map is that multiple commit refs can refer to a single node object
+    // so we only want to render each node once
     if (renderedNodes.has(node)) {
       continue;
     }
@@ -244,13 +250,34 @@ function getDotGraphFromNodes(nodes: Map<string, Node>): string {
 
     const color = userColors.get(node.userId);
 
+    // keep track of the commits that the nodes in the digraph represent.
+    // if the node is a meta node, we just say that it represents the last commit.
+    let representedCommit;
+
+    if (node.nodeType === 'meta') {
+      const metaNode = node as MetaNode<CommitMetadata>;
+      representedCommit =
+        metaNode.children[metaNode.children.length - 1].commit;
+    } else {
+      representedCommit = (node as CommitNode<CommitMetadata>).commit;
+    }
+
+    if (!representedCommit) {
+      throw new Error(
+        'Represented commit is undefined. Probably an empty meta node.',
+      );
+    }
+
+    commits.push(representedCommit);
+
     lines.push(
       `"${node.id}" [shape=${
         node.nodeType === 'merge' ? 'rectangle' : 'ellipse'
       }, label="${node.label}", color=${
         node.isMain ? 'red' : 'black'
-      }, fillcolor=${color}, style=filled]`,
+      }, fillcolor=${color}, style=filled, id="${representedCommit.ref}"];`,
     );
+
     if (node.baseRef) {
       const baseNode = nodes.get(node.baseRef);
       if (!baseNode) {
@@ -258,11 +285,13 @@ function getDotGraphFromNodes(nodes: Map<string, Node>): string {
       }
       if (node.mergeRef) {
         const mergeNode = nodes.get(node.mergeRef);
-        if (!mergeNode) {
-          throw new Error(`mergeRef ${node.mergeRef} not found`);
-        }
+
         lines.push(`"${baseNode.id}" -> "${node.id}" [label=left]`);
-        lines.push(`"${mergeNode.id}" -> "${node.id}" [label=right]`);
+        if (mergeNode) {
+          lines.push(`"${mergeNode.id}" -> "${node.id}" [label=right]`);
+        } else {
+          console.warn('mergeNode not found: ', node.mergeRef);
+        }
       } else {
         lines.push(
           `"${baseNode.id}" -> "${node.id}" [label="${node.editLabel}"]`,
@@ -271,7 +300,7 @@ function getDotGraphFromNodes(nodes: Map<string, Node>): string {
     }
   }
   lines.push('}');
-  return lines.join('\n');
+  return { graph: lines.join('\n'), commits };
 }
 
 /**
@@ -288,8 +317,9 @@ export function getDotGraph<CommitMetadata>(
   getValue: (commit: Commit<CommitMetadata, any>) => string,
   getUserId: (commit: Commit<CommitMetadata, any>) => string,
   isMain: (commit: Commit<CommitMetadata, any>) => boolean,
-): string {
+): { graph: string; commits: Commit<CommitMetadata, unknown>[] } {
   const nodeMap = new Map<string, Node>();
+
   for (const commit of commits) {
     let node: Node = new CommitNode<CommitMetadata>(
       commit,
@@ -337,19 +367,25 @@ export function getDotGraph<CommitMetadata>(
     }
 
     if (isMergeCommit(commit)) {
-      const mergeNode = nodeMap.get(commit.mergeRef);
-      if (!mergeNode) {
-        throw new Error(
-          `commits should be partially ordered, but could not find ref ${commit.mergeRef}`,
-        );
+      let mergeNode = nodeMap.get(commit.mergeRef);
+
+      // Allow for the possibility that we don't have the
+      // commit that corresponds to the mergeRef.
+      if (mergeNode) {
+        if (mergeNode.nodeType === 'meta') {
+          splitMetaNode(mergeNode as MetaNode, commit.mergeRef, nodeMap);
+        }
+
+        mergeNode = nodeMap.get(commit.mergeRef);
+        if (!mergeNode) {
+          throw new Error(`mergeNode not found: ${commit.mergeRef}`);
+        }
+        mergeNode.isReferenced = true;
       }
-      if (mergeNode.nodeType === 'meta') {
-        splitMetaNode(mergeNode as MetaNode, commit.mergeRef, nodeMap);
-      }
-      mergeNode.isReferenced = true;
     }
 
     nodeMap.set(commit.ref, node);
   }
+
   return getDotGraphFromNodes(nodeMap);
 }
