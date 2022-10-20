@@ -350,11 +350,7 @@ export function getDotGraph<CommitMetadata>(
           break;
         case 'meta':
           if (isLastChild(baseNode as MetaNode, commit.baseRef)) {
-            if (
-              baseNode.userId === node.userId &&
-              node.nodeType !== 'merge' &&
-              !baseNode.isReferenced
-            ) {
+            if (baseNode.userId === node.userId && node.nodeType !== 'merge') {
               (baseNode as MetaNode).children.push(node as CommitNode);
               node = baseNode;
             }
