@@ -454,4 +454,108 @@ describe('GraphVisualizers', () => {
       }"
     `);
   });
+
+  it('allows missing merge commits', async () => {
+    const commits: Commit<any, any>[] = [
+      {
+        graph: {
+          ref: 'middle-merge-base-ref',
+          delta: '',
+        },
+        edit: {
+          message: 'blah',
+        },
+        server: {
+          index: 1,
+          main: false,
+          timestamp: '2022-10-14T21:28:34.011Z',
+        },
+      },
+      {
+        graph: {
+          ref: 'middle-merge',
+          baseRef: 'middle-merge-base-ref',
+          mergeRef: 'middle-merge-merge-ref',
+          delta: '',
+        },
+        edit: {
+          message: 'merge',
+        },
+        server: {
+          index: 3,
+          main: true,
+          timestamp: '2022-10-14T21:28:35.788Z',
+        },
+      },
+      {
+        graph: {
+          ref: 'last-merge-base-ref',
+          baseRef: 'middle-merge-base-ref',
+          delta: '',
+        },
+        edit: {
+          message: 'convert Overdub to audio',
+        },
+        server: {
+          index: 4,
+          main: false,
+          timestamp: '2022-10-14T21:29:43.263Z',
+        },
+      },
+      {
+        graph: {
+          ref: 'last-merge-2',
+          baseRef: 'last-merge-base-ref',
+          mergeRef: 'middle-merge',
+          delta: '',
+        },
+        edit: {
+          message: 'merge',
+        },
+        server: {
+          index: 666,
+          main: true,
+          timestamp: '2022-10-14T21:29:44.911Z',
+        },
+      },
+      {
+        graph: {
+          ref: 'last-merge-1',
+          baseRef: 'last-merge-base-ref',
+          mergeRef: 'middle-merge',
+          delta: '',
+        },
+        edit: {
+          message: 'merge',
+        },
+        server: {
+          index: 680,
+          main: false,
+          timestamp: '2022-10-14T21:29:45.510Z',
+        },
+      },
+    ].map((commit) => ({
+      ref: commit.graph.ref,
+      baseRef: commit.graph.baseRef,
+      mergeRef: commit.graph.mergeRef,
+      metadata: commit.edit.message,
+    }));
+
+    expect(getTestDotGraph(commits, (commit) => commit.metadata).graph)
+      .toMatchInlineSnapshot(`
+      "digraph {
+      \\"middle-merge-base-ref\\" [shape=ellipse, label=\\"middle-merge-base-ref\\", color=black, fillcolor=azure, style=filled, id=\\"middle-merge-base-ref\\"];
+      \\"middle-merge\\" [shape=rectangle, label=\\"middle-merge\\", color=black, fillcolor=azure, style=filled, id=\\"middle-merge\\"];
+      \\"middle-merge-base-ref\\" -> \\"middle-merge\\" [label=left]
+      \\"last-merge-base-ref\\" [shape=ellipse, label=\\"last-merge-base-ref\\", color=black, fillcolor=azure, style=filled, id=\\"last-merge-base-ref\\"];
+      \\"middle-merge-base-ref\\" -> \\"last-merge-base-ref\\" [label=\\"convert Overdub to audio\\"]
+      \\"last-merge-2\\" [shape=rectangle, label=\\"last-merge-2\\", color=black, fillcolor=azure, style=filled, id=\\"last-merge-2\\"];
+      \\"last-merge-base-ref\\" -> \\"last-merge-2\\" [label=left]
+      \\"middle-merge\\" -> \\"last-merge-2\\" [label=right]
+      \\"last-merge-1\\" [shape=rectangle, label=\\"last-merge-1\\", color=black, fillcolor=azure, style=filled, id=\\"last-merge-1\\"];
+      \\"last-merge-base-ref\\" -> \\"last-merge-1\\" [label=left]
+      \\"middle-merge\\" -> \\"last-merge-1\\" [label=right]
+      }"
+    `);
+  });
 });
