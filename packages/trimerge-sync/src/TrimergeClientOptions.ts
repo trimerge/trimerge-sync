@@ -1,4 +1,4 @@
-import { CommitInfo, GetLocalStoreFn } from './types';
+import { Commit, CommitInfo, GetLocalStoreFn } from './types';
 
 export type DocAndMetadata<Doc, CommitMetadata> = {
   doc: Doc;
@@ -101,4 +101,6 @@ export type TrimergeClientOptions<
    *  building up of the Document.
    */
   readonly docCache?: DocCache<SavedDoc, CommitMetadata>;
+
+  isMain?: (commit: Commit<CommitMetadata, Delta>) => boolean;
 };

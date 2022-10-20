@@ -57,6 +57,9 @@ export class TrimergeClient<
   // A cached migrated version of lastSavedDoc (could be instance equal)
   private latestDoc?: CommitDoc<LatestDoc, CommitMetadata>;
 
+  // This is the main document as determined by the isMain function. only defined if isMain is provided.
+  private mainDoc?: CommitDoc<SavedDoc, CommitMetadata>;
+
   private docSubs = new SubscriberList<LatestDoc | undefined, SubscribeEvent>(
     () => this.doc,
   );
@@ -93,6 +96,9 @@ export class TrimergeClient<
     | AddNewCommitMetadataFn<CommitMetadata>
     | undefined;
   private readonly docCache: DocCache<SavedDoc, CommitMetadata>;
+  private readonly isMain:
+    | ((commit: Commit<CommitMetadata, Delta>) => boolean)
+    | undefined;
   private tempCommits = new Map<string, Commit<CommitMetadata, Delta>>();
   private unsyncedCommits: Commit<CommitMetadata, Delta>[] = [];
 
@@ -119,6 +125,7 @@ export class TrimergeClient<
       getLocalStore,
       addNewCommitMetadata,
       docCache = new InMemoryDocCache(),
+      isMain,
     }: TrimergeClientOptions<
       SavedDoc,
       LatestDoc,
@@ -134,6 +141,7 @@ export class TrimergeClient<
     this.addNewCommitMetadata = addNewCommitMetadata;
     this.docCache = docCache;
     this.store = getLocalStore(userId, clientId, this.onStoreEvent);
+    this.isMain = isMain;
     this.setClientInfo(
       {
         userId,
