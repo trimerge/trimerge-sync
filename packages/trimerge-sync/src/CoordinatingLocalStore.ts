@@ -59,9 +59,8 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private initialized = false;
 
   constructor(
-    private readonly userId: string,
-    private readonly clientId: string,
-    private readonly localStoreId: string,
+    protected readonly userId: string,
+    protected readonly clientId: string,
     private readonly onStoreEvent: OnStoreEventFn<
       CommitMetadata,
       Delta,
@@ -254,7 +253,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       console.warn('ignoring error while shutting down', error);
     }
 
-    await this.commitRepo.shutdown();
+    this.commitRepo.shutdown();
   }
 
   private closeRemote(reconnect: boolean = false): Promise<void> {
@@ -317,7 +316,6 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         const remoteSyncInfo = await this.commitRepo.getRemoteSyncInfo();
         this.remote = await this.getRemote(
           this.userId,
-          this.localStoreId,
           remoteSyncInfo,
           (event) => {
             this.remoteQueue

@@ -65,7 +65,6 @@ function makeIndexedDbCoordinatingLocalStoreFactory(
     return new CoordinatingLocalStore<any, any, any>(
       userId,
       clientId,
-      storeId,
       onEvent,
       new IndexedDbCommitRepository(docId, {
         localIdGenerator: () => storeId,
@@ -126,14 +125,9 @@ async function makeTestClientWithRemoteOnEventHandle(
         store = makeIndexedDbCoordinatingLocalStoreFactory(
           docId,
           storeId,
-          (userId, localStoreId, remoteInfo, onEventParam) => {
+          (userId, remoteInfo, onEventParam) => {
             onRemoteEvent = onEventParam;
-            const mockRemote = getMockRemote(
-              userId,
-              localStoreId,
-              remoteInfo,
-              onEventParam,
-            );
+            const mockRemote = getMockRemote(userId, remoteInfo, onEventParam);
             resolve();
             return mockRemote;
           },
@@ -187,15 +181,16 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 2,
                 },
               ],
-              "config": Array [
-                "test-doc-store",
-              ],
               "heads": Array [
                 Object {
                   "ref": "HwWFgzWO",
                 },
               ],
-              "remotes": Array [],
+              "remotes": Array [
+                Object {
+                  "localStoreId": "test-doc-store",
+                },
+              ],
             }
           `);
   });
@@ -307,9 +302,6 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 4,
                 },
               ],
-              "config": Array [
-                "test-doc-store",
-              ],
               "heads": Array [
                 Object {
                   "ref": "YFy1LPs2",
@@ -318,7 +310,11 @@ describe('createIndexedDbBackendFactory', () => {
                   "ref": "aG60Gm4o",
                 },
               ],
-              "remotes": Array [],
+              "remotes": Array [
+                Object {
+                  "localStoreId": "test-doc-store",
+                },
+              ],
             }
           `);
   });
@@ -407,15 +403,16 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 2,
                 },
               ],
-              "config": Array [
-                "test-doc-store",
-              ],
               "heads": Array [
                 Object {
                   "ref": "HwWFgzWO",
                 },
               ],
-              "remotes": Array [],
+              "remotes": Array [
+                Object {
+                  "localStoreId": "test-doc-store",
+                },
+              ],
             }
           `);
   });
@@ -443,17 +440,11 @@ describe('createIndexedDbBackendFactory', () => {
       'test-doc-store',
       (
         userId: string,
-        localStoreId: string,
         remoteSyncInfo: RemoteSyncInfo,
         onRemoteEvent: OnRemoteEventFn<any, any, any>,
       ) => {
         onEvent = onRemoteEvent;
-        return getMockRemote(
-          userId,
-          localStoreId,
-          remoteSyncInfo,
-          onRemoteEvent,
-        );
+        return getMockRemote(userId, remoteSyncInfo, onRemoteEvent);
       },
       addStoreMetadata,
     );
@@ -488,9 +479,6 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
-              "config": Array [
-                "test-doc-store",
-              ],
               "heads": Array [
                 Object {
                   "ref": "blarg",
@@ -499,6 +487,7 @@ describe('createIndexedDbBackendFactory', () => {
               "remotes": Array [
                 Object {
                   "lastSyncCursor": "9",
+                  "localStoreId": "test-doc-store",
                 },
               ],
             }
@@ -514,13 +503,13 @@ describe('createIndexedDbBackendFactory', () => {
     await client1.shutdown();
 
     await expect(getIdbDatabases()).resolves.toMatchInlineSnapshot(`
-            Array [
-              Object {
-                "name": "trimerge-sync:test-doc-delete",
-                "version": 3,
-              },
-            ]
-          `);
+                  Array [
+                    Object {
+                      "name": "trimerge-sync:test-doc-delete",
+                      "version": 2,
+                    },
+                  ]
+              `);
 
     await deleteDocDatabase(docId);
 
@@ -568,34 +557,32 @@ describe('createIndexedDbBackendFactory', () => {
     await timeout(100);
 
     void expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    "hello remote",
-                  ],
-                  "metadata": "",
-                  "ref": "F2C9k7m0",
-                  "remoteSyncId": "foo",
-                  "syncId": 1,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "F2C9k7m0",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "foo",
-                },
-              ],
-            }
-          `);
+      Object {
+        "commits": Array [
+          Object {
+            "baseRef": undefined,
+            "delta": Array [
+              "hello remote",
+            ],
+            "metadata": "",
+            "ref": "F2C9k7m0",
+            "remoteSyncId": "foo",
+            "syncId": 1,
+          },
+        ],
+        "heads": Array [
+          Object {
+            "ref": "F2C9k7m0",
+          },
+        ],
+        "remotes": Array [
+          Object {
+            "lastSyncCursor": "foo",
+            "localStoreId": "test-doc-store",
+          },
+        ],
+      }
+    `);
 
     await client1.shutdown();
   });
@@ -627,9 +614,6 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
-              "config": Array [
-                "test-doc-store",
-              ],
               "heads": Array [
                 Object {
                   "ref": "F2C9k7m0",
@@ -638,6 +622,7 @@ describe('createIndexedDbBackendFactory', () => {
               "remotes": Array [
                 Object {
                   "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
                 },
               ],
             }
@@ -656,9 +641,6 @@ describe('createIndexedDbBackendFactory', () => {
                   "remoteSyncId": "",
                   "syncId": 1,
                 },
-              ],
-              "config": Array [
-                "test-doc-store",
               ],
               "heads": Array [
                 Object {
@@ -694,9 +676,6 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
-              "config": Array [
-                "test-doc-store",
-              ],
               "heads": Array [
                 Object {
                   "ref": "F2C9k7m0",
@@ -705,6 +684,7 @@ describe('createIndexedDbBackendFactory', () => {
               "remotes": Array [
                 Object {
                   "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
                 },
               ],
             }
@@ -758,9 +738,6 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 2,
                 },
               ],
-              "config": Array [
-                "test-doc-store",
-              ],
               "heads": Array [
                 Object {
                   "ref": "YSkdCqy1",
@@ -769,6 +746,7 @@ describe('createIndexedDbBackendFactory', () => {
               "remotes": Array [
                 Object {
                   "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
                 },
               ],
             }
@@ -959,9 +937,6 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 3,
                 },
               ],
-              "config": Array [
-                "test-doc-store",
-              ],
               "heads": Array [
                 Object {
                   "ref": "uBHlRZDM",
@@ -970,6 +945,7 @@ describe('createIndexedDbBackendFactory', () => {
               "remotes": Array [
                 Object {
                   "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
                 },
               ],
             }
@@ -1005,34 +981,32 @@ describe('createIndexedDbBackendFactory', () => {
     await client.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "metadata": Object {
-                    "bar": "baz",
-                    "foo": "bar",
-                    "qux": "quux",
-                  },
-                  "ref": "blah",
-                  "remoteSyncId": "blah2",
-                  "syncId": 1,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "blah",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "blah2",
-                },
-              ],
-            }
-          `);
+Object {
+  "commits": Array [
+    Object {
+      "metadata": Object {
+        "bar": "baz",
+        "foo": "bar",
+        "qux": "quux",
+      },
+      "ref": "blah",
+      "remoteSyncId": "blah2",
+      "syncId": 1,
+    },
+  ],
+  "heads": Array [
+    Object {
+      "ref": "blah",
+    },
+  ],
+  "remotes": Array [
+    Object {
+      "lastSyncCursor": "blah2",
+      "localStoreId": "test-doc-store",
+    },
+  ],
+}
+`);
   });
 
   it('updates metadata from remote with two users', async () => {
@@ -1091,9 +1065,6 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
-              "config": Array [
-                "test-doc-store",
-              ],
               "heads": Array [
                 Object {
                   "ref": "G0a5Az3Q",
@@ -1102,6 +1073,7 @@ describe('createIndexedDbBackendFactory', () => {
               "remotes": Array [
                 Object {
                   "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
                 },
               ],
             }
@@ -1125,9 +1097,6 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
-              "config": Array [
-                "test-doc-store",
-              ],
               "heads": Array [
                 Object {
                   "ref": "G0a5Az3Q",
@@ -1136,6 +1105,7 @@ describe('createIndexedDbBackendFactory', () => {
               "remotes": Array [
                 Object {
                   "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
                 },
               ],
             }
@@ -1197,9 +1167,6 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
-              "config": Array [
-                "test-doc-store",
-              ],
               "heads": Array [
                 Object {
                   "ref": "G0a5Az3Q",
@@ -1208,6 +1175,7 @@ describe('createIndexedDbBackendFactory', () => {
               "remotes": Array [
                 Object {
                   "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
                 },
               ],
             }
@@ -1277,9 +1245,6 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
-              "config": Array [
-                "test-doc-store",
-              ],
               "heads": Array [
                 Object {
                   "ref": "test",
@@ -1288,6 +1253,7 @@ describe('createIndexedDbBackendFactory', () => {
               "remotes": Array [
                 Object {
                   "lastSyncCursor": "foo",
+                  "localStoreId": "test-doc-store",
                 },
               ],
             }

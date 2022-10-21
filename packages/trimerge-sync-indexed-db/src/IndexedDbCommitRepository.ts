@@ -15,7 +15,6 @@ import { deleteDB, openDB } from 'idb';
 import { timeout } from './lib/timeout';
 
 const COMMIT_PAGE_SIZE = 100;
-const IDB_SCHEMA_VERSION = 3;
 
 function getSyncCounter<CommitMetadata, Delta>(
   commits: StoreValue<TrimergeSyncDbSchema<CommitMetadata, Delta>, 'commits'>[],
@@ -216,7 +215,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
     const { db } = await this.dbInfo;
     const tx = db.transaction(['remotes'], 'readwrite');
     const remotes = tx.objectStore('remotes');
-    const remote: RemoteSyncInfo = (await remotes.get(this.remoteId)) ?? {};
+    const remote = (await remotes.get(this.remoteId)) ?? {};
     if (syncCursor !== undefined && remote.lastSyncCursor !== syncCursor) {
       remote.lastSyncCursor = syncCursor;
       await remotes.put(remote, this.remoteId);
@@ -239,19 +238,17 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
     db.onclose = () => {
       this.dbInfo = this.connect(true);
     };
-    const readTx = db.transaction(['config'], 'readonly');
-    const configStore = readTx.objectStore('config');
-    let localStoreId = (await configStore.get('localStoreId')) as
-      | string
-      | undefined;
+    const readTx = db.transaction(['remotes'], 'readonly');
+    const remotes = readTx.objectStore('remotes');
+    const remote = (await remotes.get(this.remoteId)) ?? {};
     await readTx.done;
-    if (!localStoreId) {
-      localStoreId = await this.localIdGenerator();
-      const writeTx = db.transaction(['config'], 'readwrite');
-      await writeTx.objectStore('config').put(localStoreId, 'localStoreId');
+    if (!remote.localStoreId) {
+      remote.localStoreId = await this.localIdGenerator();
+      const writeTx = db.transaction(['remotes'], 'readwrite');
+      await writeTx.objectStore('remotes').put(remote, this.remoteId);
       await writeTx.done;
     }
-    return { db, localStoreId };
+    return { db, localStoreId: remote.localStoreId };
   }
 
   async addCommits(
@@ -414,9 +411,6 @@ type TrimergeSyncDbCommit<CommitMetadata, Delta> = Commit<
   remoteSyncId: string;
 };
 
-type ConfigKey = 'localStoreId';
-type ConfigValue = string | number | boolean;
-
 interface TrimergeSyncDbSchema<CommitMetadata, Delta> extends DBSchema {
   heads: {
     key: string;
@@ -434,18 +428,17 @@ interface TrimergeSyncDbSchema<CommitMetadata, Delta> extends DBSchema {
   };
   remotes: {
     key: string;
-    value: RemoteSyncInfo;
-  };
-  config: {
-    key: ConfigKey;
-    value: ConfigValue;
+    value: {
+      localStoreId?: string;
+      lastSyncCursor?: string;
+    };
   };
 }
 
 function createIndexedDb<CommitMetadata, Delta>(
   dbName: string,
 ): Promise<IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>> {
-  return openDB(dbName, IDB_SCHEMA_VERSION, {
+  return openDB(dbName, 2, {
     upgrade(db, oldVersion, newVersion, tx) {
       let commits;
       if (oldVersion < 1) {
@@ -458,9 +451,6 @@ function createIndexedDb<CommitMetadata, Delta>(
       if (oldVersion < 2) {
         db.createObjectStore('remotes');
         commits.createIndex('remoteSyncId', 'remoteSyncId');
-      }
-      if (oldVersion < 3) {
-        db.createObjectStore('config');
       }
     },
   });

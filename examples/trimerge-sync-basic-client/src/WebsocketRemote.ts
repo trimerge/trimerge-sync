@@ -13,8 +13,7 @@ export class WebsocketRemote<CommitMetadata, Delta, Presence>
   private bufferedEvents: SyncEvent<CommitMetadata, Delta, Presence>[] = [];
   constructor(
     auth: unknown,
-    localStoreId: string,
-    { lastSyncCursor }: RemoteSyncInfo,
+    { localStoreId, lastSyncCursor }: RemoteSyncInfo,
     private readonly onEvent: OnRemoteEventFn<CommitMetadata, Delta, Presence>,
     websocketUrl: string,
   ) {
