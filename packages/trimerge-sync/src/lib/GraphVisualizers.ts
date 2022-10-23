@@ -312,7 +312,7 @@ function getDotGraphFromNodes<CommitMetadata>(
     for (let i = 0; i < sortedNodes.length - 1; i++) {
       const node = sortedNodes[i];
       const nextNode = sortedNodes[i + 1];
-      lines.push(`"${node.id}" -> ${nextNode.id} [style=invis]`);
+      lines.push(`"${node.id}" -> "${nextNode.id}" [style=invis]`);
     }
   }
 
