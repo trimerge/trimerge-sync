@@ -1,9 +1,29 @@
 {
-  "files": [],
-  "include": [],
-  "references": [
-    { "path": "packages/trimerge-sync" },
-    { "path": "packages/trimerge-sync-hash" },
-    { "path": "packages/trimerge-sync-indexed-db" }
-  ]
+  "compilerOptions": {
+    "target": "es2018",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "lib": ["es2018", "DOM"],
+
+    "rootDir": "packages",
+    "outDir": "dist",
+
+    "strict": true,
+    "alwaysStrict": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "esModuleInterop": true,
+
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "declaration": true,
+    "resolveJsonModule": true,
+
+    "pretty": true
+  }
 }
