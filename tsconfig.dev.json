@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "include": [],
+  "references": [
+    { "path": "packages/trimerge-sync" },
+    { "path": "packages/trimerge-sync-hash" },
+    { "path": "packages/trimerge-sync-indexed-db" }
+  ]
+}
