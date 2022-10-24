@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.shared",
+  "compilerOptions": {
+    "incremental": true,
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*"]
+}

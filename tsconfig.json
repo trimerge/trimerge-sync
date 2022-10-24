@@ -1,11 +1,9 @@
 {
-  "extends": "./tsconfig.shared",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "trimerge-sync": ["packages/trimerge-sync/src/index.ts"],
-      "trimerge-sync-hash": ["packages/trimerge-sync-hash/src/index.ts"]
-    }
-  },
-  "include": ["packages/*/src"]
+  "files": [],
+  "include": [],
+  "references": [
+    { "path": "packages/trimerge-sync" },
+    { "path": "packages/trimerge-sync-hash" },
+    { "path": "packages/trimerge-sync-indexed-db" }
+  ]
 }

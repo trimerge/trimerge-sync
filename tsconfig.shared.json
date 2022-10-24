@@ -22,6 +22,7 @@
     "noFallthroughCasesInSwitch": true,
 
     "declaration": true,
+    "resolveJsonModule": true,
 
     "pretty": true
   }
