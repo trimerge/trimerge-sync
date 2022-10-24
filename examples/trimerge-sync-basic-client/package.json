@@ -13,6 +13,7 @@
     "build": "rollup -c",
     "watch": "rollup -c -w",
     "start": "ts-node-dev --respawn --transpile-only src/sample-server.ts",
+    "clean": "rimraf dist",
     "lint": "eslint src/**/*.ts"
   },
   "repository": {
