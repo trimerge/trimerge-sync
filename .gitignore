@@ -19,6 +19,7 @@ build/
 .env.test.local
 .env.production.local
 .rpt2_cache
+*.tsbuildinfo
 
 npm-debug.log*
 yarn-debug.log*
