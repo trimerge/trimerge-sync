@@ -163,41 +163,41 @@ describe('createIndexedDbBackendFactory', () => {
     await client.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    "hello",
-                  ],
-                  "metadata": "",
-                  "ref": "G0a5Az3Q",
-                  "remoteSyncId": "",
-                  "syncId": 1,
-                },
-                Object {
-                  "baseRef": "G0a5Az3Q",
-                  "delta": Array [
-                    "hello",
-                    "hello there",
-                  ],
-                  "metadata": "",
-                  "ref": "HwWFgzWO",
-                  "remoteSyncId": "",
-                  "syncId": 2,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "HwWFgzWO",
-                },
-              ],
-              "remotes": Array [],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "baseRef": undefined,
+            "delta": [
+              "hello",
+            ],
+            "metadata": "",
+            "ref": "G0a5Az3Q",
+            "remoteSyncId": "",
+            "syncId": 1,
+          },
+          {
+            "baseRef": "G0a5Az3Q",
+            "delta": [
+              "hello",
+              "hello there",
+            ],
+            "metadata": "",
+            "ref": "HwWFgzWO",
+            "remoteSyncId": "",
+            "syncId": 2,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "HwWFgzWO",
+          },
+        ],
+        "remotes": [],
+      }
+    `);
   });
 
   it('creates indexed db and can read it', async () => {
@@ -261,66 +261,66 @@ describe('createIndexedDbBackendFactory', () => {
     await client2.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    "hello",
-                  ],
-                  "metadata": "",
-                  "ref": "G0a5Az3Q",
-                  "remoteSyncId": "",
-                  "syncId": 1,
-                },
-                Object {
-                  "baseRef": "G0a5Az3Q",
-                  "delta": Array [
-                    "hello",
-                    "hello world",
-                  ],
-                  "metadata": "",
-                  "ref": "VXV5D7z7",
-                  "remoteSyncId": "",
-                  "syncId": 2,
-                },
-                Object {
-                  "baseRef": "VXV5D7z7",
-                  "delta": Array [
-                    "hello world",
-                    "hello there",
-                  ],
-                  "metadata": "",
-                  "ref": "YFy1LPs2",
-                  "remoteSyncId": "",
-                  "syncId": 3,
-                },
-                Object {
-                  "baseRef": "VXV5D7z7",
-                  "delta": Array [
-                    "hello world",
-                    "oh hello",
-                  ],
-                  "metadata": "",
-                  "ref": "aG60Gm4o",
-                  "remoteSyncId": "",
-                  "syncId": 4,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "YFy1LPs2",
-                },
-                Object {
-                  "ref": "aG60Gm4o",
-                },
-              ],
-              "remotes": Array [],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "baseRef": undefined,
+            "delta": [
+              "hello",
+            ],
+            "metadata": "",
+            "ref": "G0a5Az3Q",
+            "remoteSyncId": "",
+            "syncId": 1,
+          },
+          {
+            "baseRef": "G0a5Az3Q",
+            "delta": [
+              "hello",
+              "hello world",
+            ],
+            "metadata": "",
+            "ref": "VXV5D7z7",
+            "remoteSyncId": "",
+            "syncId": 2,
+          },
+          {
+            "baseRef": "VXV5D7z7",
+            "delta": [
+              "hello world",
+              "hello there",
+            ],
+            "metadata": "",
+            "ref": "YFy1LPs2",
+            "remoteSyncId": "",
+            "syncId": 3,
+          },
+          {
+            "baseRef": "VXV5D7z7",
+            "delta": [
+              "hello world",
+              "oh hello",
+            ],
+            "metadata": "",
+            "ref": "aG60Gm4o",
+            "remoteSyncId": "",
+            "syncId": 4,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "YFy1LPs2",
+          },
+          {
+            "ref": "aG60Gm4o",
+          },
+        ],
+        "remotes": [],
+      }
+    `);
   });
 
   it('adds metadata via addStoreMetadata', async () => {
@@ -371,53 +371,53 @@ describe('createIndexedDbBackendFactory', () => {
     await client2.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    "hello",
-                  ],
-                  "metadata": Object {
-                    "clientStore": Object {
-                      "commitIndex": 1,
-                      "localStoreId": "test-doc-store",
-                    },
-                    "hello": "world",
-                  },
-                  "ref": "G0a5Az3Q",
-                  "remoteSyncId": "",
-                  "syncId": 1,
-                },
-                Object {
-                  "baseRef": "G0a5Az3Q",
-                  "delta": Array [
-                    "hello",
-                    "hello there",
-                  ],
-                  "metadata": Object {
-                    "clientStore": Object {
-                      "commitIndex": 2,
-                      "localStoreId": "test-doc-store",
-                    },
-                    "hello": "world",
-                  },
-                  "ref": "HwWFgzWO",
-                  "remoteSyncId": "",
-                  "syncId": 2,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "HwWFgzWO",
-                },
-              ],
-              "remotes": Array [],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "baseRef": undefined,
+            "delta": [
+              "hello",
+            ],
+            "metadata": {
+              "clientStore": {
+                "commitIndex": 1,
+                "localStoreId": "test-doc-store",
+              },
+              "hello": "world",
+            },
+            "ref": "G0a5Az3Q",
+            "remoteSyncId": "",
+            "syncId": 1,
+          },
+          {
+            "baseRef": "G0a5Az3Q",
+            "delta": [
+              "hello",
+              "hello there",
+            ],
+            "metadata": {
+              "clientStore": {
+                "commitIndex": 2,
+                "localStoreId": "test-doc-store",
+              },
+              "hello": "world",
+            },
+            "ref": "HwWFgzWO",
+            "remoteSyncId": "",
+            "syncId": 2,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "HwWFgzWO",
+          },
+        ],
+        "remotes": [],
+      }
+    `);
   });
 
   it('does not add metadata via addStoreMetadata for remote commits', async () => {
@@ -477,32 +477,32 @@ describe('createIndexedDbBackendFactory', () => {
     await client1.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "metadata": Object {
-                    "hello": "there",
-                  },
-                  "ref": "blarg",
-                  "remoteSyncId": "9",
-                  "syncId": 1,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "blarg",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "9",
-                },
-              ],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "metadata": {
+              "hello": "there",
+            },
+            "ref": "blarg",
+            "remoteSyncId": "9",
+            "syncId": 1,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "blarg",
+          },
+        ],
+        "remotes": [
+          {
+            "lastSyncCursor": "9",
+          },
+        ],
+      }
+    `);
   });
 
   it('deletes indexed db with deleteDocDatabase', async () => {
@@ -514,13 +514,13 @@ describe('createIndexedDbBackendFactory', () => {
     await client1.shutdown();
 
     await expect(getIdbDatabases()).resolves.toMatchInlineSnapshot(`
-            Array [
-              Object {
-                "name": "trimerge-sync:test-doc-delete",
-                "version": 3,
-              },
-            ]
-          `);
+      [
+        {
+          "name": "trimerge-sync:test-doc-delete",
+          "version": 3,
+        },
+      ]
+    `);
 
     await deleteDocDatabase(docId);
 
@@ -568,11 +568,11 @@ describe('createIndexedDbBackendFactory', () => {
     await timeout(100);
 
     void expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
+            {
+              "commits": [
+                {
                   "baseRef": undefined,
-                  "delta": Array [
+                  "delta": [
                     "hello remote",
                   ],
                   "metadata": "",
@@ -581,16 +581,16 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
-              "config": Array [
+              "config": [
                 "test-doc-store",
               ],
-              "heads": Array [
-                Object {
+              "heads": [
+                {
                   "ref": "F2C9k7m0",
                 },
               ],
-              "remotes": Array [
-                Object {
+              "remotes": [
+                {
                   "lastSyncCursor": "foo",
                 },
               ],
@@ -614,60 +614,60 @@ describe('createIndexedDbBackendFactory', () => {
     await client1.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    "hello remote",
-                  ],
-                  "metadata": "",
-                  "ref": "F2C9k7m0",
-                  "remoteSyncId": "foo",
-                  "syncId": 1,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "F2C9k7m0",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "foo",
-                },
-              ],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "baseRef": undefined,
+            "delta": [
+              "hello remote",
+            ],
+            "metadata": "",
+            "ref": "F2C9k7m0",
+            "remoteSyncId": "foo",
+            "syncId": 1,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "F2C9k7m0",
+          },
+        ],
+        "remotes": [
+          {
+            "lastSyncCursor": "foo",
+          },
+        ],
+      }
+    `);
     await resetDocRemoteSyncData(docId);
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    "hello remote",
-                  ],
-                  "metadata": "",
-                  "ref": "F2C9k7m0",
-                  "remoteSyncId": "",
-                  "syncId": 1,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "F2C9k7m0",
-                },
-              ],
-              "remotes": Array [],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "baseRef": undefined,
+            "delta": [
+              "hello remote",
+            ],
+            "metadata": "",
+            "ref": "F2C9k7m0",
+            "remoteSyncId": "",
+            "syncId": 1,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "F2C9k7m0",
+          },
+        ],
+        "remotes": [],
+      }
+    `);
 
     const client2 = makeTestClient(
       'test',
@@ -681,34 +681,34 @@ describe('createIndexedDbBackendFactory', () => {
     expect(client2.doc).toEqual('hello remote');
     await client2.shutdown();
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    "hello remote",
-                  ],
-                  "metadata": "",
-                  "ref": "F2C9k7m0",
-                  "remoteSyncId": "foo",
-                  "syncId": 1,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "F2C9k7m0",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "foo",
-                },
-              ],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "baseRef": undefined,
+            "delta": [
+              "hello remote",
+            ],
+            "metadata": "",
+            "ref": "F2C9k7m0",
+            "remoteSyncId": "foo",
+            "syncId": 1,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "F2C9k7m0",
+          },
+        ],
+        "remotes": [
+          {
+            "lastSyncCursor": "foo",
+          },
+        ],
+      }
+    `);
   });
 
   it('works offline then with remote', async () => {
@@ -734,45 +734,45 @@ describe('createIndexedDbBackendFactory', () => {
     await client2.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    "hello offline remote",
-                  ],
-                  "metadata": "",
-                  "ref": "QBwr4r32",
-                  "remoteSyncId": "foo",
-                  "syncId": 1,
-                },
-                Object {
-                  "baseRef": "QBwr4r32",
-                  "delta": Array [
-                    "hello offline remote",
-                    "hello online remote",
-                  ],
-                  "metadata": "",
-                  "ref": "YSkdCqy1",
-                  "remoteSyncId": "foo",
-                  "syncId": 2,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "YSkdCqy1",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "foo",
-                },
-              ],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "baseRef": undefined,
+            "delta": [
+              "hello offline remote",
+            ],
+            "metadata": "",
+            "ref": "QBwr4r32",
+            "remoteSyncId": "foo",
+            "syncId": 1,
+          },
+          {
+            "baseRef": "QBwr4r32",
+            "delta": [
+              "hello offline remote",
+              "hello online remote",
+            ],
+            "metadata": "",
+            "ref": "YSkdCqy1",
+            "remoteSyncId": "foo",
+            "syncId": 2,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "YSkdCqy1",
+          },
+        ],
+        "remotes": [
+          {
+            "lastSyncCursor": "foo",
+          },
+        ],
+      }
+    `);
   });
 
   it('works offline then with remote 2', async () => {
@@ -802,7 +802,7 @@ describe('createIndexedDbBackendFactory', () => {
 
     expect(client2.doc).toEqual(6);
     expect(client2.syncStatus).toMatchInlineSnapshot(`
-      Object {
+      {
         "localRead": "ready",
         "localSave": "ready",
         "remoteConnect": "online",
@@ -814,10 +814,10 @@ describe('createIndexedDbBackendFactory', () => {
     await client2.shutdown();
 
     expect(Array.from(commitMap.values())).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "baseRef": undefined,
-          "delta": Array [
+          "delta": [
             1,
           ],
           "metadata": "",
@@ -825,9 +825,9 @@ describe('createIndexedDbBackendFactory', () => {
           "remoteSyncId": "",
           "syncId": 1,
         },
-        Object {
+        {
           "baseRef": "N5uy2QOO",
-          "delta": Array [
+          "delta": [
             1,
             2,
           ],
@@ -836,9 +836,9 @@ describe('createIndexedDbBackendFactory', () => {
           "remoteSyncId": "",
           "syncId": 2,
         },
-        Object {
+        {
           "baseRef": "F55ccS6M",
-          "delta": Array [
+          "delta": [
             2,
             3,
           ],
@@ -847,9 +847,9 @@ describe('createIndexedDbBackendFactory', () => {
           "remoteSyncId": "",
           "syncId": 3,
         },
-        Object {
+        {
           "baseRef": "uBHlRZDM",
-          "delta": Array [
+          "delta": [
             3,
             4,
           ],
@@ -858,9 +858,9 @@ describe('createIndexedDbBackendFactory', () => {
           "remoteSyncId": "",
           "syncId": 4,
         },
-        Object {
+        {
           "baseRef": "CujSo7BT",
-          "delta": Array [
+          "delta": [
             4,
             5,
           ],
@@ -869,9 +869,9 @@ describe('createIndexedDbBackendFactory', () => {
           "remoteSyncId": "",
           "syncId": 5,
         },
-        Object {
+        {
           "baseRef": "bXqUP_u1",
-          "delta": Array [
+          "delta": [
             5,
             6,
           ],
@@ -906,74 +906,74 @@ describe('createIndexedDbBackendFactory', () => {
     await client.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": "N5uy2QOO",
-                  "delta": Array [
-                    1,
-                    2,
-                  ],
-                  "metadata": Object {
-                    "newMetadata": Object {
-                      "fromRemote": true,
-                      "ref": "F55ccS6M",
-                    },
-                    "oldMetadata": "there",
-                  },
-                  "ref": "F55ccS6M",
-                  "remoteSyncId": "foo",
-                  "syncId": 2,
-                },
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    1,
-                  ],
-                  "metadata": Object {
-                    "newMetadata": Object {
-                      "fromRemote": true,
-                      "ref": "N5uy2QOO",
-                    },
-                    "oldMetadata": "hi",
-                  },
-                  "ref": "N5uy2QOO",
-                  "remoteSyncId": "foo",
-                  "syncId": 1,
-                },
-                Object {
-                  "baseRef": "F55ccS6M",
-                  "delta": Array [
-                    2,
-                    3,
-                  ],
-                  "metadata": Object {
-                    "newMetadata": Object {
-                      "fromRemote": true,
-                      "ref": "uBHlRZDM",
-                    },
-                    "oldMetadata": "sup?",
-                  },
-                  "ref": "uBHlRZDM",
-                  "remoteSyncId": "foo",
-                  "syncId": 3,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "uBHlRZDM",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "foo",
-                },
-              ],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "baseRef": "N5uy2QOO",
+            "delta": [
+              1,
+              2,
+            ],
+            "metadata": {
+              "newMetadata": {
+                "fromRemote": true,
+                "ref": "F55ccS6M",
+              },
+              "oldMetadata": "there",
+            },
+            "ref": "F55ccS6M",
+            "remoteSyncId": "foo",
+            "syncId": 2,
+          },
+          {
+            "baseRef": undefined,
+            "delta": [
+              1,
+            ],
+            "metadata": {
+              "newMetadata": {
+                "fromRemote": true,
+                "ref": "N5uy2QOO",
+              },
+              "oldMetadata": "hi",
+            },
+            "ref": "N5uy2QOO",
+            "remoteSyncId": "foo",
+            "syncId": 1,
+          },
+          {
+            "baseRef": "F55ccS6M",
+            "delta": [
+              2,
+              3,
+            ],
+            "metadata": {
+              "newMetadata": {
+                "fromRemote": true,
+                "ref": "uBHlRZDM",
+              },
+              "oldMetadata": "sup?",
+            },
+            "ref": "uBHlRZDM",
+            "remoteSyncId": "foo",
+            "syncId": 3,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "uBHlRZDM",
+          },
+        ],
+        "remotes": [
+          {
+            "lastSyncCursor": "foo",
+          },
+        ],
+      }
+    `);
   });
 
   it('updates metadata from remote twice', async () => {
@@ -1005,34 +1005,34 @@ describe('createIndexedDbBackendFactory', () => {
     await client.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "metadata": Object {
-                    "bar": "baz",
-                    "foo": "bar",
-                    "qux": "quux",
-                  },
-                  "ref": "blah",
-                  "remoteSyncId": "blah2",
-                  "syncId": 1,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "blah",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "blah2",
-                },
-              ],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "metadata": {
+              "bar": "baz",
+              "foo": "bar",
+              "qux": "quux",
+            },
+            "ref": "blah",
+            "remoteSyncId": "blah2",
+            "syncId": 1,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "blah",
+          },
+        ],
+        "remotes": [
+          {
+            "lastSyncCursor": "blah2",
+          },
+        ],
+      }
+    `);
   });
 
   it('updates metadata from remote with two users', async () => {
@@ -1075,71 +1075,71 @@ describe('createIndexedDbBackendFactory', () => {
 
     await expect(dumpDatabase('test-doc-remoteA')).resolves
       .toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    "hello",
-                  ],
-                  "metadata": Object {
-                    "fromRemote": true,
-                    "ref": "G0a5Az3Q",
-                  },
-                  "ref": "G0a5Az3Q",
-                  "remoteSyncId": "foo",
-                  "syncId": 1,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "G0a5Az3Q",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "foo",
-                },
-              ],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "baseRef": undefined,
+            "delta": [
+              "hello",
+            ],
+            "metadata": {
+              "fromRemote": true,
+              "ref": "G0a5Az3Q",
+            },
+            "ref": "G0a5Az3Q",
+            "remoteSyncId": "foo",
+            "syncId": 1,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "G0a5Az3Q",
+          },
+        ],
+        "remotes": [
+          {
+            "lastSyncCursor": "foo",
+          },
+        ],
+      }
+    `);
 
     await expect(dumpDatabase('test-doc-remoteB')).resolves
       .toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    "hello",
-                  ],
-                  "metadata": Object {
-                    "fromRemote": true,
-                    "ref": "G0a5Az3Q",
-                  },
-                  "ref": "G0a5Az3Q",
-                  "remoteSyncId": "foo",
-                  "syncId": 1,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "G0a5Az3Q",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "foo",
-                },
-              ],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "baseRef": undefined,
+            "delta": [
+              "hello",
+            ],
+            "metadata": {
+              "fromRemote": true,
+              "ref": "G0a5Az3Q",
+            },
+            "ref": "G0a5Az3Q",
+            "remoteSyncId": "foo",
+            "syncId": 1,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "G0a5Az3Q",
+          },
+        ],
+        "remotes": [
+          {
+            "lastSyncCursor": "foo",
+          },
+        ],
+      }
+    `);
   });
 
   it('updates metadata from remote with two clients on the same local store', async () => {
@@ -1181,37 +1181,37 @@ describe('createIndexedDbBackendFactory', () => {
 
     await expect(dumpDatabase('test-doc-remote3')).resolves
       .toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "baseRef": undefined,
-                  "delta": Array [
-                    "hello",
-                  ],
-                  "metadata": Object {
-                    "fromRemote": true,
-                    "ref": "G0a5Az3Q",
-                  },
-                  "ref": "G0a5Az3Q",
-                  "remoteSyncId": "foo",
-                  "syncId": 1,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "G0a5Az3Q",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "foo",
-                },
-              ],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "baseRef": undefined,
+            "delta": [
+              "hello",
+            ],
+            "metadata": {
+              "fromRemote": true,
+              "ref": "G0a5Az3Q",
+            },
+            "ref": "G0a5Az3Q",
+            "remoteSyncId": "foo",
+            "syncId": 1,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "G0a5Az3Q",
+          },
+        ],
+        "remotes": [
+          {
+            "lastSyncCursor": "foo",
+          },
+        ],
+      }
+    `);
   });
 
   it('updates the commit in the local DB with client info even if it already exists', async () => {
@@ -1261,36 +1261,36 @@ describe('createIndexedDbBackendFactory', () => {
     await client.shutdown();
 
     await expect(dumpDatabase(docId)).resolves.toMatchInlineSnapshot(`
-            Object {
-              "commits": Array [
-                Object {
-                  "delta": Array [
-                    "hello",
-                  ],
-                  "metadata": Object {
-                    "O_o": "^_^",
-                    "clientId": "client1",
-                    "existingStuff": "boring",
-                  },
-                  "ref": "test",
-                  "remoteSyncId": "foo",
-                  "syncId": 1,
-                },
-              ],
-              "config": Array [
-                "test-doc-store",
-              ],
-              "heads": Array [
-                Object {
-                  "ref": "test",
-                },
-              ],
-              "remotes": Array [
-                Object {
-                  "lastSyncCursor": "foo",
-                },
-              ],
-            }
-          `);
+      {
+        "commits": [
+          {
+            "delta": [
+              "hello",
+            ],
+            "metadata": {
+              "O_o": "^_^",
+              "clientId": "client1",
+              "existingStuff": "boring",
+            },
+            "ref": "test",
+            "remoteSyncId": "foo",
+            "syncId": 1,
+          },
+        ],
+        "config": [
+          "test-doc-store",
+        ],
+        "heads": [
+          {
+            "ref": "test",
+          },
+        ],
+        "remotes": [
+          {
+            "lastSyncCursor": "foo",
+          },
+        ],
+      }
+    `);
   });
 });
