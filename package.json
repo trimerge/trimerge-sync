@@ -5,11 +5,12 @@
     "examples/*"
   ],
   "scripts": {
+    "clean-all": "wsrun --parallel clean",
     "test-ci": "CI=true wsrun --no-prefix --serial test-ci",
     "test:update-all-snapshots": "wsrun --serial test:update-snapshots",
     "build-all": "wsrun --serial build",
     "watch-all": "wsrun --parallel watch",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -b tsconfig.dev.json",
     "lint": "eslint packages/*/src/**/*.ts",
     "bump-version": "node bump-version.mjs"
   },
@@ -24,8 +25,8 @@
   "dependencies": {},
   "peerDependencies": {},
   "devDependencies": {
-    "@jest/reporters": "^27.0.0",
     "@descript/jest-github-reporter": "^1.0.1",
+    "@jest/reporters": "^27.0.0",
     "@types/jest": "27.0.2",
     "@typescript-eslint/eslint-plugin": "5.1.0",
     "@typescript-eslint/parser": "5.1.0",
@@ -34,10 +35,11 @@
     "eslint-config-prettier": "8.3.0",
     "fs-extra": "^10.0.0",
     "husky": "4.3.0",
+    "jest": "^27.0.0",
     "prettier": "2.4.1",
     "pretty-quick": "3.1.1",
+    "rimraf": "^3.0.2",
     "ts-jest": "27.0.7",
-    "jest": "^27.0.0",
     "tslint-config-prettier": "1.18.0",
     "typescript": "4.4.4",
     "wsrun": "5.2.4"
