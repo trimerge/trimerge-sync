@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
+    "emitDeclarationOnly": true,
     "jsx": "react-jsx"
   },
   "include": ["src/**/*"],
