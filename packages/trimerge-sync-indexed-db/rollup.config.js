@@ -10,7 +10,7 @@ export default {
   plugins: [
     commonjs(),
     resolve({ browser: true }),
-    typescript({ exclude: '**/*.test.ts', tsconfig: './tsconfig.build.json' }),
+    typescript({ exclude: '**/*.test.ts', tsconfig: './tsconfig.json' }),
   ],
   output: [
     {
