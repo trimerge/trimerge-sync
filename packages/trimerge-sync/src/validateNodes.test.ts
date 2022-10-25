@@ -15,9 +15,9 @@ function simpleCommit(args: CommitRefs): Commit<unknown, unknown> {
 describe('validateCommitOrder', () => {
   it('validates no commits', () => {
     expect(validateCommitOrder([])).toMatchInlineSnapshot(`
-      Object {
+      {
         "invalidRefs": Set {},
-        "newCommits": Array [],
+        "newCommits": [],
         "referencedCommits": Set {},
       }
     `);
@@ -26,10 +26,10 @@ describe('validateCommitOrder', () => {
   it('validates single root commit', () => {
     expect(validateCommitOrder([simpleCommit({ ref: '1' })]))
       .toMatchInlineSnapshot(`
-      Object {
+      {
         "invalidRefs": Set {},
-        "newCommits": Array [
-          Object {
+        "newCommits": [
+          {
             "metadata": undefined,
             "ref": "1",
           },
@@ -47,19 +47,19 @@ describe('validateCommitOrder', () => {
         simpleCommit({ ref: '3', baseRef: '2' }),
       ]),
     ).toMatchInlineSnapshot(`
-      Object {
+      {
         "invalidRefs": Set {},
-        "newCommits": Array [
-          Object {
+        "newCommits": [
+          {
             "metadata": undefined,
             "ref": "1",
           },
-          Object {
+          {
             "baseRef": "1",
             "metadata": undefined,
             "ref": "2",
           },
-          Object {
+          {
             "baseRef": "2",
             "metadata": undefined,
             "ref": "3",
@@ -77,15 +77,15 @@ describe('validateCommitOrder', () => {
         simpleCommit({ ref: '3', baseRef: '2' }),
       ]),
     ).toMatchInlineSnapshot(`
-      Object {
+      {
         "invalidRefs": Set {},
-        "newCommits": Array [
-          Object {
+        "newCommits": [
+          {
             "baseRef": "1",
             "metadata": undefined,
             "ref": "2",
           },
-          Object {
+          {
             "baseRef": "2",
             "metadata": undefined,
             "ref": "3",
@@ -111,24 +111,24 @@ describe('validateCommitOrder', () => {
         }),
       ]),
     ).toMatchInlineSnapshot(`
-      Object {
+      {
         "invalidRefs": Set {},
-        "newCommits": Array [
-          Object {
+        "newCommits": [
+          {
             "metadata": undefined,
             "ref": "1",
           },
-          Object {
+          {
             "baseRef": "1",
             "metadata": undefined,
             "ref": "2",
           },
-          Object {
+          {
             "baseRef": "1",
             "metadata": undefined,
             "ref": "3",
           },
-          Object {
+          {
             "baseRef": "2",
             "mergeRef": "3",
             "metadata": undefined,
@@ -151,15 +151,15 @@ describe('validateCommitOrder', () => {
         }),
       ]),
     ).toMatchInlineSnapshot(`
-      Object {
+      {
         "invalidRefs": Set {},
-        "newCommits": Array [
-          Object {
+        "newCommits": [
+          {
             "baseRef": "1",
             "metadata": undefined,
             "ref": "3",
           },
-          Object {
+          {
             "baseRef": "2",
             "mergeRef": "3",
             "metadata": undefined,
@@ -203,10 +203,10 @@ describe('addInvalidRefsToAckEvent', () => {
     const ack: AckCommitsEvent = { type: 'ack', syncId: '', acks: [] };
     expect(addInvalidRefsToAckEvent(ack, new Set(['hi'])))
       .toMatchInlineSnapshot(`
-      Object {
-        "acks": Array [],
-        "refErrors": Object {
-          "hi": Object {
+      {
+        "acks": [],
+        "refErrors": {
+          "hi": {
             "code": "unknown-ref",
           },
         },
@@ -224,16 +224,16 @@ describe('addInvalidRefsToAckEvent', () => {
     };
     expect(addInvalidRefsToAckEvent(ack, new Set(['hi', 'there'])))
       .toMatchInlineSnapshot(`
-      Object {
-        "acks": Array [],
-        "refErrors": Object {
-          "hi": Object {
+      {
+        "acks": [],
+        "refErrors": {
+          "hi": {
             "code": "unknown-ref",
           },
-          "there": Object {
+          "there": {
             "code": "unknown-ref",
           },
-          "yo": Object {
+          "yo": {
             "code": "internal",
           },
         },

@@ -100,25 +100,25 @@ describe('mergeMetadata', () => {
       ]),
     };
     expect(mergeMetadata(existingMetadata, newMetadata)).toMatchInlineSnapshot(`
-Object {
-  "a": 3,
-  "b": Object {
-    "c": 4,
-    "d": 5,
-  },
-  "x": Array [
-    1,
-    2,
-  ],
-  "y": Map {
-    "a" => 1,
-    "b" => 2,
-    "c" => Set {
-      2,
-      3,
-    },
-  },
-}
-`);
+      {
+        "a": 3,
+        "b": {
+          "c": 4,
+          "d": 5,
+        },
+        "x": [
+          1,
+          2,
+        ],
+        "y": Map {
+          "a" => 1,
+          "b" => 2,
+          "c" => Set {
+            2,
+            3,
+          },
+        },
+      }
+    `);
   });
 });

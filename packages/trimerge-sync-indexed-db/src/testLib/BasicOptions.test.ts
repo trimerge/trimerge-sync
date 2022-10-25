@@ -18,9 +18,9 @@ describe('merge', () => {
         { ref: '2', doc: 'there', metadata: '' },
       ),
     ).toMatchInlineSnapshot(`
-      Object {
+      {
         "doc": "hithere",
-        "metadata": Object {
+        "metadata": {
           "message": "merge",
           "ref": "(1+2)",
         },
@@ -35,9 +35,9 @@ describe('merge', () => {
         { ref: '3', doc: 'hello', metadata: '' },
       ),
     ).toMatchInlineSnapshot(`
-      Object {
+      {
         "doc": "h thereello",
-        "metadata": Object {
+        "metadata": {
           "message": "merge",
           "ref": "(2+3)",
         },

@@ -64,9 +64,9 @@ describe('CoordinatingLocalStore', () => {
     await store.shutdown();
     await store.shutdown();
     expect(fn.mock.calls).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Object {
+      [
+        [
+          {
             "connect": "offline",
             "read": "offline",
             "save": "ready",
@@ -74,8 +74,8 @@ describe('CoordinatingLocalStore', () => {
           },
           false,
         ],
-        Array [
-          Object {
+        [
+          {
             "type": "ready",
           },
           false,
@@ -110,15 +110,15 @@ describe('CoordinatingLocalStore', () => {
     await timeout();
 
     expect(sendSpy!.mock.calls).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Object {
+      [
+        [
+          {
             "type": "ready",
           },
         ],
-        Array [
-          Object {
-            "info": Object {
+        [
+          {
+            "info": {
               "clientId": "",
               "presence": undefined,
               "ref": undefined,
@@ -143,9 +143,9 @@ describe('CoordinatingLocalStore', () => {
     );
     await store.update([], undefined);
     expect(fn.mock.calls).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Object {
+      [
+        [
+          {
             "connect": "offline",
             "read": "offline",
             "save": "ready",
