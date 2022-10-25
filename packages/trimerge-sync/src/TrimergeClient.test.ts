@@ -75,10 +75,10 @@ describe('TrimergeClient', () => {
     );
     void client.updateDoc('hello', 'hi');
     expect(client.getCommit('hash')).toMatchInlineSnapshot(`
-      Object {
+      {
         "baseRef": undefined,
         "delta": null,
-        "metadata": Object {
+        "metadata": {
           "added": "on client",
           "clientId": "",
           "commitRef": "hash",
@@ -105,10 +105,10 @@ describe('TrimergeClient', () => {
     void client.updateDoc('hello', 'hi');
 
     expect(client.getCommit('hash')).toMatchInlineSnapshot(`
-      Object {
+      {
         "baseRef": undefined,
         "delta": null,
-        "metadata": Object {
+        "metadata": {
           "added": "on client",
           "clientId": "",
           "commitRef": "hash",
@@ -136,9 +136,9 @@ describe('TrimergeClient', () => {
     );
 
     expect(client.getCommit('hash')).toMatchInlineSnapshot(`
-      Object {
+      {
         "delta": null,
-        "metadata": Object {
+        "metadata": {
           "added": "on server",
           "clientId": "",
           "commitRef": "hash",
@@ -157,7 +157,7 @@ describe('TrimergeClient', () => {
     void client.updateDoc('hello2', 'hi');
     void client.updateDoc('hello3', 'hi');
     expect(client.getCommit('hash')).toMatchInlineSnapshot(`
-      Object {
+      {
         "baseRef": undefined,
         "delta": null,
         "metadata": "hi",
@@ -300,16 +300,16 @@ describe('TrimergeClient', () => {
     expect(client.updatePresence({ foo: 'bar' }));
 
     expect(syncUpdates1).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "localRead": "loading",
-    "localSave": "ready",
-    "remoteConnect": "offline",
-    "remoteRead": "loading",
-    "remoteSave": "ready",
-  },
-]
-`);
+      [
+        {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "loading",
+          "remoteSave": "ready",
+        },
+      ]
+    `);
   });
 
   it('it can reference pre-hydrated documents from doc cache', () => {

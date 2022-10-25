@@ -60,13 +60,13 @@ describe('SqliteDocStore', () => {
         },
       ]),
     ).toMatchInlineSnapshot(`
-      Object {
-        "acks": Array [
-          Object {
-            "metadata": Object {
+      {
+        "acks": [
+          {
+            "metadata": {
               "clientId": "client-1",
               "hello": "world",
-              "server": Object {
+              "server": {
                 "main": true,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 0,
@@ -74,11 +74,11 @@ describe('SqliteDocStore', () => {
             },
             "ref": "hello1",
           },
-          Object {
-            "metadata": Object {
+          {
+            "metadata": {
               "clientId": "client-1",
               "hello": "world",
-              "server": Object {
+              "server": {
                 "main": true,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 1,
@@ -87,7 +87,7 @@ describe('SqliteDocStore', () => {
             "ref": "hello2",
           },
         ],
-        "refErrors": Object {},
+        "refErrors": {},
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
@@ -101,11 +101,11 @@ describe('SqliteDocStore', () => {
         },
       ]),
     ).toMatchInlineSnapshot(`
-      Object {
-        "acks": Array [
-          Object {
-            "metadata": Object {
-              "server": Object {
+      {
+        "acks": [
+          {
+            "metadata": {
+              "server": {
                 "main": false,
                 "remoteSyncId": "1970-01-01T00:00:00.001Z",
                 "remoteSyncIndex": 0,
@@ -114,22 +114,22 @@ describe('SqliteDocStore', () => {
             "ref": "hello3",
           },
         ],
-        "refErrors": Object {},
+        "refErrors": {},
         "syncId": "1970-01-01T00:00:00.001Z",
         "type": "ack",
       }
     `);
 
     expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
-      Object {
-        "commits": Array [
-          Object {
+      {
+        "commits": [
+          {
             "baseRef": undefined,
             "delta": null,
-            "metadata": Object {
+            "metadata": {
               "clientId": "client-1",
               "hello": "world",
-              "server": Object {
+              "server": {
                 "main": true,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 0,
@@ -137,13 +137,13 @@ describe('SqliteDocStore', () => {
             },
             "ref": "hello1",
           },
-          Object {
+          {
             "baseRef": "hello1",
-            "delta": "{\\"delta\\":\\"format\\"}",
-            "metadata": Object {
+            "delta": "{"delta":"format"}",
+            "metadata": {
               "clientId": "client-1",
               "hello": "world",
-              "server": Object {
+              "server": {
                 "main": true,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 1,
@@ -151,11 +151,11 @@ describe('SqliteDocStore', () => {
             },
             "ref": "hello2",
           },
-          Object {
+          {
             "baseRef": undefined,
             "delta": null,
-            "metadata": Object {
-              "server": Object {
+            "metadata": {
+              "server": {
                 "main": false,
                 "remoteSyncId": "1970-01-01T00:00:00.001Z",
                 "remoteSyncIndex": 0,
@@ -171,13 +171,13 @@ describe('SqliteDocStore', () => {
 
     expect(store.getCommitsEvent('1970-01-01T00:00:00.000Z'))
       .toMatchInlineSnapshot(`
-      Object {
-        "commits": Array [
-          Object {
+      {
+        "commits": [
+          {
             "baseRef": undefined,
             "delta": null,
-            "metadata": Object {
-              "server": Object {
+            "metadata": {
+              "server": {
                 "main": false,
                 "remoteSyncId": "1970-01-01T00:00:00.001Z",
                 "remoteSyncIndex": 0,
@@ -208,13 +208,13 @@ describe('SqliteDocStore', () => {
         },
       ]),
     ).toMatchInlineSnapshot(`
-      Object {
-        "acks": Array [
-          Object {
-            "metadata": Object {
+      {
+        "acks": [
+          {
+            "metadata": {
               "clientId": "client-1",
               "hello": "world",
-              "server": Object {
+              "server": {
                 "main": true,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 0,
@@ -223,7 +223,7 @@ describe('SqliteDocStore', () => {
             "ref": "hello1",
           },
         ],
-        "refErrors": Object {},
+        "refErrors": {},
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
@@ -248,14 +248,14 @@ describe('SqliteDocStore', () => {
         },
       ]),
     ).toMatchInlineSnapshot(`
-      Object {
-        "acks": Array [],
-        "refErrors": Object {
-          "hello1": Object {
+      {
+        "acks": [],
+        "refErrors": {
+          "hello1": {
             "code": "unknown-ref",
             "message": "unknown baseRef",
           },
-          "hello2": Object {
+          "hello2": {
             "code": "unknown-ref",
             "message": "unknown mergeRef",
           },
@@ -284,14 +284,14 @@ describe('SqliteDocStore', () => {
         },
       ]),
     ).toMatchInlineSnapshot(`
-      Object {
-        "acks": Array [],
-        "refErrors": Object {
-          "hello1": Object {
+      {
+        "acks": [],
+        "refErrors": {
+          "hello1": {
             "code": "unknown-ref",
             "message": "unknown baseRef",
           },
-          "hello2": Object {
+          "hello2": {
             "code": "unknown-ref",
             "message": "unknown baseRef",
           },
@@ -325,13 +325,13 @@ describe('SqliteDocStore', () => {
         },
       ]),
     ).toMatchInlineSnapshot(`
-      Object {
-        "acks": Array [
-          Object {
-            "metadata": Object {
+      {
+        "acks": [
+          {
+            "metadata": {
               "clientId": "client-1",
               "hello": "world",
-              "server": Object {
+              "server": {
                 "main": true,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 0,
@@ -339,11 +339,11 @@ describe('SqliteDocStore', () => {
             },
             "ref": "hello1",
           },
-          Object {
-            "metadata": Object {
+          {
+            "metadata": {
               "clientId": "client-2",
               "hello": "mars",
-              "server": Object {
+              "server": {
                 "main": false,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 1,
@@ -351,11 +351,11 @@ describe('SqliteDocStore', () => {
             },
             "ref": "hello2",
           },
-          Object {
-            "metadata": Object {
+          {
+            "metadata": {
               "clientId": "client-1",
               "hello": "wmoarrlsd",
-              "server": Object {
+              "server": {
                 "main": true,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 2,
@@ -364,21 +364,21 @@ describe('SqliteDocStore', () => {
             "ref": "hello3",
           },
         ],
-        "refErrors": Object {},
+        "refErrors": {},
         "syncId": "1970-01-01T00:00:00.000Z",
         "type": "ack",
       }
     `);
     expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
-      Object {
-        "commits": Array [
-          Object {
+      {
+        "commits": [
+          {
             "baseRef": undefined,
             "delta": null,
-            "metadata": Object {
+            "metadata": {
               "clientId": "client-1",
               "hello": "world",
-              "server": Object {
+              "server": {
                 "main": true,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 0,
@@ -386,13 +386,13 @@ describe('SqliteDocStore', () => {
             },
             "ref": "hello1",
           },
-          Object {
+          {
             "baseRef": undefined,
             "delta": null,
-            "metadata": Object {
+            "metadata": {
               "clientId": "client-2",
               "hello": "mars",
-              "server": Object {
+              "server": {
                 "main": false,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 1,
@@ -400,14 +400,14 @@ describe('SqliteDocStore', () => {
             },
             "ref": "hello2",
           },
-          Object {
+          {
             "baseRef": "hello1",
             "delta": null,
             "mergeRef": "hello2",
-            "metadata": Object {
+            "metadata": {
               "clientId": "client-1",
               "hello": "wmoarrlsd",
-              "server": Object {
+              "server": {
                 "main": true,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 2,
@@ -456,15 +456,15 @@ describe('SqliteDocStore', () => {
     ]);
 
     expect(store.getCommitsEvent()).toMatchInlineSnapshot(`
-      Object {
-        "commits": Array [
-          Object {
+      {
+        "commits": [
+          {
             "baseRef": undefined,
             "delta": null,
-            "metadata": Object {
+            "metadata": {
               "clientId": "client-1",
               "hello": "world",
-              "server": Object {
+              "server": {
                 "main": true,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 0,
@@ -472,13 +472,13 @@ describe('SqliteDocStore', () => {
             },
             "ref": "hello1",
           },
-          Object {
+          {
             "baseRef": "hello3",
             "delta": null,
-            "metadata": Object {
+            "metadata": {
               "clientId": "client-1",
               "hello": "blargan",
-              "server": Object {
+              "server": {
                 "main": false,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 0,
@@ -486,13 +486,13 @@ describe('SqliteDocStore', () => {
             },
             "ref": "hello4",
           },
-          Object {
+          {
             "baseRef": undefined,
             "delta": null,
-            "metadata": Object {
+            "metadata": {
               "clientId": "client-2",
               "hello": "mars",
-              "server": Object {
+              "server": {
                 "main": false,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 1,
@@ -500,14 +500,14 @@ describe('SqliteDocStore', () => {
             },
             "ref": "hello2",
           },
-          Object {
+          {
             "baseRef": "hello1",
             "delta": null,
             "mergeRef": "hello2",
-            "metadata": Object {
+            "metadata": {
               "clientId": "client-1",
               "hello": "wmoarrlsd",
-              "server": Object {
+              "server": {
                 "main": true,
                 "remoteSyncId": "1970-01-01T00:00:00.000Z",
                 "remoteSyncIndex": 2,

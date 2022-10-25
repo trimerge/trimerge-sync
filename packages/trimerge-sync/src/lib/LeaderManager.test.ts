@@ -62,13 +62,13 @@ describe('LeaderManagement', () => {
     const lm1 = makeLeaderManager('a', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
     await lm1.close(true);
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -89,13 +89,13 @@ describe('LeaderManagement', () => {
     await timeout();
     lm.receiveEvent({ type: 'leader', action: 'request', clientId: 'foo' });
     expect(events).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "request",
           "clientId": "test",
           "type": "leader",
         },
-        Object {
+        {
           "action": "withdraw",
           "clientId": "test",
           "type": "leader",
@@ -111,7 +111,7 @@ describe('LeaderManagement', () => {
     await lm1.close(true);
     await lm1.close(true);
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "b is promoted to leader",
       ]
     `);
@@ -124,7 +124,7 @@ describe('LeaderManagement', () => {
     const lm2 = makeLeaderManager('b', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -132,7 +132,7 @@ describe('LeaderManagement', () => {
     await lm1.close(true);
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
       ]
@@ -141,7 +141,7 @@ describe('LeaderManagement', () => {
     await lm2.close(true);
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
       ]
@@ -156,7 +156,7 @@ describe('LeaderManagement', () => {
     await timeout();
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -166,7 +166,7 @@ describe('LeaderManagement', () => {
     await timeout();
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -184,7 +184,7 @@ describe('LeaderManagement', () => {
     await lm1.close(true);
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "b is promoted to leader",
       ]
     `);
@@ -192,7 +192,7 @@ describe('LeaderManagement', () => {
     await lm2.close(true);
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "b is promoted to leader",
       ]
     `);
@@ -204,7 +204,7 @@ describe('LeaderManagement', () => {
     const lm2 = makeLeaderManager('b', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -214,7 +214,7 @@ describe('LeaderManagement', () => {
     await timeout(200);
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
       ]
@@ -223,7 +223,7 @@ describe('LeaderManagement', () => {
     await lm2.close(true);
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
       ]
@@ -236,7 +236,7 @@ describe('LeaderManagement', () => {
     makeLeaderManager('b', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -248,7 +248,7 @@ describe('LeaderManagement', () => {
 
     // Now both sides are leaders
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
       ]
@@ -260,7 +260,7 @@ describe('LeaderManagement', () => {
     await timeout(100);
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
         "b is demoted",
@@ -274,7 +274,7 @@ describe('LeaderManagement', () => {
     const lm3 = makeLeaderManager('c', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -288,7 +288,7 @@ describe('LeaderManagement', () => {
 
     // Now both sides are leaders
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
         "c is promoted to leader",
@@ -303,7 +303,7 @@ describe('LeaderManagement', () => {
     await timeout(100);
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
         "c is promoted to leader",
@@ -318,7 +318,7 @@ describe('LeaderManagement', () => {
     const lm2 = makeLeaderManager('b', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -330,7 +330,7 @@ describe('LeaderManagement', () => {
 
     // Now both sides are leaders
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -341,7 +341,7 @@ describe('LeaderManagement', () => {
     await timeout(100);
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -352,7 +352,7 @@ describe('LeaderManagement', () => {
     const lm1 = makeLeaderManager('a', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -363,7 +363,7 @@ describe('LeaderManagement', () => {
 
     await lm2.close(true);
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
       ]
@@ -375,7 +375,7 @@ describe('LeaderManagement', () => {
     const lm1 = makeLeaderManager('a', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -384,7 +384,7 @@ describe('LeaderManagement', () => {
     await timeout();
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -393,7 +393,7 @@ describe('LeaderManagement', () => {
     await lm1.close(true);
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -404,7 +404,7 @@ describe('LeaderManagement', () => {
     const lm2 = makeLeaderManager('b', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "b is promoted to leader",
       ]
     `);
@@ -413,7 +413,7 @@ describe('LeaderManagement', () => {
     await timeout();
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "b is promoted to leader",
       ]
     `);
@@ -432,14 +432,14 @@ describe('LeaderManagement', () => {
     await timeout();
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
 
     await lm1.close(true);
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
       ]
@@ -447,7 +447,7 @@ describe('LeaderManagement', () => {
 
     await lm3.close(true);
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
       ]
@@ -455,7 +455,7 @@ describe('LeaderManagement', () => {
 
     await lm2.close(true);
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
       ]
@@ -468,7 +468,7 @@ describe('LeaderManagement', () => {
     const lm3 = makeLeaderManager('c', events);
     await timeout();
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
       ]
     `);
@@ -476,7 +476,7 @@ describe('LeaderManagement', () => {
     await lm1.close(true);
 
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
       ]
@@ -484,7 +484,7 @@ describe('LeaderManagement', () => {
 
     await lm3.close(true);
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
       ]
@@ -492,7 +492,7 @@ describe('LeaderManagement', () => {
 
     await lm2.close(true);
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
       ]
@@ -502,7 +502,7 @@ describe('LeaderManagement', () => {
 
     await timeout();
     expect(events).toMatchInlineSnapshot(`
-      Array [
+      [
         "a is promoted to leader",
         "b is promoted to leader",
         "d is promoted to leader",
