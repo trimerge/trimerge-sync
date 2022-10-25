@@ -74,37 +74,37 @@ describe('TrimergeClient: 3 users', () => {
     await timeout();
 
     expect(basicGraph(store, clientA)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> wK5f8__5",
-    "step": "init",
-    "value": Object {
-      "text": "",
-    },
-  },
-  Object {
-    "graph": "wK5f8__5 -> 8n57Fn1Z",
-    "step": "set text",
-    "value": Object {
-      "text": "a",
-    },
-  },
-  Object {
-    "graph": "wK5f8__5 -> 97kyoTPd",
-    "step": "set text",
-    "value": Object {
-      "text": "b",
-    },
-  },
-  Object {
-    "graph": "wK5f8__5 -> TL7mKxsx",
-    "step": "set text",
-    "value": Object {
-      "text": "c",
-    },
-  },
-]
-`);
+      [
+        {
+          "graph": "undefined -> wK5f8__5",
+          "step": "init",
+          "value": {
+            "text": "",
+          },
+        },
+        {
+          "graph": "wK5f8__5 -> 8n57Fn1Z",
+          "step": "set text",
+          "value": {
+            "text": "a",
+          },
+        },
+        {
+          "graph": "wK5f8__5 -> 97kyoTPd",
+          "step": "set text",
+          "value": {
+            "text": "b",
+          },
+        },
+        {
+          "graph": "wK5f8__5 -> TL7mKxsx",
+          "step": "set text",
+          "value": {
+            "text": "c",
+          },
+        },
+      ]
+    `);
 
     //  Now they should all have trimerged changes
     expect(clientA.doc).toEqual({ text: 'abc' });
@@ -160,52 +160,52 @@ Array [
     await timeout();
 
     expect(basicGraph(store, clientA)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> HgR3uUrD",
-    "step": "add hello",
-    "value": Object {
-      "hello": "world",
-    },
-  },
-  Object {
-    "graph": "undefined -> AUJdfMae",
-    "step": "add world",
-    "value": Object {
-      "world": "world",
-    },
-  },
-  Object {
-    "graph": "HgR3uUrD -> eaef2Px0",
-    "step": "change hello",
-    "value": Object {
-      "hello": "vorld",
-    },
-  },
-  Object {
-    "graph": "AUJdfMae -> qOgOVi10",
-    "step": "change world",
-    "value": Object {
-      "world": "vorld",
-    },
-  },
-  Object {
-    "graph": "(eaef2Px0 + qOgOVi10) w/ base=unknown -> yHC1lA3q",
-    "step": "merge",
-    "value": Object {
-      "hello": "vorld",
-      "world": "vorld",
-    },
-  },
-  Object {
-    "graph": "yHC1lA3q -> 7BcdoBW0",
-    "step": "change hello",
-    "value": Object {
-      "hello": "world",
-      "world": "vorld",
-    },
-  },
-]
-`);
+      [
+        {
+          "graph": "undefined -> HgR3uUrD",
+          "step": "add hello",
+          "value": {
+            "hello": "world",
+          },
+        },
+        {
+          "graph": "undefined -> AUJdfMae",
+          "step": "add world",
+          "value": {
+            "world": "world",
+          },
+        },
+        {
+          "graph": "HgR3uUrD -> eaef2Px0",
+          "step": "change hello",
+          "value": {
+            "hello": "vorld",
+          },
+        },
+        {
+          "graph": "AUJdfMae -> qOgOVi10",
+          "step": "change world",
+          "value": {
+            "world": "vorld",
+          },
+        },
+        {
+          "graph": "(eaef2Px0 + qOgOVi10) w/ base=unknown -> yHC1lA3q",
+          "step": "merge",
+          "value": {
+            "hello": "vorld",
+            "world": "vorld",
+          },
+        },
+        {
+          "graph": "yHC1lA3q -> 7BcdoBW0",
+          "step": "change hello",
+          "value": {
+            "hello": "world",
+            "world": "vorld",
+          },
+        },
+      ]
+    `);
   });
 });

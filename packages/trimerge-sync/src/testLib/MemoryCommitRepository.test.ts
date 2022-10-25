@@ -24,79 +24,79 @@ describe('MemoryLocalStore', () => {
     const callsBeforeShutdown = [...fn.mock.calls];
 
     expect(fn.mock.calls).toMatchInlineSnapshot(`
-Array [
-  Array [
-    Object {
-      "connect": "offline",
-      "read": "offline",
-      "save": "ready",
-      "type": "remote-state",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "commits": Array [
-        Object {
-          "metadata": undefined,
-          "ref": "test1",
-        },
-      ],
-      "syncId": "0",
-      "type": "commits",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "type": "ready",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "connect": "offline",
-      "read": "offline",
-      "save": "pending",
-      "type": "remote-state",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "acks": Array [
-        Object {
-          "ref": "test1",
-        },
-      ],
-      "syncId": "1",
-      "type": "ack",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "connect": "offline",
-      "read": "offline",
-      "save": "saving",
-      "type": "remote-state",
-    },
-    false,
-  ],
-  Array [
-    Object {
-      "info": Object {
-        "clientId": "test",
-        "presence": undefined,
-        "ref": undefined,
-        "userId": "test",
-      },
-      "type": "client-presence",
-    },
-    false,
-  ],
-]
-`);
+      [
+        [
+          {
+            "connect": "offline",
+            "read": "offline",
+            "save": "ready",
+            "type": "remote-state",
+          },
+          false,
+        ],
+        [
+          {
+            "commits": [
+              {
+                "metadata": undefined,
+                "ref": "test1",
+              },
+            ],
+            "syncId": "0",
+            "type": "commits",
+          },
+          false,
+        ],
+        [
+          {
+            "type": "ready",
+          },
+          false,
+        ],
+        [
+          {
+            "connect": "offline",
+            "read": "offline",
+            "save": "pending",
+            "type": "remote-state",
+          },
+          false,
+        ],
+        [
+          {
+            "acks": [
+              {
+                "ref": "test1",
+              },
+            ],
+            "syncId": "1",
+            "type": "ack",
+          },
+          false,
+        ],
+        [
+          {
+            "connect": "offline",
+            "read": "offline",
+            "save": "saving",
+            "type": "remote-state",
+          },
+          false,
+        ],
+        [
+          {
+            "info": {
+              "clientId": "test",
+              "presence": undefined,
+              "ref": undefined,
+              "userId": "test",
+            },
+            "type": "client-presence",
+          },
+          false,
+        ],
+      ]
+    `);
 
     await local.shutdown();
     await local.update(

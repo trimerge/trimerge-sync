@@ -46,7 +46,6 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "21.0.0",
     "@rollup/plugin-node-resolve": "13.0.6",
-    "jest": "27.0.6",
     "rollup": "2.58.0",
     "rollup-plugin-typescript2": "0.30.0",
     "typescript": "4.4.4"
@@ -56,13 +55,6 @@
     "testEnvironment": "node",
     "modulePathIgnorePatterns": [
       "<rootDir>/dist/"
-    ],
-    "globals": {
-      "ts-jest": {
-        "diagnostics": {
-          "warnOnly": true
-        }
-      }
-    }
+    ]
   }
 }

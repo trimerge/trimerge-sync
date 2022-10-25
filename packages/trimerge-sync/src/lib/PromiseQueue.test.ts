@@ -18,7 +18,7 @@ describe('PromiseQueue', () => {
     expect(actions).toEqual([]);
     await expect(p1).resolves.toEqual(1);
     expect(actions).toMatchInlineSnapshot(`
-      Array [
+      [
         "start 1",
         "end 1",
         "start 2",
@@ -28,7 +28,7 @@ describe('PromiseQueue', () => {
     await expect(p3).resolves.toEqual(3);
     await expect(p4).resolves.toEqual(4);
     expect(actions).toMatchInlineSnapshot(`
-      Array [
+      [
         "start 1",
         "end 1",
         "start 2",
@@ -61,7 +61,7 @@ describe('PromiseQueue', () => {
     expect(actions).toEqual([]);
     await expect(p1).resolves.toEqual(1);
     expect(actions).toMatchInlineSnapshot(`
-      Array [
+      [
         "start 1",
         "end 1",
         "start Error: hi",
@@ -71,7 +71,7 @@ describe('PromiseQueue', () => {
     await expect(p3).resolves.toEqual(3);
     await expect(p4).resolves.toEqual(4);
     expect(actions).toMatchInlineSnapshot(`
-      Array [
+      [
         "start 1",
         "end 1",
         "start Error: hi",

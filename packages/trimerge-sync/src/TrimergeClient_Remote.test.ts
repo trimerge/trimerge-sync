@@ -104,101 +104,101 @@ describe('Remote sync', () => {
     const remoteGraph1 = basicGraph(remoteStore, client);
     expect(remoteGraph1).toEqual(localGraph1);
     expect(localGraph1).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "graph": "undefined -> Zob0dMmD",
           "step": "initialize",
-          "value": Object {},
+          "value": {},
         },
-        Object {
+        {
           "graph": "Zob0dMmD -> leySPlIR",
           "step": "add hello",
-          "value": Object {
+          "value": {
             "hello": "world",
           },
         },
       ]
     `);
     expect(syncUpdates).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "localRead": "loading",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "loading",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "connecting",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
@@ -241,65 +241,65 @@ describe('Remote sync', () => {
     const remoteGraph1 = basicGraph(remoteStore, client);
     expect(remoteGraph1).toEqual(localGraph1);
     expect(localGraph1).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "graph": "undefined -> Zob0dMmD",
           "step": "initialize",
-          "value": Object {},
+          "value": {},
         },
-        Object {
+        {
           "graph": "Zob0dMmD -> leySPlIR",
           "step": "add hello",
-          "value": Object {
+          "value": {
             "hello": "world",
           },
         },
-        Object {
+        {
           "graph": "leySPlIR -> DWZJPKBc",
           "step": "edit hello",
-          "value": Object {
+          "value": {
             "hello": "world 2",
           },
         },
-        Object {
+        {
           "graph": "DWZJPKBc -> EM9w-Vme",
           "step": "edit hello",
-          "value": Object {
+          "value": {
             "hello": "world 3",
           },
         },
-        Object {
+        {
           "graph": "EM9w-Vme -> bPTFg9aG",
           "step": "edit hello",
-          "value": Object {
+          "value": {
             "hello": "world 4",
           },
         },
-        Object {
+        {
           "graph": "bPTFg9aG -> SZgOrzaG",
           "step": "edit hello",
-          "value": Object {
+          "value": {
             "hello": "world 5",
           },
         },
-        Object {
+        {
           "graph": "SZgOrzaG -> s9y6mchq",
           "step": "edit hello",
-          "value": Object {
+          "value": {
             "hello": "world 6",
           },
         },
-        Object {
+        {
           "graph": "s9y6mchq -> DnqoAp6m",
           "step": "edit hello",
-          "value": Object {
+          "value": {
             "hello": "world 7",
           },
         },
-        Object {
+        {
           "graph": "DnqoAp6m -> _fOHZjAT",
           "step": "edit hello",
-          "value": Object {
+          "value": {
             "hello": "world 8",
           },
         },
@@ -332,85 +332,85 @@ describe('Remote sync', () => {
     await timeout();
 
     expect(syncUpdates1).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "localRead": "loading",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "loading",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "connecting",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
@@ -420,22 +420,22 @@ describe('Remote sync', () => {
       ]
     `);
     expect(syncUpdates2).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "localRead": "loading",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
@@ -445,10 +445,10 @@ describe('Remote sync', () => {
       ]
     `);
     expect(client1Sub.mock.calls).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Array [
-            Object {
+      [
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": undefined,
@@ -456,13 +456,13 @@ describe('Remote sync', () => {
               "userId": "test",
             },
           ],
-          Object {
+          {
             "origin": "subscribe",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "Zob0dMmD",
@@ -470,13 +470,13 @@ describe('Remote sync', () => {
               "userId": "test",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "Zob0dMmD",
@@ -484,13 +484,13 @@ describe('Remote sync', () => {
               "userId": "test",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "leySPlIR",
@@ -498,13 +498,13 @@ describe('Remote sync', () => {
               "userId": "test",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "leySPlIR",
@@ -512,37 +512,37 @@ describe('Remote sync', () => {
               "userId": "test",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "leySPlIR",
               "self": true,
               "userId": "test",
             },
-            Object {
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": undefined,
               "userId": "test",
             },
           ],
-          Object {
+          {
             "origin": "local",
           },
         ],
       ]
     `);
     expect(client2Sub.mock.calls).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Array [
-            Object {
+      [
+        [
+          [
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": undefined,
@@ -550,27 +550,27 @@ describe('Remote sync', () => {
               "userId": "test",
             },
           ],
-          Object {
+          {
             "origin": "subscribe",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": undefined,
               "self": true,
               "userId": "test",
             },
-            Object {
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "leySPlIR",
               "userId": "test",
             },
           ],
-          Object {
+          {
             "origin": "local",
           },
         ],
@@ -595,19 +595,19 @@ describe('Remote sync', () => {
     await timeout();
 
     expect(states1).toMatchInlineSnapshot(`
-      Array [
+      [
         undefined,
-        Object {},
-        Object {
+        {},
+        {
           "hello": "world",
         },
       ]
     `);
     expect(states2).toMatchInlineSnapshot(`
-      Array [
+      [
         undefined,
-        Object {},
-        Object {
+        {},
+        {
           "hello": "world",
         },
       ]
@@ -622,22 +622,22 @@ describe('Remote sync', () => {
     await timeout(100);
 
     expect(states1).toMatchInlineSnapshot(`
-      Array [
+      [
         undefined,
-        Object {},
-        Object {
+        {},
+        {
           "hello": "world",
         },
       ]
     `);
     expect(states2).toMatchInlineSnapshot(`
-      Array [
+      [
         undefined,
-        Object {},
-        Object {
+        {},
+        {
           "hello": "world",
         },
-        Object {
+        {
           "hello": "world",
           "world": "hello",
         },
@@ -649,26 +649,26 @@ describe('Remote sync', () => {
     await timeout(100);
 
     expect(states1).toMatchInlineSnapshot(`
-      Array [
+      [
         undefined,
-        Object {},
-        Object {
+        {},
+        {
           "hello": "world",
         },
-        Object {
+        {
           "hello": "world",
           "world": "hello",
         },
       ]
     `);
     expect(states2).toMatchInlineSnapshot(`
-      Array [
+      [
         undefined,
-        Object {},
-        Object {
+        {},
+        {
           "hello": "world",
         },
-        Object {
+        {
           "hello": "world",
           "world": "hello",
         },
@@ -705,30 +705,30 @@ describe('Remote sync', () => {
 
     const localGraph3 = basicGraph(localStore, client);
     expect(localGraph3).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "graph": "undefined -> Zob0dMmD",
           "step": "initialize",
-          "value": Object {},
+          "value": {},
         },
-        Object {
+        {
           "graph": "Zob0dMmD -> leySPlIR",
           "step": "add hello",
-          "value": Object {
+          "value": {
             "hello": "world",
           },
         },
-        Object {
+        {
           "graph": "leySPlIR -> x_n2sT7P",
           "step": "change hello",
-          "value": Object {
+          "value": {
             "hello": "vorld",
           },
         },
-        Object {
+        {
           "graph": "x_n2sT7P -> IkVWMaAr",
           "step": "change hello",
-          "value": Object {
+          "value": {
             "hello": "borld",
           },
         },
@@ -742,169 +742,169 @@ describe('Remote sync', () => {
     expect(remoteGraph3).toEqual(localGraph3);
 
     expect(syncUpdates).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "localRead": "loading",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "loading",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "connecting",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "offline",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "offline",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "offline",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "offline",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "offline",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "connecting",
           "remoteRead": "offline",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "offline",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
@@ -936,7 +936,7 @@ describe('Remote sync', () => {
     expect(client2.isRemoteLeader).toBe(true);
 
     expect(client1.syncStatus).toMatchInlineSnapshot(`
-      Object {
+      {
         "localRead": "ready",
         "localSave": "ready",
         "remoteConnect": "online",
@@ -946,7 +946,7 @@ describe('Remote sync', () => {
     `);
 
     expect(client2.syncStatus).toMatchInlineSnapshot(`
-      Object {
+      {
         "localRead": "ready",
         "localSave": "ready",
         "remoteConnect": "online",
@@ -963,7 +963,7 @@ describe('Remote sync', () => {
     expect(client2.isRemoteLeader).toBe(false);
 
     expect(client1.syncStatus).toMatchInlineSnapshot(`
-      Object {
+      {
         "localRead": "ready",
         "localSave": "ready",
         "remoteConnect": "online",
@@ -973,7 +973,7 @@ describe('Remote sync', () => {
     `);
 
     expect(client2.syncStatus).toMatchInlineSnapshot(`
-      Object {
+      {
         "localRead": "ready",
         "localSave": "ready",
         "remoteConnect": "online",
@@ -1028,38 +1028,38 @@ describe('Remote sync', () => {
     const graph1 = basicGraph(store1, client1);
     const graph2 = basicGraph(store2, client1);
     expect(graph1).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "graph": "undefined -> Zob0dMmD",
           "step": "initialize",
-          "value": Object {},
+          "value": {},
         },
-        Object {
+        {
           "graph": "Zob0dMmD -> leySPlIR",
           "step": "add hello",
-          "value": Object {
+          "value": {
             "hello": "world",
           },
         },
-        Object {
+        {
           "graph": "leySPlIR -> x_n2sT7P",
           "step": "change hello",
-          "value": Object {
+          "value": {
             "hello": "vorld",
           },
         },
-        Object {
+        {
           "graph": "x_n2sT7P -> iOywLlrW",
           "step": "add world",
-          "value": Object {
+          "value": {
             "hello": "vorld",
             "world": "world",
           },
         },
-        Object {
+        {
           "graph": "iOywLlrW -> ZLVXz73q",
           "step": "change world",
-          "value": Object {
+          "value": {
             "hello": "vorld",
             "world": "vorld",
           },
@@ -1072,106 +1072,106 @@ describe('Remote sync', () => {
     await client2.shutdown();
 
     expect(syncUpdates1).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "localRead": "loading",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "loading",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "connecting",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "loading",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "offline",
@@ -1181,99 +1181,99 @@ describe('Remote sync', () => {
       ]
     `);
     expect(syncUpdates2).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "localRead": "loading",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "offline",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "connecting",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "pending",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "saving",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "saving",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "online",
           "remoteRead": "ready",
           "remoteSave": "ready",
         },
-        Object {
+        {
           "localRead": "ready",
           "localSave": "ready",
           "remoteConnect": "offline",
@@ -1283,10 +1283,10 @@ describe('Remote sync', () => {
       ]
     `);
     expect(client1ListSub.mock.calls).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Array [
-            Object {
+      [
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": undefined,
@@ -1294,13 +1294,13 @@ describe('Remote sync', () => {
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "subscribe",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "Zob0dMmD",
@@ -1308,13 +1308,13 @@ describe('Remote sync', () => {
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "Zob0dMmD",
@@ -1322,13 +1322,13 @@ describe('Remote sync', () => {
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "leySPlIR",
@@ -1336,13 +1336,13 @@ describe('Remote sync', () => {
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "leySPlIR",
@@ -1350,13 +1350,13 @@ describe('Remote sync', () => {
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "x_n2sT7P",
@@ -1364,13 +1364,13 @@ describe('Remote sync', () => {
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "x_n2sT7P",
@@ -1378,73 +1378,73 @@ describe('Remote sync', () => {
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "x_n2sT7P",
               "self": true,
               "userId": "a",
             },
-            Object {
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": undefined,
               "userId": "b",
             },
           ],
-          Object {
+          {
             "origin": "remote",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "x_n2sT7P",
               "self": true,
               "userId": "a",
             },
-            Object {
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": "iOywLlrW",
               "userId": "b",
             },
           ],
-          Object {
+          {
             "origin": "remote",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "x_n2sT7P",
               "self": true,
               "userId": "a",
             },
-            Object {
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": "ZLVXz73q",
               "userId": "b",
             },
           ],
-          Object {
+          {
             "origin": "remote",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "x_n2sT7P",
@@ -1452,17 +1452,17 @@ describe('Remote sync', () => {
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "remote",
           },
         ],
       ]
     `);
     expect(client2ListSub.mock.calls).toMatchInlineSnapshot(`
-      Array [
-        Array [
-          Array [
-            Object {
+      [
+        [
+          [
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": undefined,
@@ -1470,113 +1470,113 @@ describe('Remote sync', () => {
               "userId": "b",
             },
           ],
-          Object {
+          {
             "origin": "subscribe",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": undefined,
               "self": true,
               "userId": "b",
             },
-            Object {
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "x_n2sT7P",
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "remote",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": "iOywLlrW",
               "self": true,
               "userId": "b",
             },
-            Object {
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "x_n2sT7P",
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": "iOywLlrW",
               "self": true,
               "userId": "b",
             },
-            Object {
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "x_n2sT7P",
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": "ZLVXz73q",
               "self": true,
               "userId": "b",
             },
-            Object {
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "x_n2sT7P",
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": "ZLVXz73q",
               "self": true,
               "userId": "b",
             },
-            Object {
+            {
               "clientId": "a",
               "presence": undefined,
               "ref": "x_n2sT7P",
               "userId": "a",
             },
           ],
-          Object {
+          {
             "origin": "self",
           },
         ],
-        Array [
-          Array [
-            Object {
+        [
+          [
+            {
               "clientId": "b",
               "presence": undefined,
               "ref": "ZLVXz73q",
@@ -1584,7 +1584,7 @@ describe('Remote sync', () => {
               "userId": "b",
             },
           ],
-          Object {
+          {
             "origin": "remote",
           },
         ],
@@ -1601,17 +1601,17 @@ describe('Remote sync', () => {
     const client3 = makeClient('b', 'client3', localStore2);
 
     expect(basicClients(client1)).toMatchInlineSnapshot(`
-      Object {
+      {
         "a:client1": undefined,
       }
     `);
     expect(basicClients(client2)).toMatchInlineSnapshot(`
-      Object {
+      {
         "b:client2": undefined,
       }
     `);
     expect(basicClients(client3)).toMatchInlineSnapshot(`
-      Object {
+      {
         "b:client3": undefined,
       }
     `);
@@ -1619,21 +1619,21 @@ describe('Remote sync', () => {
     await timeout();
 
     expect(basicClients(client1)).toMatchInlineSnapshot(`
-      Object {
+      {
         "a:client1": undefined,
         "b:client2": undefined,
         "b:client3": undefined,
       }
     `);
     expect(basicClients(client2)).toMatchInlineSnapshot(`
-      Object {
+      {
         "a:client1": undefined,
         "b:client2": undefined,
         "b:client3": undefined,
       }
     `);
     expect(basicClients(client3)).toMatchInlineSnapshot(`
-      Object {
+      {
         "a:client1": undefined,
         "b:client2": undefined,
         "b:client3": undefined,
@@ -1647,21 +1647,21 @@ describe('Remote sync', () => {
     await timeout();
 
     expect(basicClients(client1)).toMatchInlineSnapshot(`
-      Object {
+      {
         "a:client1": "presence 1",
         "b:client2": "presence 2",
         "b:client3": "presence 3",
       }
     `);
     expect(basicClients(client2)).toMatchInlineSnapshot(`
-      Object {
+      {
         "a:client1": "presence 1",
         "b:client2": "presence 2",
         "b:client3": "presence 3",
       }
     `);
     expect(basicClients(client3)).toMatchInlineSnapshot(`
-      Object {
+      {
         "a:client1": "presence 1",
         "b:client2": "presence 2",
         "b:client3": "presence 3",

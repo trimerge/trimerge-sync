@@ -96,17 +96,17 @@ describe('TrimergeClient: Migration', () => {
     await timeout();
 
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> wkRuq_cr",
-    "step": "initialize",
-    "value": Object {
-      "field": 123,
-      "v": 1,
-    },
-  },
-]
-`);
+      [
+        {
+          "graph": "undefined -> wkRuq_cr",
+          "step": "initialize",
+          "value": {
+            "field": 123,
+            "v": 1,
+          },
+        },
+      ]
+    `);
 
     const client2 = makeClientV2('a', store);
 
@@ -115,17 +115,17 @@ Array [
     expect(client2.doc).toEqual({ v: 2, field: '123' });
 
     expect(basicGraph(store, client2)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> wkRuq_cr",
-    "step": "initialize",
-    "value": Object {
-      "field": 123,
-      "v": 1,
-    },
-  },
-]
-`);
+      [
+        {
+          "graph": "undefined -> wkRuq_cr",
+          "step": "initialize",
+          "value": {
+            "field": 123,
+            "v": 1,
+          },
+        },
+      ]
+    `);
 
     void client2.updateDoc({ v: 2, field: '456' }, 'update field');
     expect(client2.doc).toEqual({ v: 2, field: '456' });
@@ -133,33 +133,33 @@ Array [
     await timeout();
 
     expect(basicGraph(store, client2)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> wkRuq_cr",
-    "step": "initialize",
-    "value": Object {
-      "field": 123,
-      "v": 1,
-    },
-  },
-  Object {
-    "graph": "wkRuq_cr -> -gOdQHo5",
-    "step": "migrated to v2",
-    "value": Object {
-      "field": "123",
-      "v": 2,
-    },
-  },
-  Object {
-    "graph": "-gOdQHo5 -> nr3tJSIE",
-    "step": "update field",
-    "value": Object {
-      "field": "456",
-      "v": 2,
-    },
-  },
-]
-`);
+      [
+        {
+          "graph": "undefined -> wkRuq_cr",
+          "step": "initialize",
+          "value": {
+            "field": 123,
+            "v": 1,
+          },
+        },
+        {
+          "graph": "wkRuq_cr -> -gOdQHo5",
+          "step": "migrated to v2",
+          "value": {
+            "field": "123",
+            "v": 2,
+          },
+        },
+        {
+          "graph": "-gOdQHo5 -> nr3tJSIE",
+          "step": "update field",
+          "value": {
+            "field": "456",
+            "v": 2,
+          },
+        },
+      ]
+    `);
   });
   it('remigrates as updates come in', async () => {
     const store = newStore();
@@ -187,25 +187,25 @@ Array [
     await timeout();
 
     expect(basicGraph(store, client2)).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "graph": "undefined -> wkRuq_cr",
-    "step": "initialize",
-    "value": Object {
-      "field": 123,
-      "v": 1,
-    },
-  },
-  Object {
-    "graph": "wkRuq_cr -> _AA1V6TC",
-    "step": "update field",
-    "value": Object {
-      "field": 456,
-      "v": 1,
-    },
-  },
-]
-`);
+      [
+        {
+          "graph": "undefined -> wkRuq_cr",
+          "step": "initialize",
+          "value": {
+            "field": 123,
+            "v": 1,
+          },
+        },
+        {
+          "graph": "wkRuq_cr -> _AA1V6TC",
+          "step": "update field",
+          "value": {
+            "field": 456,
+            "v": 1,
+          },
+        },
+      ]
+    `);
   });
 
   it('doesnt make a commit for a noop migration commit', async () => {
@@ -219,30 +219,30 @@ Array [
     await timeout();
 
     expect(store.getCommits()).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "baseRef": undefined,
-    "delta": Array [
-      Object {
-        "field": 123,
-        "v": 1,
-      },
-    ],
-    "metadata": "initialize",
-    "ref": "wkRuq_cr",
-  },
-  Object {
-    "baseRef": "wkRuq_cr",
-    "delta": Object {
-      "field": Array [
-        123,
-        124,
-      ],
-    },
-    "metadata": "update field",
-    "ref": "d7exbdh_",
-  },
-]
-`);
+      [
+        {
+          "baseRef": undefined,
+          "delta": [
+            {
+              "field": 123,
+              "v": 1,
+            },
+          ],
+          "metadata": "initialize",
+          "ref": "wkRuq_cr",
+        },
+        {
+          "baseRef": "wkRuq_cr",
+          "delta": {
+            "field": [
+              123,
+              124,
+            ],
+          },
+          "metadata": "update field",
+          "ref": "d7exbdh_",
+        },
+      ]
+    `);
   });
 });

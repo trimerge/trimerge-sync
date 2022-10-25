@@ -52,7 +52,6 @@
     "@types/project-name-generator": "2.1.1",
     "codecov": "3.8.3",
     "immer": "^9.0.6",
-    "jest": "27.0.6",
     "jsondiffpatch": "^0.4.1",
     "rollup": "2.58.0",
     "rollup-plugin-typescript2": "0.30.0",
@@ -65,13 +64,6 @@
     "testEnvironment": "node",
     "modulePathIgnorePatterns": [
       "<rootDir>/dist/"
-    ],
-    "globals": {
-      "ts-jest": {
-        "diagnostics": {
-          "warnOnly": true
-        }
-      }
-    }
+    ]
   }
 }

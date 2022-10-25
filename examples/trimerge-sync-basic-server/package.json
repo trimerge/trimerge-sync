@@ -54,7 +54,6 @@
     "@types/better-sqlite3": "^7.4.0",
     "@types/fs-extra": "^9.0.13",
     "better-sqlite3": "^7.4.3",
-    "jest": "27.0.6",
     "rollup": "2.58.0",
     "rollup-plugin-typescript2": "0.30.0",
     "trimerge-sync": "0.20.0",
@@ -68,13 +67,6 @@
     "testEnvironment": "node",
     "modulePathIgnorePatterns": [
       "<rootDir>/dist/"
-    ],
-    "globals": {
-      "ts-jest": {
-        "diagnostics": {
-          "warnOnly": true
-        }
-      }
-    }
+    ]
   }
 }
