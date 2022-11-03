@@ -84,7 +84,7 @@ export type SyncStatus = {
   remoteConnect: RemoteConnectStatus;
   remoteRead: RemoteReadStatus;
   remoteSave: RemoteSaveStatus;
-  latestRemoteCursor: string | undefined;
+  remoteCursor: string | undefined;
 };
 
 export type ClientPresenceRef<Presence> = {
@@ -176,6 +176,7 @@ export type RemoteStateEvent = {
   connect?: RemoteConnectStatus;
   read?: RemoteReadStatus;
   save?: RemoteSaveStatus;
+  cursor?: string;
 };
 
 export type LeaderEvent = {

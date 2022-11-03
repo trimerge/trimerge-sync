@@ -106,7 +106,7 @@ export class TrimergeClient<
     remoteConnect: 'offline',
     remoteRead: 'loading',
     remoteSave: 'ready',
-    latestRemoteCursor: undefined,
+    remoteCursor: undefined,
   };
 
   constructor(
@@ -171,11 +171,6 @@ export class TrimergeClient<
         for (const commit of commits) {
           this.addCommit(commit, 'external');
         }
-        if (origin === 'remote' && syncId) {
-          this.updateSyncState({
-            latestRemoteCursor: syncId,
-          });
-        }
         this.mergeHeads();
         this.docSubs.emitChange({ origin });
         void this.sync();
@@ -200,6 +195,7 @@ export class TrimergeClient<
         break;
 
       case 'remote-state':
+        console.log('!!! got remote state event', event);
         // TODO: remove remote clients as applicable?
         const changes: Partial<SyncStatus> = {};
         if (event.connect) {
@@ -210,6 +206,9 @@ export class TrimergeClient<
         }
         if (event.save) {
           changes.remoteSave = event.save;
+        }
+        if (event.cursor) {
+          changes.remoteCursor = event.cursor;
         }
         this.updateSyncState(changes);
         break;
@@ -385,6 +384,7 @@ export class TrimergeClient<
   }
 
   private updateSyncState(update: Partial<SyncStatus>): void {
+    console.log('!!! emitting change:', update);
     this.syncState = { ...this.syncState, ...update };
     this.syncStateSubs.emitChange({ origin: 'local' });
   }
