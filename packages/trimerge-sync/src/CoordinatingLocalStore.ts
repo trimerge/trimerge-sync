@@ -144,7 +144,6 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       case 'commits':
         if (origin === 'remote') {
           if (event.syncId) {
-            console.log('!!! got syncId', event.syncId);
             await this.setRemoteState({
               type: 'remote-state',
               cursor: event.syncId,

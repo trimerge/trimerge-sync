@@ -167,7 +167,7 @@ export class TrimergeClient<
 
     switch (event.type) {
       case 'commits': {
-        const { commits, clientInfo, syncId } = event;
+        const { commits, clientInfo } = event;
         for (const commit of commits) {
           this.addCommit(commit, 'external');
         }
@@ -195,7 +195,6 @@ export class TrimergeClient<
         break;
 
       case 'remote-state':
-        console.log('!!! got remote state event', event);
         // TODO: remove remote clients as applicable?
         const changes: Partial<SyncStatus> = {};
         if (event.connect) {
@@ -384,7 +383,6 @@ export class TrimergeClient<
   }
 
   private updateSyncState(update: Partial<SyncStatus>): void {
-    console.log('!!! emitting change:', update);
     this.syncState = { ...this.syncState, ...update };
     this.syncStateSubs.emitChange({ origin: 'local' });
   }
