@@ -84,6 +84,7 @@ export type SyncStatus = {
   remoteConnect: RemoteConnectStatus;
   remoteRead: RemoteReadStatus;
   remoteSave: RemoteSaveStatus;
+  latestRemoteCursor: string | undefined;
 };
 
 export type ClientPresenceRef<Presence> = {

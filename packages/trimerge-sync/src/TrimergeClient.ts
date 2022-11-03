@@ -106,6 +106,7 @@ export class TrimergeClient<
     remoteConnect: 'offline',
     remoteRead: 'loading',
     remoteSave: 'ready',
+    latestRemoteCursor: undefined,
   };
 
   constructor(
@@ -166,9 +167,14 @@ export class TrimergeClient<
 
     switch (event.type) {
       case 'commits': {
-        const { commits, clientInfo } = event;
+        const { commits, clientInfo, syncId } = event;
         for (const commit of commits) {
           this.addCommit(commit, 'external');
+        }
+        if (origin === 'remote' && syncId) {
+          this.updateSyncState({
+            latestRemoteCursor: syncId,
+          });
         }
         this.mergeHeads();
         this.docSubs.emitChange({ origin });
