@@ -208,6 +208,7 @@ describe('TrimergeClient: 2 users', () => {
         "localRead": "ready",
         "localSave": "ready",
         "remoteConnect": "offline",
+        "remoteCursor": undefined,
         "remoteRead": "offline",
         "remoteSave": "saving",
       }
@@ -218,6 +219,7 @@ describe('TrimergeClient: 2 users', () => {
         "localRead": "ready",
         "localSave": "ready",
         "remoteConnect": "offline",
+        "remoteCursor": undefined,
         "remoteRead": "offline",
         "remoteSave": "saving",
       }

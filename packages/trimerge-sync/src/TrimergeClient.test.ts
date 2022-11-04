@@ -305,6 +305,7 @@ describe('TrimergeClient', () => {
           "localRead": "loading",
           "localSave": "ready",
           "remoteConnect": "offline",
+          "remoteCursor": undefined,
           "remoteRead": "loading",
           "remoteSave": "ready",
         },
