@@ -2,7 +2,7 @@ import {
   addInvalidRefsToAckEvent,
   validateCommitOrder,
 } from './validateCommits';
-import type { AckCommitsEvent, Commit } from 'trimerge-sync';
+import type { AckCommitsEvent, Commit } from './types';
 import { CommitRefs } from './lib/Commits';
 
 function simpleCommit(args: CommitRefs): Commit<unknown, unknown> {

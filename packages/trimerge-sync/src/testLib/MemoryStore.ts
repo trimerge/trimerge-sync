@@ -30,11 +30,10 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
   private readonly localStoreId = randomId();
   private lastRemoteSyncCursor: string | undefined;
   private queue = new PromiseQueue();
-  private readonly localStores: {store: CoordinatingLocalStore<
-    CommitMetadata,
-    Delta,
-    Presence
-  >, eventChannel: MemoryEventChannel<CommitMetadata, Delta, Presence>}[] = [];
+  private readonly localStores: {
+    store: CoordinatingLocalStore<CommitMetadata, Delta, Presence>;
+    eventChannel: MemoryEventChannel<CommitMetadata, Delta, Presence>;
+  }[] = [];
 
   public writeErrorMode = false;
 
@@ -63,13 +62,15 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     clientId,
     onEvent,
   ) => {
-
-    const eventChannel = new MemoryEventChannel<CommitMetadata, Delta, Presence>(
-        'local:' + this.channelName,
-      );
+    const eventChannel = new MemoryEventChannel<
+      CommitMetadata,
+      Delta,
+      Presence
+    >('local:' + this.channelName);
     const store = new CoordinatingLocalStore<CommitMetadata, Delta, Presence>(
       userId,
       clientId,
+      this.localStoreId,
       onEvent,
       new MemoryCommitRepository(this),
       this.getRemoteFn,
@@ -83,19 +84,26 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
       },
       eventChannel,
     );
-    this.localStores.push({store, eventChannel});
+    this.localStores.push({ store, eventChannel });
     return store;
   };
 
   getRemote: GetRemoteFn<CommitMetadata, Delta, Presence> = (
     userId: string,
+    localStoreId: string,
     remoteSyncInfo,
     onEvent,
   ) => {
     if (!this.online) {
       throw new Error('offline');
     }
-    const be = new MemoryRemote(this, userId, remoteSyncInfo, onEvent);
+    const be = new MemoryRemote(
+      this,
+      userId,
+      localStoreId,
+      remoteSyncInfo,
+      onEvent,
+    );
     this.remotes.push(be);
     return be;
   };
@@ -153,8 +161,8 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
   }
   getRemoteSyncInfo(): Promise<RemoteSyncInfo> {
     return this.queue.add(async () => ({
-      localStoreId: this.localStoreId,
       lastSyncCursor: this.lastRemoteSyncCursor,
+      firstSyncCursor: undefined,
     }));
   }
 

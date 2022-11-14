@@ -80,11 +80,11 @@ First let's look at the four levels of possible synchronization:
 - LEVEL 3: Persisted remote sync
 - LEVEL 4: Persisted p2p sync
 
-All levels assume some kind of 2-way communication between processes. This could be broadcast-channel, websockets, or something custom   
+All levels assume some kind of 2-way communication between processes. This could be broadcast-channel, websockets, or something custom
 
 #### LEVEL 1: Local process sync
 
-In order to synchronize local processes (e.g. browser tabs or between webworkers), we need the following:
+In order to synchronize local processes (e.g. browser tabs or between web workers), we need the following:
 
 1. Start listening on a shared message channel
 2. Make “hello” request to see if anyone is out there
@@ -93,12 +93,9 @@ In order to synchronize local processes (e.g. browser tabs or between webworkers
 5. On receive do send acknowledgment / trimerge as needed
 6. On receiving acknowledgement delete old nodes
 
-
 #### LEVEL 2: Persisted local process sync
 
 This is similar, but assumes all processes can access a central data store (like IndexedDB or Sqlite, etc).
-
-
 
 #### other
 

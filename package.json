@@ -5,11 +5,12 @@
     "examples/*"
   ],
   "scripts": {
+    "clean-all": "wsrun --parallel clean",
     "test-ci": "CI=true wsrun --no-prefix --serial test-ci",
     "test:update-all-snapshots": "wsrun --serial test:update-snapshots",
     "build-all": "wsrun --serial build",
     "watch-all": "wsrun --parallel watch",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -b tsconfig.dev.json",
     "lint": "eslint packages/*/src/**/*.ts",
     "bump-version": "node bump-version.mjs"
   },

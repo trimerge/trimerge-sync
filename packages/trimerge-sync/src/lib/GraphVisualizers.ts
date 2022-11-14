@@ -43,6 +43,7 @@ interface Node {
   get nodeType(): NodeType;
   get userId(): string | undefined;
   get isMain(): boolean;
+  isReferenced: boolean;
 }
 
 class CommitNode<CommitMetadata = unknown> implements Node {
@@ -339,14 +340,22 @@ export function getDotGraph<CommitMetadata>(
       }
       switch (baseNode.nodeType) {
         case 'edit':
-          if (baseNode.userId === node.userId && node.nodeType !== 'merge') {
+          if (
+            baseNode.userId === node.userId &&
+            node.nodeType !== 'merge' &&
+            !baseNode.isReferenced
+          ) {
             node = new MetaNode([baseNode as CommitNode, node as CommitNode]);
             nodeMap.set(commit.baseRef, node);
           }
           break;
         case 'meta':
           if (isLastChild(baseNode as MetaNode, commit.baseRef)) {
-            if (baseNode.userId === node.userId && node.nodeType !== 'merge') {
+            if (
+              baseNode.userId === node.userId &&
+              node.nodeType !== 'merge' &&
+              !baseNode.isReferenced
+            ) {
               (baseNode as MetaNode).children.push(node as CommitNode);
               node = baseNode;
             }
@@ -355,6 +364,7 @@ export function getDotGraph<CommitMetadata>(
           }
           break;
       }
+      baseNode.isReferenced = true;
     }
 
     if (isMergeCommit(commit)) {

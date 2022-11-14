@@ -12,8 +12,8 @@ jobs:
           node-version: 14
       - run: yarn --frozen-lockfile
       - run: yarn lint
-      - run: yarn build-all
       - run: yarn typecheck
+      - run: yarn build-all
       - run: yarn test-ci
         timeout-minutes: 5
       - run: yarn codecov
