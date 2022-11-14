@@ -34,7 +34,6 @@ export function getBasicGraph<CommitMetadata>(
 type NodeType = 'edit' | 'merge' | 'meta';
 
 interface Node {
-  isReferenced: boolean;
   get id(): string;
   get label(): string;
   get editLabel(): string;
