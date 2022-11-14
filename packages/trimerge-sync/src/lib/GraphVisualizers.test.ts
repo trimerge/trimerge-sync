@@ -148,7 +148,9 @@ describe('GraphVisualizers', () => {
     expect(getTestDotGraph(commits, (commit) => commit.metadata).graph)
       .toMatchInlineSnapshot(`
       "digraph {
-      "1:4" [shape=ellipse, label="1:4 (4 commits)", color=black, fillcolor=azure, style=filled, id="4"];
+      "1:3" [shape=ellipse, label="1:3 (3 commits)", color=black, fillcolor=azure, style=filled, id="3"];
+      "4" [shape=ellipse, label="4", color=black, fillcolor=azure, style=filled, id="4"];
+      "1:3" -> "4" [label="fourth"]
       }"
     `);
   });
