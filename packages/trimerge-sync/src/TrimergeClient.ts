@@ -106,6 +106,7 @@ export class TrimergeClient<
     remoteConnect: 'offline',
     remoteRead: 'loading',
     remoteSave: 'ready',
+    remoteCursor: undefined,
   };
 
   constructor(
@@ -204,6 +205,9 @@ export class TrimergeClient<
         }
         if (event.save) {
           changes.remoteSave = event.save;
+        }
+        if (event.cursor) {
+          changes.remoteCursor = event.cursor;
         }
         this.updateSyncState(changes);
         break;

@@ -100,7 +100,8 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     if (
       update.read === lastState.read &&
       update.save === lastState.save &&
-      update.connect === lastState.connect
+      update.connect === lastState.connect &&
+      update.cursor === lastState.cursor
     ) {
       return;
     }
@@ -143,6 +144,12 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
 
       case 'commits':
         if (origin === 'remote') {
+          if (event.syncId) {
+            await this.setRemoteState({
+              type: 'remote-state',
+              cursor: event.syncId,
+            });
+          }
           await this.commitRepo.addCommits(event.commits, event.syncId);
         }
         break;
@@ -302,19 +309,21 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     this.remoteQueue
       .add(async () => {
         this.clearReconnectTimeout();
+        const remoteSyncInfo = await this.commitRepo.getRemoteSyncInfo();
         if (this.closed || !this.getRemote) {
           await this.setRemoteState({
             type: 'remote-state',
             connect: 'offline',
             read: this.remoteSyncState.read === 'error' ? 'error' : 'offline',
+            cursor: remoteSyncInfo.lastSyncCursor,
           });
           return;
         }
         await this.setRemoteState({
           type: 'remote-state',
           connect: 'connecting',
+          cursor: remoteSyncInfo.lastSyncCursor,
         });
-        const remoteSyncInfo = await this.commitRepo.getRemoteSyncInfo();
         this.remote = await this.getRemote(
           this.userId,
           this.localStoreId,
