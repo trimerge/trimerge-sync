@@ -311,20 +311,29 @@ export class TrimergeClient<
   };
 
   getCommitDoc(headRef: string): CommitDoc<SavedDoc, CommitMetadata> {
+    // This is an iterative implementation of:
+    //  const baseValue = baseRef ? this.getCommitDoc(baseRef).doc : undefined;
+
+    // Build up the list of commits by walking the baseRef's back to the root
+    // keeping track of the commits that you see along the way.
     let baseDoc: CommitDoc<SavedDoc, CommitMetadata> | undefined;
     const commitWalk: string[] = [];
     let currentCommitRef: string | undefined = headRef;
     while (!baseDoc && currentCommitRef !== undefined) {
+      // If we've already computed this document, short circuit
+      // and start building up the document from there.
       if (this.docCache.has(currentCommitRef)) {
         baseDoc = this.docCache.get(currentCommitRef);
         break;
       }
 
+      // otherwise, add the commit to the commit walk.
       commitWalk.push(currentCommitRef);
-      const commit = this.getCommit(currentCommitRef);
-      currentCommitRef = commit.baseRef;
+      currentCommitRef = this.getCommit(currentCommitRef).baseRef;
     }
 
+    // Iterate from the end of the commit walk to the beginning
+    // computing the document as we go.
     let resultDoc = baseDoc;
     for (let i = commitWalk.length - 1; i >= 0; i--) {
       const { ref, delta, metadata } = this.getCommit(commitWalk[i]);
