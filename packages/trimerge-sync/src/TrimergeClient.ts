@@ -310,20 +310,37 @@ export class TrimergeClient<
       ),
   };
 
-  getCommitDoc(ref: string): CommitDoc<SavedDoc, CommitMetadata> {
-    const doc = this.docCache.get(ref);
-    if (doc !== undefined) {
-      return doc;
+  getCommitDoc(headRef: string): CommitDoc<SavedDoc, CommitMetadata> {
+    let baseDoc: CommitDoc<SavedDoc, CommitMetadata> | undefined;
+    const commitWalk: string[] = [];
+    let currentCommitRef: string | undefined = headRef;
+    while (!baseDoc && currentCommitRef !== undefined) {
+      if (this.docCache.has(currentCommitRef)) {
+        baseDoc = this.docCache.get(currentCommitRef);
+      }
+      commitWalk.push(currentCommitRef);
+      const commit = this.getCommit(currentCommitRef);
+      currentCommitRef = commit.baseRef;
     }
-    const { baseRef, delta, metadata } = this.getCommit(ref);
-    const baseValue = baseRef ? this.getCommitDoc(baseRef).doc : undefined;
-    const commitDoc: CommitDoc<SavedDoc, CommitMetadata> = {
-      ref,
-      doc: this.differ.patch(baseValue, delta),
-      metadata,
-    };
-    this.docCache.set(ref, commitDoc);
-    return commitDoc;
+
+    let resultDoc = baseDoc;
+    for (let i = commitWalk.length - 1; i >= 0; i--) {
+      const { ref, delta, metadata } = this.getCommit(commitWalk[i]);
+      resultDoc = {
+        ref,
+        doc: this.differ.patch(resultDoc?.doc, delta),
+        metadata,
+      };
+      this.docCache.set(ref, resultDoc);
+    }
+
+    // I don't believe this can actually happen but couldn't
+    // get the types to work out.
+    if (!resultDoc) {
+      throw new Error(`Could not construct commit doc for ref ${headRef}`);
+    }
+
+    return resultDoc;
   }
 
   private migrateCommit(

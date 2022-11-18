@@ -418,4 +418,27 @@ describe('TrimergeClient', () => {
 
     expect(client.doc).toEqual(commitOnTopOfSnapshotDoc);
   });
+
+  it('supports deep graphs', () => {
+    const numCommits = 1_000_000;
+    const { client, onEvent: sendLocalStoreEvent } =
+      makeTrimergeClient(undefined);
+
+    const commits = new Array(numCommits).fill(undefined).map((_, i) => ({
+      baseRef: i === 0 ? undefined : `${i - 1}`,
+      ref: `${i}`,
+      delta: 'hello', // doesn't matter
+      metadata: 'testCommitOnTopOfSnapshotDocValue',
+    }));
+
+    sendLocalStoreEvent(
+      {
+        type: 'commits',
+        commits,
+      },
+      true,
+    );
+
+    expect(() => client.doc).not.toThrowError();
+  });
 });
