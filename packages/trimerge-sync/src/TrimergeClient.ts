@@ -317,7 +317,7 @@ export class TrimergeClient<
     // Build up the list of commits by walking the baseRef's back to the root
     // keeping track of the commits that you see along the way.
     let baseDoc: CommitDoc<SavedDoc, CommitMetadata> | undefined;
-    const commitWalk: string[] = [];
+    const commitWalk: Commit<CommitMetadata, Delta>[] = [];
     let currentCommitRef: string | undefined = headRef;
     while (!baseDoc && currentCommitRef !== undefined) {
       // If we've already computed this document, short circuit
@@ -328,30 +328,30 @@ export class TrimergeClient<
       }
 
       // otherwise, add the commit to the commit walk.
-      commitWalk.push(currentCommitRef);
-      currentCommitRef = this.getCommit(currentCommitRef).baseRef;
+      const commit = this.getCommit(currentCommitRef);
+      commitWalk.push(commit);
+      currentCommitRef = commit.baseRef;
     }
 
     // Iterate from the end of the commit walk to the beginning
     // computing the document as we go.
-    let resultDoc = baseDoc;
     for (let i = commitWalk.length - 1; i >= 0; i--) {
-      const { ref, delta, metadata } = this.getCommit(commitWalk[i]);
-      resultDoc = {
+      const { ref, delta, metadata } = commitWalk[i];
+      baseDoc = {
         ref,
-        doc: this.differ.patch(resultDoc?.doc, delta),
+        doc: this.differ.patch(baseDoc?.doc, delta),
         metadata,
       };
-      this.docCache.set(ref, resultDoc);
+      this.docCache.set(ref, baseDoc);
     }
 
     // I don't believe this can actually happen but couldn't
     // get the types to work out.
-    if (!resultDoc) {
+    if (!baseDoc) {
       throw new Error(`Could not construct commit doc for ref ${headRef}`);
     }
 
-    return resultDoc;
+    return baseDoc;
   }
 
   private migrateCommit(
