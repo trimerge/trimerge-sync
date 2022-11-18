@@ -317,7 +317,9 @@ export class TrimergeClient<
     while (!baseDoc && currentCommitRef !== undefined) {
       if (this.docCache.has(currentCommitRef)) {
         baseDoc = this.docCache.get(currentCommitRef);
+        break;
       }
+
       commitWalk.push(currentCommitRef);
       const commit = this.getCommit(currentCommitRef);
       currentCommitRef = commit.baseRef;
