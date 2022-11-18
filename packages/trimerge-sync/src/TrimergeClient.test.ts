@@ -5,7 +5,6 @@ import {
   Differ,
   TrimergeClientOptions,
   AddNewCommitMetadataFn,
-  DocCache,
 } from './TrimergeClientOptions';
 
 import { create } from 'jsondiffpatch';
