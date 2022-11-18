@@ -784,6 +784,7 @@ describe('createIndexedDbBackendFactory', () => {
         "localRead": "ready",
         "localSave": "ready",
         "remoteConnect": "online",
+        "remoteCursor": undefined,
         "remoteRead": "ready",
         "remoteSave": "ready",
       }
