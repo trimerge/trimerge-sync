@@ -22,7 +22,7 @@ class MockCommitRepository
   }
 
   async getRemoteSyncInfo(): Promise<RemoteSyncInfo> {
-    return { localStoreId: '', lastSyncCursor: undefined };
+    return { lastSyncCursor: undefined, firstSyncCursor: undefined };
   }
 
   async *getLocalCommits(): AsyncIterableIterator<
@@ -37,7 +37,9 @@ class MockCommitRepository
     //
   }
 
-  shutdown() {}
+  shutdown() {
+    //
+  }
 }
 
 class MockRemote implements Remote<unknown, unknown, unknown> {
@@ -56,6 +58,7 @@ describe('CoordinatingLocalStore', () => {
   it('handle double shutdown', async () => {
     const fn = jest.fn();
     const store = new CoordinatingLocalStore(
+      '',
       '',
       '',
       fn,
@@ -93,9 +96,10 @@ describe('CoordinatingLocalStore', () => {
       localStore = new CoordinatingLocalStore(
         '',
         '',
+        '',
         fn,
         new MockCommitRepository(),
-        (_, __, onEvent) => {
+        (_, __, ___, onEvent) => {
           mockRemote = new MockRemote(onEvent);
           sendSpy = jest.spyOn(mockRemote, 'send');
           resolve();
@@ -136,6 +140,7 @@ describe('CoordinatingLocalStore', () => {
   it('handle empty update call', async () => {
     const fn = jest.fn();
     const store = new CoordinatingLocalStore(
+      '',
       '',
       '',
       fn,

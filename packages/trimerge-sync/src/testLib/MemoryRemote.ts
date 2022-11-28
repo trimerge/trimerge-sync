@@ -16,15 +16,14 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
 {
   private readonly remoteQueue = new PromiseQueue();
   private closed = false;
-  private readonly clientStoreId: string;
 
   constructor(
     private readonly store: MemoryStore<CommitMetadata, Delta, Presence>,
     private readonly userId: string,
-    { lastSyncCursor, localStoreId }: RemoteSyncInfo,
+    private readonly clientStoreId: string,
+    { lastSyncCursor }: RemoteSyncInfo,
     private readonly onEvent: OnRemoteEventFn<CommitMetadata, Delta, Presence>,
   ) {
-    this.clientStoreId = localStoreId;
     this.sendInitialEvents(lastSyncCursor).catch(
       this.handleAsError('internal'),
     );
@@ -117,7 +116,7 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
       ) {
         continue;
       }
-      await remote.receive(event);
+      remote.receive(event);
     }
   }
 
