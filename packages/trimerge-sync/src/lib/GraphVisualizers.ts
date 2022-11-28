@@ -42,6 +42,7 @@ interface Node {
   get nodeType(): NodeType;
   get userId(): string | undefined;
   get isMain(): boolean;
+  isReferenced: boolean;
 }
 
 class CommitNode<CommitMetadata = unknown> implements Node {
