@@ -187,16 +187,15 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 2,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "HwWFgzWO",
           },
         ],
-        "remotes": [
-          {
-            "localStoreId": "test-doc-store",
-          },
-        ],
+        "remotes": [],
       }
     `);
   });
@@ -308,6 +307,9 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 4,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "YFy1LPs2",
@@ -316,11 +318,7 @@ describe('createIndexedDbBackendFactory', () => {
             "ref": "aG60Gm4o",
           },
         ],
-        "remotes": [
-          {
-            "localStoreId": "test-doc-store",
-          },
-        ],
+        "remotes": [],
       }
     `);
   });
@@ -409,16 +407,15 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 2,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "HwWFgzWO",
           },
         ],
-        "remotes": [
-          {
-            "localStoreId": "test-doc-store",
-          },
-        ],
+        "remotes": [],
       }
     `);
   });
@@ -491,6 +488,9 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 1,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "blarg",
@@ -499,7 +499,6 @@ describe('createIndexedDbBackendFactory', () => {
         "remotes": [
           {
             "lastSyncCursor": "9",
-            "localStoreId": "test-doc-store",
           },
         ],
       }
@@ -518,7 +517,7 @@ describe('createIndexedDbBackendFactory', () => {
       [
         {
           "name": "trimerge-sync:test-doc-delete",
-          "version": 2,
+          "version": 3,
         },
       ]
     `);
@@ -582,6 +581,9 @@ describe('createIndexedDbBackendFactory', () => {
                   "syncId": 1,
                 },
               ],
+              "config": [
+                "test-doc-store",
+              ],
               "heads": [
                 {
                   "ref": "F2C9k7m0",
@@ -626,6 +628,9 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 1,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "F2C9k7m0",
@@ -634,7 +639,6 @@ describe('createIndexedDbBackendFactory', () => {
         "remotes": [
           {
             "lastSyncCursor": "foo",
-            "localStoreId": "test-doc-store",
           },
         ],
       }
@@ -653,6 +657,9 @@ describe('createIndexedDbBackendFactory', () => {
             "remoteSyncId": "",
             "syncId": 1,
           },
+        ],
+        "config": [
+          "test-doc-store",
         ],
         "heads": [
           {
@@ -688,6 +695,9 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 1,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "F2C9k7m0",
@@ -696,7 +706,6 @@ describe('createIndexedDbBackendFactory', () => {
         "remotes": [
           {
             "lastSyncCursor": "foo",
-            "localStoreId": "test-doc-store",
           },
         ],
       }
@@ -750,6 +759,9 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 2,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "YSkdCqy1",
@@ -758,7 +770,6 @@ describe('createIndexedDbBackendFactory', () => {
         "remotes": [
           {
             "lastSyncCursor": "foo",
-            "localStoreId": "test-doc-store",
           },
         ],
       }
@@ -950,6 +961,9 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 3,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "uBHlRZDM",
@@ -958,7 +972,6 @@ describe('createIndexedDbBackendFactory', () => {
         "remotes": [
           {
             "lastSyncCursor": "foo",
-            "localStoreId": "test-doc-store",
           },
         ],
       }
@@ -1007,6 +1020,9 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 1,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "blah",
@@ -1015,7 +1031,6 @@ describe('createIndexedDbBackendFactory', () => {
         "remotes": [
           {
             "lastSyncCursor": "blah2",
-            "localStoreId": "test-doc-store",
           },
         ],
       }
@@ -1078,6 +1093,9 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 1,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "G0a5Az3Q",
@@ -1086,7 +1104,6 @@ describe('createIndexedDbBackendFactory', () => {
         "remotes": [
           {
             "lastSyncCursor": "foo",
-            "localStoreId": "test-doc-store",
           },
         ],
       }
@@ -1110,6 +1127,9 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 1,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "G0a5Az3Q",
@@ -1118,7 +1138,6 @@ describe('createIndexedDbBackendFactory', () => {
         "remotes": [
           {
             "lastSyncCursor": "foo",
-            "localStoreId": "test-doc-store",
           },
         ],
       }
@@ -1180,6 +1199,9 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 1,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "G0a5Az3Q",
@@ -1188,7 +1210,6 @@ describe('createIndexedDbBackendFactory', () => {
         "remotes": [
           {
             "lastSyncCursor": "foo",
-            "localStoreId": "test-doc-store",
           },
         ],
       }
@@ -1258,6 +1279,9 @@ describe('createIndexedDbBackendFactory', () => {
             "syncId": 1,
           },
         ],
+        "config": [
+          "test-doc-store",
+        ],
         "heads": [
           {
             "ref": "test",
@@ -1266,7 +1290,6 @@ describe('createIndexedDbBackendFactory', () => {
         "remotes": [
           {
             "lastSyncCursor": "foo",
-            "localStoreId": "test-doc-store",
           },
         ],
       }
