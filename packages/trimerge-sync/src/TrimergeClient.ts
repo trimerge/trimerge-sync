@@ -44,9 +44,9 @@ export type TrimergeClientErrorType = 'migrate' | 'merge-all-heads' | 'local-sto
 
 export class TrimergeClientError extends Error {
   name = 'TrimergeClientError';
-  constructor(readonly type: TrimergeClientErrorType, readonly underlyingError: unknown) {
-    super();
-  };
+  constructor(readonly type: TrimergeClientErrorType, readonly cause: unknown) {
+    super(`An error occurred while trying to sync, type: ${type}`);
+  }
 }
 
 export class TrimergeClient<
