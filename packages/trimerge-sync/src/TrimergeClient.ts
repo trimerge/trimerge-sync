@@ -40,6 +40,15 @@ export type SubscribeEvent = {
     | 'remote'; // A remote client updated the value
 };
 
+export type TrimergeClientErrorType = 'migrate' | 'merge-all-heads' | 'local-store' | 'remote';
+
+export class TrimergeClientError extends Error {
+  name = 'TrimergeClientError';
+  constructor(readonly type: TrimergeClientErrorType, readonly underlyingError: unknown) {
+    super();
+  };
+}
+
 export class TrimergeClient<
   SavedDoc,
   LatestDoc extends SavedDoc,
@@ -73,6 +82,8 @@ export class TrimergeClient<
     ClientList<Presence>,
     SubscribeEvent
   >(() => this.clientList);
+
+  private errorSubs: ((error: TrimergeClientError) => void)[] = [];
 
   private clientMap = new Map<string, LocalClientInfo<Presence>>();
   private clientList: ClientList<Presence> = [];
@@ -217,6 +228,10 @@ export class TrimergeClient<
         break;
       case 'error':
         if (event.code === 'internal') {
+          this.emitError(new TrimergeClientError(
+            remoteOrigin ? 'local-store' : 'remote',
+            event,
+          ));
           this.updateSyncState({ localRead: 'error' });
         }
         break;
@@ -255,6 +270,11 @@ export class TrimergeClient<
     onChange: OnChangeFn<ClientList<Presence>, SubscribeEvent>,
   ) {
     return this.clientListSubs.subscribe(onChange, { origin: 'subscribe' });
+  }
+
+  subscribeError(onError: (error: TrimergeClientError) => void) {
+    this.errorSubs.push(onError)
+    return ()=>{this.errorSubs = this.errorSubs.filter((e)=>e!==onError)};
   }
 
   async updateDoc(
@@ -357,15 +377,23 @@ export class TrimergeClient<
   private migrateCommit(
     commit: CommitDoc<SavedDoc, CommitMetadata>,
   ): CommitDoc<LatestDoc, CommitMetadata> {
-    const { doc, metadata } = this.migrate(commit.doc, commit.metadata);
-    if (commit.doc === doc) {
-      return commit as CommitDoc<LatestDoc, CommitMetadata>;
+    try {
+      const { doc, metadata } = this.migrate(commit.doc, commit.metadata);
+      if (commit.doc === doc) {
+        return commit as CommitDoc<LatestDoc, CommitMetadata>;
+      }
+      const ref = this.addNewCommit(doc, metadata, true, commit);
+      if (ref === undefined) {
+        return commit as CommitDoc<LatestDoc, CommitMetadata>;
+      }
+      return { ref, doc, metadata };
+    } catch (e) {
+      this.emitError(new TrimergeClientError(
+        'migrate',
+        e,
+    ));
+      throw e;
     }
-    const ref = this.addNewCommit(doc, metadata, true, commit);
-    if (ref === undefined) {
-      return commit as CommitDoc<LatestDoc, CommitMetadata>;
-    }
-    return { ref, doc, metadata };
   }
 
   private mergeHeads() {
@@ -381,6 +409,13 @@ export class TrimergeClient<
     this.clientList = Array.from(this.clientMap.values());
     this.clientListSubs.emitChange(event);
   }
+
+  private emitError(error: TrimergeClientError) {
+    for (const onError of this.errorSubs) {
+       onError(error);
+    }
+  }
+
   private async sync(): Promise<void> {
     const commits = this.unsyncedCommits;
     if (commits.length > 0 || this.newPresence !== undefined) {
@@ -397,6 +432,10 @@ export class TrimergeClient<
           this.updateSyncState({ localSave: 'ready' });
         }
       } catch (err) {
+        this.emitError(new TrimergeClientError(
+          'local-store',
+          err,
+        ))
         this.updateSyncState({ localSave: 'error' });
         throw err;
       } finally {
