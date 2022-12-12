@@ -592,7 +592,6 @@ describe('createIndexedDbBackendFactory', () => {
               "remotes": [
                 {
                   "lastSyncCursor": "foo",
-                  "localStoreId": "test-doc-store",
                 },
               ],
             }
