@@ -40,13 +40,20 @@ export type SubscribeEvent = {
     | 'remote'; // A remote client updated the value
 };
 
-export type TrimergeClientErrorType = 'migrate' | 'merge-all-heads' | 'local-store' | 'remote';
+export type TrimergeClientErrorType =
+  | 'migrate'
+  | 'merge-all-heads'
+  | 'local-store'
+  | 'remote';
 
 export class TrimergeClientError extends Error {
   name = 'TrimergeClientError';
-  constructor(readonly type: TrimergeClientErrorType, readonly underlyingError: unknown) {
+  constructor(
+    readonly type: TrimergeClientErrorType,
+    readonly underlyingError: unknown,
+  ) {
     super();
-  };
+  }
 }
 
 export class TrimergeClient<
@@ -228,10 +235,12 @@ export class TrimergeClient<
         break;
       case 'error':
         if (event.code === 'internal') {
-          this.emitError(new TrimergeClientError(
-            remoteOrigin ? 'local-store' : 'remote',
-            event,
-          ));
+          this.emitError(
+            new TrimergeClientError(
+              remoteOrigin ? 'remote' : 'local-store',
+              event,
+            ),
+          );
           this.updateSyncState({ localRead: 'error' });
         }
         break;
@@ -273,8 +282,10 @@ export class TrimergeClient<
   }
 
   subscribeError(onError: (error: TrimergeClientError) => void) {
-    this.errorSubs.push(onError)
-    return ()=>{this.errorSubs = this.errorSubs.filter((e)=>e!==onError)};
+    this.errorSubs.push(onError);
+    return () => {
+      this.errorSubs = this.errorSubs.filter((e) => e !== onError);
+    };
   }
 
   async updateDoc(
@@ -388,10 +399,7 @@ export class TrimergeClient<
       }
       return { ref, doc, metadata };
     } catch (e) {
-      this.emitError(new TrimergeClientError(
-        'migrate',
-        e,
-    ));
+      this.emitError(new TrimergeClientError('migrate', e));
       throw e;
     }
   }
@@ -412,7 +420,7 @@ export class TrimergeClient<
 
   private emitError(error: TrimergeClientError) {
     for (const onError of this.errorSubs) {
-       onError(error);
+      onError(error);
     }
   }
 
@@ -432,10 +440,7 @@ export class TrimergeClient<
           this.updateSyncState({ localSave: 'ready' });
         }
       } catch (err) {
-        this.emitError(new TrimergeClientError(
-          'local-store',
-          err,
-        ))
+        this.emitError(new TrimergeClientError('local-store', err));
         this.updateSyncState({ localSave: 'error' });
         throw err;
       } finally {
