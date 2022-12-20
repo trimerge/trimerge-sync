@@ -1,7 +1,8 @@
-import type {
+import {
   ClientInfo,
   ClientList,
   Commit,
+  ErrorEventError,
   LocalClientInfo,
   LocalStore,
   OnStoreEventFn,
@@ -48,10 +49,7 @@ export type TrimergeClientErrorType =
 
 export class TrimergeClientError extends Error {
   name = 'TrimergeClientError';
-  constructor(
-    readonly type: TrimergeClientErrorType,
-    readonly underlyingError: unknown,
-  ) {
+  constructor(readonly type: TrimergeClientErrorType, readonly cause: Error) {
     super();
   }
 }
@@ -236,10 +234,8 @@ export class TrimergeClient<
       case 'error':
         if (event.code === 'internal') {
           this.emitError(
-            new TrimergeClientError(
-              remoteOrigin ? 'remote' : 'local-store',
-              event,
-            ),
+            remoteOrigin ? 'remote' : 'local-store',
+            new ErrorEventError(event),
           );
           this.updateSyncState({ localRead: 'error' });
         }
@@ -399,7 +395,7 @@ export class TrimergeClient<
       }
       return { ref, doc, metadata };
     } catch (e) {
-      this.emitError(new TrimergeClientError('migrate', e));
+      this.emitError('migrate', e);
       throw e;
     }
   }
@@ -418,9 +414,11 @@ export class TrimergeClient<
     this.clientListSubs.emitChange(event);
   }
 
-  private emitError(error: TrimergeClientError) {
+  private emitError(type: TrimergeClientErrorType, cause: unknown) {
+    const wrappedCause =
+      cause instanceof Error ? cause : new Error(String(cause));
     for (const onError of this.errorSubs) {
-      onError(error);
+      onError(new TrimergeClientError(type, wrappedCause));
     }
   }
 
@@ -440,7 +438,7 @@ export class TrimergeClient<
           this.updateSyncState({ localSave: 'ready' });
         }
       } catch (err) {
-        this.emitError(new TrimergeClientError('local-store', err));
+        this.emitError('local-store', err);
         this.updateSyncState({ localSave: 'error' });
         throw err;
       } finally {
