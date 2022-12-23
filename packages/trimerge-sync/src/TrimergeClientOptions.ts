@@ -1,4 +1,4 @@
-import { CommitInfo, GetLocalStoreFn } from './types';
+import { GetLocalStoreFn } from './types';
 
 export type DocAndMetadata<Doc, CommitMetadata> = {
   doc: Doc;
@@ -37,22 +37,11 @@ export interface DocCache<SavedDoc, CommitMetadata> {
   has: (ref: string) => boolean;
   delete: (ref: string) => void;
 }
-
-export type MergeHelpers<LatestDoc, CommitMetadata> = {
-  getCommitInfo(ref: string): CommitInfo;
-  computeLatestDoc(ref: string): CommitDoc<LatestDoc, CommitMetadata>;
-  addMerge(
-    doc: LatestDoc,
-    metadata: CommitMetadata,
-    temp: boolean,
-    leftRef: string,
-    rightRef: string,
-  ): string;
-};
-export type MergeAllBranchesFn<LatestDoc, CommitMetadata> = (
-  branchHeadRefs: string[],
-  helpers: MergeHelpers<LatestDoc, CommitMetadata>,
-) => void;
+export type MergeDocFn<LatestDoc, CommitMetadata> = (
+  base: CommitDoc<LatestDoc, CommitMetadata> | undefined,
+  left: CommitDoc<LatestDoc, CommitMetadata>,
+  right: CommitDoc<LatestDoc, CommitMetadata>,
+) => DocAndMetadata<LatestDoc, CommitMetadata>;
 
 export type MigrateDocFn<
   SavedDoc,
@@ -84,7 +73,7 @@ export type TrimergeClientOptions<
   readonly computeRef: ComputeRefFn<Delta>;
 
   /** Merge all head commits */
-  readonly mergeAllBranches: MergeAllBranchesFn<LatestDoc, CommitMetadata>;
+  readonly merge: MergeDocFn<LatestDoc, CommitMetadata>;
 
   /** Get the Local commit store. */
   readonly getLocalStore: GetLocalStoreFn<CommitMetadata, Delta, Presence>;
