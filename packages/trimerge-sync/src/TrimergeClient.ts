@@ -187,9 +187,14 @@ export class TrimergeClient<
         for (const commit of commits) {
           this.addCommit(commit, 'external');
         }
-        this.mergeHeads();
-        this.docSubs.emitChange({ origin });
-        void this.sync();
+
+        // If the origin is local, we always merge heads. If the commit is from the remote and we're
+        // doing the initial load, we wait until the remote is done loading to merge heads.
+        if (origin === 'local' || this.syncState.remoteRead !== 'loading') {
+          this.mergeHeads();
+          this.docSubs.emitChange({ origin });
+          void this.sync();
+        }
         if (clientInfo) {
           this.setClientInfo(clientInfo, { origin });
         }
@@ -218,6 +223,11 @@ export class TrimergeClient<
         }
         if (event.read) {
           changes.remoteRead = event.read;
+          if (event.read === 'ready') {
+            this.mergeHeads();
+            this.docSubs.emitChange({ origin });
+            void this.sync();
+          }
         }
         if (event.save) {
           changes.remoteSave = event.save;
