@@ -365,7 +365,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
 
   protected handleAsError(code: ErrorCode) {
     return (error: Error) => {
-      console.warn(`[${this.userId}:${this.clientId}] Error:`, error);
+      console.warn(`[${this.userId}:${this.clientId}] Error (${code}):`, error);
       this.sendEvent(
         {
           type: 'error',
@@ -474,18 +474,17 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     if (presenceRef) {
       this.presence = presenceRef;
     }
-    if (commits.length > 0) {
-      await this.setRemoteState({ type: 'remote-state', save: 'pending' });
-    }
 
-    const ack = await this.commitRepo.addCommits(commits, undefined);
-    await this.sendEvent(ack, { self: true });
     const clientInfo: ClientInfo<Presence> | undefined = presenceRef && {
       ...presenceRef,
       userId: this.userId,
       clientId: this.clientId,
     };
     if (commits.length > 0) {
+      await this.setRemoteState({ type: 'remote-state', save: 'pending' });
+      // If we have commits, we'll send the commits and the client info together
+      const ack = await this.commitRepo.addCommits(commits, undefined);
+      await this.sendEvent(ack, { self: true });
       await this.setRemoteState({ type: 'remote-state', save: 'saving' });
       await this.sendEvent(
         {
@@ -497,6 +496,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         { local: true, remote: true },
       );
     } else if (clientInfo) {
+      // If we don't have commits, we'll just send the client presence information.
       await this.sendEvent(
         { type: 'client-presence', info: clientInfo },
         { local: true, remote: true },
