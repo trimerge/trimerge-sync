@@ -464,7 +464,13 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     }
     return await this.localQueue
       .add(() => this.doUpdate(commits, presence))
-      .catch(this.handleAsError('invalid-commits'));
+      .catch((e) => {
+        this.handleAsError('invalid-commits')(e);
+        // throw this so that the
+        // error is propagated to the
+        // `updateDoc` call.
+        throw e;
+      });
   }
 
   private async doUpdate(
