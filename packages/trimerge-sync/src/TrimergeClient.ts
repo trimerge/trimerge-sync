@@ -63,10 +63,10 @@ export class TrimergeClient<
 > {
   // The doc for the latest non-temp commit
   // This is used when rolling back all temp commits
-  private lastNonTempDoc?: CommitDoc<SavedDoc, CommitMetadata>;
+  private lastNonTempDocRef?: string;
 
   // The doc for the latest commit (potentially temp)
-  private lastSavedDoc?: CommitDoc<SavedDoc, CommitMetadata>;
+  private lastSavedDocRef?: string;
 
   // A cached migrated version of lastSavedDoc (could be instance equal)
   private latestDoc?: CommitDoc<LatestDoc, CommitMetadata>;
@@ -247,6 +247,13 @@ export class TrimergeClient<
     }
   };
 
+  get lastSavedDoc(): CommitDoc<SavedDoc, CommitMetadata> | undefined {
+    if (this.lastSavedDocRef === undefined) {
+      return undefined;
+    }
+    return this.getCommitDoc(this.lastSavedDocRef);
+  }
+
   get doc(): LatestDoc | undefined {
     if (this.lastSavedDoc === undefined) {
       return undefined;
@@ -338,6 +345,7 @@ export class TrimergeClient<
   };
 
   getCommitDoc(headRef: string): CommitDoc<SavedDoc, CommitMetadata> {
+    console.log('[CLIENT_SIDE_SNAPSHOTS] get commit doc: ', headRef);
     // This is an iterative implementation of:
     //  const baseValue = baseRef ? this.getCommitDoc(baseRef).doc : undefined;
 
@@ -502,8 +510,8 @@ export class TrimergeClient<
 
     if (type === 'external') {
       // Roll back to non-temp commit
-      if (this.lastSavedDoc !== this.lastNonTempDoc) {
-        this.lastSavedDoc = this.lastNonTempDoc;
+      if (this.lastSavedDocRef !== this.lastNonTempDocRef) {
+        this.lastSavedDocRef = this.lastNonTempDocRef;
         this.latestDoc = undefined;
       }
       // Remove all temp commits
@@ -518,11 +526,11 @@ export class TrimergeClient<
 
     this.commits.set(ref, commit);
     this.addHead(this.allHeadRefs, commit);
-    const currentRef = this.lastSavedDoc?.ref;
+    const currentRef = this.lastSavedDocRef;
     if (!currentRef || currentRef === baseRef || currentRef === mergeRef) {
-      this.lastSavedDoc = this.getCommitDoc(commit.ref);
+      this.lastSavedDocRef = commit.ref;
       if (type !== 'temp') {
-        this.lastNonTempDoc = this.lastSavedDoc;
+        this.lastNonTempDocRef = this.lastSavedDocRef;
       }
       this.latestDoc = undefined;
     }
@@ -554,8 +562,8 @@ export class TrimergeClient<
       this.tempCommits.delete(ref);
       this.unsyncedCommits.push(commit);
     }
-    if (this.lastSavedDoc?.ref === ref) {
-      this.lastNonTempDoc = this.lastSavedDoc;
+    if (this.lastSavedDocRef === ref) {
+      this.lastNonTempDocRef = this.lastSavedDocRef;
     }
   }
 
