@@ -70,10 +70,10 @@ export interface TrimergeClientInterface<
     onChange: OnChangeFn<LatestDoc | undefined, SubscribeEvent>,
   ): () => void;
   subscribeSyncStatus(
-    onChange: OnChangeFn<SyncStatus | undefined, SubscribeEvent>,
+    onChange: OnChangeFn<SyncStatus, SubscribeEvent>,
   ): () => void;
   subscribeClientList(
-    onChange: OnChangeFn<ClientList<Presence> | undefined, SubscribeEvent>,
+    onChange: OnChangeFn<ClientList<Presence>, SubscribeEvent>,
   ): () => void;
   subscribeError(onError: (error: TrimergeClientError) => void): () => void;
   updateDoc(
