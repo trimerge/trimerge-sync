@@ -54,13 +54,54 @@ export class TrimergeClientError extends Error {
   }
 }
 
-export class TrimergeClient<
+export interface TrimergeClientInterface<
   SavedDoc,
   LatestDoc extends SavedDoc,
   CommitMetadata,
   Delta,
   Presence,
 > {
+  isRemoteLeader: boolean;
+  clients: ClientList<Presence>;
+  doc: LatestDoc | undefined;
+  syncStatus: SyncStatus;
+
+  subscribeDoc(
+    onChange: OnChangeFn<LatestDoc | undefined, SubscribeEvent>,
+  ): () => void;
+  subscribeSyncStatus(
+    onChange: OnChangeFn<SyncStatus | undefined, SubscribeEvent>,
+  ): () => void;
+  subscribeClientList(
+    onChange: OnChangeFn<ClientList<Presence> | undefined, SubscribeEvent>,
+  ): () => void;
+  subscribeError(onError: (error: TrimergeClientError) => void): () => void;
+  updateDoc(
+    doc: LatestDoc,
+    metadata: CommitMetadata,
+    presence?: Presence,
+  ): Promise<void>;
+  updatePresence(state: Presence): void;
+  getCommit: (ref: string) => Commit<CommitMetadata, Delta>;
+  getCommitDoc(headRef: string): CommitDoc<SavedDoc, CommitMetadata>;
+  shutdown(): void | Promise<void>;
+}
+
+export class TrimergeClient<
+  SavedDoc,
+  LatestDoc extends SavedDoc,
+  CommitMetadata,
+  Delta,
+  Presence,
+> implements
+    TrimergeClientInterface<
+      SavedDoc,
+      LatestDoc,
+      CommitMetadata,
+      Delta,
+      Presence
+    >
+{
   // The doc for the latest non-temp commit
   // This is used when rolling back all temp commits
   private lastNonTempDoc?: CommitDoc<SavedDoc, CommitMetadata>;
