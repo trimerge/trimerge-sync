@@ -144,7 +144,6 @@ export class TrimergeClient<
       Presence
     >,
   ) {
-    console.log('[LIVE_COLLAB_LOAD_DEBUGGING] trimerge client created');
     this.differ = differ;
     this.migrate = migrate;
     this.mergeAllBranches = mergeAllBranches;
