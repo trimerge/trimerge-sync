@@ -76,9 +76,6 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     networkSettings: Partial<NetworkSettings> = {},
     private localChannel?: EventChannel<CommitMetadata, Delta, Presence>,
   ) {
-    console.log(
-      '[LIVE_COLLAB_LOAD_DEBUGGING] coordinating local store created',
-    );
     this.networkSettings = { ...DEFAULT_SETTINGS, ...networkSettings };
     this.reconnectDelayMs = this.networkSettings.initialDelayMs;
     localChannel?.onEvent(

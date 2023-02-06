@@ -346,7 +346,6 @@ export class TrimergeClient<
   };
 
   getCommitDoc(headRef: string): CommitDoc<SavedDoc, CommitMetadata> {
-    console.log('[CLIENT_SIDE_SNAPSHOTS] get commit doc: ', headRef);
     // This is an iterative implementation of:
     //  const baseValue = baseRef ? this.getCommitDoc(baseRef).doc : undefined;
 
