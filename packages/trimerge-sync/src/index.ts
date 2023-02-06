@@ -10,3 +10,4 @@ export * from './lib/mergeMetadata';
 export * from './merge-all-helper';
 export * from './lib/GraphVisualizers';
 export * from './lib/Commits';
+export * from './lib/SubscriberList';

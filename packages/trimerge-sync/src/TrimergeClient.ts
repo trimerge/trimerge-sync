@@ -81,7 +81,8 @@ export class TrimergeClient<
       a.localSave === b.localSave &&
       a.remoteRead === b.remoteRead &&
       a.remoteSave === b.remoteSave &&
-      a.remoteConnect === b.remoteConnect,
+      a.remoteConnect === b.remoteConnect &&
+      a.remoteCursor === b.remoteCursor,
   );
   private clientListSubs = new SubscriberList<
     ClientList<Presence>,
