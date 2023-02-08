@@ -174,7 +174,7 @@ export type ErrorEvent = {
 
 /** This is an 'Error-ified' version of the ErrorEvent */
 export class ErrorEventError extends Error {
-  readonly name = 'TrimergeClientError';
+  readonly name = 'ErrorEventError';
   readonly code: ErrorCode;
   readonly fatal: boolean | undefined;
   readonly reconnect: boolean | undefined;

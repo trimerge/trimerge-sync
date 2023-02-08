@@ -43,10 +43,11 @@ export type SubscribeEvent = {
 };
 
 export type TrimergeClientErrorType =
-  | 'migrate'
-  | 'merge-all-heads'
-  | 'local-store'
-  | 'remote';
+  | 'migrate' // occurred when migrating a doc to the latest version
+  | 'merge-all-heads' // occurred when merging all head commits
+  | 'local-store' // emitted by the local store
+  | 'remote' // emitted by the remote store
+  | 'add-commits'; // occurred when we tried to add commits
 
 export class TrimergeClientError extends Error {
   name = 'TrimergeClientError';
@@ -185,15 +186,19 @@ export class TrimergeClient<
 
     switch (event.type) {
       case 'commits': {
-        const { commits, clientInfo } = event;
-        for (const commit of commits) {
-          this.addCommit(commit, 'external');
-        }
-        this.mergeHeads();
-        this.docSubs.emitChange({ origin });
-        void this.sync();
-        if (clientInfo) {
-          this.setClientInfo(clientInfo, { origin });
+        try {
+          const { commits, clientInfo } = event;
+          for (const commit of commits) {
+            this.addCommit(commit, 'external');
+          }
+          this.mergeHeads();
+          this.docSubs.emitChange({ origin });
+          void this.sync();
+          if (clientInfo) {
+            this.setClientInfo(clientInfo, { origin });
+          }
+        } catch (e) {
+          this.emitError('add-commits', e);
         }
 
         break;
