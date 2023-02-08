@@ -1,3 +1,4 @@
+// Copyright 2023 Descript, Inc
 import {
   ClientInfo,
   ClientList,
@@ -296,14 +297,18 @@ export class TrimergeClient<
     doc: LatestDoc,
     metadata: CommitMetadata,
     presence?: Presence,
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     const ref = this.addNewCommit(doc, metadata, false);
     this.setPresence(presence, ref);
-    if (ref !== undefined) {
-      this.mergeHeads();
-      this.docSubs.emitChange({ origin: 'self' });
-      return await this.sync();
+
+    if (ref === undefined) {
+      return this.lastSavedDoc?.ref;
     }
+
+    this.mergeHeads();
+    this.docSubs.emitChange({ origin: 'self' });
+    await this.sync();
+    return ref;
   }
 
   updatePresence(state: Presence) {
