@@ -316,6 +316,36 @@ export class TrimergeClient<
     return ref;
   }
 
+  async restoreCommit(
+    refToRestore: string,
+    metadata: CommitMetadata,
+  ): Promise<void> {
+    if (this.lastNonTempDocRef === undefined) {
+      throw new Error('no non-temp commit to restore');
+    }
+
+    const ref = this.computeRef(
+      refToRestore,
+      this.lastNonTempDocRef,
+      undefined,
+    );
+    const commit = {
+      ref,
+      baseRef: refToRestore,
+      mergeRef: this.lastNonTempDocRef,
+      metadata:
+        this.addNewCommitMetadata?.(
+          metadata,
+          ref,
+          this.userId,
+          this.clientId,
+        ) ?? metadata,
+    };
+    this.addCommit(commit, 'local');
+    this.docSubs.emitChange({ origin: 'self' });
+    return await this.sync();
+  }
+
   updatePresence(state: Presence) {
     this.setPresence(state);
     void this.sync();
