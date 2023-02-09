@@ -435,4 +435,34 @@ describe('TrimergeClient', () => {
 
     expect(() => client.getCommitDoc(`${numCommits - 1}`)).not.toThrowError();
   });
+
+  describe.only('restore commit', () => {
+    type RefListComputeRefFn = Function & {
+      refList: string[];
+      refIndex: number;
+    };
+    it('restores a commit', async () => {
+      function refListComputeRef(this: RefListComputeRefFn) {
+        if (this.refIndex >= this.refList.length)
+          throw new Error('out of bounds');
+        const result = this.refList[this.refIndex];
+        this.refIndex = this.refIndex + 1;
+        return result;
+      }
+      refListComputeRef.refList = ['1', '2', '3'];
+      refListComputeRef.refIndex = 0;
+
+      const { client } = makeTrimergeClient(undefined, {
+        computeRef: refListComputeRef.bind(refListComputeRef),
+      });
+
+      const originalDoc = { foo: 'bar' };
+      await client.updateDoc(originalDoc, 'message');
+      await client.updateDoc({ foo: 'baz' }, 'message');
+      await client.updateDoc({ foo: 'baz', baz: 'qux' }, 'message');
+      await client.restoreCommit('1', 'restore');
+
+      expect(client.doc).toBe(originalDoc);
+    });
+  });
 });
