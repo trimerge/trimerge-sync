@@ -1,4 +1,3 @@
-import { ComputeRefFn } from '../TrimergeClientOptions';
 import { getRefListComputeRef } from './refListComputeRef';
 
 describe('refListComputeRef', () => {
