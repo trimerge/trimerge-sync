@@ -1,4 +1,4 @@
-import { TrimergeClient } from './TrimergeClient';
+import { TrimergeClient, TrimergeClientError } from './TrimergeClient';
 import { timeout } from './lib/Timeout';
 import { OnStoreEventFn, SyncEvent, SyncStatus } from './types';
 import {
@@ -168,25 +168,24 @@ describe('TrimergeClient', () => {
   });
 
   it('handles event with invalid baseRef', async () => {
-    const { onEvent } = makeTrimergeClient();
-    expect(() =>
-      onEvent(
-        {
-          type: 'commits',
-          commits: [
-            {
-              ref: 'a',
-              baseRef: 'unknown',
-              metadata: '',
-            },
-          ],
-        },
+    const { onEvent, client } = makeTrimergeClient();
+    const errors: TrimergeClientError[] = [];
+    client.subscribeError((e) => errors.push(e));
+    onEvent(
+      {
+        type: 'commits',
+        commits: [
+          {
+            ref: 'a',
+            baseRef: 'unknown',
+            metadata: '',
+          },
+        ],
+      },
 
-        false,
-      ),
-    ).toThrowErrorMatchingInlineSnapshot(
-      `"no way to resolve a: no cached doc for a and no cached doc or commit for unknown"`,
+      false,
     );
+    expect(errors.map((error) => error.message)).toMatchInlineSnapshot();
   });
 
   it('handles internal error', async () => {
