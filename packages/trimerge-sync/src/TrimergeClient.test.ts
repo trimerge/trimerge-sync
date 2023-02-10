@@ -185,7 +185,10 @@ describe('TrimergeClient', () => {
 
       false,
     );
-    expect(errors.map((error) => error.message)).toMatchInlineSnapshot();
+    const [error] = errors;
+    expect(error.cause.message).toMatchInlineSnapshot(
+      `"no way to resolve a: no cached doc for a and no cached doc or commit for unknown"`,
+    );
   });
 
   it('handles internal error', async () => {
