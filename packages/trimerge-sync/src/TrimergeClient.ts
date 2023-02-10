@@ -324,6 +324,14 @@ export class TrimergeClient<
       throw new Error('no non-temp commit to restore');
     }
 
+    // Attempting to restore any temp commit or lastNonTemp is a no-op
+    if (
+      this.tempCommits.has(refToRestore) ||
+      refToRestore === this.lastNonTempDocRef
+    ) {
+      return;
+    }
+
     const ref = this.computeRef(
       refToRestore,
       this.lastNonTempDocRef,
