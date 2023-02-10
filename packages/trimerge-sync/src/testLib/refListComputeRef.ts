@@ -5,6 +5,9 @@ type RefListComputeRefFn<Delta> = ComputeRefFn<Delta> & {
   refIndex: number;
 };
 
+/** RefListComputeRef is a simple implementation of compute ref which just generates
+ *  commit refs sequentially from a list of refs. This is just for testing purposes.
+ */
 export function getRefListComputeRef<Delta>(
   refList: string[],
 ): ComputeRefFn<Delta> {
