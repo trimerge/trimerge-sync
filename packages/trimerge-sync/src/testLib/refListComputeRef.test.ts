@@ -9,7 +9,7 @@ describe('refListComputeRef', () => {
     expect(computeRef("don't care", "don't care", "don't care")).toEqual('c');
   });
 
-  it('allow two differnt ref lists', () => {
+  it('allow two different ref lists', () => {
     const computeRef1 = getRefListComputeRef(['a', 'b', 'c']);
     const computeRef2 = getRefListComputeRef(['x', 'y', 'z']);
     expect(computeRef1("don't care", "don't care", "don't care")).toEqual('a');
