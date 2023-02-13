@@ -11,7 +11,6 @@ import {
 import { getBasicGraph } from './lib/GraphVisualizers';
 import { ClientInfo } from './types';
 import { timeout } from './lib/Timeout';
-import { getRefListComputeRef } from './testLib/refListComputeRef';
 
 type TestMetadata = {
   message: string;
