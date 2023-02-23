@@ -16,7 +16,8 @@ import {
   LeaderManager,
   LeaderSettings,
 } from './lib/LeaderManager';
-import { PromiseQueue } from './lib/PromiseQueue';
+import PQueue from 'p-queue';
+
 import { BroadcastEvent, EventChannel } from './lib/EventChannel';
 
 export type NetworkSettings = Readonly<
@@ -52,8 +53,8 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     read: 'loading',
   };
   private readonly unacknowledgedRefs = new Set<string>();
-  private readonly localQueue = new PromiseQueue();
-  private readonly remoteQueue = new PromiseQueue();
+  private readonly localQueue = new PQueue({ concurrency: 1 });
+  private readonly remoteQueue = new PQueue({ concurrency: 1 });
   private leaderManager?: LeaderManager = undefined;
   private readonly networkSettings: NetworkSettings;
   private initialized = false;
@@ -83,6 +84,14 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         this.onLocalBroadcastEvent(ev),
     );
     this.initialize().catch(this.handleAsError('internal'));
+  }
+
+  get settled(): Promise<void> {
+    return Promise.all([
+      this.localQueue.onIdle(),
+      this.remoteQueue.onIdle(),
+      this.remote?.settled ?? Promise.resolve(),
+    ]).then();
   }
 
   public get isRemoteLeader(): boolean {

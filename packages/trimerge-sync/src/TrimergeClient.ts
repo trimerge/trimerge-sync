@@ -119,6 +119,14 @@ export class TrimergeClient<
 
   private numPendingUpdates: number = 0;
 
+  private _settled:
+    | {
+        promise: Promise<void>;
+        resolve: () => void;
+        reject: (e: Error) => void;
+      }
+    | undefined;
+
   private syncState: SyncStatus = {
     localRead: 'loading',
     localSave: 'ready',
@@ -397,6 +405,30 @@ export class TrimergeClient<
     }
 
     return baseDoc;
+  }
+
+  /** Can be used to wait for all pending work to be completed. Note that this does not
+   *  imply that all changes have been synced to the server but that all local work has been completed.
+   *
+   *  For example, it's possible that the remote has successfully sent all changes to the server but that
+   *  the server has not yet acknowledged the changes. In this case, the settled will return true
+   *  even though we haven't confirmed that the server has received the changes.
+   */
+  get settled(): Promise<void> {
+    if (!this._settled) {
+      let resolve: () => void;
+      let reject: (e: Error) => void;
+      let promise = new Promise<void>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      this._settled = {
+        promise,
+        resolve: resolve!,
+        reject: reject!,
+      };
+    }
+    return Promise.all([this._settled.promise, this.store.settled]).then();
   }
 
   private migrateCommit(

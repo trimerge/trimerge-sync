@@ -252,11 +252,17 @@ export interface LocalStore<CommitMetadata, Delta, Presence> {
   ): Promise<void>;
   isRemoteLeader: boolean;
   shutdown(): void | Promise<void>;
+
+  // resolves when the local store has no pending work
+  settled: Promise<void>;
 }
 
 export interface Remote<CommitMetadata, Delta, Presence> {
   send(event: SyncEvent<CommitMetadata, Delta, Presence>): void;
   shutdown(): void | Promise<void>;
+
+  // resolves when the remote has no pending work
+  settled: Promise<void>;
 }
 
 export interface CommitRepository<CommitMetadata, Delta, Presence> {
