@@ -107,7 +107,7 @@ describe('TrimergeClient: 2 users', () => {
 
     expect(client.doc).toEqual({ hello: 'vorld' });
 
-    await timeout();
+    await client.settled;
 
     expect(basicGraph(store, client)).toMatchInlineSnapshot(`
       [
@@ -140,10 +140,8 @@ describe('TrimergeClient: 2 users', () => {
 
     const onStateChange = jest.fn();
     const unsub = client.subscribeDoc(onStateChange);
-    void client.updateDoc(undefined, { message: 'initialize' });
-    await timeout();
-    void client.updateDoc(undefined, { message: 'initialize' });
-    await timeout();
+    await client.updateDoc(undefined, { message: 'initialize' });
+    await client.updateDoc(undefined, { message: 'initialize' });
 
     expect(onStateChange.mock.calls).toMatchInlineSnapshot(`
       [
@@ -164,7 +162,7 @@ describe('TrimergeClient: 2 users', () => {
     const onStateChange = jest.fn();
     const unsub = client.subscribeClientList(onStateChange);
     client.updatePresence({ message: 'blah' });
-    await timeout();
+    await client.settled;
 
     expect(onStateChange.mock.calls.slice(-1)).toMatchInlineSnapshot(`
       [
@@ -201,13 +199,13 @@ describe('TrimergeClient: 2 users', () => {
     expect(client1.doc).toBe(undefined);
     expect(client2.doc).toBe(undefined);
 
-    const writePromise = client1.updateDoc({}, { message: 'initialize' });
+    client1.updateDoc({}, { message: 'initialize' });
 
     // Client 1 is updated, but not client2
     expect(client1.doc).toEqual({});
     expect(client2.doc).toBe(undefined);
 
-    await writePromise;
+    await client1.settled;
 
     // Client2 is updated now
     expect(client1.doc).toEqual({});
@@ -362,26 +360,6 @@ describe('TrimergeClient: 2 users', () => {
             "origin": "local",
           },
         ],
-        [
-          [
-            {
-              "clientId": "test",
-              "presence": undefined,
-              "ref": undefined,
-              "self": true,
-              "userId": "a",
-            },
-            {
-              "clientId": "test",
-              "presence": undefined,
-              "ref": undefined,
-              "userId": "b",
-            },
-          ],
-          {
-            "origin": "local",
-          },
-        ],
       ]
     `);
     expect(client2Sub.mock.calls).toMatchInlineSnapshot(`
@@ -398,26 +376,6 @@ describe('TrimergeClient: 2 users', () => {
           ],
           {
             "origin": "subscribe",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "test",
-              "presence": undefined,
-              "ref": undefined,
-              "self": true,
-              "userId": "b",
-            },
-            {
-              "clientId": "test",
-              "presence": undefined,
-              "ref": undefined,
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "local",
           },
         ],
         [
@@ -550,7 +508,7 @@ describe('TrimergeClient: 2 users', () => {
     expect(client1.doc).toEqual({ edit: true });
     expect(client2.doc).toBe(undefined);
 
-    await timeout();
+    await client1.settled;
 
     expect(client2.doc).toEqual({ edit: true });
   });
@@ -564,7 +522,7 @@ describe('TrimergeClient: 2 users', () => {
     void client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
     void client1.updateDoc({ hello: 'vorld' }, { message: 'change hello' });
 
-    await timeout();
+    await client1.settled;
 
     expect(client1.doc).toEqual({ hello: 'vorld' });
     expect(client2.doc).toEqual({ hello: 'vorld' });
@@ -582,7 +540,7 @@ describe('TrimergeClient: 2 users', () => {
     expect(client1.doc).toEqual({ hello: 'vorld' });
     expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
-    await timeout();
+    await client2.settled;
 
     expect(client1.doc).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
@@ -599,7 +557,7 @@ describe('TrimergeClient: 2 users', () => {
     expect(client1.doc).toEqual({});
     expect(client2.doc).toEqual(undefined);
 
-    await timeout();
+    client1.settled;
 
     expect(client2.doc).toEqual({});
 

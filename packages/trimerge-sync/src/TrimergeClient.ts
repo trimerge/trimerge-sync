@@ -415,20 +415,26 @@ export class TrimergeClient<
    *  even though we haven't confirmed that the server has received the changes.
    */
   get settled(): Promise<void> {
-    if (!this._settled) {
-      let resolve: () => void;
-      let reject: (e: Error) => void;
-      let promise = new Promise<void>((res, rej) => {
-        resolve = res;
-        reject = rej;
-      });
-      this._settled = {
-        promise,
-        resolve: resolve!,
-        reject: reject!,
-      };
+    let settledPromise = Promise.resolve();
+    if (this.unsyncedCommits.length > 0 || this.newPresence) {
+      if (!this._settled) {
+        let resolve: () => void;
+        let reject: (e: Error) => void;
+        let promise = new Promise<void>((res, rej) => {
+          resolve = res;
+          reject = rej;
+        });
+        this._settled = {
+          promise,
+          resolve: resolve!,
+          reject: reject!,
+        };
+        settledPromise;
+      }
+      settledPromise = this._settled.promise;
     }
-    return Promise.all([this._settled.promise, this.store.settled]).then();
+
+    return Promise.all([settledPromise, this.store.settled]).then();
   }
 
   private migrateCommit(
@@ -485,6 +491,7 @@ export class TrimergeClient<
         await this.store.update(commits, this.newPresence);
 
         if (this.numPendingUpdates === 1) {
+          this._settled?.resolve();
           this.updateSyncState({ localSave: 'ready' });
         }
       } catch (err) {
