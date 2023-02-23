@@ -52,6 +52,8 @@ class MockRemote implements Remote<unknown, unknown, unknown> {
   shutdown(): void | Promise<void> {
     //
   }
+
+  settled = Promise.resolve();
 }
 
 describe('CoordinatingLocalStore', () => {

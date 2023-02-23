@@ -49,6 +49,8 @@ class MockRemote implements Remote<any, any, any> {
     }
   }
 
+  settled = Promise.resolve();
+
   shutdown(): void {
     this.onEvent({ type: 'remote-state', connect: 'offline', read: 'offline' });
   }

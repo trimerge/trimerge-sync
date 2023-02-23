@@ -1,3 +1,4 @@
+import PQueue from 'p-queue';
 import {
   AckCommitsEvent,
   Commit,
@@ -9,12 +10,11 @@ import {
   SyncEvent,
 } from '../types';
 import { MemoryStore } from './MemoryStore';
-import { PromiseQueue } from '../lib/PromiseQueue';
 
 export class MemoryRemote<CommitMetadata, Delta, Presence>
   implements Remote<CommitMetadata, Delta, Presence>
 {
-  private readonly remoteQueue = new PromiseQueue();
+  private readonly remoteQueue = new PQueue();
   private closed = false;
 
   constructor(
@@ -29,6 +29,10 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
     );
   }
 
+  get settled() {
+    return this.remoteQueue.onIdle();
+  }
+
   private async handle(
     event: SyncEvent<CommitMetadata, Delta, Presence>,
   ): Promise<void> {
@@ -39,7 +43,7 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
       case 'commits':
         // FIXME: check for commits with wrong userId
         const ack = await this.addCommits(event.commits);
-        await this.onEvent(ack);
+        this.onEvent(ack);
         await this.broadcast({ ...event, syncId: ack.syncId });
         break;
 
