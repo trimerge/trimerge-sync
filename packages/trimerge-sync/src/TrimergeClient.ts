@@ -54,6 +54,10 @@ export class DocumentResolutionError extends Error {
   name = 'DocumentResolutionError';
 }
 
+export class UnknownRefError extends Error {
+  name = 'UnknownRefError';
+}
+
 export class TrimergeClientError extends Error {
   name = 'TrimergeClientError';
   constructor(readonly type: TrimergeClientErrorType, readonly cause: Error) {
@@ -344,7 +348,7 @@ export class TrimergeClient<
     if (commit) {
       return commit;
     }
-    throw new Error(`unknown ref "${ref}"`);
+    throw new UnknownRefError(`unknown ref "${ref}"`);
   };
 
   private mergeHelpers: MergeHelpers<LatestDoc, CommitMetadata> = {
