@@ -49,6 +49,11 @@ export type TrimergeClientErrorType =
   | 'remote' // emitted by the remote store
   | 'add-commits'; // occurred when we tried to add commits
 
+/** This error is emitted when TrimergeClient is unable to resolve the document at a particular commit. */
+export class DocumentResolutionError extends Error {
+  name = 'DocumentResolutionError';
+}
+
 export class TrimergeClientError extends Error {
   name = 'TrimergeClientError';
   constructor(readonly type: TrimergeClientErrorType, readonly cause: Error) {
@@ -373,7 +378,13 @@ export class TrimergeClient<
       }
 
       // otherwise, add the commit to the commit walk.
-      const commit = this.getCommit(currentCommitRef);
+      const commit = this.commits.get(currentCommitRef);
+
+      if (!commit) {
+        throw new DocumentResolutionError(
+          `Could not construct commit doc for ref ${headRef} because commit ${currentCommitRef} is missing`,
+        );
+      }
       commitWalk.push(commit);
       currentCommitRef = commit.baseRef;
     }
@@ -393,7 +404,9 @@ export class TrimergeClient<
     // I don't believe this can actually happen but couldn't
     // get the types to work out.
     if (!baseDoc) {
-      throw new Error(`Could not construct commit doc for ref ${headRef}`);
+      throw new DocumentResolutionError(
+        `Could not construct commit doc for ref ${headRef}`,
+      );
     }
 
     return baseDoc;
@@ -490,7 +503,7 @@ export class TrimergeClient<
         !this.commits.has(baseRef) &&
         !this.docCache.has(baseRef)
       ) {
-        throw new Error(
+        throw new DocumentResolutionError(
           `no way to resolve ${ref}: no cached doc for ${ref} and no cached doc or commit for ${baseRef}`,
         );
       }
