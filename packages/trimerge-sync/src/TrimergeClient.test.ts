@@ -437,4 +437,47 @@ describe('TrimergeClient', () => {
 
     expect(() => client.getCommitDoc(`${numCommits - 1}`)).not.toThrowError();
   });
+
+  it('errors on double shutdown', async () => {
+    const docId = 'test-doc-remote';
+    const { client } = makeTrimergeClient(undefined, {});
+
+    try {
+      await client.shutdown();
+      await client.shutdown();
+      fail();
+    } catch (e) {
+      expect(e).toMatchInlineSnapshot(`[Error: already shutdown]`);
+    }
+  });
+
+  it('rejects edits after shutdown', async () => {
+    const { client } = makeTrimergeClient(undefined, {});
+
+    await client.shutdown();
+
+    try {
+      await client.updateDoc({ foo: 'bar' }, 'message');
+      fail();
+    } catch (e) {
+      expect(e).toMatchInlineSnapshot(
+        `[Error: attempting to update doc after shutdown]`,
+      );
+    }
+  });
+
+  it('rejects presence updates after shutdown', async () => {
+    const { client } = makeTrimergeClient(undefined, {});
+
+    await client.shutdown();
+
+    try {
+      client.updatePresence({ foo: 'bar' });
+      fail();
+    } catch (e) {
+      expect(e).toMatchInlineSnapshot(
+        `[Error: attempting to update presence after shutdown]`,
+      );
+    }
+  });
 });
