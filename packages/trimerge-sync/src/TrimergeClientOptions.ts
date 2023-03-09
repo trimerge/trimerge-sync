@@ -96,6 +96,9 @@ export type TrimergeClientOptions<
 
   readonly addNewCommitMetadata?: AddNewCommitMetadataFn<CommitMetadata>;
 
+  /** Any user-land cleanup that should be performed when TrimergeClient shuts down. */
+  readonly shutdown?: () => void | Promise<void>;
+
   /** This is an optional entry point to an alternative storage system for documents. This allows
    *  consumers of TrimergeClient to create snapshots of the document and cut off the recursive
    *  building up of the Document.

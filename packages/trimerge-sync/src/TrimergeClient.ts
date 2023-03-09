@@ -111,6 +111,9 @@ export class TrimergeClient<
   private readonly addNewCommitMetadata:
     | AddNewCommitMetadataFn<CommitMetadata>
     | undefined;
+
+  /** The user-defined shutdown callback. */
+  private readonly onShutdown: (() => void | Promise<void>) | undefined;
   private readonly docCache: DocCache<SavedDoc, CommitMetadata>;
   private tempCommits = new Map<string, Commit<CommitMetadata, Delta>>();
   private unsyncedCommits: Commit<CommitMetadata, Delta>[] = [];
@@ -139,6 +142,7 @@ export class TrimergeClient<
       getLocalStore,
       addNewCommitMetadata,
       docCache = new InMemoryDocCache(),
+      shutdown: onShutdown,
     }: TrimergeClientOptions<
       SavedDoc,
       LatestDoc,
@@ -150,6 +154,7 @@ export class TrimergeClient<
     this.differ = differ;
     this.migrate = migrate;
     this.mergeAllBranches = mergeAllBranches;
+    this.onShutdown = onShutdown;
     this.computeRef = computeRef;
     this.addNewCommitMetadata = addNewCommitMetadata;
     this.docCache = docCache;
@@ -647,6 +652,19 @@ export class TrimergeClient<
   }
 
   public shutdown(): Promise<void> | void {
-    return this.store.shutdown();
+    const shutdownPromises: Promise<void>[] = [];
+
+    const storeShutdown = this.store.shutdown();
+    if (storeShutdown) {
+      shutdownPromises.push(storeShutdown);
+    }
+
+    const shutdownCallbackPromise = this.onShutdown?.();
+    if (shutdownCallbackPromise) {
+      shutdownPromises.push(shutdownCallbackPromise);
+    }
+    return shutdownPromises.length > 0
+      ? Promise.all(shutdownPromises).then(() => {})
+      : undefined;
   }
 }
