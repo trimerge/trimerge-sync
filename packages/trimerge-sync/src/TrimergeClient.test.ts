@@ -446,7 +446,9 @@ describe('TrimergeClient', () => {
       await client.shutdown();
       fail();
     } catch (e) {
-      expect(e).toMatchInlineSnapshot(`[Error: already shutdown]`);
+      expect(e).toMatchInlineSnapshot(
+        `[Invariant Violation: already shutdown]`,
+      );
     }
   });
 
@@ -460,7 +462,7 @@ describe('TrimergeClient', () => {
       fail();
     } catch (e) {
       expect(e).toMatchInlineSnapshot(
-        `[Error: attempting to update doc after shutdown]`,
+        `[Invariant Violation: attempting to update doc after shutdown]`,
       );
     }
   });
@@ -475,7 +477,7 @@ describe('TrimergeClient', () => {
       fail();
     } catch (e) {
       expect(e).toMatchInlineSnapshot(
-        `[Error: attempting to update presence after shutdown]`,
+        `[Invariant Violation: attempting to update presence after shutdown]`,
       );
     }
   });
