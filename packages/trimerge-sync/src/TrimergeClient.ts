@@ -122,6 +122,8 @@ export class TrimergeClient<
 
   private numPendingUpdates: number = 0;
 
+  private isShutdown = false;
+
   private syncState: SyncStatus = {
     localRead: 'loading',
     localSave: 'ready',
@@ -308,6 +310,10 @@ export class TrimergeClient<
     metadata: CommitMetadata,
     presence?: Presence,
   ): Promise<string | undefined> {
+    if (this.isShutdown) {
+      throw new Error('attempting to update doc after shutdown');
+    }
+
     const ref = this.addNewCommit(doc, metadata, false);
     this.setPresence(presence, ref);
 
@@ -322,6 +328,9 @@ export class TrimergeClient<
   }
 
   updatePresence(state: Presence) {
+    if (this.isShutdown) {
+      throw new Error('attempting to update presence after shutdown');
+    }
     this.setPresence(state);
     void this.sync();
   }
@@ -652,6 +661,11 @@ export class TrimergeClient<
   }
 
   public shutdown(): Promise<void> | void {
+    if (this.isShutdown) {
+      throw new Error('already shutdown');
+    }
+    this.isShutdown = true;
+
     const shutdownPromises: Promise<void>[] = [];
 
     const storeShutdown = this.store.shutdown();
