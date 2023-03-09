@@ -439,7 +439,6 @@ describe('TrimergeClient', () => {
   });
 
   it('errors on double shutdown', async () => {
-    const docId = 'test-doc-remote';
     const { client } = makeTrimergeClient(undefined, {});
 
     try {
