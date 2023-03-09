@@ -25,6 +25,7 @@ import { OnChangeFn, SubscriberList } from './lib/SubscriberList';
 import { asCommitRefs, CommitRefs } from './lib/Commits';
 import { mergeMetadata } from './lib/mergeMetadata';
 import { InMemoryDocCache } from './InMemoryDocCache';
+import invariant from 'invariant';
 
 type AddCommitType =
   // Added from this client
@@ -310,9 +311,7 @@ export class TrimergeClient<
     metadata: CommitMetadata,
     presence?: Presence,
   ): Promise<string | undefined> {
-    if (this.isShutdown) {
-      throw new Error('attempting to update doc after shutdown');
-    }
+    invariant(!this.isShutdown, 'attempting to update doc after shutdown');
 
     const ref = this.addNewCommit(doc, metadata, false);
     this.setPresence(presence, ref);
@@ -328,9 +327,7 @@ export class TrimergeClient<
   }
 
   updatePresence(state: Presence) {
-    if (this.isShutdown) {
-      throw new Error('attempting to update presence after shutdown');
-    }
+    invariant(!this.isShutdown, 'attempting to update presence after shutdown');
     this.setPresence(state);
     void this.sync();
   }
@@ -660,25 +657,18 @@ export class TrimergeClient<
     return ref;
   }
 
-  public shutdown(): Promise<void> | void {
-    if (this.isShutdown) {
-      throw new Error('already shutdown');
-    }
+  public async shutdown(): Promise<void> {
+    invariant(!this.isShutdown, 'already shutdown');
     this.isShutdown = true;
 
-    const shutdownPromises: Promise<void>[] = [];
-
-    const storeShutdown = this.store.shutdown();
-    if (storeShutdown) {
-      shutdownPromises.push(storeShutdown);
+    const storeShutdownPromise = this.store.shutdown();
+    if (storeShutdownPromise) {
+      await storeShutdownPromise;
     }
 
     const shutdownCallbackPromise = this.onShutdown?.();
     if (shutdownCallbackPromise) {
-      shutdownPromises.push(shutdownCallbackPromise);
+      await shutdownCallbackPromise;
     }
-    return shutdownPromises.length > 0
-      ? Promise.all(shutdownPromises).then(() => {})
-      : undefined;
   }
 }

@@ -40,7 +40,8 @@
   },
   "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
   "dependencies": {
-    "project-name-generator": "^2.1.9"
+    "project-name-generator": "^2.1.9",
+    "invariant": "^2.2.4"
   },
   "files": [
     "dist/**/*",
