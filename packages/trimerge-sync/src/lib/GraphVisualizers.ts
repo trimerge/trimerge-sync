@@ -94,7 +94,7 @@ class CommitNode<CommitMetadata = unknown> implements Node {
 /** PlaceholderNode is used to represent refs for which we don't have an underlying commit.
  *  This is useful for cases where we want to render a subset of the commit graph.
  */
-class PlaceholderNode<CommitMetadata = unknown> implements Node {
+class PlaceholderNode implements Node {
   isReferenced = true;
   constructor(private readonly ref: string) {}
 
