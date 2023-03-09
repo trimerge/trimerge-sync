@@ -663,8 +663,10 @@ describe('GraphVisualizers', () => {
       .toMatchInlineSnapshot(`
       "digraph {
       "middle-merge-base-ref" [shape=ellipse, label="middle-merge-base-ref", color=black, fillcolor=azure, style=filled, id="middle-merge-base-ref"];
+      "middle-merge-merge-ref" [shape=ellipse, label="middle-merge-merge-ref", color=black, fillcolor=beige, style=dashed];
       "middle-merge" [shape=rectangle, label="middle-merge", color=black, fillcolor=azure, style=filled, id="middle-merge"];
       "middle-merge-base-ref" -> "middle-merge" [label=left]
+      "middle-merge-merge-ref" -> "middle-merge" [label=right]
       "last-merge-base-ref" [shape=ellipse, label="last-merge-base-ref", color=black, fillcolor=azure, style=filled, id="last-merge-base-ref"];
       "middle-merge-base-ref" -> "last-merge-base-ref" [label="convert Overdub to audio"]
       "last-merge-2" [shape=rectangle, label="last-merge-2", color=black, fillcolor=azure, style=filled, id="last-merge-2"];
@@ -673,6 +675,39 @@ describe('GraphVisualizers', () => {
       "last-merge-1" [shape=rectangle, label="last-merge-1", color=black, fillcolor=azure, style=filled, id="last-merge-1"];
       "last-merge-base-ref" -> "last-merge-1" [label=left]
       "middle-merge" -> "last-merge-1" [label=right]
+      }"
+    `);
+  });
+
+  it('allows missing base commits', async () => {
+    const commits: Commit<any, any>[] = [
+      {
+        graph: {
+          ref: 'ref',
+          baseRef: 'base-ref',
+          delta: '',
+        },
+        edit: {
+          message: 'blah',
+        },
+        server: {
+          index: 1,
+          main: false,
+          timestamp: '2022-10-14T21:28:34.011Z',
+        },
+      },
+    ].map((commit) => ({
+      ref: commit.graph.ref,
+      baseRef: commit.graph.baseRef,
+      metadata: commit.edit.message,
+    }));
+
+    expect(getTestDotGraph(commits, (commit) => commit.metadata).graph)
+      .toMatchInlineSnapshot(`
+      "digraph {
+      "base-ref" [shape=ellipse, label="base-ref", color=black, fillcolor=azure, style=dashed];
+      "ref" [shape=ellipse, label="ref", color=black, fillcolor=beige, style=filled, id="ref"];
+      "base-ref" -> "ref" [label="blah"]
       }"
     `);
   });

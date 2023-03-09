@@ -31,7 +31,7 @@ export function getBasicGraph<CommitMetadata>(
   return result;
 }
 
-type NodeType = 'edit' | 'merge' | 'meta';
+type NodeType = 'edit' | 'merge' | 'meta' | 'placeholder';
 
 interface Node {
   get id(): string;
@@ -88,6 +88,40 @@ class CommitNode<CommitMetadata = unknown> implements Node {
   }
   get isMain(): boolean {
     return this._isMain(this.commit);
+  }
+}
+
+/** PlaceholderNode is used to represent refs for which we don't have an underlying commit.
+ *  This is useful for cases where we want to render a subset of the commit graph.
+ */
+class PlaceholderNode<CommitMetadata = unknown> implements Node {
+  isReferenced = true;
+  constructor(private readonly ref: string) {}
+
+  get id(): string {
+    return this.ref;
+  }
+
+  get label(): string {
+    return this.ref;
+  }
+  get editLabel(): string {
+    return '';
+  }
+  get baseRef(): string | undefined {
+    return undefined;
+  }
+  get mergeRef(): string | undefined {
+    return undefined;
+  }
+
+  nodeType: NodeType = 'placeholder';
+
+  get userId(): string | undefined {
+    return undefined;
+  }
+  get isMain(): boolean {
+    return false;
   }
 }
 
@@ -252,30 +286,32 @@ function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
 
     // keep track of the commits that the nodes in the digraph represent.
     // if the node is a meta node, we just say that it represents the last commit.
-    let representedCommit;
+    let representedCommit: Commit<CommitMetadata, unknown> | undefined;
 
-    if (node.nodeType === 'meta') {
-      const metaNode = node as MetaNode<CommitMetadata>;
-      representedCommit =
-        metaNode.children[metaNode.children.length - 1].commit;
-    } else {
-      representedCommit = (node as CommitNode<CommitMetadata>).commit;
+    switch (node.nodeType) {
+      case 'meta':
+        const metaNode = node as MetaNode<CommitMetadata>;
+        representedCommit =
+          metaNode.children[metaNode.children.length - 1].commit;
+        break;
+      case 'edit':
+      case 'merge':
+        representedCommit = (node as CommitNode<CommitMetadata>).commit;
+        break;
     }
 
-    if (!representedCommit) {
-      throw new Error(
-        'Represented commit is undefined. Probably an empty meta node.',
-      );
+    if (representedCommit) {
+      commits.push(representedCommit);
     }
-
-    commits.push(representedCommit);
 
     lines.push(
       `"${node.id}" [shape=${
         node.nodeType === 'merge' ? 'rectangle' : 'ellipse'
       }, label="${node.label}", color=${
         node.isMain ? 'red' : 'black'
-      }, fillcolor=${color}, style=filled, id="${representedCommit.ref}"];`,
+      }, fillcolor=${color}, style=${
+        node.nodeType === 'placeholder' ? 'dashed' : 'filled'
+      }${representedCommit ? `, id="${representedCommit.ref}"` : ''}];`,
     );
 
     if (node.baseRef) {
@@ -331,11 +367,10 @@ export function getDotGraph<CommitMetadata>(
 
     // see if we can merge this into an existing node.
     if (commit.baseRef) {
-      const baseNode = nodeMap.get(commit.baseRef);
+      let baseNode = nodeMap.get(commit.baseRef);
       if (!baseNode) {
-        throw new Error(
-          `commits should be partially ordered, but could not find ref ${commit.baseRef}`,
-        );
+        baseNode = new PlaceholderNode(commit.baseRef);
+        nodeMap.set(commit.baseRef, baseNode);
       }
       switch (baseNode.nodeType) {
         case 'edit':
@@ -364,6 +399,11 @@ export function getDotGraph<CommitMetadata>(
 
     if (isMergeCommit(commit)) {
       let mergeNode = nodeMap.get(commit.mergeRef);
+
+      if (!mergeNode) {
+        mergeNode = new PlaceholderNode(commit.mergeRef);
+        nodeMap.set(commit.mergeRef, mergeNode);
+      }
 
       // Allow for the possibility that we don't have the
       // commit that corresponds to the mergeRef.
