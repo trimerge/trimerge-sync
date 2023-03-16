@@ -78,9 +78,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     Delta,
     Presence
   >;
-  private readonly localChannel:
-    | EventChannel<CommitMetadata, Delta, Presence>
-    | undefined;
+  private readonly localChannel: EventChannel<CommitMetadata, Delta, Presence>;
   private leaderManager?: LeaderManager = undefined;
   private readonly networkSettings: NetworkSettings;
   private initialized = false;
@@ -102,7 +100,8 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     this.getRemote = getRemote;
     this.networkSettings = { ...DEFAULT_SETTINGS, ...networkSettings };
     this.reconnectDelayMs = this.networkSettings.initialDelayMs;
-    localChannel?.onEvent(
+    this.localChannel = localChannel;
+    this.localChannel.onEvent(
       (ev: BroadcastEvent<CommitMetadata, Delta, Presence>) =>
         this.onLocalBroadcastEvent(ev),
     );
@@ -423,7 +422,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       }
     }
     if (local) {
-      await this.localChannel?.sendEvent({ event, remoteOrigin });
+      await this.localChannel.sendEvent({ event, remoteOrigin });
     }
     if (remote && this.remote) {
       await this.remote.send(event);
@@ -449,7 +448,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           }
         },
         (event) => {
-          this.localChannel?.sendEvent({ event, remoteOrigin: false });
+          this.localChannel.sendEvent({ event, remoteOrigin: false });
         },
         networkSettings,
       );

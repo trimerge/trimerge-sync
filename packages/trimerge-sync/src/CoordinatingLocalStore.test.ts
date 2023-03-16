@@ -128,6 +128,17 @@ describe('CoordinatingLocalStore', () => {
             "type": "client-join",
           },
         ],
+        [
+          {
+            "info": {
+              "clientId": "",
+              "presence": undefined,
+              "ref": undefined,
+              "userId": "",
+            },
+            "type": "client-presence",
+          },
+        ],
       ]
     `);
 
