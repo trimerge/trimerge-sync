@@ -34,6 +34,17 @@ const DEFAULT_SETTINGS: NetworkSettings = {
   ...DEFAULT_LEADER_SETTINGS,
 };
 
+export type CoordinatingLocalStoreOptions<CommitMetadata, Delta, Presence> = {
+  onStoreEvent: OnStoreEventFn<CommitMetadata, Delta, Presence>;
+  commitRepo: CommitRepository<CommitMetadata, Delta, Presence>;
+
+  getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>;
+
+  networkSettings?: Partial<NetworkSettings>;
+
+  localChannel: EventChannel<CommitMetadata, Delta, Presence>;
+};
+
 export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   implements LocalStore<CommitMetadata, Delta, Presence>
 {
@@ -54,6 +65,22 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private readonly unacknowledgedRefs = new Set<string>();
   private readonly localQueue = new PromiseQueue();
   private readonly remoteQueue = new PromiseQueue();
+  private readonly onStoreEvent: OnStoreEventFn<
+    CommitMetadata,
+    Delta,
+    Presence
+  >;
+  private readonly getRemote:
+    | GetRemoteFn<CommitMetadata, Delta, Presence>
+    | undefined;
+  private readonly commitRepo: CommitRepository<
+    CommitMetadata,
+    Delta,
+    Presence
+  >;
+  private readonly localChannel:
+    | EventChannel<CommitMetadata, Delta, Presence>
+    | undefined;
   private leaderManager?: LeaderManager = undefined;
   private readonly networkSettings: NetworkSettings;
   private initialized = false;
@@ -62,20 +89,17 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     private readonly userId: string,
     private readonly clientId: string,
     private readonly localStoreId: string,
-    private readonly onStoreEvent: OnStoreEventFn<
-      CommitMetadata,
-      Delta,
-      Presence
-    >,
-    private readonly commitRepo: CommitRepository<
-      CommitMetadata,
-      Delta,
-      Presence
-    >,
-    private readonly getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>,
-    networkSettings: Partial<NetworkSettings> = {},
-    private localChannel?: EventChannel<CommitMetadata, Delta, Presence>,
+    {
+      onStoreEvent,
+      commitRepo,
+      getRemote,
+      networkSettings = {},
+      localChannel,
+    }: CoordinatingLocalStoreOptions<CommitMetadata, Delta, Presence>,
   ) {
+    this.onStoreEvent = onStoreEvent;
+    this.commitRepo = commitRepo;
+    this.getRemote = getRemote;
     this.networkSettings = { ...DEFAULT_SETTINGS, ...networkSettings };
     this.reconnectDelayMs = this.networkSettings.initialDelayMs;
     localChannel?.onEvent(

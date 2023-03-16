@@ -60,7 +60,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
   getLocalStore: GetLocalStoreFn<CommitMetadata, Delta, Presence> = (
     userId,
     clientId,
-    onEvent,
+    onStoreEvent,
   ) => {
     const eventChannel = new MemoryEventChannel<
       CommitMetadata,
@@ -71,18 +71,20 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
       userId,
       clientId,
       this.localStoreId,
-      onEvent,
-      new MemoryCommitRepository(this),
-      this.getRemoteFn,
       {
-        initialDelayMs: 0,
-        reconnectBackoffMultiplier: 1,
-        maxReconnectDelayMs: 0,
-        electionTimeoutMs: 0,
-        heartbeatIntervalMs: 10,
-        heartbeatTimeoutMs: 50,
+        onStoreEvent,
+        commitRepo: new MemoryCommitRepository(this),
+        getRemote: this.getRemoteFn,
+        networkSettings: {
+          initialDelayMs: 0,
+          reconnectBackoffMultiplier: 1,
+          maxReconnectDelayMs: 0,
+          electionTimeoutMs: 0,
+          heartbeatIntervalMs: 10,
+          heartbeatTimeoutMs: 50,
+        },
+        localChannel: eventChannel,
       },
-      eventChannel,
     );
     this.localStores.push({ store, eventChannel });
     return store;

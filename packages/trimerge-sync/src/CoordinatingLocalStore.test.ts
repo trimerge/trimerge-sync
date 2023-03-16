@@ -1,5 +1,6 @@
 import { CoordinatingLocalStore } from './CoordinatingLocalStore';
 import { timeout } from './lib/Timeout';
+import { MemoryEventChannel } from './testLib/MemoryBroadcastChannel';
 import {
   AckCommitsEvent,
   CommitRepository,
@@ -57,13 +58,11 @@ class MockRemote implements Remote<unknown, unknown, unknown> {
 describe('CoordinatingLocalStore', () => {
   it('handle double shutdown', async () => {
     const fn = jest.fn();
-    const store = new CoordinatingLocalStore(
-      '',
-      '',
-      '',
-      fn,
-      new MockCommitRepository(),
-    );
+    const store = new CoordinatingLocalStore('', '', '', {
+      onStoreEvent: fn,
+      commitRepo: new MockCommitRepository(),
+      localChannel: new MemoryEventChannel('dummy'),
+    });
     await store.shutdown();
     await store.shutdown();
     expect(fn.mock.calls).toMatchInlineSnapshot(`
@@ -93,19 +92,17 @@ describe('CoordinatingLocalStore', () => {
     let localStore: CoordinatingLocalStore<unknown, unknown, unknown>;
 
     await new Promise<void>((resolve) => {
-      localStore = new CoordinatingLocalStore(
-        '',
-        '',
-        '',
-        fn,
-        new MockCommitRepository(),
-        (_, __, ___, onEvent) => {
+      localStore = new CoordinatingLocalStore('', '', '', {
+        onStoreEvent: fn,
+        commitRepo: new MockCommitRepository(),
+        getRemote: (_, __, ___, onEvent) => {
           mockRemote = new MockRemote(onEvent);
           sendSpy = jest.spyOn(mockRemote, 'send');
           resolve();
           return mockRemote;
         },
-      );
+        localChannel: new MemoryEventChannel('dummy'),
+      });
     });
 
     mockRemote!.onEvent({ type: 'remote-state', connect: 'online' });
@@ -139,13 +136,11 @@ describe('CoordinatingLocalStore', () => {
 
   it('handle empty update call', async () => {
     const fn = jest.fn();
-    const store = new CoordinatingLocalStore(
-      '',
-      '',
-      '',
-      fn,
-      new MockCommitRepository(),
-    );
+    const store = new CoordinatingLocalStore('', '', '', {
+      onStoreEvent: fn,
+      commitRepo: new MockCommitRepository(),
+      localChannel: new MemoryEventChannel('dummy'),
+    });
     await store.update([], undefined);
     expect(fn.mock.calls).toMatchInlineSnapshot(`
       [

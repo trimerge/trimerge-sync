@@ -61,26 +61,30 @@ function makeIndexedDbCoordinatingLocalStoreFactory(
   getRemote?: GetRemoteFn<any, any, any>,
   addStoreMetadata?: AddStoreMetadataFn<any>,
 ): GetLocalStoreFn<any, any, any> {
-  return (userId, clientId, onEvent) => {
+  return (userId, clientId, onStoreEvent) => {
+    const commitRepo = new IndexedDbCommitRepository(docId, {
+      localIdGenerator: () => storeId,
+      addStoreMetadata,
+    });
+    const networkSettings = {
+      initialDelayMs: 0,
+      reconnectBackoffMultiplier: 1,
+      maxReconnectDelayMs: 0,
+      electionTimeoutMs: 0,
+      heartbeatIntervalMs: 10,
+      heartbeatTimeoutMs: 50,
+    };
     return new CoordinatingLocalStore<any, any, any>(
       userId,
       clientId,
       storeId,
-      onEvent,
-      new IndexedDbCommitRepository(docId, {
-        localIdGenerator: () => storeId,
-        addStoreMetadata,
-      }),
-      getRemote,
       {
-        initialDelayMs: 0,
-        reconnectBackoffMultiplier: 1,
-        maxReconnectDelayMs: 0,
-        electionTimeoutMs: 0,
-        heartbeatIntervalMs: 10,
-        heartbeatTimeoutMs: 50,
+        onStoreEvent,
+        commitRepo,
+        networkSettings,
+        getRemote,
+        localChannel: makeTestBroadcastChannel(docId),
       },
-      makeTestBroadcastChannel(docId),
     );
   };
 }
