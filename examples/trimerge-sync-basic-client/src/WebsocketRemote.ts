@@ -86,4 +86,8 @@ export class WebsocketRemote<CommitMetadata, Delta, Presence>
     });
     this.shutdown();
   }
+
+  configureLogger(): void {
+    // noop
+  }
 }
