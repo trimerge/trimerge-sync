@@ -50,16 +50,13 @@ export function createLocalStoreFactory(
   docId: string,
 ): GetLocalStoreFn<any, any, any> {
   return (userId, clientId, onEvent) => {
-    const store = new CoordinatingLocalStore(
-      userId,
-      clientId,
-      randomId(),
-      onEvent,
-      new IndexedDbCommitRepository(docId, {
+    const store = new CoordinatingLocalStore(userId, clientId, randomId(), {
+      onStoreEvent: onEvent,
+      commitRepo: new IndexedDbCommitRepository(docId, {
         localIdGenerator: randomId,
         remoteId: 'localhost',
       }),
-      (userId, localStoreId, lastSyncInfo, onEvent) =>
+      getRemote: (userId, localStoreId, lastSyncInfo, onEvent) =>
         new WebsocketRemote(
           { userId, readonly: false },
           localStoreId,
@@ -67,7 +64,12 @@ export function createLocalStoreFactory(
           onEvent,
           `ws://localhost:4444/${encodeURIComponent(docId)}`,
         ),
-    );
+      localChannel: {
+        onEvent: () => {},
+        sendEvent: () => {},
+        shutdown: () => {},
+      },
+    });
     return store;
   };
 }
