@@ -5,6 +5,7 @@ import {
   RemoteSyncInfo,
   CommitAck,
   CommitRepository,
+  Logger,
 } from '../types';
 import { MemoryStore } from './MemoryStore';
 
@@ -14,6 +15,10 @@ export class MemoryCommitRepository<CommitMetadata, Delta, Presence>
   constructor(
     private readonly store: MemoryStore<CommitMetadata, Delta, Presence>,
   ) {}
+
+  configureLogger(logger: Logger): void {
+    /* no-op */
+  }
 
   addCommits(
     commits: Commit<CommitMetadata, Delta>[],

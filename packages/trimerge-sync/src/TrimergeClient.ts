@@ -6,6 +6,8 @@ import {
   ErrorEventError,
   LocalClientInfo,
   LocalStore,
+  Loggable,
+  Logger,
   OnStoreEventFn,
   SyncStatus,
 } from './types';
@@ -26,6 +28,7 @@ import { asCommitRefs, CommitRefs } from './lib/Commits';
 import { mergeMetadata } from './lib/mergeMetadata';
 import { InMemoryDocCache } from './InMemoryDocCache';
 import invariant from 'invariant';
+import { PrefixLogger } from './lib/PrefixLogger';
 
 type AddCommitType =
   // Added from this client
@@ -72,7 +75,8 @@ export class TrimergeClient<
   CommitMetadata,
   Delta,
   Presence,
-> {
+> implements Loggable
+{
   // The doc for the latest non-temp commit
   // This is used when rolling back all temp commits
   private lastNonTempDocRef?: string;
@@ -127,6 +131,7 @@ export class TrimergeClient<
   private readonly docCache: DocCache<SavedDoc, CommitMetadata>;
   private tempCommits = new Map<string, Commit<CommitMetadata, Delta>>();
   private unsyncedCommits: Commit<CommitMetadata, Delta>[] = [];
+  private logger: Logger | undefined = console;
 
   private newPresence: ClientInfo<Presence> | undefined;
 
@@ -183,6 +188,15 @@ export class TrimergeClient<
     );
   }
 
+  configureLogger(logger: Logger | undefined): void {
+    if (logger) {
+      this.logger = new PrefixLogger('TRIMERGE_CLIENT', logger);
+    } else {
+      this.logger = undefined;
+    }
+    this.store.configureLogger(logger);
+  }
+
   public get isRemoteLeader(): boolean {
     return this.store.isRemoteLeader;
   }
@@ -199,6 +213,7 @@ export class TrimergeClient<
     event,
     remoteOrigin,
   ) => {
+    this.logger?.debug('onStoreEvent', event);
     const origin = remoteOrigin ? 'remote' : 'local';
 
     switch (event.type) {
@@ -266,7 +281,7 @@ export class TrimergeClient<
         break;
 
       default:
-        console.warn(`unknown event: ${event['type']}`);
+        this.logger?.warn(`unknown event: ${event['type']}`);
         break;
     }
   };
@@ -323,6 +338,7 @@ export class TrimergeClient<
     invariant(!this.isShutdown, 'attempting to update doc after shutdown');
 
     const ref = this.addNewCommit(doc, metadata, false);
+    this.logger?.debug('updateDoc', ref);
     this.setPresence(presence, ref);
 
     if (ref === undefined) {
@@ -478,6 +494,7 @@ export class TrimergeClient<
       }
       this.numPendingUpdates++;
       try {
+        this.logger?.debug('sending commits to store', commits);
         await this.store.update(commits, this.newPresence);
 
         if (this.numPendingUpdates === 1) {
@@ -539,7 +556,7 @@ export class TrimergeClient<
       if (type === 'external') {
         this.updateCommitFromRemote(commit);
       } else {
-        console.warn(
+        this.logger?.warn(
           `[TRIMERGE-SYNC] skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (type=${type})`,
         );
       }

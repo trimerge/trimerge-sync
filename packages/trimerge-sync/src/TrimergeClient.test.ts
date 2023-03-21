@@ -49,6 +49,7 @@ function makeTrimergeClient(
         update: updateStore ?? (() => Promise.resolve()),
         shutdown: () => undefined,
         isRemoteLeader: false,
+        configureLogger: () => undefined,
       };
     },
     addNewCommitMetadata,

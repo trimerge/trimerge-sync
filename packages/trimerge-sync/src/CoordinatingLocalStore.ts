@@ -6,6 +6,7 @@ import {
   ErrorCode,
   GetRemoteFn,
   LocalStore,
+  Logger,
   OnStoreEventFn,
   Remote,
   RemoteStateEvent,
@@ -18,6 +19,7 @@ import {
 } from './lib/LeaderManager';
 import { PromiseQueue } from './lib/PromiseQueue';
 import { BroadcastEvent, EventChannel } from './lib/EventChannel';
+import { PrefixLogger } from './lib/PrefixLogger';
 
 export type NetworkSettings = Readonly<
   {
@@ -78,6 +80,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     Delta,
     Presence
   >;
+  private logger: Logger | undefined = console;
   private readonly localChannel: EventChannel<CommitMetadata, Delta, Presence>;
   private leaderManager?: LeaderManager = undefined;
   private readonly networkSettings: NetworkSettings;
@@ -97,7 +100,14 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   ) {
     this.onStoreEvent = onStoreEvent;
     this.commitRepo = commitRepo;
-    this.getRemote = getRemote;
+    this.commitRepo.configureLogger(this.logger);
+    this.getRemote = getRemote
+      ? async (...args) => {
+          const remote = await getRemote(...args);
+          remote.configureLogger(this.logger);
+          return remote;
+        }
+      : undefined;
     this.networkSettings = { ...DEFAULT_SETTINGS, ...networkSettings };
     this.reconnectDelayMs = this.networkSettings.initialDelayMs;
     this.localChannel = localChannel;
@@ -106,6 +116,18 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         this.onLocalBroadcastEvent(ev),
     );
     this.initialize().catch(this.handleAsError('internal'));
+  }
+
+  configureLogger(logger: Logger | undefined): void {
+    if (logger) {
+      this.logger = new PrefixLogger('COORDINATING_LOCAL_STORE', logger);
+    } else {
+      this.logger = undefined;
+    }
+    if (this.remote) {
+      this.remote.configureLogger(logger);
+    }
+    this.commitRepo.configureLogger(logger);
   }
 
   public get isRemoteLeader(): boolean {
@@ -137,6 +159,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     // Three sources of events: local broadcast, remote broadcast, and remote via local broadcast
     origin: 'local' | 'remote' | 'remote-via-local',
   ): Promise<void> => {
+    this.logger?.debug('processEvent', event, origin);
     if (event.type === 'leader') {
       if (!this.leaderManager) {
         throw new Error('got leader event with no manager');
@@ -273,7 +296,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         { local: true, remote: true },
       );
     } catch (error) {
-      console.warn('ignoring error while shutting down', error);
+      this.logger?.warn('ignoring error while shutting down', error);
     }
 
     await this.closeRemote();
@@ -281,7 +304,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     try {
       this.leaderManager?.shutdown();
     } catch (error) {
-      console.warn('ignoring error while shutting down', error);
+      this.logger?.warn('ignoring error while shutting down', error);
     }
 
     await this.commitRepo.shutdown();
@@ -306,7 +329,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         });
       })
       .catch((e) => {
-        console.warn(`[TRIMERGE-SYNC] error closing remote`, e);
+        this.logger?.warn(`error closing remote`, e);
       });
     this.clearReconnectTimeout();
     if (reconnect) {
@@ -314,14 +337,14 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         reconnectDelayMs,
         networkSettings: { reconnectBackoffMultiplier, maxReconnectDelayMs },
       } = this;
-      console.log(`[TRIMERGE-SYNC] reconnecting in ${reconnectDelayMs}`);
+      this.logger?.log(`reconnecting in ${reconnectDelayMs}`);
       this.reconnectTimeout = setTimeout(() => {
         this.clearReconnectTimeout();
         this.reconnectDelayMs = Math.min(
           reconnectDelayMs * reconnectBackoffMultiplier,
           maxReconnectDelayMs,
         );
-        console.log(`[TRIMERGE-SYNC] reconnecting now...`);
+        this.logger?.log(`reconnecting now...`);
         this.connectRemote();
       }, reconnectDelayMs);
     }
@@ -374,7 +397,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         await this.sendEvent({ type: 'ready' }, { remote: true });
       })
       .catch((e) => {
-        console.warn(`[TRIMERGE-SYNC] error connecting to remote`, e);
+        this.logger?.warn(`[TRIMERGE-SYNC] error connecting to remote`, e);
         void this.closeRemote(true);
       });
   }
@@ -388,7 +411,10 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
 
   protected handleAsError(code: ErrorCode) {
     return (error: Error) => {
-      console.warn(`[${this.userId}:${this.clientId}] Error (${code}):`, error);
+      this.logger?.warn(
+        `[${this.userId}:${this.clientId}] Error (${code}):`,
+        error,
+      );
       this.sendEvent(
         {
           type: 'error',
@@ -398,7 +424,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         },
         { self: true },
       ).catch((e) => {
-        console.warn(`error ending error message: ${e}`);
+        this.logger?.warn(`error ending error message: ${e}`);
       });
       void this.shutdown();
     };
@@ -412,11 +438,12 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     }: { remote?: boolean; local?: boolean; self?: boolean },
     remoteOrigin: boolean = false,
   ): Promise<void> {
+    this.logger?.debug('sending event', event, { remote, local, self });
     if (self) {
       try {
         this.onStoreEvent(event, remoteOrigin);
       } catch (e) {
-        console.error(`[TRIMERGE-SYNC] local error handling event`, e);
+        this.logger?.error('local error handling event', e);
         void this.shutdown();
         throw e;
       }
@@ -425,7 +452,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       await this.localChannel.sendEvent({ event, remoteOrigin });
     }
     if (remote && this.remote) {
-      await this.remote.send(event);
+      this.remote.send(event);
     }
   }
 
@@ -440,10 +467,10 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         this.clientId,
         (isLeader) => {
           if (isLeader) {
-            console.log(`[TRIMERGE-SYNC] Became leader, connecting...`);
+            this.logger?.log(`Became leader, connecting...`);
             this.connectRemote();
           } else {
-            console.warn(`[TRIMERGE-SYNC] Demoted as leader, disconnecting...`);
+            this.logger?.warn(`Demoted as leader, disconnecting...`);
             void this.closeRemote();
           }
         },

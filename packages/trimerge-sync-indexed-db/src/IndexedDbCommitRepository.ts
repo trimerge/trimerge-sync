@@ -9,6 +9,7 @@ import {
   RemoteSyncInfo,
   CommitRepository,
   mergeMetadata,
+  Logger,
 } from 'trimerge-sync';
 import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
 import { deleteDB, openDB } from 'idb';
@@ -117,6 +118,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
   private readonly remoteId: string;
   private readonly localIdGenerator: LocalIdGeneratorFn;
   private readonly addStoreMetadata?: AddStoreMetadataFn<CommitMetadata>;
+  private logger: Logger = console;
 
   public constructor(
     docId: string,
@@ -131,13 +133,17 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
     this.addStoreMetadata = addStoreMetadata;
 
     const dbName = getDatabaseName(docId);
-    console.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
+    this.logger.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.dbInfo = this.connect();
 
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', this.shutdown);
     }
+  }
+
+  configureLogger(logger: Logger): void {
+    this.logger = logger;
   }
 
   async *getCommitsForRemote(): AsyncIterableIterator<
@@ -230,7 +236,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
     localStoreId: string;
   }> {
     if (reconnect) {
-      console.log(
+      this.logger.warn(
         '[TRIMERGE-SYNC] IndexedDbBackend: reconnecting after 3 second timeout…',
       );
       await timeout(3_000);
@@ -293,7 +299,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
           refMetadata.set(commit.ref, commit.metadata);
           await commitsDb.put(existingCommit);
         } else {
-          console.warn(`got duplicate local commit`, {
+          this.logger.warn(`got duplicate local commit`, {
             commit,
             existingCommit,
           });
@@ -339,7 +345,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
               code: 'storage-failure',
               message: e instanceof Error ? e.message : String(e),
             };
-            console.warn(`error inserting commit`, { commit }, e);
+            this.logger.warn(`error inserting commit`, { commit }, e);
           }
         })(),
       );

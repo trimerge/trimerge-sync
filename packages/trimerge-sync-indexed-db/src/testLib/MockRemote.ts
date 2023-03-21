@@ -1,6 +1,7 @@
 import type {
   Commit,
   GetRemoteFn,
+  Logger,
   OnRemoteEventFn,
   Remote,
   SyncEvent,
@@ -16,6 +17,11 @@ class MockRemote implements Remote<any, any, any> {
     this.onEvent({ type: 'remote-state', connect: 'online' });
     this.onEvent({ type: 'ready' });
   }
+
+  configureLogger(logger: Logger): void {
+    /* No-op */
+  }
+
   send(event: SyncEvent<any, any, any>): void {
     // broadcast to other clients
     switch (event.type) {

@@ -3,6 +3,7 @@ import {
   Commit,
   CommitsEvent,
   ErrorCode,
+  Logger,
   OnRemoteEventFn,
   Remote,
   RemoteSyncInfo,
@@ -27,6 +28,10 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
     this.sendInitialEvents(lastSyncCursor).catch(
       this.handleAsError('internal'),
     );
+  }
+
+  configureLogger(logger: Logger): void {
+    /* no-op */
   }
 
   private async handle(

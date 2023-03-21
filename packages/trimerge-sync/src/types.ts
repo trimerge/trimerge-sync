@@ -245,7 +245,7 @@ export type GetRemoteFn<CommitMetadata, Delta, Presence> = (
   | Remote<CommitMetadata, Delta, Presence>
   | Promise<Remote<CommitMetadata, Delta, Presence>>;
 
-export interface LocalStore<CommitMetadata, Delta, Presence> {
+export interface LocalStore<CommitMetadata, Delta, Presence> extends Loggable {
   update(
     commits: readonly Commit<CommitMetadata, Delta>[],
     presence: ClientPresenceRef<Presence> | undefined,
@@ -254,12 +254,13 @@ export interface LocalStore<CommitMetadata, Delta, Presence> {
   shutdown(): void | Promise<void>;
 }
 
-export interface Remote<CommitMetadata, Delta, Presence> {
+export interface Remote<CommitMetadata, Delta, Presence> extends Loggable {
   send(event: SyncEvent<CommitMetadata, Delta, Presence>): void;
   shutdown(): void | Promise<void>;
 }
 
-export interface CommitRepository<CommitMetadata, Delta, Presence> {
+export interface CommitRepository<CommitMetadata, Delta, Presence>
+  extends Loggable {
   getLocalCommits(): AsyncIterableIterator<
     CommitsEvent<CommitMetadata, Delta, Presence>
   >;
@@ -281,4 +282,18 @@ export interface CommitRepository<CommitMetadata, Delta, Presence> {
   getRemoteSyncInfo(): Promise<RemoteSyncInfo>;
 
   shutdown(): void | Promise<void>;
+}
+
+/** Represents the ability supply a custom logger. */
+export interface Loggable {
+  configureLogger(logger: Logger | undefined): void;
+}
+
+/** Super simple logging interface that's compatible with console but allows customization. */
+export interface Logger {
+  debug: (...args: any[]) => void;
+  info: (...args: any[]) => void;
+  log: (...args: any[]) => void;
+  warn: (...args: any[]) => void;
+  error: (...args: any[]) => void;
 }

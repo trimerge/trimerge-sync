@@ -5,6 +5,7 @@ import {
   AckCommitsEvent,
   CommitRepository,
   CommitsEvent,
+  Logger,
   OnRemoteEventFn,
   Remote,
   RemoteSyncInfo,
@@ -14,6 +15,9 @@ import {
 class MockCommitRepository
   implements CommitRepository<unknown, unknown, unknown>
 {
+  configureLogger(logger: Logger): void {
+    /* no-op */
+  }
   async acknowledgeRemoteCommits(): Promise<void> {
     //
   }
@@ -52,6 +56,10 @@ class MockRemote implements Remote<unknown, unknown, unknown> {
 
   shutdown(): void | Promise<void> {
     //
+  }
+
+  configureLogger() {
+    /* no-op */
   }
 }
 
