@@ -258,7 +258,10 @@ const COLORS = [
   'lightpink',
 ];
 
-function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
+function getDotGraphFromNodes<CommitMetadata>(
+  nodes: Map<string, Node>,
+  { nodeLimit }: { nodeLimit?: number } = {},
+): {
   graph: string;
   commits: Commit<CommitMetadata, unknown>[];
 } {
@@ -270,6 +273,7 @@ function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
   for (const node of nodes.values()) {
     // The structure of the map is that multiple commit refs can refer to a single node object
     // so we only want to render each node once
+
     if (renderedNodes.has(node)) {
       continue;
     }
@@ -315,9 +319,9 @@ function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
     );
 
     if (node.baseRef) {
-      const baseNode = nodes.get(node.baseRef);
+      let baseNode = nodes.get(node.baseRef);
       if (!baseNode) {
-        throw new Error(`baseRef ${node.baseRef} not found`);
+        baseNode = new PlaceholderNode(node.baseRef);
       }
       if (node.mergeRef) {
         const mergeNode = nodes.get(node.mergeRef);
@@ -339,6 +343,45 @@ function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
   return { graph: lines.join('\n'), commits };
 }
 
+function getNodeMapFromNodeArray(nodes: Node[]): Map<string, Node> {
+  const nodeMap = new Map<string, Node>();
+  for (const node of nodes) {
+    updateNodeMap(nodeMap, node);
+  }
+  return nodeMap;
+}
+
+function getTruncatedNodeMap<CommitMetadata>(
+  nodeMap: Map<string, Node>,
+  commits: Iterable<Commit<CommitMetadata, unknown>>,
+  nodeLimit: number,
+  offset: number,
+): Map<string, Node> {
+  // construct an ordered list of nodes to render
+  const reversedCommits = [...commits].reverse();
+
+  // ordered list of nodes encountered when iterating backwards through commits
+  const nodeArray: Node[] = [];
+  const targetNodeIndex = offset + nodeLimit;
+  let currentNodeIndex = 0;
+  for (const { ref } of reversedCommits) {
+    const node = nodeMap.get(ref);
+    if (!node) {
+      throw new Error(`no node for commit ref ${ref}`);
+    }
+
+    if (!nodeArray.includes(node)) {
+      nodeArray.push(node);
+      currentNodeIndex++;
+      if (currentNodeIndex >= targetNodeIndex) {
+        break;
+      }
+    }
+  }
+
+  return getNodeMapFromNodeArray(nodeArray.slice(offset));
+}
+
 /**
  * This function accepts a list of commits and creates a graphviz DOT digraph.
  * It uses getEditLabel to label the edges of the graph and getValue to label the nodes.
@@ -353,6 +396,10 @@ export function getDotGraph<CommitMetadata>(
   getValue: (commit: Commit<CommitMetadata, any>) => string,
   getUserId: (commit: Commit<CommitMetadata, any>) => string,
   isMain: (commit: Commit<CommitMetadata, any>) => boolean,
+  { nodeLimit, offset }: { nodeLimit?: number; offset: number } = {
+    nodeLimit: undefined,
+    offset: 0,
+  },
 ): { graph: string; commits: Commit<CommitMetadata, unknown>[] } {
   const nodeMap = new Map<string, Node>();
 
@@ -423,5 +470,10 @@ export function getDotGraph<CommitMetadata>(
     nodeMap.set(commit.ref, node);
   }
 
-  return getDotGraphFromNodes(nodeMap);
+  const truncatedNodeMap =
+    nodeLimit !== undefined
+      ? getTruncatedNodeMap(nodeMap, commits, nodeLimit, offset)
+      : nodeMap;
+
+  return getDotGraphFromNodes(truncatedNodeMap);
 }
