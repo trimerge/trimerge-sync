@@ -258,10 +258,7 @@ const COLORS = [
   'lightpink',
 ];
 
-function getDotGraphFromNodes<CommitMetadata>(
-  nodes: Map<string, Node>,
-  { nodeLimit }: { nodeLimit?: number } = {},
-): {
+function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
   graph: string;
   commits: Commit<CommitMetadata, unknown>[];
 } {
@@ -354,15 +351,15 @@ function getNodeMapFromNodeArray(nodes: Node[]): Map<string, Node> {
 function getTruncatedNodeMap<CommitMetadata>(
   nodeMap: Map<string, Node>,
   commits: Iterable<Commit<CommitMetadata, unknown>>,
-  nodeLimit: number,
-  offset: number,
+  windowSize: number,
+  windowOffset: number,
 ): Map<string, Node> {
   // construct an ordered list of nodes to render
   const reversedCommits = [...commits].reverse();
 
   // ordered list of nodes encountered when iterating backwards through commits
   const nodeArray: Node[] = [];
-  const targetNodeIndex = offset + nodeLimit;
+  const targetNodeIndex = windowOffset + windowSize;
   let currentNodeIndex = 0;
   for (const { ref } of reversedCommits) {
     const node = nodeMap.get(ref);
@@ -379,7 +376,7 @@ function getTruncatedNodeMap<CommitMetadata>(
     }
   }
 
-  return getNodeMapFromNodeArray(nodeArray.slice(offset));
+  return getNodeMapFromNodeArray(nodeArray.slice(windowOffset));
 }
 
 /**
@@ -389,6 +386,11 @@ function getTruncatedNodeMap<CommitMetadata>(
  * It will use isMain to highlight commits that are on the mainline.
  *
  * Chains of nodes created by the same user are grouped together.
+ *
+ * By default, this will attempt to render the entire graph but you can render a window of nodes
+ * by supplying a windowSize and windowOffsetFromEnd. e.g. if windowOffsetFromEnd is 0, and
+ * size is 100 we'll render the last 100 nodes. If windowOffsetFromEnd is 100 and size is 100,
+ * we'll render the second to last 100 nodes.
  */
 export function getDotGraph<CommitMetadata>(
   commits: Iterable<Commit<CommitMetadata, unknown>>,
@@ -396,9 +398,12 @@ export function getDotGraph<CommitMetadata>(
   getValue: (commit: Commit<CommitMetadata, any>) => string,
   getUserId: (commit: Commit<CommitMetadata, any>) => string,
   isMain: (commit: Commit<CommitMetadata, any>) => boolean,
-  { nodeLimit, offset }: { nodeLimit?: number; offset: number } = {
-    nodeLimit: undefined,
-    offset: 0,
+  {
+    windowSize,
+    windowOffsetFromEnd,
+  }: { windowSize?: number; windowOffsetFromEnd: number } = {
+    windowSize: undefined,
+    windowOffsetFromEnd: 0,
   },
 ): { graph: string; commits: Commit<CommitMetadata, unknown>[] } {
   const nodeMap = new Map<string, Node>();
@@ -471,8 +476,8 @@ export function getDotGraph<CommitMetadata>(
   }
 
   const truncatedNodeMap =
-    nodeLimit !== undefined
-      ? getTruncatedNodeMap(nodeMap, commits, nodeLimit, offset)
+    windowSize !== undefined
+      ? getTruncatedNodeMap(nodeMap, commits, windowSize, windowOffsetFromEnd)
       : nodeMap;
 
   return getDotGraphFromNodes(truncatedNodeMap);
