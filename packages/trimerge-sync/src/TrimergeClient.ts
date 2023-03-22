@@ -131,7 +131,7 @@ export class TrimergeClient<
   private readonly docCache: DocCache<SavedDoc, CommitMetadata>;
   private tempCommits = new Map<string, Commit<CommitMetadata, Delta>>();
   private unsyncedCommits: Commit<CommitMetadata, Delta>[] = [];
-  private logger: Logger | undefined = console;
+  private logger: Logger | undefined;
 
   private newPresence: ClientInfo<Presence> | undefined;
 

@@ -80,7 +80,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     Delta,
     Presence
   >;
-  private logger: Logger | undefined = console;
+  private logger: Logger | undefined;
   private readonly localChannel: EventChannel<CommitMetadata, Delta, Presence>;
   private leaderManager?: LeaderManager = undefined;
   private readonly networkSettings: NetworkSettings;

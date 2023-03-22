@@ -10,6 +10,7 @@ import {
   CommitRepository,
   mergeMetadata,
   Logger,
+  PrefixLogger,
 } from 'trimerge-sync';
 import type { DBSchema, IDBPDatabase, StoreValue } from 'idb';
 import { deleteDB, openDB } from 'idb';
@@ -118,7 +119,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
   private readonly remoteId: string;
   private readonly localIdGenerator: LocalIdGeneratorFn;
   private readonly addStoreMetadata?: AddStoreMetadataFn<CommitMetadata>;
-  private logger: Logger = console;
+  private logger: Logger | undefined;
 
   public constructor(
     docId: string,
@@ -133,7 +134,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
     this.addStoreMetadata = addStoreMetadata;
 
     const dbName = getDatabaseName(docId);
-    this.logger.log(`[TRIMERGE-SYNC] new IndexedDbBackend(${dbName})`);
+    this.logger?.log(`new IndexedDbBackend(${dbName})`);
     this.dbName = dbName;
     this.dbInfo = this.connect();
 
@@ -142,8 +143,12 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
     }
   }
 
-  configureLogger(logger: Logger): void {
-    this.logger = logger;
+  configureLogger(logger: Logger | undefined): void {
+    if (logger) {
+      this.logger = new PrefixLogger('INDEXED_DB_COMMIT_REPOSITORY', logger);
+    } else {
+      this.logger = undefined;
+    }
   }
 
   async *getCommitsForRemote(): AsyncIterableIterator<
@@ -236,9 +241,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
     localStoreId: string;
   }> {
     if (reconnect) {
-      this.logger.warn(
-        '[TRIMERGE-SYNC] IndexedDbBackend: reconnecting after 3 second timeout…',
-      );
+      this.logger?.warn('reconnecting after 3 second timeout…');
       await timeout(3_000);
     }
     const db = await createIndexedDb<CommitMetadata, Delta>(this.dbName);
@@ -299,7 +302,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
           refMetadata.set(commit.ref, commit.metadata);
           await commitsDb.put(existingCommit);
         } else {
-          this.logger.warn(`got duplicate local commit`, {
+          this.logger?.warn(`got duplicate local commit`, {
             commit,
             existingCommit,
           });
@@ -345,7 +348,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
               code: 'storage-failure',
               message: e instanceof Error ? e.message : String(e),
             };
-            this.logger.warn(`error inserting commit`, { commit }, e);
+            this.logger?.warn(`error inserting commit`, { commit }, e);
           }
         })(),
       );
