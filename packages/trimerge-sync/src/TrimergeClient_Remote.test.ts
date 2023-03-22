@@ -1386,7 +1386,7 @@ describe('Remote sync', () => {
           "remoteConnect": "online",
           "remoteCursor": "3",
           "remoteRead": "ready",
-          "remoteSave": "ready",
+          "remoteSave": "saving",
         },
         {
           "localRead": "ready",
@@ -1394,15 +1394,7 @@ describe('Remote sync', () => {
           "remoteConnect": "online",
           "remoteCursor": "3",
           "remoteRead": "ready",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "3",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
+          "remoteSave": "ready",
         },
         {
           "localRead": "ready",
