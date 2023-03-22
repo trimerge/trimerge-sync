@@ -124,9 +124,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     } else {
       this.logger = undefined;
     }
-    if (this.remote) {
-      this.remote.configureLogger(logger);
-    }
+    this.remote?.configureLogger(logger);
     this.commitRepo.configureLogger(logger);
   }
 
