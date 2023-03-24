@@ -254,6 +254,9 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         if (origin === 'remote' && event.fatal) {
           // Do not await on this or we'll deadlock
           void this.closeRemote(event.reconnect !== false);
+          if (event.code === 'unauthorized') {
+            await this.sendEvent(event, { self: true, local: true }, true);
+          }
         }
         break;
     }
