@@ -30,6 +30,8 @@ import { InMemoryDocCache } from './InMemoryDocCache';
 import invariant from 'invariant';
 import { PrefixLogger } from './lib/PrefixLogger';
 
+const DIFF_PATCH_DURATION_WARNING_MS = 32;
+
 type AddCommitType =
   // Added from this client
   | 'local'
@@ -425,6 +427,7 @@ export class TrimergeClient<
     // Iterate from the end of the commit walk to the beginning
     // computing the document as we go.
     for (let i = commitWalk.length - 1; i >= 0; i--) {
+      const start = performance.now();
       const { ref, delta, metadata } = commitWalk[i];
       baseDoc = {
         ref,
@@ -432,6 +435,10 @@ export class TrimergeClient<
         metadata,
       };
       this.docCache.set(ref, baseDoc);
+      const end = performance.now();
+      if (end - start > DIFF_PATCH_DURATION_WARNING_MS) {
+        this.logger?.warn(`Slow patch ${ref} took ${Math.ceil(end - start)}ms`);
+      }
     }
 
     // I don't believe this can actually happen but couldn't
@@ -559,7 +566,7 @@ export class TrimergeClient<
         this.updateCommitFromRemote(commit);
       } else {
         this.logger?.warn(
-          `[TRIMERGE-SYNC] skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (type=${type})`,
+          `skipping add commit ${ref}, base ${baseRef}, merge ${mergeRef} (type=${type})`,
         );
       }
       return;
@@ -664,7 +671,10 @@ export class TrimergeClient<
     base: CommitDoc<SavedDoc, CommitMetadata> | undefined = this.lastSavedDoc,
     mergeRef?: string,
   ): string | undefined {
+    const start = performance.now();
     const delta = this.differ.diff(base?.doc, newDoc);
+    const end = performance.now();
+
     if (delta === undefined && mergeRef === undefined) {
       if (base) {
         this.docCache.set(base?.ref, { ...base, doc: newDoc });
@@ -673,6 +683,9 @@ export class TrimergeClient<
     }
     const baseRef = base?.ref;
     const ref = this.computeRef(baseRef, mergeRef, delta);
+    if (end - start > DIFF_PATCH_DURATION_WARNING_MS) {
+      this.logger?.warn(`Slow diff ${ref} took ${Math.ceil(end - start)}ms`);
+    }
     if (this.addNewCommitMetadata) {
       metadata = this.addNewCommitMetadata(
         metadata,
