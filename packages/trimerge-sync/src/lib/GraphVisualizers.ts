@@ -45,18 +45,22 @@ interface Node {
   isReferenced: boolean;
 }
 
-class CommitNode<CommitMetadata = unknown> implements Node {
+class CommitNode<CommitMetadata = unknown, Delta = unknown> implements Node {
   isReferenced = false;
   constructor(
-    readonly commit: Commit<CommitMetadata>,
+    readonly commit: Commit<CommitMetadata, Delta>,
     private readonly _getEditLabel: (
-      commit: Commit<CommitMetadata, any>,
+      commit: Commit<CommitMetadata, Delta>,
     ) => string,
-    private readonly _getValue: (commit: Commit<CommitMetadata, any>) => string,
+    private readonly _getValue: (
+      commit: Commit<CommitMetadata, Delta>,
+    ) => string,
     private readonly _getUserId: (
       commit: Commit<CommitMetadata, any>,
     ) => string,
-    private readonly _isMain: (commit: Commit<CommitMetadata, any>) => boolean,
+    private readonly _isMain: (
+      commit: Commit<CommitMetadata, Delta>,
+    ) => boolean,
   ) {}
 
   get id(): string {
@@ -200,9 +204,9 @@ function isLastChild(node: MetaNode, ref: string): boolean {
   );
 }
 
-class MetaNode<CommitMetadata = unknown> implements Node {
+class MetaNode<CommitMetadata = unknown, DeltaType = unknown> implements Node {
   isReferenced = false;
-  constructor(readonly children: CommitNode<CommitMetadata>[] = []) {
+  constructor(readonly children: CommitNode<CommitMetadata, DeltaType>[] = []) {
     if (children.length < 2) {
       throw new Error('MetaNode must have at least 2 children');
     }
@@ -258,15 +262,17 @@ const COLORS = [
   'lightpink',
 ];
 
-function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
+function getDotGraphFromNodes<CommitMetadata, Delta = unknown>(
+  nodes: Map<string, Node>,
+): {
   graph: string;
-  commits: Commit<CommitMetadata, unknown>[];
+  commits: Commit<CommitMetadata, Delta>[];
 } {
   const lines: string[] = ['digraph {'];
   const renderedNodes = new Set<Node>();
   let nextColorIdx = 0;
   const userColors = new Map<string | undefined, string>();
-  const commits: Commit<CommitMetadata, unknown>[] = [];
+  const commits: Commit<CommitMetadata, Delta>[] = [];
   for (const node of nodes.values()) {
     // The structure of the map is that multiple commit refs can refer to a single node object
     // so we only want to render each node once
@@ -287,17 +293,17 @@ function getDotGraphFromNodes<CommitMetadata>(nodes: Map<string, Node>): {
 
     // keep track of the commits that the nodes in the digraph represent.
     // if the node is a meta node, we just say that it represents the last commit.
-    let representedCommit: Commit<CommitMetadata, unknown> | undefined;
+    let representedCommit: Commit<CommitMetadata, Delta> | undefined;
 
     switch (node.nodeType) {
       case 'meta':
-        const metaNode = node as MetaNode<CommitMetadata>;
+        const metaNode = node as MetaNode<CommitMetadata, Delta>;
         representedCommit =
           metaNode.children[metaNode.children.length - 1].commit;
         break;
       case 'edit':
       case 'merge':
-        representedCommit = (node as CommitNode<CommitMetadata>).commit;
+        representedCommit = (node as CommitNode<CommitMetadata, Delta>).commit;
         break;
     }
 
@@ -392,8 +398,8 @@ function getTruncatedNodeMap<CommitMetadata>(
  * size is 100 we'll render the last 100 nodes. If windowOffsetFromEnd is 100 and size is 100,
  * we'll render the second to last 100 nodes.
  */
-export function getDotGraph<CommitMetadata>(
-  commits: Iterable<Commit<CommitMetadata, unknown>>,
+export function getDotGraph<CommitMetadata, Delta = unknown>(
+  commits: Iterable<Commit<CommitMetadata, Delta>>,
   getEditLabel: (commit: Commit<CommitMetadata, any>) => string,
   getValue: (commit: Commit<CommitMetadata, any>) => string,
   getUserId: (commit: Commit<CommitMetadata, any>) => string,
@@ -405,7 +411,7 @@ export function getDotGraph<CommitMetadata>(
     windowSize: undefined,
     windowOffsetFromEnd: 0,
   },
-): { graph: string; commits: Commit<CommitMetadata, unknown>[] } {
+): { graph: string; commits: Commit<CommitMetadata, Delta>[] } {
   const nodeMap = new Map<string, Node>();
 
   for (const commit of commits) {
