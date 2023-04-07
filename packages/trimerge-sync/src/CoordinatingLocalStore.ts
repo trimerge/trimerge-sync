@@ -254,7 +254,9 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         if (origin === 'remote' && event.fatal) {
           // Do not await on this or we'll deadlock
           void this.closeRemote(event.reconnect !== false);
-          if (event.code === 'unauthorized') {
+          // If the remote indicated that reconnecting won't address the issues
+          // we forward the error event to trimerge client.
+          if (!event.reconnect) {
             await this.sendEvent(event, { self: true, local: true }, true);
           }
         }
