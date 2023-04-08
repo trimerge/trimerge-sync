@@ -273,7 +273,7 @@ export class TrimergeClient<
         this.updateSyncState({ localRead: 'ready' });
         break;
       case 'error':
-        if (remoteOrigin) {
+        if (remoteOrigin && event.fatal && !event.reconnect) {
           this.emitError('remote', new ErrorEventError(event));
         } else if (event.code === 'internal') {
           this.emitError('local-store', new ErrorEventError(event));
