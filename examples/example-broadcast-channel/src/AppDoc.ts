@@ -8,7 +8,7 @@ import {
   useTrimergeSyncStatus,
 } from './lib/trimergeHooks';
 import {
-  createLocalStoreFactory,
+  createLocalStore,
   diff,
   mergeAllBranches,
   patch,
@@ -35,6 +35,8 @@ export const defaultDoc = {
 
 function getOpts(
   docId: string,
+  userId: string,
+  clientId: string,
 ): TrimergeClientOptions<
   SavedAppDoc,
   LatestAppDoc,
@@ -49,7 +51,7 @@ function getOpts(
     },
     computeRef,
     mergeAllBranches,
-    getLocalStore: createLocalStoreFactory(docId),
+    localStore: createLocalStore(docId, userId, clientId),
   };
 }
 
@@ -60,7 +62,7 @@ export function useDemoAppDoc() {
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,
-    getOpts(DEMO_DOC_ID),
+    getOpts(DEMO_DOC_ID, DEMO_USER_ID, currentTabId),
   );
 }
 
@@ -69,7 +71,7 @@ export function useDemoAppDeleteDatabase() {
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,
-    getOpts(DEMO_DOC_ID),
+    getOpts(DEMO_DOC_ID, DEMO_USER_ID, currentTabId),
   );
 }
 
@@ -80,14 +82,19 @@ export function useDemoAppClientList() {
     string,
     Delta,
     FocusPresence
-  >(DEMO_DOC_ID, DEMO_USER_ID, currentTabId, getOpts(DEMO_DOC_ID));
+  >(
+    DEMO_DOC_ID,
+    DEMO_USER_ID,
+    currentTabId,
+    getOpts(DEMO_DOC_ID, DEMO_USER_ID, currentTabId),
+  );
 }
 export function useDemoAppSyncStatus() {
   return useTrimergeSyncStatus<SavedAppDoc, LatestAppDoc, string, Delta>(
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,
-    getOpts(DEMO_DOC_ID),
+    getOpts(DEMO_DOC_ID, DEMO_USER_ID, currentTabId),
   );
 }
 export function useDemoAppShutdown() {
@@ -95,6 +102,6 @@ export function useDemoAppShutdown() {
     DEMO_DOC_ID,
     DEMO_USER_ID,
     currentTabId,
-    getOpts(DEMO_DOC_ID),
+    getOpts(DEMO_DOC_ID, DEMO_USER_ID, currentTabId),
   );
 }

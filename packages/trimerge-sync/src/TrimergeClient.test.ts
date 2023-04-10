@@ -1,6 +1,7 @@
 import { TrimergeClient, TrimergeClientError } from './TrimergeClient';
 import { timeout } from './lib/Timeout';
-import { OnStoreEventFn, SyncEvent, SyncStatus } from './types';
+import { MockLocalStore } from './testLib/MockLocalStore';
+import { ClientPresenceRef, Commit, SyncEvent, SyncStatus } from './types';
 import {
   Differ,
   TrimergeClientOptions,
@@ -32,33 +33,34 @@ function makeTrimergeClient(
     migrate,
     docCache,
   }: Partial<TrimergeClientOptions<any, any, any, any, any>> = {},
-  updateStore?: (commits: any[], presence: any) => Promise<void>,
+  updateStore?: (
+    commits: readonly Commit<any, any>[],
+    presence: any,
+  ) => Promise<void>,
 ): {
   client: TrimergeClient<any, any, any, any, any>;
-  onEvent: OnStoreEventFn<any, any, any>;
+  localStore: MockLocalStore;
 } {
-  let onEvent: OnStoreEventFn<any, any, any> | undefined;
+  const localStore = updateStore
+    ? new (class extends MockLocalStore {
+        update(
+          commits: readonly Commit<any, any>[],
+          presence: ClientPresenceRef<any> | undefined,
+        ) {
+          return updateStore(commits, presence);
+        }
+      })()
+    : new MockLocalStore();
   const client = new TrimergeClient('', '', {
     computeRef,
     differ,
     migrate,
     mergeAllBranches,
-    getLocalStore: (userId, clientId, _onEvent) => {
-      onEvent = _onEvent;
-      return {
-        update: updateStore ?? (() => Promise.resolve()),
-        shutdown: () => undefined,
-        isRemoteLeader: false,
-        configureLogger: () => undefined,
-      };
-    },
+    localStore,
     addNewCommitMetadata,
     docCache,
   });
-  if (!onEvent) {
-    throw new Error('could not get onEvent');
-  }
-  return { onEvent, client };
+  return { localStore, client };
 }
 
 describe('TrimergeClient', () => {
@@ -92,7 +94,7 @@ describe('TrimergeClient', () => {
   });
 
   it('merges metadata from server', async () => {
-    const { client, onEvent } = makeTrimergeClient(
+    const { client, localStore } = makeTrimergeClient(
       (metadata, commitRef, userId, clientId) => {
         return {
           message: metadata,
@@ -119,7 +121,7 @@ describe('TrimergeClient', () => {
         "ref": "hash",
       }
     `);
-    onEvent(
+    localStore.emit(
       {
         type: 'commits',
         commits: [
@@ -169,10 +171,11 @@ describe('TrimergeClient', () => {
   });
 
   it('handles event with invalid baseRef', async () => {
-    const { onEvent, client } = makeTrimergeClient();
     const errors: TrimergeClientError[] = [];
+    const { client, localStore } = makeTrimergeClient();
     client.subscribeError((e) => errors.push(e));
-    onEvent(
+
+    localStore.emit(
       {
         type: 'commits',
         commits: [
@@ -193,8 +196,8 @@ describe('TrimergeClient', () => {
   });
 
   it('handles internal error', async () => {
-    const { onEvent, client } = makeTrimergeClient();
-    onEvent(
+    const { localStore, client } = makeTrimergeClient();
+    localStore.emit(
       {
         type: 'error',
         code: 'internal',
@@ -209,8 +212,8 @@ describe('TrimergeClient', () => {
   });
 
   it('ignores other error', async () => {
-    const { onEvent, client } = makeTrimergeClient();
-    onEvent(
+    const { localStore, client } = makeTrimergeClient();
+    localStore.emit(
       {
         type: 'error',
         code: 'internal',
@@ -225,9 +228,9 @@ describe('TrimergeClient', () => {
   });
 
   it('handles unknown event type', async () => {
-    const { onEvent } = makeTrimergeClient();
+    const { localStore } = makeTrimergeClient();
     // This just logs a warning, added for code coverage
-    onEvent(
+    localStore.emit(
       { type: 'fake-event' } as unknown as SyncEvent<any, any, any>,
       false,
     );
@@ -235,9 +238,9 @@ describe('TrimergeClient', () => {
   });
 
   it('fails on leader event with no leader', async () => {
-    const { onEvent } = makeTrimergeClient();
+    const { localStore } = makeTrimergeClient();
     // This just logs a warning, added for code coverage
-    onEvent({ type: 'leader', clientId: '', action: 'accept' }, false);
+    localStore.emit({ type: 'leader', clientId: '', action: 'accept' }, false);
     await timeout();
   });
 
@@ -318,10 +321,10 @@ describe('TrimergeClient', () => {
 
   it('it can reference pre-hydrated documents from doc cache', () => {
     const testDocCache = new InMemoryDocCache<string, string>();
-    const { client, onEvent: sendLocalStoreEvent } = makeTrimergeClient(
-      undefined,
-      { docCache: testDocCache, differ: JDP_DIFFER },
-    );
+    const { client, localStore } = makeTrimergeClient(undefined, {
+      docCache: testDocCache,
+      differ: JDP_DIFFER,
+    });
 
     const snapshotDoc = 'hello';
     const commitOnTopOfSnapshotDoc = 'hello world';
@@ -333,7 +336,7 @@ describe('TrimergeClient', () => {
       metadata: 'testSnapshotDocValue',
     });
 
-    sendLocalStoreEvent(
+    localStore.emit(
       {
         type: 'commits',
         commits: [
@@ -353,10 +356,10 @@ describe('TrimergeClient', () => {
 
   it('allows missing baseref, if doc exists in doc cache', () => {
     const testDocCache = new InMemoryDocCache<string, string>();
-    const { client, onEvent: sendLocalStoreEvent } = makeTrimergeClient(
-      undefined,
-      { docCache: testDocCache, differ: JDP_DIFFER },
-    );
+    const { client, localStore } = makeTrimergeClient(undefined, {
+      docCache: testDocCache,
+      differ: JDP_DIFFER,
+    });
 
     const unknownBaseDocument = 'hello';
     const docWithUnknownBaseRef = 'hello world';
@@ -368,7 +371,7 @@ describe('TrimergeClient', () => {
       metadata: 'testCommitOnTopOfSnapshotDocValue',
     });
 
-    sendLocalStoreEvent(
+    localStore.emit(
       {
         type: 'commits',
         commits: [
@@ -388,10 +391,10 @@ describe('TrimergeClient', () => {
 
   it('it does not fail on a missing a merge ref', () => {
     const testDocCache = new InMemoryDocCache<string, string>();
-    const { client, onEvent: sendLocalStoreEvent } = makeTrimergeClient(
-      undefined,
-      { docCache: testDocCache, differ: JDP_DIFFER },
-    );
+    const { client, localStore } = makeTrimergeClient(undefined, {
+      docCache: testDocCache,
+      differ: JDP_DIFFER,
+    });
 
     const snapshotDoc = 'hello';
     const commitOnTopOfSnapshotDoc = 'hello world';
@@ -403,7 +406,7 @@ describe('TrimergeClient', () => {
       metadata: 'testSnapshotDocValue',
     });
 
-    sendLocalStoreEvent(
+    localStore.emit(
       {
         type: 'commits',
         commits: [

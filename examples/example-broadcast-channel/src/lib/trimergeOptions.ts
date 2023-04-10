@@ -7,7 +7,7 @@ import {
 } from 'trimerge';
 import {
   CoordinatingLocalStore,
-  GetLocalStoreFn,
+  LocalStore,
   makeMergeAllBranchesFn,
   MergeAllBranchesFn,
   MergeDocFn,
@@ -46,30 +46,26 @@ export function patch<T>(base: T, delta: Delta | undefined): T {
 export const diff = <T extends any>(left: T, right: T): Delta | undefined =>
   jdp.diff(left, right);
 
-export function createLocalStoreFactory(
+export function createLocalStore(
   docId: string,
-): GetLocalStoreFn<any, any, any> {
-  return (userId, clientId, onEvent) => {
-    const store = new CoordinatingLocalStore(userId, clientId, randomId(), {
-      onStoreEvent: onEvent,
-      commitRepo: new IndexedDbCommitRepository(docId, {
-        localIdGenerator: randomId,
-        remoteId: 'localhost',
-      }),
-      getRemote: (userId, localStoreId, lastSyncInfo, onEvent) =>
-        new WebsocketRemote(
-          { userId, readonly: false },
-          localStoreId,
-          lastSyncInfo,
-          onEvent,
-          `ws://localhost:4444/${encodeURIComponent(docId)}`,
-        ),
-      localChannel: {
-        onEvent: () => {},
-        sendEvent: () => {},
-        shutdown: () => {},
-      },
-    });
-    return store;
-  };
+  userId: string,
+  clientId: string,
+): LocalStore<any, any, any> {
+  const commitRepo = new IndexedDbCommitRepository(docId, {
+    localIdGenerator: randomId,
+    remoteId: 'localhost',
+  });
+  return new CoordinatingLocalStore(userId, clientId, {
+    commitRepo,
+    remote: new WebsocketRemote(
+      { userId, readonly: false },
+      commitRepo,
+      `ws://localhost:4444/${encodeURIComponent(docId)}`,
+    ),
+    localChannel: {
+      onEvent: () => {},
+      sendEvent: () => {},
+      shutdown: () => {},
+    },
+  });
 }

@@ -1,25 +1,43 @@
-import type {
-  Commit,
-  GetRemoteFn,
-  Logger,
-  OnRemoteEventFn,
-  Remote,
-  SyncEvent,
-} from 'trimerge-sync';
+import type { Commit, OnRemoteEventFn, Remote, SyncEvent } from 'trimerge-sync';
 import { addInvalidRefsToAckEvent, validateCommitOrder } from 'trimerge-sync';
 
-class MockRemote implements Remote<any, any, any> {
+export class InMemoryRemote implements Remote<any, any, any> {
+  active = false;
+  private onEvent: OnRemoteEventFn<any, any, any> | undefined;
   constructor(
-    private readonly onEvent: OnRemoteEventFn<any, any, any>,
     private readonly commits: Map<string, Commit<any, any>> = new Map(),
     private readonly getRemoteMetadata?: (commit: Commit<any, any>) => any,
-  ) {
-    this.onEvent({ type: 'remote-state', connect: 'online' });
-    this.onEvent({ type: 'ready' });
+  ) {}
+
+  emit(event: SyncEvent<any, any, any>): void {
+    if (this.onEvent) {
+      this.onEvent(event);
+    }
   }
 
-  configureLogger(logger: Logger): void {
+  configureLogger(): void {
     /* No-op */
+  }
+
+  connect(): void | Promise<void> {
+    this.active = true;
+    this.emit({ type: 'remote-state', connect: 'online' });
+    this.emit({ type: 'ready' });
+  }
+
+  listen(cb: OnRemoteEventFn<any, any, any>): () => void {
+    if (this.onEvent) {
+      throw new Error('MockRemote only supports one listener');
+    }
+    this.onEvent = cb;
+    return () => {
+      this.onEvent = undefined;
+    };
+  }
+
+  disconnect(): void | Promise<void> {
+    this.active = false;
+    this.emit({ type: 'remote-state', connect: 'offline', read: 'offline' });
   }
 
   send(event: SyncEvent<any, any, any>): void {
@@ -34,7 +52,7 @@ class MockRemote implements Remote<any, any, any> {
             this.commits.set(commit.ref, commit);
           }
         }
-        this.onEvent(
+        this.emit(
           addInvalidRefsToAckEvent(
             {
               type: 'ack',
@@ -56,15 +74,12 @@ class MockRemote implements Remote<any, any, any> {
   }
 
   shutdown(): void {
-    this.onEvent({ type: 'remote-state', connect: 'offline', read: 'offline' });
+    // noop
   }
 }
-export const getMockRemote = getMockRemoteWithMap();
-
-export function getMockRemoteWithMap(
+export function getInMemoryRemoteWithMap(
   commits?: Map<string, Commit<any, any>>,
   getRemoteMetadata?: (commit: Commit<any, any>) => any,
-): GetRemoteFn<any, any, any> {
-  return (_userId, _localStoreId, _remoteSyncInfo, onEvent) =>
-    new MockRemote(onEvent, commits, getRemoteMetadata);
+): Remote<any, any, any> {
+  return new InMemoryRemote(commits, getRemoteMetadata);
 }

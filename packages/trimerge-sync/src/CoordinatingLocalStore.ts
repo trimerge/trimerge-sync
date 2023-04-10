@@ -4,7 +4,6 @@ import {
   Commit,
   CommitRepository,
   ErrorCode,
-  GetRemoteFn,
   LocalStore,
   Logger,
   OnStoreEventFn,
@@ -37,10 +36,9 @@ const DEFAULT_SETTINGS: NetworkSettings = {
 };
 
 export type CoordinatingLocalStoreOptions<CommitMetadata, Delta, Presence> = {
-  onStoreEvent: OnStoreEventFn<CommitMetadata, Delta, Presence>;
   commitRepo: CommitRepository<CommitMetadata, Delta, Presence>;
 
-  getRemote?: GetRemoteFn<CommitMetadata, Delta, Presence>;
+  remote?: Remote<CommitMetadata, Delta, Presence>;
 
   networkSettings?: Partial<NetworkSettings>;
 
@@ -55,7 +53,6 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     ref: undefined,
     presence: undefined,
   };
-  private remote: Remote<CommitMetadata, Delta, Presence> | undefined;
   private reconnectTimeout: ReturnType<typeof setTimeout> | undefined;
   private reconnectDelayMs: number;
   private remoteSyncState: RemoteStateEvent = {
@@ -67,14 +64,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private readonly unacknowledgedRefs = new Set<string>();
   private readonly localQueue = new PromiseQueue();
   private readonly remoteQueue = new PromiseQueue();
-  private readonly onStoreEvent: OnStoreEventFn<
-    CommitMetadata,
-    Delta,
-    Presence
-  >;
-  private readonly getRemote:
-    | GetRemoteFn<CommitMetadata, Delta, Presence>
-    | undefined;
+  private readonly remote: Remote<CommitMetadata, Delta, Presence> | undefined;
   private readonly commitRepo: CommitRepository<
     CommitMetadata,
     Delta,
@@ -85,29 +75,30 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private leaderManager?: LeaderManager = undefined;
   private readonly networkSettings: NetworkSettings;
   private initialized = false;
+  private onStoreEvent:
+    | OnStoreEventFn<CommitMetadata, Delta, Presence>
+    | undefined;
+
+  /** Any events emitted before we have a listener are buffered. */
+  private eventBuffer:
+    | {
+        event: SyncEvent<CommitMetadata, Delta, Presence>;
+        remoteOrigin: boolean;
+      }[]
+    | undefined = [];
 
   constructor(
     private readonly userId: string,
     private readonly clientId: string,
-    private readonly localStoreId: string,
     {
-      onStoreEvent,
       commitRepo,
-      getRemote,
+      remote,
       networkSettings = {},
       localChannel,
     }: CoordinatingLocalStoreOptions<CommitMetadata, Delta, Presence>,
   ) {
-    this.onStoreEvent = onStoreEvent;
     this.commitRepo = commitRepo;
-    this.commitRepo.configureLogger(this.logger);
-    this.getRemote = getRemote
-      ? async (...args) => {
-          const remote = await getRemote(...args);
-          remote.configureLogger(this.logger);
-          return remote;
-        }
-      : undefined;
+    this.remote = remote;
     this.networkSettings = { ...DEFAULT_SETTINGS, ...networkSettings };
     this.reconnectDelayMs = this.networkSettings.initialDelayMs;
     this.localChannel = localChannel;
@@ -128,8 +119,22 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     this.commitRepo.configureLogger(logger);
   }
 
+  listen(cb: OnStoreEventFn<CommitMetadata, Delta, Presence>): void {
+    if (this.onStoreEvent) {
+      throw new Error('CoordinatingLocalStore can only have one listener');
+    }
+    this.onStoreEvent = cb;
+    if (this.eventBuffer) {
+      for (const { event, remoteOrigin } of this.eventBuffer) {
+        cb(event, remoteOrigin);
+      }
+    }
+
+    this.eventBuffer = undefined;
+  }
+
   public get isRemoteLeader(): boolean {
-    return !!this.remote;
+    return Boolean(this.remote?.active);
   }
 
   private get clientInfo(): ClientInfo<Presence> {
@@ -311,12 +316,11 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private closeRemote(reconnect: boolean = false): Promise<void> {
     const p = this.remoteQueue
       .add(async () => {
-        const remote = this.remote;
-        if (!remote) {
+        if (!this.remote) {
           return;
         }
-        this.remote = undefined;
-        await remote.shutdown();
+
+        await this.remote.disconnect();
 
         // If read was error when shutting down we leave it as error
         // otherwise we set it to offline.
@@ -354,7 +358,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       .add(async () => {
         this.clearReconnectTimeout();
         const remoteSyncInfo = await this.commitRepo.getRemoteSyncInfo();
-        if (this.closed || !this.getRemote) {
+        if (this.closed || !this.remote) {
           await this.setRemoteState({
             type: 'remote-state',
             connect: 'offline',
@@ -368,16 +372,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           connect: 'connecting',
           cursor: remoteSyncInfo.lastSyncCursor,
         });
-        this.remote = await this.getRemote(
-          this.userId,
-          this.localStoreId,
-          remoteSyncInfo,
-          (event) => {
-            this.remoteQueue
-              .add(() => this.processEvent(event, 'remote'))
-              .catch(this.handleAsError('internal'));
-          },
-        );
+        this.remote.connect(remoteSyncInfo);
         let saving = false;
         for await (const event of this.commitRepo.getCommitsForRemote()) {
           for (const { ref } of event.commits) {
@@ -395,7 +390,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         await this.sendEvent({ type: 'ready' }, { remote: true });
       })
       .catch((e) => {
-        this.logger?.warn(`[TRIMERGE-SYNC] error connecting to remote`, e);
+        this.logger?.warn(`error connecting to remote`, e);
         void this.closeRemote(true);
       });
   }
@@ -438,12 +433,21 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   ): Promise<void> {
     this.logger?.debug('sending event', event, { remote, local, self });
     if (self) {
-      try {
-        this.onStoreEvent(event, remoteOrigin);
-      } catch (e) {
-        this.logger?.error('local error handling event', e);
-        void this.shutdown();
-        throw e;
+      if (!this.onStoreEvent) {
+        if (!this.eventBuffer) {
+          throw new Error(
+            'eventBuffer should not be undefined before the local store has been listened to.',
+          );
+        }
+        this.eventBuffer.push({ event, remoteOrigin });
+      } else {
+        try {
+          this.onStoreEvent(event, remoteOrigin);
+        } catch (e) {
+          this.logger?.error(`local error handling event`, e);
+          void this.shutdown();
+          throw e;
+        }
       }
     }
     if (local) {
@@ -455,12 +459,18 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   }
 
   private initialize(): Promise<void> {
-    const { getRemote, networkSettings, initialized } = this;
+    const { remote, networkSettings, initialized } = this;
     if (initialized) {
       throw new Error('only call initialize() once');
     }
     this.initialized = true;
-    if (getRemote) {
+    if (remote) {
+      // If we have a remote, we always listen but if we're not the leader, we won't connect.
+      remote.listen((event) => {
+        this.remoteQueue
+          .add(() => this.processEvent(event, 'remote'))
+          .catch(this.handleAsError('internal'));
+      });
       this.leaderManager = new LeaderManager(
         this.clientId,
         (isLeader) => {

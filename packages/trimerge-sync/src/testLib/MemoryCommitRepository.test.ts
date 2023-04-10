@@ -3,14 +3,21 @@ import { MemoryStore } from './MemoryStore';
 describe('MemoryLocalStore', () => {
   it('can be shutdown twice', async () => {
     const store = new MemoryStore('test');
-    const local = store.getLocalStore('test', 'test', () => 0);
+    const local = store.getLocalStore({
+      userId: 'test',
+      clientId: 'test',
+    });
     await local.shutdown();
     await local.shutdown();
   });
   it('does not send after shutdown', async () => {
     const store = new MemoryStore('test');
+    const local = store.getLocalStore({
+      userId: 'test',
+      clientId: 'test',
+    });
     const fn = jest.fn();
-    const local = store.getLocalStore('test', 'test', fn);
+    local.listen(fn);
     await local.update(
       [
         {

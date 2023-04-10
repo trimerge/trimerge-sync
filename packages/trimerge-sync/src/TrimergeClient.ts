@@ -158,7 +158,7 @@ export class TrimergeClient<
       migrate = (doc, metadata) => ({ doc: doc as LatestDoc, metadata }),
       mergeAllBranches,
       computeRef,
-      getLocalStore,
+      localStore,
       addNewCommitMetadata,
       docCache = new InMemoryDocCache(),
       shutdown: onShutdown,
@@ -177,7 +177,8 @@ export class TrimergeClient<
     this.computeRef = computeRef;
     this.addNewCommitMetadata = addNewCommitMetadata;
     this.docCache = docCache;
-    this.store = getLocalStore(userId, clientId, this.onStoreEvent);
+    this.store = localStore;
+    this.store.listen(this.onStoreEvent);
     this.setClientInfo(
       {
         userId,

@@ -1,28 +1,28 @@
 import 'fake-indexeddb/auto';
 
+import { BroadcastChannel } from 'broadcast-channel';
 import {
   BroadcastEvent,
   Commit,
   CoordinatingLocalStore,
   EventChannel,
-  GetLocalStoreFn,
-  GetRemoteFn,
   LocalStore,
-  OnRemoteEventFn,
-  RemoteSyncInfo,
+  Remote,
+  TrimergeClient,
 } from 'trimerge-sync';
-import { TrimergeClient } from 'trimerge-sync';
 import {
   AddStoreMetadataFn,
   deleteDocDatabase,
   IndexedDbCommitRepository,
   resetDocRemoteSyncData,
 } from './IndexedDbCommitRepository';
-import { opts } from './testLib/BasicOptions';
 import { timeout } from './lib/timeout';
-import { getMockRemote, getMockRemoteWithMap } from './testLib/MockRemote';
+import { opts } from './testLib/BasicOptions';
 import { dumpDatabase, getIdbDatabases } from './testLib/IndexedDB';
-import { BroadcastChannel } from 'broadcast-channel';
+import {
+  getInMemoryRemoteWithMap,
+  InMemoryRemote,
+} from './testLib/InMemoryRemote';
 
 function makeTestBroadcastChannel(docId: string): EventChannel<any, any, any> {
   let channel: BroadcastChannel | undefined = new BroadcastChannel(docId);
@@ -55,38 +55,30 @@ function makeTestBroadcastChannel(docId: string): EventChannel<any, any, any> {
   };
 }
 
-function makeIndexedDbCoordinatingLocalStoreFactory(
+function makeIndexedDbCoordinatingLocalStore(
+  userId: string,
+  clientId: string,
   docId: string,
   storeId: string,
-  getRemote?: GetRemoteFn<any, any, any>,
+  remote?: Remote<any, any, any>,
   addStoreMetadata?: AddStoreMetadataFn<any>,
-): GetLocalStoreFn<any, any, any> {
-  return (userId, clientId, onStoreEvent) => {
-    const commitRepo = new IndexedDbCommitRepository(docId, {
+): LocalStore<any, any, any> {
+  return new CoordinatingLocalStore<any, any, any>(userId, clientId, {
+    commitRepo: new IndexedDbCommitRepository(docId, {
       localIdGenerator: () => storeId,
       addStoreMetadata,
-    });
-    const networkSettings = {
+    }),
+    remote,
+    networkSettings: {
       initialDelayMs: 0,
       reconnectBackoffMultiplier: 1,
       maxReconnectDelayMs: 0,
       electionTimeoutMs: 0,
       heartbeatIntervalMs: 10,
       heartbeatTimeoutMs: 50,
-    };
-    return new CoordinatingLocalStore<any, any, any>(
-      userId,
-      clientId,
-      storeId,
-      {
-        onStoreEvent,
-        commitRepo,
-        networkSettings,
-        getRemote,
-        localChannel: makeTestBroadcastChannel(docId),
-      },
-    );
-  };
+    },
+    localChannel: makeTestBroadcastChannel(docId),
+  });
 }
 
 function makeTestClient(
@@ -94,15 +86,17 @@ function makeTestClient(
   clientId: string,
   docId: string,
   storeId: string,
-  getRemote?: GetRemoteFn<any, any, any>,
+  remote?: Remote<any, any, any>,
   addStoreMetadata?: AddStoreMetadataFn<any>,
 ) {
   return new TrimergeClient(userId, clientId, {
     ...opts,
-    getLocalStore: makeIndexedDbCoordinatingLocalStoreFactory(
+    localStore: makeIndexedDbCoordinatingLocalStore(
+      userId,
+      clientId,
       docId,
       storeId,
-      getRemote,
+      remote,
       addStoreMetadata,
     ),
   });
@@ -116,38 +110,25 @@ async function makeTestClientWithRemoteOnEventHandle(
   addStoreMetadata?: AddStoreMetadataFn<any>,
 ): Promise<{
   client: TrimergeClient<any, any, any, any, any>;
-  store: LocalStore<any, any, any>;
-  sendRemoteEvent: OnRemoteEventFn<any, any, any>;
+  localStore: LocalStore<any, any, any>;
+  remote: InMemoryRemote;
 }> {
-  let client: TrimergeClient<any, any, any, any, any> | undefined;
-  let store: LocalStore<any, any, any> | undefined;
-  let onRemoteEvent: OnRemoteEventFn<any, any, any> | undefined;
+  const remote = new InMemoryRemote();
 
-  await new Promise<void>((resolve) => {
-    client = new TrimergeClient(userId, clientId, {
-      ...opts,
-      getLocalStore: (userId, clientId, onEvent) => {
-        store = makeIndexedDbCoordinatingLocalStoreFactory(
-          docId,
-          storeId,
-          (userId, localStoreId, remoteInfo, onEventParam) => {
-            onRemoteEvent = onEventParam;
-            const mockRemote = getMockRemote(
-              userId,
-              localStoreId,
-              remoteInfo,
-              onEventParam,
-            );
-            resolve();
-            return mockRemote;
-          },
-          addStoreMetadata,
-        )(userId, clientId, onEvent);
-        return store;
-      },
-    });
+  const localStore = makeIndexedDbCoordinatingLocalStore(
+    docId,
+    userId,
+    clientId,
+    storeId,
+    remote,
+    addStoreMetadata,
+  );
+
+  const client = new TrimergeClient(userId, clientId, {
+    ...opts,
+    localStore,
   });
-  return { client: client!, store: store!, sendRemoteEvent: onRemoteEvent! };
+  return { client, localStore, remote };
 }
 
 beforeEach(() => {
@@ -439,33 +420,20 @@ describe('createIndexedDbBackendFactory', () => {
       };
     };
 
-    let onEvent: OnRemoteEventFn<any, any, any> | undefined;
+    const remote = new InMemoryRemote();
     const client1 = makeTestClient(
       'test',
       '1',
       docId,
       'test-doc-store',
-      (
-        userId: string,
-        localStoreId: string,
-        remoteSyncInfo: RemoteSyncInfo,
-        onRemoteEvent: OnRemoteEventFn<any, any, any>,
-      ) => {
-        onEvent = onRemoteEvent;
-        return getMockRemote(
-          userId,
-          localStoreId,
-          remoteSyncInfo,
-          onRemoteEvent,
-        );
-      },
+      remote,
       addStoreMetadata,
     );
 
     // wait for remote to be created;
     await timeout(100);
 
-    onEvent!({
+    remote.emit({
       type: 'commits',
       commits: [
         {
@@ -538,7 +506,7 @@ describe('createIndexedDbBackendFactory', () => {
       '1',
       docId,
       'test-doc-store',
-      getMockRemote,
+      new InMemoryRemote(),
     );
     await client1.updateDoc('hello remote', '');
 
@@ -549,7 +517,7 @@ describe('createIndexedDbBackendFactory', () => {
       '2',
       docId,
       'test-doc-store',
-      getMockRemote,
+      new InMemoryRemote(),
     );
     // Wait for write
     await timeout(100);
@@ -564,7 +532,7 @@ describe('createIndexedDbBackendFactory', () => {
       '1',
       docId,
       'test-doc-store',
-      getMockRemote,
+      new InMemoryRemote(),
     );
     await client1.updateDoc('hello remote', '');
 
@@ -611,7 +579,7 @@ describe('createIndexedDbBackendFactory', () => {
       '1',
       docId,
       'test-doc-store',
-      getMockRemote,
+      new InMemoryRemote(),
     );
     await client1.updateDoc('hello remote', '');
 
@@ -678,7 +646,7 @@ describe('createIndexedDbBackendFactory', () => {
       '2',
       docId,
       'test-doc-store',
-      getMockRemote,
+      new InMemoryRemote(),
     );
     // Wait for write
     await timeout(100);
@@ -727,7 +695,7 @@ describe('createIndexedDbBackendFactory', () => {
       '2',
       docId,
       'test-doc-store',
-      getMockRemote,
+      new InMemoryRemote(),
     );
     // Wait for write
     await timeout(100);
@@ -799,7 +767,7 @@ describe('createIndexedDbBackendFactory', () => {
       '2',
       docId,
       'test-doc-store',
-      getMockRemoteWithMap(commitMap),
+      getInMemoryRemoteWithMap(commitMap),
     );
     // Wait for write
     await timeout(500);
@@ -896,7 +864,7 @@ describe('createIndexedDbBackendFactory', () => {
       '1',
       docId,
       'test-doc-store',
-      getMockRemoteWithMap(undefined, (commit) => ({
+      getInMemoryRemoteWithMap(undefined, (commit) => ({
         newMetadata: { fromRemote: true, ref: commit.ref },
         oldMetadata: commit.metadata,
       })),
@@ -983,7 +951,7 @@ describe('createIndexedDbBackendFactory', () => {
 
   it('updates metadata from remote twice', async () => {
     const docId = 'test-doc-update-metadata-twice';
-    const { client, store, sendRemoteEvent } =
+    const { client, localStore, remote } =
       await makeTestClientWithRemoteOnEventHandle(
         'test',
         '1',
@@ -991,15 +959,18 @@ describe('createIndexedDbBackendFactory', () => {
         'test-doc-store',
       );
 
-    await store.update([{ ref: 'blah', metadata: { foo: 'bar' } }], undefined);
+    await localStore.update(
+      [{ ref: 'blah', metadata: { foo: 'bar' } }],
+      undefined,
+    );
 
-    sendRemoteEvent({
+    remote.emit({
       type: 'ack',
       acks: [{ ref: 'blah', metadata: { bar: 'baz' } }],
       syncId: 'blah',
     });
 
-    sendRemoteEvent({
+    remote.emit({
       type: 'ack',
       acks: [{ ref: 'blah', metadata: { qux: 'quux' } }],
       syncId: 'blah2',
@@ -1041,7 +1012,7 @@ describe('createIndexedDbBackendFactory', () => {
   });
 
   it('updates metadata from remote with two users', async () => {
-    const getMockRemoteFn = getMockRemoteWithMap(new Map(), (commit) => ({
+    const getMockRemoteFn = getInMemoryRemoteWithMap(new Map(), (commit) => ({
       fromRemote: true,
       ref: commit.ref,
     }));
@@ -1148,7 +1119,7 @@ describe('createIndexedDbBackendFactory', () => {
   });
 
   it('updates metadata from remote with two clients on the same local store', async () => {
-    const mockRemote = getMockRemoteWithMap(new Map(), (commit) => ({
+    const mockRemote = getInMemoryRemoteWithMap(new Map(), (commit) => ({
       fromRemote: true,
       ref: commit.ref,
     }));
@@ -1222,7 +1193,7 @@ describe('createIndexedDbBackendFactory', () => {
   it('updates the commit in the local DB with client info even if it already exists', async () => {
     const docId = 'test-doc-remote4';
 
-    const { client, store, sendRemoteEvent } =
+    const { client, localStore, remote } =
       await makeTestClientWithRemoteOnEventHandle(
         'test',
         '1',
@@ -1231,7 +1202,7 @@ describe('createIndexedDbBackendFactory', () => {
         (commit: Commit<any>) => ({ ...commit.metadata, O_o: '^_^' }),
       );
 
-    sendRemoteEvent({
+    remote.emit({
       type: 'commits',
       commits: [
         {
@@ -1247,7 +1218,7 @@ describe('createIndexedDbBackendFactory', () => {
 
     await timeout(100);
 
-    void store.update(
+    void localStore.update(
       [
         {
           ref: 'test',
