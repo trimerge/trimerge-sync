@@ -1,16 +1,22 @@
+import { timeout } from '../lib/Timeout';
 import { MemoryStore } from './MemoryStore';
 
 describe('MemoryLocalStore', () => {
   it('can be shutdown twice', async () => {
-    const store = new MemoryStore('test');
+    const store = new MemoryStore('shutdown-twice');
     const local = store.getLocalStore('test', 'test', () => 0);
     await local.shutdown();
     await local.shutdown();
   });
-  it('does not send after shutdown', async () => {
-    const store = new MemoryStore('test');
+  it('does not allow updates after shutdown', async () => {
+    const store = new MemoryStore('updates-after-shutdown');
     const fn = jest.fn();
     const local = store.getLocalStore('test', 'test', fn);
+    local.configureLogger(console);
+
+    // wait for init
+    await timeout(10);
+
     await local.update(
       [
         {
@@ -83,31 +89,21 @@ describe('MemoryLocalStore', () => {
           },
           false,
         ],
-        [
-          {
-            "info": {
-              "clientId": "test",
-              "presence": undefined,
-              "ref": undefined,
-              "userId": "test",
-            },
-            "type": "client-presence",
-          },
-          false,
-        ],
       ]
     `);
 
     await local.shutdown();
-    await local.update(
-      [
-        {
-          ref: 'test2',
-          metadata: undefined,
-        },
-      ],
-      undefined,
-    );
+    await expect(
+      local.update(
+        [
+          {
+            ref: 'test2',
+            metadata: undefined,
+          },
+        ],
+        undefined,
+      ),
+    ).rejects.toThrowError();
     expect(fn.mock.calls).toEqual(callsBeforeShutdown);
   });
 });

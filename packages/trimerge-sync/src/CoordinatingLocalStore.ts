@@ -20,6 +20,7 @@ import {
 import { PromiseQueue } from './lib/PromiseQueue';
 import { BroadcastEvent, EventChannel } from './lib/EventChannel';
 import { PrefixLogger } from './lib/PrefixLogger';
+import invariant from 'invariant';
 
 export type NetworkSettings = Readonly<
   {
@@ -137,7 +138,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     return { userId, clientId, ...this.presence };
   }
 
-  private async setRemoteState(update: RemoteStateEvent): Promise<void> {
+  private setRemoteState(update: RemoteStateEvent): void {
     const lastState = this.remoteSyncState;
     update = { ...lastState, ...update };
     if (
@@ -149,7 +150,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       return;
     }
     this.remoteSyncState = update;
-    await this.sendEvent(update, { local: true, self: true });
+    this.sendEvent(update, { local: true, self: true });
   }
 
   protected processEvent = async (
@@ -163,13 +164,13 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         throw new Error('got leader event with no manager');
       }
       this.leaderManager.receiveEvent(event);
-      await this.sendRemoteStatus();
+      this.sendRemoteStatus();
       return;
     }
 
     // Re-broadcast event to other channels
     const remoteOrigin = origin === 'remote' || origin === 'remote-via-local';
-    await this.sendEvent(
+    this.sendEvent(
       event,
       {
         self: true,
@@ -183,17 +184,19 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       case 'ready':
         // Reset reconnect timeout
         this.reconnectDelayMs = this.networkSettings.initialDelayMs;
-        await this.setRemoteState({ type: 'remote-state', read: 'ready' });
+        this.setRemoteState({ type: 'remote-state', read: 'ready' });
         break;
 
       case 'commits':
         if (origin === 'remote') {
           if (event.syncId) {
-            await this.setRemoteState({
+            this.setRemoteState({
               type: 'remote-state',
               cursor: event.syncId,
             });
           }
+
+          // TODO: can we avoid blocking on this?
           await this.commitRepo.addCommits(event.commits, event.syncId);
         }
         break;
@@ -208,15 +211,15 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
             this.unacknowledgedRefs.delete(ref.ref);
           }
           if (event.refErrors && Object.keys(event.refErrors).length > 0) {
-            await this.setRemoteState({ type: 'remote-state', save: 'error' });
+            this.setRemoteState({ type: 'remote-state', save: 'error' });
           } else if (this.unacknowledgedRefs.size === 0) {
-            await this.setRemoteState({ type: 'remote-state', save: 'ready' });
+            this.setRemoteState({ type: 'remote-state', save: 'ready' });
           }
         }
         break;
 
       case 'client-join':
-        await this.sendEvent(
+        this.sendEvent(
           {
             type: 'client-presence',
             info: this.clientInfo,
@@ -224,7 +227,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           { local: true, remote: true },
         );
         if (origin === 'local' && this.remote) {
-          await this.sendEvent(this.remoteSyncState, { local: true });
+          this.sendEvent(this.remoteSyncState, { local: true });
         }
         break;
       case 'client-presence':
@@ -237,7 +240,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
             event.connect === 'online' &&
             this.remoteSyncState.connect !== 'online'
           ) {
-            await this.sendEvent(
+            this.sendEvent(
               {
                 type: 'client-join',
                 info: this.clientInfo,
@@ -245,7 +248,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
               { local: true, remote: true },
             );
           }
-          await this.setRemoteState(event);
+          this.setRemoteState(event);
         } else {
           await this.sendRemoteStatus();
         }
@@ -259,9 +262,9 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     }
   };
 
-  private async sendRemoteStatus() {
+  private sendRemoteStatus() {
     if (this.remote) {
-      await this.sendEvent(this.remoteSyncState, { local: true, self: true });
+      this.sendEvent(this.remoteSyncState, { local: true, self: true });
     }
   }
 
@@ -285,7 +288,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
 
     const { userId, clientId } = this;
     try {
-      await this.sendEvent(
+      this.sendEvent(
         {
           type: 'client-leave',
           userId,
@@ -320,7 +323,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
 
         // If read was error when shutting down we leave it as error
         // otherwise we set it to offline.
-        await this.setRemoteState({
+        this.setRemoteState({
           type: 'remote-state',
           connect: 'offline',
           read: this.remoteSyncState.read === 'error' ? 'error' : 'offline',
@@ -355,7 +358,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         this.clearReconnectTimeout();
         const remoteSyncInfo = await this.commitRepo.getRemoteSyncInfo();
         if (this.closed || !this.getRemote) {
-          await this.setRemoteState({
+          this.setRemoteState({
             type: 'remote-state',
             connect: 'offline',
             read: this.remoteSyncState.read === 'error' ? 'error' : 'offline',
@@ -363,7 +366,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           });
           return;
         }
-        await this.setRemoteState({
+        this.setRemoteState({
           type: 'remote-state',
           connect: 'connecting',
           cursor: remoteSyncInfo.lastSyncCursor,
@@ -384,15 +387,15 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
             this.unacknowledgedRefs.add(ref);
           }
           if (!saving) {
-            await this.setRemoteState({
+            this.setRemoteState({
               type: 'remote-state',
               save: 'saving',
             });
             saving = true;
           }
-          await this.sendEvent(event, { remote: true });
+          this.sendEvent(event, { remote: true });
         }
-        await this.sendEvent({ type: 'ready' }, { remote: true });
+        this.sendEvent({ type: 'ready' }, { remote: true });
       })
       .catch((e) => {
         this.logger?.warn(`[TRIMERGE-SYNC] error connecting to remote`, e);
@@ -421,13 +424,12 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           fatal: true,
         },
         { self: true },
-      ).catch((e) => {
-        this.logger?.warn(`error ending error message: ${e}`);
-      });
+      );
       void this.shutdown();
     };
   }
-  protected async sendEvent(
+
+  protected sendEvent(
     event: SyncEvent<CommitMetadata, Delta, Presence>,
     {
       remote = false,
@@ -435,7 +437,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       self = false,
     }: { remote?: boolean; local?: boolean; self?: boolean },
     remoteOrigin: boolean = false,
-  ): Promise<void> {
+  ): void {
     this.logger?.debug('sending event', event, { remote, local, self });
     if (self) {
       try {
@@ -447,7 +449,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       }
     }
     if (local) {
-      await this.localChannel.sendEvent({ event, remoteOrigin });
+      this.localChannel.sendEvent({ event, remoteOrigin });
     }
     if (remote && this.remote) {
       this.remote.send(event);
@@ -490,7 +492,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     }
     // Do only this part async
     return this.localQueue.add(async () => {
-      await this.sendEvent(
+      this.sendEvent(
         {
           type: 'client-join',
           info: this.clientInfo,
@@ -498,27 +500,26 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         { local: true },
       );
       for await (const event of this.commitRepo.getLocalCommits()) {
-        await this.sendEvent(event, { self: true });
+        this.sendEvent(event, { self: true });
       }
-      await this.sendEvent({ type: 'ready' }, { self: true });
+      this.sendEvent({ type: 'ready' }, { self: true });
     });
   }
   async update(
     commits: Commit<CommitMetadata, Delta>[],
     presence: ClientPresenceRef<Presence> | undefined,
   ): Promise<void> {
-    if (this.closed || (commits.length === 0 && !presence)) {
+    invariant(!this.closed, 'cannot update a closed store');
+    if (commits.length === 0 && !presence) {
       return;
     }
-    return await this.localQueue
-      .add(() => this.doUpdate(commits, presence))
-      .catch((e) => {
-        this.handleAsError('invalid-commits')(e);
-        // throw this so that the
-        // error is propagated to the
-        // `updateDoc` call.
-        throw e;
-      });
+    return await this.doUpdate(commits, presence).catch((e) => {
+      this.handleAsError('invalid-commits')(e);
+      // throw this so that the
+      // error is propagated to the
+      // `updateDoc` call.
+      throw e;
+    });
   }
 
   private async doUpdate(
@@ -535,12 +536,15 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       clientId: this.clientId,
     };
     if (commits.length > 0) {
-      await this.setRemoteState({ type: 'remote-state', save: 'pending' });
+      this.setRemoteState({ type: 'remote-state', save: 'pending' });
       // If we have commits, we'll send the commits and the client info together
       const ack = await this.commitRepo.addCommits(commits, undefined);
-      await this.sendEvent(ack, { self: true });
-      await this.setRemoteState({ type: 'remote-state', save: 'saving' });
-      await this.sendEvent(
+
+      // Once we have the ack, we want to do the following steps synchronously
+      // so that we don't send the commits to the remote out of order.
+      this.sendEvent(ack, { self: true });
+      this.setRemoteState({ type: 'remote-state', save: 'saving' });
+      this.sendEvent(
         {
           type: 'commits',
           commits,
@@ -551,7 +555,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       );
     } else if (clientInfo) {
       // If we don't have commits, we'll just send the client presence information.
-      await this.sendEvent(
+      this.sendEvent(
         { type: 'client-presence', info: clientInfo },
         { local: true, remote: true },
       );

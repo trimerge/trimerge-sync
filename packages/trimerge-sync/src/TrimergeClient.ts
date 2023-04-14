@@ -503,6 +503,7 @@ export class TrimergeClient<
         this.logger?.debug('sending commits to store', commits);
         await this.store.update(commits, this.newPresence);
 
+        this.logger?.debug('num pending updates', this.numPendingUpdates);
         if (this.numPendingUpdates === 1) {
           this.updateSyncState({ localSave: 'ready' });
         }
