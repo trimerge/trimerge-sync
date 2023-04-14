@@ -1,5 +1,6 @@
-import { LeaderEvent } from '../types';
+import { LeaderEvent, Loggable, Logger } from '../types';
 import { getSortedMin } from './Iterables';
+import { PrefixLogger } from './PrefixLogger';
 
 type Timeout = ReturnType<typeof setTimeout>;
 type Interval = ReturnType<typeof setInterval>;
@@ -31,7 +32,7 @@ export const DEFAULT_LEADER_SETTINGS: LeaderSettings = {
  * If a leader receives an announcement from another leader, a re-election will
  * occur, and all but one of them will be demoted back to non-leader.
  */
-export class LeaderManager {
+export class LeaderManager implements Loggable {
   private closed = false;
   private currentLeaderId?: string = undefined;
   private isLeader: boolean = false;
@@ -39,6 +40,7 @@ export class LeaderManager {
   private electionTimeout?: Timeout = undefined;
   private leaderHeartbeat?: Interval = undefined;
   private heartbeatTimeout?: Timeout = undefined;
+  private logger: Logger | undefined;
 
   constructor(
     /**
@@ -56,6 +58,14 @@ export class LeaderManager {
     private readonly settings: LeaderSettings = DEFAULT_LEADER_SETTINGS,
   ) {
     this.elect();
+  }
+
+  configureLogger(logger: Logger | undefined): void {
+    if (logger) {
+      this.logger = new PrefixLogger('LEADER_MANAGER', logger);
+    } else {
+      logger = undefined;
+    }
   }
 
   private elect() {
@@ -125,7 +135,7 @@ export class LeaderManager {
 
   private onHeartbeatTimeout() {
     this.heartbeatTimeout = undefined;
-    console.warn(`[TRIMERGE-SYNC] leader timeout`);
+    this.logger?.debug(`leader timeout`);
     this.elect();
   }
 
@@ -158,14 +168,10 @@ export class LeaderManager {
         if (this.isLeader) {
           // This will happen if there's a disconnect/messages are delayed
           if (otherClientId < clientId) {
-            console.warn(
-              `[TRIMERGE-SYNC] multiple leaders detected, deferring...`,
-            );
+            this.logger?.debug('multiple leaders detected, deferring...');
             this.setLeader(undefined);
           } else {
-            console.warn(
-              `[TRIMERGE-SYNC] multiple leaders detected, staying...`,
-            );
+            this.logger?.debug('multiple leaders detected, staying...');
           }
           this.elect();
         } else {
