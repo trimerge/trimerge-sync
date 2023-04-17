@@ -3,7 +3,6 @@ import {
   Commit,
   CommitsEvent,
   ErrorCode,
-  Logger,
   OnRemoteEventFn,
   Remote,
   RemoteSyncInfo,
@@ -15,22 +14,57 @@ import { PromiseQueue } from '../lib/PromiseQueue';
 export class MemoryRemote<CommitMetadata, Delta, Presence>
   implements Remote<CommitMetadata, Delta, Presence>
 {
+  active = false;
   private readonly remoteQueue = new PromiseQueue();
   private closed = false;
+  private onEvent: OnRemoteEventFn<CommitMetadata, Delta, Presence> | undefined;
+  private eventBuffer: SyncEvent<CommitMetadata, Delta, Presence>[] = [];
 
   constructor(
     private readonly store: MemoryStore<CommitMetadata, Delta, Presence>,
     private readonly userId: string,
     private readonly clientStoreId: string,
-    { lastSyncCursor }: RemoteSyncInfo,
-    private readonly onEvent: OnRemoteEventFn<CommitMetadata, Delta, Presence>,
-  ) {
+  ) {}
+
+  private emit(event: SyncEvent<CommitMetadata, Delta, Presence>): void {
+    if (this.onEvent) {
+      this.onEvent(event);
+    } else {
+      this.eventBuffer.push(event);
+    }
+  }
+
+  listen(cb: OnRemoteEventFn<CommitMetadata, Delta, Presence>): void {
+    if (this.onEvent) {
+      throw new Error('already listening');
+    }
+    if (this.eventBuffer.length > 0) {
+      for (const event of this.eventBuffer) {
+        cb(event);
+      }
+      this.eventBuffer = [];
+    }
+    this.onEvent = cb;
+  }
+
+  connect({ lastSyncCursor }: RemoteSyncInfo): void | Promise<void> {
+    if (!this.store.online) {
+      throw new Error('offline');
+    }
+    if (this.active) {
+      return;
+    }
     this.sendInitialEvents(lastSyncCursor).catch(
       this.handleAsError('internal'),
     );
+    this.active = true;
   }
 
-  configureLogger(logger: Logger): void {
+  disconnect(): void | Promise<void> {
+    return;
+  }
+
+  configureLogger(): void {
     /* no-op */
   }
 
@@ -44,7 +78,7 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
       case 'commits':
         // FIXME: check for commits with wrong userId
         const ack = await this.addCommits(event.commits);
-        await this.onEvent(ack);
+        this.emit(ack);
         await this.broadcast({ ...event, syncId: ack.syncId });
         break;
 
@@ -65,21 +99,22 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
       .add(() => this.handle(event))
       .catch(this.handleAsError('internal'));
   }
+
   private receive(event: SyncEvent<CommitMetadata, Delta, Presence>): void {
     this.remoteQueue
-      .add(async () => this.onEvent(event))
+      .add(async () => this.emit(event))
       .catch(this.handleAsError('internal'));
   }
 
   protected async sendInitialEvents(
     lastSyncCursor: string | undefined,
   ): Promise<void> {
-    this.onEvent({ type: 'remote-state', connect: 'online' });
+    this.emit({ type: 'remote-state', connect: 'online' });
 
     for await (const event of this.getCommits(lastSyncCursor)) {
-      this.onEvent(event);
+      this.emit(event);
     }
-    this.onEvent({ type: 'ready' });
+    this.emit({ type: 'ready' });
   }
 
   async shutdown(): Promise<void> {
@@ -87,18 +122,18 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
       return;
     }
     this.closed = true;
-    this.onEvent({ type: 'remote-state', connect: 'offline', read: 'offline' });
+    this.emit({ type: 'remote-state', connect: 'offline', read: 'offline' });
   }
 
   fail(message: string, code: ErrorCode, reconnect = true) {
-    this.onEvent({
+    this.emit({
       type: 'error',
       code,
       message,
       fatal: true,
       reconnect,
     });
-    void this.shutdown();
+    this.active = false;
   }
 
   protected handleAsError(code: ErrorCode) {

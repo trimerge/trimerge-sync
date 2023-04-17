@@ -222,12 +222,6 @@ export type OnRemoteEventFn<CommitMetadata, Delta, Presence> = (
   event: SyncEvent<CommitMetadata, Delta, Presence>,
 ) => void;
 
-export type GetLocalStoreFn<CommitMetadata, Delta, Presence> = (
-  userId: string,
-  clientId: string,
-  onEvent: OnStoreEventFn<CommitMetadata, Delta, Presence>,
-) => LocalStore<CommitMetadata, Delta, Presence>;
-
 export type RemoteSyncInfo = {
   /** The latest cursor that we're aware of from this remote. */
   lastSyncCursor?: string;
@@ -236,26 +230,38 @@ export type RemoteSyncInfo = {
   firstSyncCursor?: string;
 };
 
-export type GetRemoteFn<CommitMetadata, Delta, Presence> = (
-  userId: string,
-  localStoreId: string,
-  remoteSyncInfo: RemoteSyncInfo,
-  onRemoteEvent: OnRemoteEventFn<CommitMetadata, Delta, Presence>,
-) =>
-  | Remote<CommitMetadata, Delta, Presence>
-  | Promise<Remote<CommitMetadata, Delta, Presence>>;
-
 export interface LocalStore<CommitMetadata, Delta, Presence> extends Loggable {
   update(
     commits: readonly Commit<CommitMetadata, Delta>[],
     presence: ClientPresenceRef<Presence> | undefined,
   ): Promise<void>;
+
+  /** Listen to events emitted by this Store.
+   */
+  listen(cb: OnStoreEventFn<CommitMetadata, Delta, Presence>): void;
   isRemoteLeader: boolean;
   shutdown(): void | Promise<void>;
 }
 
 export interface Remote<CommitMetadata, Delta, Presence> extends Loggable {
   send(event: SyncEvent<CommitMetadata, Delta, Presence>): void;
+
+  /** Activates the connection to the remote. */
+  connect(syncInfo: RemoteSyncInfo): void | Promise<void>;
+
+  /** Listen to events emitted by this Store, returns the function to unregister
+   * the listener. Remotes should only have one listener.
+   * When done listening to the remote, call shutdown().
+   */
+  listen(cb: OnRemoteEventFn<CommitMetadata, Delta, Presence>): void;
+
+  /** Whether this remote is connected. */
+  active: boolean;
+
+  /** Deactivates the connection to the remote. */
+  disconnect(): void | Promise<void>;
+
+  /** Final shutdown of the Remote. Should not be connected to after this. */
   shutdown(): void | Promise<void>;
 }
 

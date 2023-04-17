@@ -48,9 +48,10 @@ function makeClient(
     >
   >,
 ): TrimergeClient<TestSavedDoc, TestDoc, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, 'test', {
+  const clientId = 'test';
+  return new TrimergeClient(userId, clientId, {
     ...opts,
-    getLocalStore: store.getLocalStore,
+    localStore: store.getLocalStore({ userId, clientId }),
     ...optsOverrides,
   });
 }

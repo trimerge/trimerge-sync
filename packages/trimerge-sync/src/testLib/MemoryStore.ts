@@ -1,11 +1,11 @@
 import {
   AckCommitsEvent,
   Commit,
-  GetLocalStoreFn,
-  GetRemoteFn,
   CommitsEvent,
   RemoteSyncInfo,
   CommitAck,
+  LocalStore,
+  Remote,
 } from '../types';
 import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
@@ -39,7 +39,10 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
 
   constructor(
     public readonly channelName: string = randomId(),
-    private readonly getRemoteFn?: GetRemoteFn<CommitMetadata, Delta, Presence>,
+    private readonly getRemoteFn?: (clientSpec: {
+      userId: string;
+      localStoreId: string;
+    }) => Remote<CommitMetadata, Delta, Presence>,
     public online = true,
   ) {}
 
@@ -57,11 +60,13 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     }
   }
 
-  getLocalStore: GetLocalStoreFn<CommitMetadata, Delta, Presence> = (
+  getLocalStore({
     userId,
     clientId,
-    onStoreEvent,
-  ) => {
+  }: {
+    userId: string;
+    clientId: string;
+  }): LocalStore<CommitMetadata, Delta, Presence> {
     const eventChannel = new MemoryEventChannel<
       CommitMetadata,
       Delta,
@@ -70,11 +75,9 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     const store = new CoordinatingLocalStore<CommitMetadata, Delta, Presence>(
       userId,
       clientId,
-      this.localStoreId,
       {
-        onStoreEvent,
         commitRepo: new MemoryCommitRepository(this),
-        getRemote: this.getRemoteFn,
+        remote: this.getRemoteFn?.({ userId, localStoreId: this.localStoreId }),
         networkSettings: {
           initialDelayMs: 0,
           reconnectBackoffMultiplier: 1,
@@ -88,23 +91,19 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     );
     this.localStores.push({ store, eventChannel });
     return store;
-  };
+  }
 
-  getRemote: GetRemoteFn<CommitMetadata, Delta, Presence> = (
-    userId: string,
-    localStoreId: string,
-    remoteSyncInfo,
-    onEvent,
-  ) => {
-    if (!this.online) {
-      throw new Error('offline');
-    }
-    const be = new MemoryRemote(
+  getRemote = ({
+    userId,
+    localStoreId,
+  }: {
+    userId: string;
+    localStoreId: string;
+  }) => {
+    const be = new MemoryRemote<CommitMetadata, Delta, Presence>(
       this,
       userId,
       localStoreId,
-      remoteSyncInfo,
-      onEvent,
     );
     this.remotes.push(be);
     return be;

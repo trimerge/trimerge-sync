@@ -12,3 +12,5 @@ export * from './lib/GraphVisualizers';
 export * from './lib/Commits';
 export * from './lib/SubscriberList';
 export * from './lib/PrefixLogger';
+export * from './testLib/MockLocalStore';
+export * from './testLib/MockRemote';
