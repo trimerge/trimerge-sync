@@ -1,0 +1,48 @@
+.root {
+  position: relative;
+  border-radius: 2px;
+  display: inline-flex;
+}
+.root > input,
+.root > textarea {
+  display: block;
+  flex-grow: 1;
+  flex-shrink: 0;
+  background: none;
+  padding: 3px;
+  margin: 0;
+  border: solid 1px #ddd;
+  border-radius: 2px;
+}
+.tag {
+  padding: 2px;
+}
+.tagWrapper {
+  visibility: hidden;
+  position: absolute;
+  display: flex;
+  height: 20px;
+  top: -20px;
+  font-size: 80%;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.root:hover .tagWrapper {
+  visibility: visible;
+}
+.caret {
+  position: absolute;
+  height: 1em;
+  z-index: -1;
+  opacity: 0.5;
+}
+.caretName {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: -1em;
+  white-space: nowrap;
+}
+.caret:hover .caretName {
+  display: block;
+}

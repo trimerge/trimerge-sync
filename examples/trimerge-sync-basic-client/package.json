@@ -1,0 +1,69 @@
+{
+  "name": "trimerge-sync-basic-client",
+  "version": "0.20.0",
+  "description": "basic websocket client for trimerge-sync",
+  "main": "./dist/index.js",
+  "module": "./dist/index.esm.js",
+  "typings": "./dist/index.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "test": "jest --watch",
+    "test-ci": "jest --coverage --passWithNoTests --reporters=@descript/jest-github-reporter",
+    "test:update-snapshots": "jest --updateSnapshot --passWithNoTests",
+    "build": "rollup -c",
+    "watch": "rollup -c -w",
+    "start": "ts-node-dev --respawn --transpile-only src/sample-server.ts",
+    "clean": "rimraf dist",
+    "lint": "eslint src/**/*.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marcello3d/trimerge.git"
+  },
+  "keywords": [
+    "json",
+    "three-way-merge",
+    "diff",
+    "diff3",
+    "merge"
+  ],
+  "author": {
+    "name": "Marcello Bastéa-Forte",
+    "email": "marcello@cellosoft.com"
+  },
+  "license": "Zlib",
+  "bugs": {
+    "url": "https://github.com/marcello3d/trimerge-sync/issues"
+  },
+  "homepage": "https://github.com/marcello3d/trimerge-sync#readme",
+  "dependencies": {},
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "21.0.0",
+    "@rollup/plugin-node-resolve": "13.0.6",
+    "rollup": "2.58.0",
+    "rollup-plugin-typescript2": "0.30.0",
+    "trimerge-sync": "0.20.0",
+    "@types/node": "^16.9.4",
+    "ts-node": "^10.3.0",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "4.4.4"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "modulePathIgnorePatterns": [
+      "<rootDir>/dist/"
+    ],
+    "globals": {
+      "ts-jest": {
+        "diagnostics": {
+          "warnOnly": true
+        }
+      }
+    }
+  }
+}
