@@ -6,7 +6,20 @@ export class MockRemote<CommitMetadata = any, Delta = any, Presence = any>
   extends MockLocalStore<CommitMetadata, Delta, Presence>
   implements Remote<CommitMetadata, Delta, Presence>
 {
-  active = false;
+  private _active = false;
+
+  set active(active: boolean) {
+    this._active = active;
+    if (active) {
+        this.emit({ type: 'remote-state', save: 'ready', read: 'ready', connect: 'online' });
+    } else {
+        this.emit({ type: 'remote-state', save: 'ready', read: 'offline', connect: 'offline' });
+    }
+  }
+
+  get active() {
+    return this._active;
+  }
 
   private connectedResolve: (() => void) | undefined;
 

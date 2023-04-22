@@ -162,7 +162,14 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     // Three sources of events: local broadcast, remote broadcast, and remote via local broadcast
     origin: 'local' | 'remote' | 'remote-via-local',
   ): Promise<void> => {
-    this.logger?.debug('processEvent', event, origin);
+    this.logger?.event?.({
+        type: 'receive-event',
+        sourceId: `COORDINATING_LOCAL_STORE:${this.clientId}`,
+        payload: {
+            senderId: origin === 'remote' || origin === 'remote-via-local' ? `remote` : undefined,
+            event,
+        },
+    });
     if (event.type === 'leader') {
       if (!this.leaderManager) {
         throw new Error('got leader event with no manager');
@@ -228,7 +235,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           },
           { local: true, remote: true },
         );
-        if (origin === 'local' && this.remote) {
+        if (origin === 'local' && this.remote?.active) {
           await this.sendEvent(this.remoteSyncState, { local: true });
         }
         break;
@@ -265,7 +272,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   };
 
   private async sendRemoteStatus() {
-    if (this.remote) {
+    if (this.remote?.active) {
       await this.sendEvent(this.remoteSyncState, { local: true, self: true });
     }
   }
@@ -316,7 +323,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private closeRemote(reconnect: boolean = false): Promise<void> {
     const p = this.remoteQueue
       .add(async () => {
-        if (!this.remote) {
+        if (!this.remote?.active) {
           return;
         }
 
@@ -433,6 +440,14 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   ): Promise<void> {
     this.logger?.debug('sending event', event, { remote, local, self });
     if (self) {
+      this.logger?.event?.({
+        type: 'send-event',
+        sourceId: `COORDINATING_LOCAL_STORE:${this.clientId}`,
+        payload: {
+            event,
+            recipientId: `TRIMERGE_CLIENT:${this.clientId}`,
+        }
+      });
       if (!this.onStoreEvent) {
         if (!this.eventBuffer) {
           throw new Error(
@@ -451,10 +466,30 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       }
     }
     if (local) {
+      this.logger?.event?.({
+        type: 'broadcast-event',
+        sourceId: `COORDINATING_LOCAL_STORE:${this.clientId}`,
+        payload: {
+            event,
+            remoteOrigin,
+        }
+      });
       await this.localChannel.sendEvent({ event, remoteOrigin });
     }
-    if (remote && this.remote) {
-      this.remote.send(event);
+    if (remote) {
+      if(this.remote?.active) {
+        this.logger?.event?.({
+            type: 'send-event',
+            sourceId: `COORDINATING_LOCAL_STORE:${this.clientId}`,
+            payload: {
+                recipientId: 'remote',
+                event,
+            }
+          });
+        this.remote.send(event);
+      } else {
+        this.logger?.info('got an event for remote but remote is not active', event);
+      }
     }
   }
 

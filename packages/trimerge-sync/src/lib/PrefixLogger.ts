@@ -1,4 +1,4 @@
-import { Logger } from '../types';
+import { Logger, LoggerEvent } from '../types';
 
 /** Utility that applies a prefix to log messages. If provided with a Prefix logger, it will concatenate the prefixes. */
 export class PrefixLogger implements Logger {
@@ -32,5 +32,9 @@ export class PrefixLogger implements Logger {
 
   error(...args: any[]) {
     this.logger.error(`[${this.prefix}]`, ...args);
+  }
+
+  event(event: LoggerEvent) {
+    this.logger.event?.(event);
   }
 }

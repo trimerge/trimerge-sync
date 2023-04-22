@@ -10,7 +10,6 @@ import {
 import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
 import { MemoryCommitRepository } from './MemoryCommitRepository';
-import { MemoryRemote } from './MemoryRemote';
 import { CoordinatingLocalStore } from '../CoordinatingLocalStore';
 import { MemoryEventChannel } from './MemoryBroadcastChannel';
 
@@ -23,11 +22,9 @@ function randomId() {
 }
 
 export class MemoryStore<CommitMetadata, Delta, Presence> {
-  public readonly remotes: MemoryRemote<CommitMetadata, Delta, Presence>[] = [];
   private commits: Commit<CommitMetadata, Delta>[] = [];
   private localCommitRefs = new Set<string>();
   private syncedCommits = new Set<string>();
-  private readonly localStoreId = randomId();
   private lastRemoteSyncCursor: string | undefined;
   private queue = new PromiseQueue();
   private readonly localStores: {
@@ -39,11 +36,6 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
 
   constructor(
     public readonly channelName: string = randomId(),
-    private readonly getRemoteFn?: (clientSpec: {
-      userId: string;
-      localStoreId: string;
-    }) => Remote<CommitMetadata, Delta, Presence>,
-    public online = true,
   ) {}
 
   public getCommits(): readonly Commit<CommitMetadata, Delta>[] {
@@ -66,7 +58,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
   }: {
     userId: string;
     clientId: string;
-  }): LocalStore<CommitMetadata, Delta, Presence> {
+  }, remote?: Remote<CommitMetadata, Delta, Presence>): LocalStore<CommitMetadata, Delta, Presence> {
     const eventChannel = new MemoryEventChannel<
       CommitMetadata,
       Delta,
@@ -77,7 +69,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
       clientId,
       {
         commitRepo: new MemoryCommitRepository(this),
-        remote: this.getRemoteFn?.({ userId, localStoreId: this.localStoreId }),
+        remote,
         networkSettings: {
           initialDelayMs: 0,
           reconnectBackoffMultiplier: 1,
@@ -92,22 +84,6 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     this.localStores.push({ store, eventChannel });
     return store;
   }
-
-  getRemote = ({
-    userId,
-    localStoreId,
-  }: {
-    userId: string;
-    localStoreId: string;
-  }) => {
-    const be = new MemoryRemote<CommitMetadata, Delta, Presence>(
-      this,
-      userId,
-      localStoreId,
-    );
-    this.remotes.push(be);
-    return be;
-  };
 
   addCommits(
     commits: readonly Commit<CommitMetadata, Delta>[],
@@ -156,7 +132,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
       commits:
         startSyncCursor !== undefined
           ? this.commits.slice(getSyncCounter(startSyncCursor))
-          : this.commits,
+          : [...this.commits],
       syncId: this.syncCursor,
     }));
   }
@@ -184,9 +160,6 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
 
   async shutdown(): Promise<void> {
     return await this.queue.add(async () => {
-      for (const remote of this.remotes) {
-        await remote.shutdown();
-      }
       for (const local of this.localStores) {
         await local.store.shutdown();
       }

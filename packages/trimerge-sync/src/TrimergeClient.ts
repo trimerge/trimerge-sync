@@ -216,7 +216,13 @@ export class TrimergeClient<
     event,
     remoteOrigin,
   ) => {
-    this.logger?.debug('onStoreEvent', event);
+    this.logger?.event?.({
+        type: 'receive-event',
+        sourceId: `TRIMERGE_CLIENT:${this.clientId}`,
+        payload: {
+            event,
+        }
+    });
     const origin = remoteOrigin ? 'remote' : 'local';
 
     switch (event.type) {
@@ -340,7 +346,10 @@ export class TrimergeClient<
     invariant(!this.isShutdown, 'attempting to update doc after shutdown');
 
     const ref = this.addNewCommit(doc, metadata, false);
-    this.logger?.debug('updateDoc', ref);
+    this.logger?.event?.({
+        type: 'update-doc',
+        sourceId: `TRIMERGE_CLIENT:${this.clientId}`,
+    });
     this.setPresence(presence, ref);
 
     if (ref === undefined) {
@@ -501,7 +510,13 @@ export class TrimergeClient<
       }
       this.numPendingUpdates++;
       try {
-        this.logger?.debug('sending commits to store', commits);
+        this.logger?.event?.({
+            type: 'update-store',
+            sourceId: `TRIMERGE_CLIENT:${this.clientId}`,
+            payload: {
+                commits,
+            }
+        });
         await this.store.update(commits, this.newPresence);
 
         if (this.numPendingUpdates === 1) {

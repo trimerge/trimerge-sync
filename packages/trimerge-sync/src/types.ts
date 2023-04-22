@@ -295,6 +295,61 @@ export interface Loggable {
   configureLogger(logger: Logger | undefined): void;
 }
 
+type LoggerEventType = 'update-doc' | 'receive-event' | 'emit-status' | 'emit-doc' | 'emit-error' | 'update-store' | 'broadcast-event' | 'send-event';
+
+type BaseLoggerEvent = {
+    type: LoggerEventType;
+    sourceId: string;
+    payload?: unknown;
+}
+
+type SendEventLoggerEvent = BaseLoggerEvent & {
+    type: 'send-event';
+    payload: {
+        recipientId: string;
+        event: SyncEvent<unknown, unknown, unknown>;
+    };
+};
+
+type BroadcastEventLoggerEvent = BaseLoggerEvent & {
+    type: 'broadcast-event';
+    payload: {
+        event: SyncEvent<unknown, unknown, unknown>;
+        remoteOrigin: boolean;
+    };
+};
+
+type ReceiveEventLoggerEvent = BaseLoggerEvent & {
+    type: 'receive-event';
+    payload: {
+        senderId?: string;
+        event: SyncEvent<unknown, unknown, unknown>;
+    };
+};
+
+type EmitStatusLoggerEvent = BaseLoggerEvent & {
+    type: 'emit-status';
+    payload: {
+        status: SyncStatus;
+    };
+};
+
+type UpdateStoreLoggerEvent = BaseLoggerEvent & {
+    type: 'receive-event';
+    payload: {
+        commits: Commit[];
+    };
+};
+
+type EmitErrorLoggerEvent = BaseLoggerEvent & {
+    type: 'emit-error';
+    payload: {
+        error: unknown;
+    };
+};
+
+export type LoggerEvent = BaseLoggerEvent | SendEventLoggerEvent | EmitStatusLoggerEvent | UpdateStoreLoggerEvent | EmitErrorLoggerEvent | ReceiveEventLoggerEvent | BroadcastEventLoggerEvent;
+
 /** Super simple logging interface that's compatible with console but allows customization. */
 export interface Logger {
   debug: (...args: any[]) => void;
@@ -302,4 +357,5 @@ export interface Logger {
   log: (...args: any[]) => void;
   warn: (...args: any[]) => void;
   error: (...args: any[]) => void;
+  event?: (event: LoggerEvent) => void;
 }
