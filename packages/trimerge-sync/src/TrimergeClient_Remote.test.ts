@@ -876,7 +876,7 @@ describe('Remote sync', () => {
   it('syncs one client to a store multiple times', async () => {
     const server = newServer();
     const localStore = newStore();
-    const { client, remote, logger } = makeClient(
+    const { client, remote } = makeClient(
       {
         userId: 'testUser',
         clientId: 'testClient',
@@ -896,7 +896,6 @@ describe('Remote sync', () => {
 
     const localGraph2 = basicGraph(localStore, client);
     const remoteGraph2 = basicGraph(server.store, client);
-    const jsonifiedEventLog = JSON.stringify(logger._events);
     expect(remoteGraph2).toEqual(localGraph2);
 
     // Kill the "connection"
@@ -967,6 +966,12 @@ describe('Remote sync', () => {
               },
               {
                 "remoteSave": "saving",
+              },
+              {
+                "localSave": "ready",
+              },
+              {
+                "localSave": "saving",
               },
               {
                 "remoteSave": "pending",

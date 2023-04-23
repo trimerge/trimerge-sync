@@ -36,7 +36,10 @@ export class MemoryCommitRepository<CommitMetadata, Delta, Presence>
   async *getLocalCommits(): AsyncIterableIterator<
     CommitsEvent<CommitMetadata, Delta, Presence>
   > {
-    yield await this.store.getLocalCommitsEvent();
+    const event = await this.store.getLocalCommitsEvent();
+    if (event.commits.length > 0) {
+      yield event;
+    }
   }
 
   getCommitsForRemote(): AsyncIterableIterator<

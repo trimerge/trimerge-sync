@@ -34,9 +34,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
 
   public writeErrorMode = false;
 
-  constructor(
-    public readonly channelName: string = randomId(),
-  ) {}
+  constructor(public readonly channelName: string = randomId()) {}
 
   public getCommits(): readonly Commit<CommitMetadata, Delta>[] {
     return this.commits;
@@ -52,13 +50,16 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     }
   }
 
-  getLocalStore({
-    userId,
-    clientId,
-  }: {
-    userId: string;
-    clientId: string;
-  }, remote?: Remote<CommitMetadata, Delta, Presence>): LocalStore<CommitMetadata, Delta, Presence> {
+  getLocalStore(
+    {
+      userId,
+      clientId,
+    }: {
+      userId: string;
+      clientId: string;
+    },
+    remote?: Remote<CommitMetadata, Delta, Presence>,
+  ): LocalStore<CommitMetadata, Delta, Presence> {
     const eventChannel = new MemoryEventChannel<
       CommitMetadata,
       Delta,

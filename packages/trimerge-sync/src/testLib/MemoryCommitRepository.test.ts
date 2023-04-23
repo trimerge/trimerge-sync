@@ -43,14 +43,6 @@ describe('MemoryLocalStore', () => {
               ],
               [
                 {
-                  "commits": [],
-                  "syncId": "0",
-                  "type": "commits",
-                },
-                false,
-              ],
-              [
-                {
                   "type": "ready",
                 },
                 false,
