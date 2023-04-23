@@ -140,6 +140,7 @@ export class TrimergeClient<
   private numPendingUpdates: number = 0;
 
   private isShutdown = false;
+  private readonly loggingPrefix;
 
   private syncState: SyncStatus = {
     localRead: 'loading',
@@ -189,11 +190,13 @@ export class TrimergeClient<
       },
       { origin: 'self' },
     );
+
+    this.loggingPrefix = `TRIMERGE_CLIENT:${this.clientId}`;
   }
 
   configureLogger(logger: Logger | undefined): void {
     if (logger) {
-      this.logger = new PrefixLogger('TRIMERGE_CLIENT', logger);
+      this.logger = new PrefixLogger(this.loggingPrefix, logger);
     } else {
       this.logger = undefined;
     }
@@ -217,11 +220,11 @@ export class TrimergeClient<
     remoteOrigin,
   ) => {
     this.logger?.event?.({
-        type: 'receive-event',
-        sourceId: `TRIMERGE_CLIENT:${this.clientId}`,
-        payload: {
-            event,
-        }
+      type: 'receive-event',
+      sourceId: this.loggingPrefix,
+      payload: {
+        event,
+      },
     });
     const origin = remoteOrigin ? 'remote' : 'local';
 
@@ -346,10 +349,7 @@ export class TrimergeClient<
     invariant(!this.isShutdown, 'attempting to update doc after shutdown');
 
     const ref = this.addNewCommit(doc, metadata, false);
-    this.logger?.event?.({
-        type: 'update-doc',
-        sourceId: `TRIMERGE_CLIENT:${this.clientId}`,
-    });
+    this.logger?.debug?.('updateDoc:', ref);
     this.setPresence(presence, ref);
 
     if (ref === undefined) {
@@ -511,11 +511,11 @@ export class TrimergeClient<
       this.numPendingUpdates++;
       try {
         this.logger?.event?.({
-            type: 'update-store',
-            sourceId: `TRIMERGE_CLIENT:${this.clientId}`,
-            payload: {
-                commits,
-            }
+          type: 'update-store',
+          sourceId: this.loggingPrefix,
+          payload: {
+            commits,
+          },
         });
         await this.store.update(commits, this.newPresence);
 

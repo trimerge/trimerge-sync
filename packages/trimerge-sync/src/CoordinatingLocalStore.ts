@@ -79,6 +79,8 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     | OnStoreEventFn<CommitMetadata, Delta, Presence>
     | undefined;
 
+  private readonly loggingPrefix: string;
+
   /** Any events emitted before we have a listener are buffered. */
   private eventBuffer:
     | {
@@ -107,11 +109,12 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         this.onLocalBroadcastEvent(ev),
     );
     this.initialize().catch(this.handleAsError('internal'));
+    this.loggingPrefix = `COORDINATING_LOCAL_STORE:${clientId}`;
   }
 
   configureLogger(logger: Logger | undefined): void {
     if (logger) {
-      this.logger = new PrefixLogger('COORDINATING_LOCAL_STORE', logger);
+      this.logger = new PrefixLogger(this.loggingPrefix, logger);
     } else {
       this.logger = undefined;
     }
@@ -120,6 +123,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   }
 
   listen(cb: OnStoreEventFn<CommitMetadata, Delta, Presence>): void {
+    this.logger?.debug('listen() called');
     if (this.onStoreEvent) {
       throw new Error('CoordinatingLocalStore can only have one listener');
     }
@@ -163,12 +167,15 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     origin: 'local' | 'remote' | 'remote-via-local',
   ): Promise<void> => {
     this.logger?.event?.({
-        type: 'receive-event',
-        sourceId: `COORDINATING_LOCAL_STORE:${this.clientId}`,
-        payload: {
-            senderId: origin === 'remote' || origin === 'remote-via-local' ? `remote` : undefined,
-            event,
-        },
+      type: 'receive-event',
+      sourceId: this.loggingPrefix,
+      payload: {
+        senderId:
+          origin === 'remote' || origin === 'remote-via-local'
+            ? `remote`
+            : undefined,
+        event,
+      },
     });
     if (event.type === 'leader') {
       if (!this.leaderManager) {
@@ -323,6 +330,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private closeRemote(reconnect: boolean = false): Promise<void> {
     const p = this.remoteQueue
       .add(async () => {
+        this.logger?.info(`disconnecting from remote`);
         if (!this.remote?.active) {
           return;
         }
@@ -363,6 +371,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private connectRemote(): void {
     this.remoteQueue
       .add(async () => {
+        this.logger?.info(`connecting to remote`);
         this.clearReconnectTimeout();
         const remoteSyncInfo = await this.commitRepo.getRemoteSyncInfo();
         if (this.closed || !this.remote) {
@@ -379,7 +388,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           connect: 'connecting',
           cursor: remoteSyncInfo.lastSyncCursor,
         });
-        this.remote.connect(remoteSyncInfo);
+        await this.remote.connect(remoteSyncInfo);
         let saving = false;
         for await (const event of this.commitRepo.getCommitsForRemote()) {
           for (const { ref } of event.commits) {
@@ -442,11 +451,11 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     if (self) {
       this.logger?.event?.({
         type: 'send-event',
-        sourceId: `COORDINATING_LOCAL_STORE:${this.clientId}`,
+        sourceId: this.loggingPrefix,
         payload: {
-            event,
-            recipientId: `TRIMERGE_CLIENT:${this.clientId}`,
-        }
+          event,
+          recipientId: `TRIMERGE_CLIENT:${this.clientId}`,
+        },
       });
       if (!this.onStoreEvent) {
         if (!this.eventBuffer) {
@@ -468,27 +477,30 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     if (local) {
       this.logger?.event?.({
         type: 'broadcast-event',
-        sourceId: `COORDINATING_LOCAL_STORE:${this.clientId}`,
+        sourceId: this.loggingPrefix,
         payload: {
-            event,
-            remoteOrigin,
-        }
+          event,
+          remoteOrigin,
+        },
       });
       await this.localChannel.sendEvent({ event, remoteOrigin });
     }
     if (remote) {
-      if(this.remote?.active) {
+      if (this.remote?.active) {
         this.logger?.event?.({
-            type: 'send-event',
-            sourceId: `COORDINATING_LOCAL_STORE:${this.clientId}`,
-            payload: {
-                recipientId: 'remote',
-                event,
-            }
-          });
+          type: 'send-event',
+          sourceId: this.loggingPrefix,
+          payload: {
+            recipientId: 'remote',
+            event,
+          },
+        });
         this.remote.send(event);
       } else {
-        this.logger?.info('got an event for remote but remote is not active', event);
+        this.logger?.info(
+          'got an event for remote but remote is not active',
+          event,
+        );
       }
     }
   }
