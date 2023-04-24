@@ -17,7 +17,6 @@ export class MockLocalStore<CommitMetadata = any, Delta = any, Presence = any>
 
   private onEvent: OnStoreEventFn<CommitMetadata, Delta, Presence> | undefined;
   isRemoteLeader = false;
-  private listenedResolve: (() => void) | undefined;
   isShutdown = false;
 
   async update(
@@ -31,10 +30,6 @@ export class MockLocalStore<CommitMetadata = any, Delta = any, Presence = any>
     invariant(!this.onEvent, 'listen() called twice');
     invariant(!this.isShutdown, 'listen() called after shutdown()');
 
-    if (this.listenedResolve) {
-      this.listenedResolve();
-      this.listenedResolve = undefined;
-    }
     this.onEvent = onEvent;
   }
 
@@ -50,15 +45,5 @@ export class MockLocalStore<CommitMetadata = any, Delta = any, Presence = any>
     if (this.onEvent) {
       this.onEvent(event, Boolean(remoteOrigin));
     }
-  }
-
-  get listened(): Promise<void> {
-    if (this.onEvent) {
-      return Promise.resolve();
-    }
-
-    return new Promise((resolve) => {
-      this.listenedResolve = resolve;
-    });
   }
 }
