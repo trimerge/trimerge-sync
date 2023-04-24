@@ -349,7 +349,7 @@ export class TrimergeClient<
     invariant(!this.isShutdown, 'attempting to update doc after shutdown');
 
     const ref = this.addNewCommit(doc, metadata, false);
-    this.logger?.debug?.('updateDoc:', ref);
+    this.logger?.debug('updateDoc:', ref);
     this.setPresence(presence, ref);
 
     if (ref === undefined) {
