@@ -15,58 +15,23 @@ export class PrefixLogger implements Logger {
   }
 
   debug(...args: any[]) {
-    this.logger.event?.({
-      type: 'log-message',
-      sourceId: this.prefix,
-      payload: {
-        level: 'debug',
-        message: args,
-      },
-    });
+    this.logger.debug(`[${this.prefix}]`, ...args);
   }
 
   log(...args: any[]) {
-    this.logger.event?.({
-      type: 'log-message',
-      sourceId: this.prefix,
-      payload: {
-        level: 'info',
-        message: args,
-      },
-    });
+    this.logger.log(`[${this.prefix}]`, ...args);
   }
 
   info(...args: any[]) {
-    this.logger.event?.({
-      type: 'log-message',
-      sourceId: this.prefix,
-      payload: {
-        level: 'info',
-        message: args,
-      },
-    });
+    this.logger.info(`[${this.prefix}]`, ...args);
   }
 
   warn(...args: any[]) {
-    this.logger.event?.({
-      type: 'log-message',
-      sourceId: this.prefix,
-      payload: {
-        level: 'warn',
-        message: args,
-      },
-    });
+    this.logger.warn(`[${this.prefix}]`, ...args);
   }
 
   error(...args: any[]) {
-    this.logger.event?.({
-      type: 'log-message',
-      sourceId: this.prefix,
-      payload: {
-        level: 'error',
-        message: args,
-      },
-    });
+    this.logger.error(`[${this.prefix}]`, ...args);
   }
 
   event(event: LoggerEvent) {

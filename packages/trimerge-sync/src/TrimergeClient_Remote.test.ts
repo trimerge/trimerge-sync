@@ -26,6 +26,10 @@ afterEach(async () => {
   resetAll();
 });
 
+/** A server is a thin wrapper around a store that represents the entity that
+ *  the memory remote is connecting to. A server allows you to create multiple remotes
+ *  by supplying clientInfo.
+ */
 function newServer() {
   const store = new MemoryStore<TestMetadata, Delta, TestPresence>(undefined);
   stores.add(store);
@@ -38,6 +42,10 @@ function newStore() {
   return store;
 }
 
+/** This function accepts clientInfo, a MemoryStore and a MemoryServer and creates a
+ *  TrimergeClient that uses the MemoryStore as its local store and connects to the
+ *  MemoryServer via a MemoryRemote.
+ */
 function makeClient(
   { userId, clientId }: { userId: string; clientId: string },
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
