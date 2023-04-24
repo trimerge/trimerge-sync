@@ -14,3 +14,4 @@ export * from './lib/SubscriberList';
 export * from './lib/PrefixLogger';
 export * from './testLib/MockLocalStore';
 export * from './testLib/MockRemote';
+export * from './testLib/MemoryLogger';
