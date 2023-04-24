@@ -473,7 +473,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           }
         },
         (event) => {
-          this.localChannel.sendEvent({ event, remoteOrigin: false });
+          void this.localChannel.sendEvent({ event, remoteOrigin: false });
         },
         networkSettings,
       );
