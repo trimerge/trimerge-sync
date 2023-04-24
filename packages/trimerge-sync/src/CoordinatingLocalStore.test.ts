@@ -127,7 +127,7 @@ describe('CoordinatingLocalStore', () => {
     });
 
     // Wait for coordinating local store to listen to the remote.
-    await remote.connected;
+    await remote.onConnected();
 
     remote.emit({ type: 'remote-state', connect: 'online' });
     remote.emit({ type: 'remote-state', connect: 'online' });

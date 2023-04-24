@@ -11,9 +11,19 @@ export class MockRemote<CommitMetadata = any, Delta = any, Presence = any>
   set active(active: boolean) {
     this._active = active;
     if (active) {
-        this.emit({ type: 'remote-state', save: 'ready', read: 'ready', connect: 'online' });
+      this.emit({
+        type: 'remote-state',
+        save: 'ready',
+        read: 'ready',
+        connect: 'online',
+      });
     } else {
-        this.emit({ type: 'remote-state', save: 'ready', read: 'offline', connect: 'offline' });
+      this.emit({
+        type: 'remote-state',
+        save: 'ready',
+        read: 'offline',
+        connect: 'offline',
+      });
     }
   }
 
@@ -38,7 +48,7 @@ export class MockRemote<CommitMetadata = any, Delta = any, Presence = any>
     this.active = false;
   }
 
-  get connected(): Promise<void> {
+  onConnected(): Promise<void> {
     if (this.active) {
       return Promise.resolve();
     }
