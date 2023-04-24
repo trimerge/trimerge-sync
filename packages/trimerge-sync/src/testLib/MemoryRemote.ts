@@ -3,7 +3,6 @@ import {
   Commit,
   CommitsEvent,
   ErrorCode,
-  Loggable,
   Logger,
   OnRemoteEventFn,
   Remote,
@@ -137,7 +136,6 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
     } else {
       this.logger = undefined;
     }
-    this.parent.configureLogger(logger);
   }
 
   fail(message: string, code: ErrorCode, reconnect = true): void {
@@ -154,9 +152,8 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
 /** MemoryServer represents a singleton entity that can receive commits.
  *  You can use it to create MemoryRemotes that can be provided to a LocalStore.
  */
-export class MemoryServer<CommitMetadata, Delta, Presence> implements Loggable {
+export class MemoryServer<CommitMetadata, Delta, Presence> {
   private closed = false;
-  private logger: Logger | undefined;
   public readonly remoteMap = new Map<
     string,
     MemoryRemote<CommitMetadata, Delta, Presence>
@@ -183,14 +180,6 @@ export class MemoryServer<CommitMetadata, Delta, Presence> implements Loggable {
 
   private getClientKey(clientInfo: ClientInfo): string {
     return `${clientInfo.userId}:${clientInfo.clientId}`;
-  }
-
-  configureLogger(logger?: Logger): void {
-    if (logger) {
-      this.logger = new PrefixLogger('remote', logger);
-    } else {
-      this.logger = undefined;
-    }
   }
 
   emit(

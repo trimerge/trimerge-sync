@@ -44,7 +44,14 @@ export class MemoryLogger implements Logger {
     });
   }
   error(...args: unknown[]): void {
-    this._logs.push(args);
+    this._events.push({
+      type: 'log-message',
+      sourceId: 'unknown',
+      payload: {
+        level: 'error',
+        message: args,
+      },
+    });
   }
   event(event: LoggerEvent): void {
     this._events.push(event);

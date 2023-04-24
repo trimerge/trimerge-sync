@@ -2,7 +2,7 @@ import { MemoryStore } from './testLib/MemoryStore';
 import { Delta } from 'jsondiffpatch';
 import { TrimergeClient } from './TrimergeClient';
 import { getBasicGraph } from './lib/GraphVisualizers';
-import { Remote, SyncStatus } from './types';
+import { SyncStatus } from './types';
 import { timeout } from './lib/Timeout';
 import { resetAll } from './testLib/MemoryBroadcastChannel';
 import {
