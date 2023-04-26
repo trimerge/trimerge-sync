@@ -37,8 +37,8 @@ export class MemoryCommitRepository<CommitMetadata, Delta, Presence>
     CommitsEvent<CommitMetadata, Delta, Presence>
   > {
     const event = await this.store.getLocalCommitsEvent();
-    if (event.commits.length > 0) {
-      yield event;
+    if (event !== undefined) {
+        yield event;
     }
   }
 

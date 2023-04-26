@@ -272,6 +272,9 @@ export class MemoryServer<CommitMetadata, Delta, Presence> {
   async *getCommits(
     lastSyncCursor: string | undefined,
   ): AsyncIterableIterator<CommitsEvent<CommitMetadata, Delta, Presence>> {
-    yield await this.store.getLocalCommitsEvent(lastSyncCursor);
+    const event = await this.store.getLocalCommitsEvent(lastSyncCursor);
+    if (event) {
+      yield event;
+    }
   }
 }

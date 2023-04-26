@@ -125,10 +125,13 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     });
   }
 
-  getLocalCommitsEvent(
+  async getLocalCommitsEvent(
     startSyncCursor?: string,
-  ): Promise<CommitsEvent<CommitMetadata, Delta, Presence>> {
-    return this.queue.add(async () => ({
+  ): Promise<CommitsEvent<CommitMetadata, Delta, Presence> | undefined> {
+    if (this.commits.length === 0) {
+        return undefined;
+    }
+    return await this.queue.add(async () => ({
       type: 'commits',
       commits:
         startSyncCursor !== undefined

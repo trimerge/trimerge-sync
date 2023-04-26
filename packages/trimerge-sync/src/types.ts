@@ -306,63 +306,56 @@ type LoggerEventType =
   | 'send-event'
   | 'log-message';
 
-type BaseLoggerEvent = {
+type BaseLoggerEvent<Payload = never> = {
   type: LoggerEventType;
   sourceId: string;
-  payload?: unknown;
+  payload?: Payload;
 };
 
-type SendEventLoggerEvent = BaseLoggerEvent & {
-  type: 'send-event';
-  payload: {
+type SendEventLoggerEvent = BaseLoggerEvent<{
     recipientId: string;
     event: SyncEvent<unknown, unknown, unknown>;
-  };
+  }> & {
+  type: 'send-event';
 };
 
-type BroadcastEventLoggerEvent = BaseLoggerEvent & {
-  type: 'broadcast-event';
-  payload: {
+type BroadcastEventLoggerEvent = BaseLoggerEvent<{
     event: SyncEvent<unknown, unknown, unknown>;
     remoteOrigin: boolean;
-  };
+  }> & {
+  type: 'broadcast-event';
 };
 
-type ReceiveEventLoggerEvent = BaseLoggerEvent & {
-  type: 'receive-event';
-  payload: {
+type ReceiveEventLoggerEvent = BaseLoggerEvent<{
     senderId?: string;
     event: SyncEvent<unknown, unknown, unknown>;
-  };
-};
-
-type EmitStatusLoggerEvent = BaseLoggerEvent & {
-  type: 'emit-status';
-  payload: {
-    status: SyncStatus;
-  };
-};
-
-type UpdateStoreLoggerEvent = BaseLoggerEvent & {
+  }> & {
   type: 'receive-event';
-  payload: {
+};
+
+type EmitStatusLoggerEvent = BaseLoggerEvent<{
+    status: SyncStatus;
+  }> & {
+  type: 'emit-status';
+};
+
+type UpdateStoreLoggerEvent = BaseLoggerEvent<{
     commits: Commit[];
-  };
+  }> & {
+  type: 'update-store';
 };
 
-type EmitErrorLoggerEvent = BaseLoggerEvent & {
-  type: 'emit-error';
-  payload: {
+type EmitErrorLoggerEvent = BaseLoggerEvent<{
     error: unknown;
-  };
+  }> & {
+  type: 'emit-error';
 };
 
-type LogMessageLoggerEvent = BaseLoggerEvent & {
-  type: 'log-message';
-  payload: {
+type LogMessageLoggerEvent = BaseLoggerEvent<{
     level: 'debug' | 'info' | 'warn' | 'error';
     message: any[];
-  };
+  }> & {
+  type: 'log-message';
 };
 
 export type LoggerEvent =
