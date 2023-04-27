@@ -86,6 +86,8 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         remoteOrigin: boolean;
       }[]
     | undefined = [];
+  private remoteMessageBuffer: SyncEvent<CommitMetadata, Delta, Presence>[] =
+    [];
 
   constructor(
     private readonly userId: string,
@@ -282,6 +284,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   }
 
   async shutdown(): Promise<void> {
+    this.logger?.debug('requested shutdown');
     if (this.closed) {
       return;
     }
@@ -372,7 +375,8 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           connect: 'connecting',
           cursor: remoteSyncInfo.lastSyncCursor,
         });
-        this.remote.connect(remoteSyncInfo);
+        await this.remote.connect(remoteSyncInfo);
+
         let saving = false;
         for await (const event of this.commitRepo.getCommitsForRemote()) {
           for (const { ref } of event.commits) {
@@ -385,8 +389,12 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
             });
             saving = true;
           }
-          await this.sendEvent(event, { remote: true });
+          this.remote.send(event);
         }
+        for (const msg of this.remoteMessageBuffer) {
+          this.remote.send(msg);
+        }
+        this.remoteMessageBuffer = [];
         await this.sendEvent({ type: 'ready' }, { remote: true });
       })
       .catch((e) => {
@@ -453,8 +461,20 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     if (local) {
       await this.localChannel.sendEvent({ event, remoteOrigin });
     }
-    if (remote && this.remote) {
-      this.remote.send(event);
+    if (remote) {
+      if (
+        this.remote?.active &&
+        this.remoteSyncState.connect &&
+        ['online', 'connecting'].includes(this.remoteSyncState.connect)
+      ) {
+        if (this.remoteSyncState.connect === 'connecting') {
+          this.remoteMessageBuffer.push(event);
+        } else {
+          this.remote.send(event);
+        }
+      } else {
+        this.logger?.warn('remote not active, not sending');
+      }
     }
   }
 
