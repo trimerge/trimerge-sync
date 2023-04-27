@@ -205,19 +205,16 @@ describe('Remote sync', () => {
                 "remoteSave": "pending",
               },
               {
-                "remoteCursor": "0",
+                "remoteRead": "ready",
               },
               {
                 "remoteSave": "saving",
               },
               {
-                "remoteRead": "ready",
+                "remoteSave": "ready",
               },
               {
                 "localSave": "ready",
-              },
-              {
-                "remoteSave": "ready",
               },
               {
                 "remoteCursor": "1",
@@ -412,9 +409,6 @@ describe('Remote sync', () => {
               },
               {
                 "remoteConnect": "online",
-              },
-              {
-                "remoteCursor": "0",
               },
               {
                 "remoteRead": "ready",
@@ -997,9 +991,6 @@ describe('Remote sync', () => {
                 "remoteConnect": "online",
               },
               {
-                "remoteCursor": "0",
-              },
-              {
                 "remoteRead": "ready",
               },
               {
@@ -1086,26 +1077,26 @@ describe('Remote sync', () => {
     expect(client2.isRemoteLeader).toBe(true);
 
     expect(client1.syncStatus).toMatchInlineSnapshot(`
-                  {
-                    "localRead": "ready",
-                    "localSave": "ready",
-                    "remoteConnect": "online",
-                    "remoteCursor": "0",
-                    "remoteRead": "ready",
-                    "remoteSave": "ready",
-                  }
-            `);
+            {
+              "localRead": "ready",
+              "localSave": "ready",
+              "remoteConnect": "online",
+              "remoteCursor": undefined,
+              "remoteRead": "ready",
+              "remoteSave": "ready",
+            }
+        `);
 
     expect(client2.syncStatus).toMatchInlineSnapshot(`
-                  {
-                    "localRead": "ready",
-                    "localSave": "ready",
-                    "remoteConnect": "online",
-                    "remoteCursor": "0",
-                    "remoteRead": "ready",
-                    "remoteSave": "ready",
-                  }
-            `);
+            {
+              "localRead": "ready",
+              "localSave": "ready",
+              "remoteConnect": "online",
+              "remoteCursor": undefined,
+              "remoteRead": "ready",
+              "remoteSave": "ready",
+            }
+        `);
 
     localStore.localNetworkPaused = false;
 
@@ -1115,26 +1106,26 @@ describe('Remote sync', () => {
     expect(client2.isRemoteLeader).toBe(false);
 
     expect(client1.syncStatus).toMatchInlineSnapshot(`
-                  {
-                    "localRead": "ready",
-                    "localSave": "ready",
-                    "remoteConnect": "online",
-                    "remoteCursor": "0",
-                    "remoteRead": "ready",
-                    "remoteSave": "ready",
-                  }
-            `);
+            {
+              "localRead": "ready",
+              "localSave": "ready",
+              "remoteConnect": "online",
+              "remoteCursor": undefined,
+              "remoteRead": "ready",
+              "remoteSave": "ready",
+            }
+        `);
 
     expect(client2.syncStatus).toMatchInlineSnapshot(`
-                  {
-                    "localRead": "ready",
-                    "localSave": "ready",
-                    "remoteConnect": "online",
-                    "remoteCursor": "0",
-                    "remoteRead": "ready",
-                    "remoteSave": "ready",
-                  }
-            `);
+            {
+              "localRead": "ready",
+              "localSave": "ready",
+              "remoteConnect": "online",
+              "remoteCursor": undefined,
+              "remoteRead": "ready",
+              "remoteSave": "ready",
+            }
+        `);
   });
 
   it('syncs two client stores to a remote store', async () => {
@@ -1280,9 +1271,6 @@ describe('Remote sync', () => {
               },
               {
                 "remoteConnect": "online",
-              },
-              {
-                "remoteCursor": "0",
               },
               {
                 "remoteRead": "ready",
