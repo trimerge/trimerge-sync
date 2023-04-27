@@ -22,9 +22,10 @@ function makeClient(
   userId: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<TestSavedDoc, TestDoc, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, 'test', {
+  const clientId = 'test';
+  return new TrimergeClient(userId, clientId, {
     ...TEST_OPTS,
-    getLocalStore: store.getLocalStore,
+    localStore: store.getLocalStore({ userId, clientId }),
   });
 }
 

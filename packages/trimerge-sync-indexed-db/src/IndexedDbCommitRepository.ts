@@ -112,7 +112,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
   implements CommitRepository<CommitMetadata, Delta, Presence>
 {
   private readonly dbName: string;
-  private dbInfo: Promise<{
+  dbInfo: Promise<{
     db: IDBPDatabase<TrimergeSyncDbSchema<CommitMetadata, Delta>>;
     localStoreId: string;
   }>;

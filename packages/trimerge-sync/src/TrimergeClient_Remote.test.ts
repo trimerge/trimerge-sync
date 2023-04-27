@@ -11,6 +11,8 @@ import {
   TestPresence,
   TestSavedDoc,
 } from './testLib/MergeUtils';
+import { MemoryLogger } from './testLib/MemoryLogger';
+import { MemoryRemote, MemoryServer } from './testLib/MemoryRemote';
 
 type TestMetadata = string;
 
@@ -24,28 +26,50 @@ afterEach(async () => {
   resetAll();
 });
 
-function newStore(
-  remote?: MemoryStore<TestMetadata, Delta, TestPresence>,
-  online?: boolean,
-) {
-  const store = new MemoryStore<TestMetadata, Delta, TestPresence>(
-    undefined,
-    remote?.getRemote,
-    online,
-  );
+/** A server is a thin wrapper around a store that represents the entity that
+ *  the memory remote is connecting to. A server allows you to create multiple remotes
+ *  by supplying clientInfo.
+ */
+function newServer() {
+  const store = new MemoryStore<TestMetadata, Delta, TestPresence>(undefined);
+  stores.add(store);
+  return new MemoryServer(store);
+}
+
+function newStore() {
+  const store = new MemoryStore<TestMetadata, Delta, TestPresence>(undefined);
   stores.add(store);
   return store;
 }
 
+/** This function accepts clientInfo, a MemoryStore and a MemoryServer and creates a
+ *  TrimergeClient that uses the MemoryStore as its local store and connects to the
+ *  MemoryServer via a MemoryRemote.
+ */
 function makeClient(
-  userId: string,
-  clientId: string,
+  { userId, clientId }: { userId: string; clientId: string },
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
-): TrimergeClient<TestSavedDoc, TestDoc, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, clientId, {
+  server: MemoryServer<TestMetadata, Delta, TestPresence>,
+): {
+  client: TrimergeClient<
+    TestSavedDoc,
+    TestDoc,
+    TestMetadata,
+    Delta,
+    TestPresence
+  >;
+  remote: MemoryRemote<TestMetadata, Delta, TestPresence>;
+  logger: MemoryLogger;
+} {
+  const remote = server.remote({ userId, clientId });
+  const client = new TrimergeClient(userId, clientId, {
     ...TEST_OPTS,
-    getLocalStore: store.getLocalStore,
+    localStore: store.getLocalStore({ userId, clientId }, remote),
   });
+  const logger = new MemoryLogger();
+
+  client.configureLogger(logger);
+  return { client, remote, logger };
 }
 
 function basicGraph(
@@ -81,165 +105,150 @@ function basicClients(
   return obj;
 }
 
-function newRemoteStore(online?: boolean) {
-  return newStore(undefined, online);
+function syncStatusDiffs(syncUpdates: SyncStatus[]): Partial<SyncStatus>[] {
+  const results: Partial<SyncStatus>[] = [];
+  var lastUpdate: Partial<SyncStatus> = {};
+  for (const update of syncUpdates) {
+    const currUpdate = { ...update };
+    for (const key of Object.keys(update) as (keyof SyncStatus)[]) {
+      if (update[key] === lastUpdate[key]) {
+        delete update[key];
+      }
+    }
+    results.push(update);
+    lastUpdate = currUpdate;
+  }
+  return results;
 }
 
 describe('Remote sync', () => {
-  jest.setTimeout(30000);
   it('syncs one client to a remote', async () => {
-    const remoteStore = newStore();
-    const localStore = newStore(remoteStore);
-    const client = makeClient('a', 'test', localStore);
+    const server = newServer();
+    const localStore = newStore();
+    const { client, remote } = makeClient(
+      {
+        userId: 'testUser',
+        clientId: 'testClient',
+      },
+      localStore,
+      server,
+    );
 
     const syncUpdates: SyncStatus[] = [];
     client.subscribeSyncStatus((state) => syncUpdates.push(state));
 
-    void client.updateDoc({}, 'initialize');
-    void client.updateDoc({ hello: 'world' }, 'add hello');
+    // wait for the remote to connect
+    await remote.onConnected();
+
+    await client.updateDoc({}, 'initialize');
+    await client.updateDoc({ hello: 'world' }, 'add hello');
 
     await timeout();
 
     const localGraph1 = basicGraph(localStore, client);
-    const remoteGraph1 = basicGraph(remoteStore, client);
+    const remoteGraph1 = basicGraph(server.store, client);
     expect(remoteGraph1).toEqual(localGraph1);
     expect(localGraph1).toMatchInlineSnapshot(`
-      [
-        {
-          "graph": "undefined -> Zob0dMmD",
-          "step": "initialize",
-          "value": {},
-        },
-        {
-          "graph": "Zob0dMmD -> leySPlIR",
-          "step": "add hello",
-          "value": {
-            "hello": "world",
-          },
-        },
-      ]
-    `);
-    expect(syncUpdates).toMatchInlineSnapshot(`
-      [
-        {
-          "localRead": "loading",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "loading",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "connecting",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-      ]
-    `);
+                  [
+                    {
+                      "graph": "undefined -> Zob0dMmD",
+                      "step": "initialize",
+                      "value": {},
+                    },
+                    {
+                      "graph": "Zob0dMmD -> leySPlIR",
+                      "step": "add hello",
+                      "value": {
+                        "hello": "world",
+                      },
+                    },
+                  ]
+            `);
+    expect(syncStatusDiffs(syncUpdates)).toMatchInlineSnapshot(`
+            [
+              {
+                "localRead": "loading",
+                "localSave": "ready",
+                "remoteConnect": "offline",
+                "remoteRead": "loading",
+                "remoteSave": "ready",
+              },
+              {
+                "localRead": "ready",
+              },
+              {
+                "remoteConnect": "connecting",
+              },
+              {
+                "localSave": "saving",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteConnect": "online",
+              },
+              {
+                "remoteConnect": "connecting",
+                "remoteSave": "saving",
+              },
+              {
+                "remoteConnect": "online",
+              },
+              {
+                "localSave": "ready",
+              },
+              {
+                "localSave": "saving",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteRead": "ready",
+              },
+              {
+                "remoteSave": "saving",
+              },
+              {
+                "remoteSave": "ready",
+              },
+              {
+                "localSave": "ready",
+              },
+              {
+                "remoteCursor": "1",
+              },
+              {
+                "remoteCursor": "2",
+              },
+            ]
+        `);
   });
   it('handles shutdown while connecting', async () => {
-    const remoteStore = newRemoteStore(false);
-    const localStore = newStore(remoteStore);
-    const client = makeClient('a', 'test', localStore);
+    const { client } = makeClient(
+      {
+        userId: 'testUser',
+        clientId: 'testClient',
+      },
+      newStore(),
+      newServer(),
+    );
     await timeout();
     await client.shutdown();
   });
 
   it('syncs local pending changes in batches', async () => {
-    const remoteStore = newRemoteStore(false);
-    const localStore = newStore(remoteStore);
-    const client = makeClient('a', 'test', localStore);
+    const server = newServer();
+    const localStore = newStore();
+    const { client, remote } = makeClient(
+      {
+        userId: 'testUser',
+        clientId: 'testClient',
+      },
+      localStore,
+      server,
+    );
     void client.updateDoc({}, 'initialize');
     void client.updateDoc({ hello: 'world' }, 'add hello');
     void client.updateDoc({ hello: 'world 2' }, 'edit hello');
@@ -252,85 +261,92 @@ describe('Remote sync', () => {
 
     await timeout();
 
-    remoteStore.online = true;
+    remote.online = true;
 
     // Wait for reconnect
     await timeout(50);
 
     const localGraph1 = basicGraph(localStore, client);
-    const remoteGraph1 = basicGraph(remoteStore, client);
+    const remoteGraph1 = basicGraph(server.store, client);
     expect(remoteGraph1).toEqual(localGraph1);
     expect(localGraph1).toMatchInlineSnapshot(`
-      [
-        {
-          "graph": "undefined -> Zob0dMmD",
-          "step": "initialize",
-          "value": {},
-        },
-        {
-          "graph": "Zob0dMmD -> leySPlIR",
-          "step": "add hello",
-          "value": {
-            "hello": "world",
-          },
-        },
-        {
-          "graph": "leySPlIR -> DWZJPKBc",
-          "step": "edit hello",
-          "value": {
-            "hello": "world 2",
-          },
-        },
-        {
-          "graph": "DWZJPKBc -> EM9w-Vme",
-          "step": "edit hello",
-          "value": {
-            "hello": "world 3",
-          },
-        },
-        {
-          "graph": "EM9w-Vme -> bPTFg9aG",
-          "step": "edit hello",
-          "value": {
-            "hello": "world 4",
-          },
-        },
-        {
-          "graph": "bPTFg9aG -> SZgOrzaG",
-          "step": "edit hello",
-          "value": {
-            "hello": "world 5",
-          },
-        },
-        {
-          "graph": "SZgOrzaG -> s9y6mchq",
-          "step": "edit hello",
-          "value": {
-            "hello": "world 6",
-          },
-        },
-        {
-          "graph": "s9y6mchq -> DnqoAp6m",
-          "step": "edit hello",
-          "value": {
-            "hello": "world 7",
-          },
-        },
-        {
-          "graph": "DnqoAp6m -> _fOHZjAT",
-          "step": "edit hello",
-          "value": {
-            "hello": "world 8",
-          },
-        },
-      ]
-    `);
+                  [
+                    {
+                      "graph": "undefined -> Zob0dMmD",
+                      "step": "initialize",
+                      "value": {},
+                    },
+                    {
+                      "graph": "Zob0dMmD -> leySPlIR",
+                      "step": "add hello",
+                      "value": {
+                        "hello": "world",
+                      },
+                    },
+                    {
+                      "graph": "leySPlIR -> DWZJPKBc",
+                      "step": "edit hello",
+                      "value": {
+                        "hello": "world 2",
+                      },
+                    },
+                    {
+                      "graph": "DWZJPKBc -> EM9w-Vme",
+                      "step": "edit hello",
+                      "value": {
+                        "hello": "world 3",
+                      },
+                    },
+                    {
+                      "graph": "EM9w-Vme -> bPTFg9aG",
+                      "step": "edit hello",
+                      "value": {
+                        "hello": "world 4",
+                      },
+                    },
+                    {
+                      "graph": "bPTFg9aG -> SZgOrzaG",
+                      "step": "edit hello",
+                      "value": {
+                        "hello": "world 5",
+                      },
+                    },
+                    {
+                      "graph": "SZgOrzaG -> s9y6mchq",
+                      "step": "edit hello",
+                      "value": {
+                        "hello": "world 6",
+                      },
+                    },
+                    {
+                      "graph": "s9y6mchq -> DnqoAp6m",
+                      "step": "edit hello",
+                      "value": {
+                        "hello": "world 7",
+                      },
+                    },
+                    {
+                      "graph": "DnqoAp6m -> _fOHZjAT",
+                      "step": "edit hello",
+                      "value": {
+                        "hello": "world 8",
+                      },
+                    },
+                  ]
+            `);
   });
 
   it('syncs two clients to a remote', async () => {
-    const remoteStore = newStore();
-    const localStore = newStore(remoteStore);
-    const client1 = makeClient('test', 'a', localStore);
+    const server = newServer();
+    const localStore = newStore();
+    const { client: client1 } = makeClient(
+      {
+        userId: 'testUser',
+        clientId: 'testClientA',
+      },
+      localStore,
+      server,
+    );
 
     const syncUpdates1: SyncStatus[] = [];
     client1.subscribeSyncStatus((state) => syncUpdates1.push(state));
@@ -342,7 +358,14 @@ describe('Remote sync', () => {
 
     await timeout();
 
-    const client2 = makeClient('test', 'b', localStore);
+    const { client: client2 } = makeClient(
+      {
+        userId: 'testUser',
+        clientId: 'testClientB',
+      },
+      localStore,
+      server,
+    );
 
     const syncUpdates2: SyncStatus[] = [];
     client2.subscribeSyncStatus((state) => syncUpdates2.push(state));
@@ -351,281 +374,410 @@ describe('Remote sync', () => {
 
     await timeout();
 
-    expect(syncUpdates1).toMatchInlineSnapshot(`
-      [
-        {
-          "localRead": "loading",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "loading",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "connecting",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-      ]
-    `);
-    expect(syncUpdates2).toMatchInlineSnapshot(`
-      [
-        {
-          "localRead": "loading",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-      ]
-    `);
+    expect(syncStatusDiffs(syncUpdates1)).toMatchInlineSnapshot(`
+            [
+              {
+                "localRead": "loading",
+                "localSave": "ready",
+                "remoteConnect": "offline",
+                "remoteRead": "loading",
+                "remoteSave": "ready",
+              },
+              {
+                "localSave": "saving",
+              },
+              {
+                "localRead": "ready",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteSave": "saving",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteSave": "saving",
+              },
+              {
+                "localSave": "ready",
+              },
+              {
+                "remoteConnect": "connecting",
+              },
+              {
+                "remoteConnect": "online",
+              },
+              {
+                "remoteRead": "ready",
+              },
+              {
+                "remoteSave": "ready",
+              },
+              {
+                "remoteCursor": "2",
+              },
+            ]
+        `);
+    expect(syncStatusDiffs(syncUpdates2)).toMatchInlineSnapshot(`
+            [
+              {
+                "localRead": "loading",
+                "localSave": "ready",
+                "remoteConnect": "offline",
+                "remoteRead": "loading",
+                "remoteSave": "ready",
+              },
+              {
+                "localRead": "ready",
+              },
+              {
+                "remoteConnect": "online",
+                "remoteCursor": "2",
+                "remoteRead": "ready",
+              },
+            ]
+        `);
     expect(client1Sub.mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": undefined,
-              "self": true,
-              "userId": "test",
-            },
-          ],
-          {
-            "origin": "subscribe",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "Zob0dMmD",
-              "self": true,
-              "userId": "test",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "Zob0dMmD",
-              "self": true,
-              "userId": "test",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "leySPlIR",
-              "self": true,
-              "userId": "test",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "leySPlIR",
-              "self": true,
-              "userId": "test",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "leySPlIR",
-              "self": true,
-              "userId": "test",
-            },
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": undefined,
-              "userId": "test",
-            },
-          ],
-          {
-            "origin": "local",
-          },
-        ],
-      ]
-    `);
+            [
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "self": true,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "subscribe",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "Zob0dMmD",
+                    "self": true,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "Zob0dMmD",
+                    "self": true,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "self": true,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "self": true,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "self": true,
+                    "userId": "testUser",
+                  },
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "local",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "self": true,
+                    "userId": "testUser",
+                  },
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "self": true,
+                    "userId": "testUser",
+                  },
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "local",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "userId": "testUser",
+                  },
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "userId": "testUser",
+                  },
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "userId": "testUser",
+                  },
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+            ]
+        `);
     expect(client2Sub.mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          [
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": undefined,
-              "self": true,
-              "userId": "test",
-            },
-          ],
-          {
-            "origin": "subscribe",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": undefined,
-              "self": true,
-              "userId": "test",
-            },
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "leySPlIR",
-              "userId": "test",
-            },
-          ],
-          {
-            "origin": "local",
-          },
-        ],
-      ]
-    `);
+            [
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "self": true,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "subscribe",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUser",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "local",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUser",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUser",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "local",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUser",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUser",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "userId": "testUser",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+            ]
+        `);
   });
 
   it('syncs two clients to remote with a local split', async () => {
-    const remoteStore = newStore();
-    const localStore = newStore(remoteStore);
-    const client1 = makeClient('test', 'a', localStore);
-    const client2 = makeClient('test', 'b', localStore);
+    const server = newServer();
+    const localStore = newStore();
+    const { client: client1 } = makeClient(
+      {
+        userId: 'testUser',
+        clientId: 'testClientA',
+      },
+      localStore,
+      server,
+    );
+    const { client: client2 } = makeClient(
+      {
+        userId: 'testUser',
+        clientId: 'testClientB',
+      },
+      localStore,
+      server,
+    );
 
     const states1: TestDoc[] = [];
     client1.subscribeDoc((state) => states1.push(state));
@@ -638,23 +790,23 @@ describe('Remote sync', () => {
     await timeout();
 
     expect(states1).toMatchInlineSnapshot(`
-      [
-        undefined,
-        {},
-        {
-          "hello": "world",
-        },
-      ]
-    `);
+                  [
+                    undefined,
+                    {},
+                    {
+                      "hello": "world",
+                    },
+                  ]
+            `);
     expect(states2).toMatchInlineSnapshot(`
-      [
-        undefined,
-        {},
-        {
-          "hello": "world",
-        },
-      ]
-    `);
+                  [
+                    undefined,
+                    {},
+                    {
+                      "hello": "world",
+                    },
+                  ]
+            `);
 
     localStore.localNetworkPaused = true;
 
@@ -665,64 +817,75 @@ describe('Remote sync', () => {
     await timeout(100);
 
     expect(states1).toMatchInlineSnapshot(`
-      [
-        undefined,
-        {},
-        {
-          "hello": "world",
-        },
-      ]
-    `);
+            [
+              undefined,
+              {},
+              {
+                "hello": "world",
+              },
+              {
+                "hello": "world",
+                "world": "hello",
+              },
+            ]
+        `);
     expect(states2).toMatchInlineSnapshot(`
-      [
-        undefined,
-        {},
-        {
-          "hello": "world",
-        },
-        {
-          "hello": "world",
-          "world": "hello",
-        },
-      ]
-    `);
+                  [
+                    undefined,
+                    {},
+                    {
+                      "hello": "world",
+                    },
+                    {
+                      "hello": "world",
+                      "world": "hello",
+                    },
+                  ]
+            `);
 
     localStore.localNetworkPaused = false;
 
     await timeout(100);
 
     expect(states1).toMatchInlineSnapshot(`
-      [
-        undefined,
-        {},
-        {
-          "hello": "world",
-        },
-        {
-          "hello": "world",
-          "world": "hello",
-        },
-      ]
-    `);
+                  [
+                    undefined,
+                    {},
+                    {
+                      "hello": "world",
+                    },
+                    {
+                      "hello": "world",
+                      "world": "hello",
+                    },
+                  ]
+            `);
     expect(states2).toMatchInlineSnapshot(`
-      [
-        undefined,
-        {},
-        {
-          "hello": "world",
-        },
-        {
-          "hello": "world",
-          "world": "hello",
-        },
-      ]
-    `);
+                  [
+                    undefined,
+                    {},
+                    {
+                      "hello": "world",
+                    },
+                    {
+                      "hello": "world",
+                      "world": "hello",
+                    },
+                  ]
+            `);
   });
 
   it('syncs one client to a store multiple times', async () => {
-    const remoteStore = newStore();
-    const localStore = newStore(remoteStore);
-    const client = makeClient('a', 'test', localStore);
+    const server = newServer();
+    const localStore = newStore();
+    const { client, remote } = makeClient(
+      {
+        userId: 'testUser',
+        clientId: 'testClient',
+      },
+      localStore,
+      server,
+    );
 
     const syncUpdates: SyncStatus[] = [];
     client.subscribeSyncStatus((state) => syncUpdates.push(state));
@@ -730,271 +893,174 @@ describe('Remote sync', () => {
     await client.updateDoc({}, 'initialize');
     await client.updateDoc({ hello: 'world' }, 'add hello');
 
-    await timeout(100);
+    await remote.onConnected();
+    await timeout();
+
+    const localGraph2 = basicGraph(localStore, client);
+    const remoteGraph2 = basicGraph(server.store, client);
+    expect(remoteGraph2).toEqual(localGraph2);
 
     // Kill the "connection"
-    remoteStore.remotes[0].fail('testing', 'network');
+    remote.fail('testing', 'network');
 
     const promises = [
       client.updateDoc({ hello: 'vorld' }, 'change hello'),
       client.updateDoc({ hello: 'borld' }, 'change hello'),
     ];
 
-    const localGraph2 = basicGraph(localStore, client);
-    const remoteGraph2 = basicGraph(remoteStore, client);
-    expect(remoteGraph2).toEqual(localGraph2);
-
     await Promise.all(promises);
 
     const localGraph3 = basicGraph(localStore, client);
     expect(localGraph3).toMatchInlineSnapshot(`
-      [
-        {
-          "graph": "undefined -> Zob0dMmD",
-          "step": "initialize",
-          "value": {},
-        },
-        {
-          "graph": "Zob0dMmD -> leySPlIR",
-          "step": "add hello",
-          "value": {
-            "hello": "world",
-          },
-        },
-        {
-          "graph": "leySPlIR -> x_n2sT7P",
-          "step": "change hello",
-          "value": {
-            "hello": "vorld",
-          },
-        },
-        {
-          "graph": "x_n2sT7P -> IkVWMaAr",
-          "step": "change hello",
-          "value": {
-            "hello": "borld",
-          },
-        },
-      ]
-    `);
+                  [
+                    {
+                      "graph": "undefined -> Zob0dMmD",
+                      "step": "initialize",
+                      "value": {},
+                    },
+                    {
+                      "graph": "Zob0dMmD -> leySPlIR",
+                      "step": "add hello",
+                      "value": {
+                        "hello": "world",
+                      },
+                    },
+                    {
+                      "graph": "leySPlIR -> x_n2sT7P",
+                      "step": "change hello",
+                      "value": {
+                        "hello": "vorld",
+                      },
+                    },
+                    {
+                      "graph": "x_n2sT7P -> IkVWMaAr",
+                      "step": "change hello",
+                      "value": {
+                        "hello": "borld",
+                      },
+                    },
+                  ]
+            `);
 
     // Need to wait longer for the "reconnect"
     await timeout(100);
 
-    const remoteGraph3 = basicGraph(remoteStore, client);
+    const remoteGraph3 = basicGraph(server.store, client);
     expect(remoteGraph3).toEqual(localGraph3);
 
-    expect(syncUpdates).toMatchInlineSnapshot(`
-      [
-        {
-          "localRead": "loading",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "loading",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "connecting",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "ready",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": "0",
-          "remoteRead": "offline",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": "0",
-          "remoteRead": "offline",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": "0",
-          "remoteRead": "offline",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": "0",
-          "remoteRead": "offline",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": "0",
-          "remoteRead": "offline",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "connecting",
-          "remoteCursor": "2",
-          "remoteRead": "offline",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "2",
-          "remoteRead": "offline",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "2",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "2",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-      ]
-    `);
+    expect(syncStatusDiffs(syncUpdates)).toMatchInlineSnapshot(`
+            [
+              {
+                "localRead": "loading",
+                "localSave": "ready",
+                "remoteConnect": "offline",
+                "remoteRead": "loading",
+                "remoteSave": "ready",
+              },
+              {
+                "localSave": "saving",
+              },
+              {
+                "localRead": "ready",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteSave": "saving",
+              },
+              {
+                "localSave": "ready",
+              },
+              {
+                "localSave": "saving",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteSave": "saving",
+              },
+              {
+                "localSave": "ready",
+              },
+              {
+                "remoteConnect": "connecting",
+              },
+              {
+                "remoteConnect": "online",
+              },
+              {
+                "remoteRead": "ready",
+              },
+              {
+                "remoteSave": "ready",
+              },
+              {
+                "remoteCursor": "2",
+              },
+              {
+                "localSave": "saving",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteConnect": "offline",
+                "remoteRead": "offline",
+              },
+              {
+                "remoteSave": "saving",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteSave": "saving",
+              },
+              {
+                "localSave": "ready",
+              },
+              {
+                "remoteConnect": "connecting",
+              },
+              {
+                "remoteConnect": "online",
+              },
+              {
+                "remoteRead": "ready",
+              },
+              {
+                "remoteSave": "ready",
+              },
+              {
+                "remoteCursor": "4",
+              },
+            ]
+        `);
   });
 
+  // stuck
   it('handles leader network split', async () => {
-    const remoteStore = newStore();
-    const localStore = newStore(remoteStore);
-    const client1 = makeClient('test', 'a', localStore);
-    const client2 = makeClient('test', 'b', localStore);
+    const server = newServer();
+    const localStore = newStore();
+
+    const { client: client1 } = makeClient(
+      {
+        userId: 'testUser',
+        clientId: 'testClientA',
+      },
+      localStore,
+      server,
+    );
+    const { client: client2 } = makeClient(
+      {
+        userId: 'testUser',
+        clientId: 'testClientB',
+      },
+      localStore,
+      server,
+    );
 
     const syncUpdates: SyncStatus[] = [];
     client1.subscribeSyncStatus((state) => syncUpdates.push(state));
@@ -1011,26 +1077,26 @@ describe('Remote sync', () => {
     expect(client2.isRemoteLeader).toBe(true);
 
     expect(client1.syncStatus).toMatchInlineSnapshot(`
-      {
-        "localRead": "ready",
-        "localSave": "ready",
-        "remoteConnect": "online",
-        "remoteCursor": "0",
-        "remoteRead": "ready",
-        "remoteSave": "ready",
-      }
-    `);
+            {
+              "localRead": "ready",
+              "localSave": "ready",
+              "remoteConnect": "online",
+              "remoteCursor": undefined,
+              "remoteRead": "ready",
+              "remoteSave": "ready",
+            }
+        `);
 
     expect(client2.syncStatus).toMatchInlineSnapshot(`
-      {
-        "localRead": "ready",
-        "localSave": "ready",
-        "remoteConnect": "online",
-        "remoteCursor": "0",
-        "remoteRead": "ready",
-        "remoteSave": "ready",
-      }
-    `);
+            {
+              "localRead": "ready",
+              "localSave": "ready",
+              "remoteConnect": "online",
+              "remoteCursor": undefined,
+              "remoteRead": "ready",
+              "remoteSave": "ready",
+            }
+        `);
 
     localStore.localNetworkPaused = false;
 
@@ -1040,34 +1106,48 @@ describe('Remote sync', () => {
     expect(client2.isRemoteLeader).toBe(false);
 
     expect(client1.syncStatus).toMatchInlineSnapshot(`
-      {
-        "localRead": "ready",
-        "localSave": "ready",
-        "remoteConnect": "online",
-        "remoteCursor": "0",
-        "remoteRead": "ready",
-        "remoteSave": "ready",
-      }
-    `);
+            {
+              "localRead": "ready",
+              "localSave": "ready",
+              "remoteConnect": "online",
+              "remoteCursor": undefined,
+              "remoteRead": "ready",
+              "remoteSave": "ready",
+            }
+        `);
 
     expect(client2.syncStatus).toMatchInlineSnapshot(`
-      {
-        "localRead": "ready",
-        "localSave": "ready",
-        "remoteConnect": "online",
-        "remoteCursor": "0",
-        "remoteRead": "ready",
-        "remoteSave": "ready",
-      }
-    `);
+            {
+              "localRead": "ready",
+              "localSave": "ready",
+              "remoteConnect": "online",
+              "remoteCursor": undefined,
+              "remoteRead": "ready",
+              "remoteSave": "ready",
+            }
+        `);
   });
 
   it('syncs two client stores to a remote store', async () => {
-    const remoteStore = newStore();
-    const store1 = newStore(remoteStore);
-    const store2 = newStore(remoteStore);
-    const client1 = makeClient('a', 'a', store1);
-    const client2 = makeClient('b', 'b', store2);
+    const server = newServer();
+    const localStore1 = newStore();
+    const localStore2 = newStore();
+    const { client: client1 } = makeClient(
+      {
+        userId: 'testUserA',
+        clientId: 'testClientA',
+      },
+      localStore1,
+      server,
+    );
+    const { client: client2 } = makeClient(
+      {
+        userId: 'testUserB',
+        clientId: 'testClientB',
+      },
+      localStore2,
+      server,
+    );
 
     const syncUpdates1: SyncStatus[] = [];
     const syncUpdates2: SyncStatus[] = [];
@@ -1104,673 +1184,599 @@ describe('Remote sync', () => {
     expect(client1.doc).toEqual({ hello: 'vorld', world: 'vorld' });
     expect(client2.doc).toEqual({ hello: 'vorld', world: 'vorld' });
 
-    const graph1 = basicGraph(store1, client1);
-    const graph2 = basicGraph(store2, client1);
+    const graph1 = basicGraph(localStore1, client1);
+    const graph2 = basicGraph(localStore2, client1);
     expect(graph1).toMatchInlineSnapshot(`
-      [
-        {
-          "graph": "undefined -> Zob0dMmD",
-          "step": "initialize",
-          "value": {},
-        },
-        {
-          "graph": "Zob0dMmD -> leySPlIR",
-          "step": "add hello",
-          "value": {
-            "hello": "world",
-          },
-        },
-        {
-          "graph": "leySPlIR -> x_n2sT7P",
-          "step": "change hello",
-          "value": {
-            "hello": "vorld",
-          },
-        },
-        {
-          "graph": "x_n2sT7P -> iOywLlrW",
-          "step": "add world",
-          "value": {
-            "hello": "vorld",
-            "world": "world",
-          },
-        },
-        {
-          "graph": "iOywLlrW -> ZLVXz73q",
-          "step": "change world",
-          "value": {
-            "hello": "vorld",
-            "world": "vorld",
-          },
-        },
-      ]
-    `);
+                  [
+                    {
+                      "graph": "undefined -> Zob0dMmD",
+                      "step": "initialize",
+                      "value": {},
+                    },
+                    {
+                      "graph": "Zob0dMmD -> leySPlIR",
+                      "step": "add hello",
+                      "value": {
+                        "hello": "world",
+                      },
+                    },
+                    {
+                      "graph": "leySPlIR -> x_n2sT7P",
+                      "step": "change hello",
+                      "value": {
+                        "hello": "vorld",
+                      },
+                    },
+                    {
+                      "graph": "x_n2sT7P -> iOywLlrW",
+                      "step": "add world",
+                      "value": {
+                        "hello": "vorld",
+                        "world": "world",
+                      },
+                    },
+                    {
+                      "graph": "iOywLlrW -> ZLVXz73q",
+                      "step": "change world",
+                      "value": {
+                        "hello": "vorld",
+                        "world": "vorld",
+                      },
+                    },
+                  ]
+            `);
     expect(graph2).toEqual(graph1);
 
     await client1.shutdown();
     await client2.shutdown();
 
-    expect(syncUpdates1).toMatchInlineSnapshot(`
-      [
-        {
-          "localRead": "loading",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "loading",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "connecting",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "loading",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "0",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "4",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "5",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": "5",
-          "remoteRead": "offline",
-          "remoteSave": "ready",
-        },
-      ]
-    `);
-    expect(syncUpdates2).toMatchInlineSnapshot(`
-      [
-        {
-          "localRead": "loading",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "connecting",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": undefined,
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "3",
-          "remoteRead": "loading",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "3",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "online",
-          "remoteCursor": "3",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "online",
-          "remoteCursor": "3",
-          "remoteRead": "ready",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "online",
-          "remoteCursor": "3",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "online",
-          "remoteCursor": "3",
-          "remoteRead": "ready",
-          "remoteSave": "pending",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "online",
-          "remoteCursor": "3",
-          "remoteRead": "ready",
-          "remoteSave": "saving",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "saving",
-          "remoteConnect": "online",
-          "remoteCursor": "3",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "online",
-          "remoteCursor": "3",
-          "remoteRead": "ready",
-          "remoteSave": "ready",
-        },
-        {
-          "localRead": "ready",
-          "localSave": "ready",
-          "remoteConnect": "offline",
-          "remoteCursor": "3",
-          "remoteRead": "offline",
-          "remoteSave": "ready",
-        },
-      ]
-    `);
+    expect(syncStatusDiffs(syncUpdates1)).toMatchInlineSnapshot(`
+            [
+              {
+                "localRead": "loading",
+                "localSave": "ready",
+                "remoteConnect": "offline",
+                "remoteRead": "loading",
+                "remoteSave": "ready",
+              },
+              {
+                "localSave": "saving",
+              },
+              {
+                "localRead": "ready",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteSave": "saving",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteSave": "saving",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteSave": "saving",
+              },
+              {
+                "localSave": "ready",
+              },
+              {
+                "remoteConnect": "connecting",
+              },
+              {
+                "remoteConnect": "online",
+              },
+              {
+                "remoteRead": "ready",
+              },
+              {
+                "remoteSave": "ready",
+              },
+              {
+                "remoteCursor": "3",
+              },
+              {
+                "remoteCursor": "4",
+              },
+              {
+                "remoteCursor": "5",
+              },
+              {
+                "remoteConnect": "offline",
+                "remoteRead": "offline",
+              },
+            ]
+        `);
+    expect(syncStatusDiffs(syncUpdates2)).toMatchInlineSnapshot(`
+            [
+              {
+                "localRead": "loading",
+                "localSave": "ready",
+                "remoteConnect": "offline",
+                "remoteRead": "loading",
+                "remoteSave": "ready",
+              },
+              {
+                "localRead": "ready",
+              },
+              {
+                "remoteCursor": "3",
+              },
+              {
+                "remoteConnect": "connecting",
+              },
+              {
+                "remoteConnect": "online",
+              },
+              {
+                "remoteRead": "ready",
+              },
+              {
+                "localSave": "saving",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteSave": "saving",
+              },
+              {
+                "remoteSave": "pending",
+              },
+              {
+                "remoteSave": "saving",
+              },
+              {
+                "remoteSave": "ready",
+              },
+              {
+                "localSave": "ready",
+              },
+              {
+                "remoteCursor": "4",
+              },
+              {
+                "remoteCursor": "5",
+              },
+              {
+                "remoteConnect": "offline",
+                "remoteRead": "offline",
+              },
+            ]
+        `);
     expect(client1ListSub.mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": undefined,
-              "self": true,
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "subscribe",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "Zob0dMmD",
-              "self": true,
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "Zob0dMmD",
-              "self": true,
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "leySPlIR",
-              "self": true,
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "leySPlIR",
-              "self": true,
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "x_n2sT7P",
-              "self": true,
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "x_n2sT7P",
-              "self": true,
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "x_n2sT7P",
-              "self": true,
-              "userId": "a",
-            },
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": undefined,
-              "userId": "b",
-            },
-          ],
-          {
-            "origin": "remote",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "x_n2sT7P",
-              "self": true,
-              "userId": "a",
-            },
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": "iOywLlrW",
-              "userId": "b",
-            },
-          ],
-          {
-            "origin": "remote",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "x_n2sT7P",
-              "self": true,
-              "userId": "a",
-            },
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": "ZLVXz73q",
-              "userId": "b",
-            },
-          ],
-          {
-            "origin": "remote",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "x_n2sT7P",
-              "self": true,
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "remote",
-          },
-        ],
-      ]
-    `);
+            [
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "self": true,
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "subscribe",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "Zob0dMmD",
+                    "self": true,
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "Zob0dMmD",
+                    "self": true,
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "self": true,
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "leySPlIR",
+                    "self": true,
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "self": true,
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "self": true,
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "self": true,
+                    "userId": "testUserA",
+                  },
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "userId": "testUserB",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "self": true,
+                    "userId": "testUserA",
+                  },
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": "iOywLlrW",
+                    "userId": "testUserB",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "self": true,
+                    "userId": "testUserA",
+                  },
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": "ZLVXz73q",
+                    "userId": "testUserB",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "self": true,
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+            ]
+        `);
     expect(client2ListSub.mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          [
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": undefined,
-              "self": true,
-              "userId": "b",
-            },
-          ],
-          {
-            "origin": "subscribe",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": undefined,
-              "self": true,
-              "userId": "b",
-            },
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "x_n2sT7P",
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "remote",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": "iOywLlrW",
-              "self": true,
-              "userId": "b",
-            },
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "x_n2sT7P",
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": "iOywLlrW",
-              "self": true,
-              "userId": "b",
-            },
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "x_n2sT7P",
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": "ZLVXz73q",
-              "self": true,
-              "userId": "b",
-            },
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "x_n2sT7P",
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": "ZLVXz73q",
-              "self": true,
-              "userId": "b",
-            },
-            {
-              "clientId": "a",
-              "presence": undefined,
-              "ref": "x_n2sT7P",
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "self",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "b",
-              "presence": undefined,
-              "ref": "ZLVXz73q",
-              "self": true,
-              "userId": "b",
-            },
-          ],
-          {
-            "origin": "remote",
-          },
-        ],
-      ]
-    `);
+            [
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "self": true,
+                    "userId": "testUserB",
+                  },
+                ],
+                {
+                  "origin": "subscribe",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "self": true,
+                    "userId": "testUserB",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": undefined,
+                    "self": true,
+                    "userId": "testUserB",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": "iOywLlrW",
+                    "self": true,
+                    "userId": "testUserB",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": "iOywLlrW",
+                    "self": true,
+                    "userId": "testUserB",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": "ZLVXz73q",
+                    "self": true,
+                    "userId": "testUserB",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": "ZLVXz73q",
+                    "self": true,
+                    "userId": "testUserB",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "self",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": "iOywLlrW",
+                    "userId": "testUserB",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": "ZLVXz73q",
+                    "userId": "testUserB",
+                  },
+                  {
+                    "clientId": "testClientA",
+                    "presence": undefined,
+                    "ref": "x_n2sT7P",
+                    "userId": "testUserA",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+              [
+                [
+                  {
+                    "clientId": "testClientB",
+                    "presence": undefined,
+                    "ref": "ZLVXz73q",
+                    "userId": "testUserB",
+                  },
+                ],
+                {
+                  "origin": "remote",
+                },
+              ],
+            ]
+        `);
   });
 
   it('syncs three clients with two local stores', async () => {
-    const remoteStore = newStore();
-    const localStore1 = newStore(remoteStore);
-    const localStore2 = newStore(remoteStore);
-    const client1 = makeClient('a', 'client1', localStore1);
-    const client2 = makeClient('b', 'client2', localStore2);
-    const client3 = makeClient('b', 'client3', localStore2);
+    const server = newServer();
+    const localStore1 = newStore();
+    const { client: client1 } = makeClient(
+      { userId: 'testUserA', clientId: 'testClientA' },
+      localStore1,
+      server,
+    );
+
+    const localStore2 = newStore();
+    const { client: client2 } = makeClient(
+      { userId: 'testUserB', clientId: 'testClientB1' },
+      localStore2,
+      server,
+    );
+    const { client: client3 } = makeClient(
+      { userId: 'testUserB', clientId: 'testClientB2' },
+      localStore2,
+      server,
+    );
 
     expect(basicClients(client1)).toMatchInlineSnapshot(`
-      {
-        "a:client1": undefined,
-      }
-    `);
+            {
+              "testUserA:testClientA": undefined,
+            }
+        `);
     expect(basicClients(client2)).toMatchInlineSnapshot(`
-      {
-        "b:client2": undefined,
-      }
-    `);
+            {
+              "testUserB:testClientB1": undefined,
+            }
+        `);
     expect(basicClients(client3)).toMatchInlineSnapshot(`
-      {
-        "b:client3": undefined,
-      }
-    `);
+            {
+              "testUserB:testClientB2": undefined,
+            }
+        `);
 
     await timeout();
 
     expect(basicClients(client1)).toMatchInlineSnapshot(`
-      {
-        "a:client1": undefined,
-        "b:client2": undefined,
-        "b:client3": undefined,
-      }
-    `);
+            {
+              "testUserA:testClientA": undefined,
+              "testUserB:testClientB1": undefined,
+              "testUserB:testClientB2": undefined,
+            }
+        `);
     expect(basicClients(client2)).toMatchInlineSnapshot(`
-      {
-        "a:client1": undefined,
-        "b:client2": undefined,
-        "b:client3": undefined,
-      }
-    `);
+            {
+              "testUserA:testClientA": undefined,
+              "testUserB:testClientB1": undefined,
+              "testUserB:testClientB2": undefined,
+            }
+        `);
     expect(basicClients(client3)).toMatchInlineSnapshot(`
-      {
-        "a:client1": undefined,
-        "b:client2": undefined,
-        "b:client3": undefined,
-      }
-    `);
+            {
+              "testUserA:testClientA": undefined,
+              "testUserB:testClientB1": undefined,
+              "testUserB:testClientB2": undefined,
+            }
+        `);
 
     client1.updatePresence('presence 1');
     client2.updatePresence('presence 2');
@@ -1779,25 +1785,25 @@ describe('Remote sync', () => {
     await timeout();
 
     expect(basicClients(client1)).toMatchInlineSnapshot(`
-      {
-        "a:client1": "presence 1",
-        "b:client2": "presence 2",
-        "b:client3": "presence 3",
-      }
-    `);
+            {
+              "testUserA:testClientA": "presence 1",
+              "testUserB:testClientB1": "presence 2",
+              "testUserB:testClientB2": "presence 3",
+            }
+        `);
     expect(basicClients(client2)).toMatchInlineSnapshot(`
-      {
-        "a:client1": "presence 1",
-        "b:client2": "presence 2",
-        "b:client3": "presence 3",
-      }
-    `);
+            {
+              "testUserA:testClientA": "presence 1",
+              "testUserB:testClientB1": "presence 2",
+              "testUserB:testClientB2": "presence 3",
+            }
+        `);
     expect(basicClients(client3)).toMatchInlineSnapshot(`
-      {
-        "a:client1": "presence 1",
-        "b:client2": "presence 2",
-        "b:client3": "presence 3",
-      }
-    `);
+            {
+              "testUserA:testClientA": "presence 1",
+              "testUserB:testClientB1": "presence 2",
+              "testUserB:testClientB2": "presence 3",
+            }
+        `);
   });
 });

@@ -222,12 +222,6 @@ export type OnRemoteEventFn<CommitMetadata, Delta, Presence> = (
   event: SyncEvent<CommitMetadata, Delta, Presence>,
 ) => void;
 
-export type GetLocalStoreFn<CommitMetadata, Delta, Presence> = (
-  userId: string,
-  clientId: string,
-  onEvent: OnStoreEventFn<CommitMetadata, Delta, Presence>,
-) => LocalStore<CommitMetadata, Delta, Presence>;
-
 export type RemoteSyncInfo = {
   /** The latest cursor that we're aware of from this remote. */
   lastSyncCursor?: string;
@@ -236,26 +230,38 @@ export type RemoteSyncInfo = {
   firstSyncCursor?: string;
 };
 
-export type GetRemoteFn<CommitMetadata, Delta, Presence> = (
-  userId: string,
-  localStoreId: string,
-  remoteSyncInfo: RemoteSyncInfo,
-  onRemoteEvent: OnRemoteEventFn<CommitMetadata, Delta, Presence>,
-) =>
-  | Remote<CommitMetadata, Delta, Presence>
-  | Promise<Remote<CommitMetadata, Delta, Presence>>;
-
 export interface LocalStore<CommitMetadata, Delta, Presence> extends Loggable {
   update(
     commits: readonly Commit<CommitMetadata, Delta>[],
     presence: ClientPresenceRef<Presence> | undefined,
   ): Promise<void>;
+
+  /** Listen to events emitted by this Store.
+   */
+  listen(cb: OnStoreEventFn<CommitMetadata, Delta, Presence>): void;
   isRemoteLeader: boolean;
   shutdown(): void | Promise<void>;
 }
 
 export interface Remote<CommitMetadata, Delta, Presence> extends Loggable {
   send(event: SyncEvent<CommitMetadata, Delta, Presence>): void;
+
+  /** Activates the connection to the remote. */
+  connect(syncInfo: RemoteSyncInfo): void | Promise<void>;
+
+  /** Listen to events emitted by this Store, returns the function to unregister
+   * the listener. Remotes should only have one listener.
+   * When done listening to the remote, call shutdown().
+   */
+  listen(cb: OnRemoteEventFn<CommitMetadata, Delta, Presence>): void;
+
+  /** Whether this remote is connected. */
+  active: boolean;
+
+  /** Deactivates the connection to the remote. */
+  disconnect(): void | Promise<void>;
+
+  /** Final shutdown of the Remote. Should not be connected to after this. */
   shutdown(): void | Promise<void>;
 }
 
@@ -289,6 +295,79 @@ export interface Loggable {
   configureLogger(logger: Logger | undefined): void;
 }
 
+type LoggerEventType =
+  | 'update-doc'
+  | 'receive-event'
+  | 'emit-status'
+  | 'emit-doc'
+  | 'emit-error'
+  | 'update-store'
+  | 'broadcast-event'
+  | 'send-event'
+  | 'log-message';
+
+type BaseLoggerEvent<Payload = never> = {
+  type: LoggerEventType;
+  sourceId: string;
+  payload?: Payload;
+};
+
+type SendEventLoggerEvent = BaseLoggerEvent<{
+    recipientId: string;
+    event: SyncEvent<unknown, unknown, unknown>;
+  }> & {
+  type: 'send-event';
+};
+
+type BroadcastEventLoggerEvent = BaseLoggerEvent<{
+    event: SyncEvent<unknown, unknown, unknown>;
+    remoteOrigin: boolean;
+  }> & {
+  type: 'broadcast-event';
+};
+
+type ReceiveEventLoggerEvent = BaseLoggerEvent<{
+    senderId?: string;
+    event: SyncEvent<unknown, unknown, unknown>;
+  }> & {
+  type: 'receive-event';
+};
+
+type EmitStatusLoggerEvent = BaseLoggerEvent<{
+    status: SyncStatus;
+  }> & {
+  type: 'emit-status';
+};
+
+type UpdateStoreLoggerEvent = BaseLoggerEvent<{
+    commits: Commit[];
+  }> & {
+  type: 'update-store';
+};
+
+type EmitErrorLoggerEvent = BaseLoggerEvent<{
+    error: unknown;
+  }> & {
+  type: 'emit-error';
+};
+
+type LogMessageLoggerEvent = BaseLoggerEvent<{
+    level: 'debug' | 'info' | 'warn' | 'error';
+    message: any[];
+  }> & {
+  type: 'log-message';
+};
+
+export type LoggerEvent =
+  | BaseLoggerEvent
+  | SendEventLoggerEvent
+  | EmitStatusLoggerEvent
+  | UpdateStoreLoggerEvent
+  | EmitErrorLoggerEvent
+  | ReceiveEventLoggerEvent
+  | BroadcastEventLoggerEvent
+  | LogMessageLoggerEvent;
+
 /** Super simple logging interface that's compatible with console but allows customization. */
 export interface Logger {
   debug: (...args: any[]) => void;
@@ -296,4 +375,5 @@ export interface Logger {
   log: (...args: any[]) => void;
   warn: (...args: any[]) => void;
   error: (...args: any[]) => void;
+  event?: (event: LoggerEvent) => void;
 }

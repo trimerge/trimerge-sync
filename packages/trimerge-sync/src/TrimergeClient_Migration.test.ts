@@ -25,28 +25,31 @@ const migrationOpts: Pick<
   },
 };
 
+const CLIENT_ID = 'test';
+
 function makeClientV1(
   userId: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1, DocV1, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, 'test', {
+  return new TrimergeClient(userId, CLIENT_ID, {
     ...migrationOpts,
-    getLocalStore: store.getLocalStore,
+    localStore: store.getLocalStore({ userId, clientId: CLIENT_ID }),
   });
 }
 function makeClientV2(
   userId: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1 | DocV2, DocV2, TestMetadata, Delta, TestPresence> {
+  const clientId = 'test';
   return new TrimergeClient<
     DocV1 | DocV2,
     DocV2,
     TestMetadata,
     Delta,
     TestPresence
-  >(userId, 'test', {
+  >(userId, clientId, {
     ...migrationOpts,
-    getLocalStore: store.getLocalStore,
+    localStore: store.getLocalStore({ userId, clientId }),
     migrate: (doc, metadata) => {
       switch (doc.v) {
         case 1:
@@ -65,9 +68,9 @@ function makeNonReferenceEqualMigrationClient(
   userId: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<DocV1, DocV1, TestMetadata, Delta, TestPresence> {
-  return new TrimergeClient(userId, 'test', {
+  return new TrimergeClient(userId, CLIENT_ID, {
     ...TEST_OPTS,
-    getLocalStore: store.getLocalStore,
+    localStore: store.getLocalStore({ userId, clientId: CLIENT_ID }),
     migrate: (doc, metadata) => {
       return { doc: { ...doc }, metadata };
     },

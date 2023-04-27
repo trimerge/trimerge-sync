@@ -5,7 +5,6 @@ import {
   RemoteSyncInfo,
   CommitAck,
   CommitRepository,
-  Logger,
 } from '../types';
 import { MemoryStore } from './MemoryStore';
 
@@ -16,7 +15,7 @@ export class MemoryCommitRepository<CommitMetadata, Delta, Presence>
     private readonly store: MemoryStore<CommitMetadata, Delta, Presence>,
   ) {}
 
-  configureLogger(logger: Logger): void {
+  configureLogger(): void {
     /* no-op */
   }
 
@@ -37,7 +36,10 @@ export class MemoryCommitRepository<CommitMetadata, Delta, Presence>
   async *getLocalCommits(): AsyncIterableIterator<
     CommitsEvent<CommitMetadata, Delta, Presence>
   > {
-    yield await this.store.getLocalCommitsEvent();
+    const event = await this.store.getLocalCommitsEvent();
+    if (event !== undefined) {
+        yield event;
+    }
   }
 
   getCommitsForRemote(): AsyncIterableIterator<

@@ -1,4 +1,4 @@
-import { CommitInfo, GetLocalStoreFn } from './types';
+import { CommitInfo, LocalStore } from './types';
 
 export type DocAndMetadata<Doc, CommitMetadata> = {
   doc: Doc;
@@ -86,8 +86,8 @@ export type TrimergeClientOptions<
   /** Merge all head commits */
   readonly mergeAllBranches: MergeAllBranchesFn<LatestDoc, CommitMetadata>;
 
-  /** Get the Local commit store. */
-  readonly getLocalStore: GetLocalStoreFn<CommitMetadata, Delta, Presence>;
+  /** The local commit store. */
+  readonly localStore: LocalStore<CommitMetadata, Delta, Presence>;
 
   /** How to convert a historical format of your document to the latest version of the document.
    *  If not supplied, the document will always be treated as if it is in the latest format.

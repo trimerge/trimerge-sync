@@ -140,6 +140,7 @@ export class TrimergeClient<
   private numPendingUpdates: number = 0;
 
   private isShutdown = false;
+  private readonly loggingPrefix;
 
   private syncState: SyncStatus = {
     localRead: 'loading',
@@ -158,7 +159,7 @@ export class TrimergeClient<
       migrate = (doc, metadata) => ({ doc: doc as LatestDoc, metadata }),
       mergeAllBranches,
       computeRef,
-      getLocalStore,
+      localStore,
       addNewCommitMetadata,
       docCache = new InMemoryDocCache(),
       shutdown: onShutdown,
@@ -177,7 +178,8 @@ export class TrimergeClient<
     this.computeRef = computeRef;
     this.addNewCommitMetadata = addNewCommitMetadata;
     this.docCache = docCache;
-    this.store = getLocalStore(userId, clientId, this.onStoreEvent);
+    this.store = localStore;
+    this.store.listen(this.onStoreEvent);
     this.setClientInfo(
       {
         userId,
@@ -188,11 +190,13 @@ export class TrimergeClient<
       },
       { origin: 'self' },
     );
+
+    this.loggingPrefix = `TRIMERGE_CLIENT:${this.clientId}`;
   }
 
   configureLogger(logger: Logger | undefined): void {
     if (logger) {
-      this.logger = new PrefixLogger('TRIMERGE_CLIENT', logger);
+      this.logger = new PrefixLogger(this.loggingPrefix, logger);
     } else {
       this.logger = undefined;
     }
@@ -215,7 +219,13 @@ export class TrimergeClient<
     event,
     remoteOrigin,
   ) => {
-    this.logger?.debug('onStoreEvent', event);
+    this.logger?.event?.({
+      type: 'receive-event',
+      sourceId: this.loggingPrefix,
+      payload: {
+        event,
+      },
+    });
     const origin = remoteOrigin ? 'remote' : 'local';
 
     switch (event.type) {
@@ -339,7 +349,7 @@ export class TrimergeClient<
     invariant(!this.isShutdown, 'attempting to update doc after shutdown');
 
     const ref = this.addNewCommit(doc, metadata, false);
-    this.logger?.debug('updateDoc', ref);
+    this.logger?.debug('updateDoc:', ref);
     this.setPresence(presence, ref);
 
     if (ref === undefined) {
@@ -500,7 +510,13 @@ export class TrimergeClient<
       }
       this.numPendingUpdates++;
       try {
-        this.logger?.debug('sending commits to store', commits);
+        this.logger?.event?.({
+          type: 'update-store',
+          sourceId: this.loggingPrefix,
+          payload: {
+            commits,
+          },
+        });
         await this.store.update(commits, this.newPresence);
 
         if (this.numPendingUpdates === 1) {

@@ -1,16 +1,15 @@
 import {
   AckCommitsEvent,
   Commit,
-  GetLocalStoreFn,
-  GetRemoteFn,
   CommitsEvent,
   RemoteSyncInfo,
   CommitAck,
+  LocalStore,
+  Remote,
 } from '../types';
 import generate from 'project-name-generator';
 import { PromiseQueue } from '../lib/PromiseQueue';
 import { MemoryCommitRepository } from './MemoryCommitRepository';
-import { MemoryRemote } from './MemoryRemote';
 import { CoordinatingLocalStore } from '../CoordinatingLocalStore';
 import { MemoryEventChannel } from './MemoryBroadcastChannel';
 
@@ -23,11 +22,9 @@ function randomId() {
 }
 
 export class MemoryStore<CommitMetadata, Delta, Presence> {
-  public readonly remotes: MemoryRemote<CommitMetadata, Delta, Presence>[] = [];
   private commits: Commit<CommitMetadata, Delta>[] = [];
   private localCommitRefs = new Set<string>();
   private syncedCommits = new Set<string>();
-  private readonly localStoreId = randomId();
   private lastRemoteSyncCursor: string | undefined;
   private queue = new PromiseQueue();
   private readonly localStores: {
@@ -37,11 +34,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
 
   public writeErrorMode = false;
 
-  constructor(
-    public readonly channelName: string = randomId(),
-    private readonly getRemoteFn?: GetRemoteFn<CommitMetadata, Delta, Presence>,
-    public online = true,
-  ) {}
+  constructor(public readonly channelName: string = randomId()) {}
 
   public getCommits(): readonly Commit<CommitMetadata, Delta>[] {
     return this.commits;
@@ -57,11 +50,16 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     }
   }
 
-  getLocalStore: GetLocalStoreFn<CommitMetadata, Delta, Presence> = (
-    userId,
-    clientId,
-    onStoreEvent,
-  ) => {
+  getLocalStore(
+    {
+      userId,
+      clientId,
+    }: {
+      userId: string;
+      clientId: string;
+    },
+    remote?: Remote<CommitMetadata, Delta, Presence>,
+  ): LocalStore<CommitMetadata, Delta, Presence> {
     const eventChannel = new MemoryEventChannel<
       CommitMetadata,
       Delta,
@@ -70,11 +68,9 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     const store = new CoordinatingLocalStore<CommitMetadata, Delta, Presence>(
       userId,
       clientId,
-      this.localStoreId,
       {
-        onStoreEvent,
         commitRepo: new MemoryCommitRepository(this),
-        getRemote: this.getRemoteFn,
+        remote,
         networkSettings: {
           initialDelayMs: 0,
           reconnectBackoffMultiplier: 1,
@@ -88,27 +84,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     );
     this.localStores.push({ store, eventChannel });
     return store;
-  };
-
-  getRemote: GetRemoteFn<CommitMetadata, Delta, Presence> = (
-    userId: string,
-    localStoreId: string,
-    remoteSyncInfo,
-    onEvent,
-  ) => {
-    if (!this.online) {
-      throw new Error('offline');
-    }
-    const be = new MemoryRemote(
-      this,
-      userId,
-      localStoreId,
-      remoteSyncInfo,
-      onEvent,
-    );
-    this.remotes.push(be);
-    return be;
-  };
+  }
 
   addCommits(
     commits: readonly Commit<CommitMetadata, Delta>[],
@@ -149,15 +125,18 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     });
   }
 
-  getLocalCommitsEvent(
+  async getLocalCommitsEvent(
     startSyncCursor?: string,
-  ): Promise<CommitsEvent<CommitMetadata, Delta, Presence>> {
-    return this.queue.add(async () => ({
+  ): Promise<CommitsEvent<CommitMetadata, Delta, Presence> | undefined> {
+    if (this.commits.length === 0) {
+        return undefined;
+    }
+    return await this.queue.add(async () => ({
       type: 'commits',
       commits:
         startSyncCursor !== undefined
           ? this.commits.slice(getSyncCounter(startSyncCursor))
-          : this.commits,
+          : [...this.commits],
       syncId: this.syncCursor,
     }));
   }
@@ -185,9 +164,6 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
 
   async shutdown(): Promise<void> {
     return await this.queue.add(async () => {
-      for (const remote of this.remotes) {
-        await remote.shutdown();
-      }
       for (const local of this.localStores) {
         await local.store.shutdown();
       }

@@ -1,15 +1,13 @@
 import { CoordinatingLocalStore } from './CoordinatingLocalStore';
 import { timeout } from './lib/Timeout';
 import { MemoryEventChannel } from './testLib/MemoryBroadcastChannel';
+import { MockRemote } from './testLib/MockRemote';
 import {
   AckCommitsEvent,
   CommitRepository,
   CommitsEvent,
   Logger,
-  OnRemoteEventFn,
-  Remote,
   RemoteSyncInfo,
-  SyncEvent,
 } from './types';
 
 class MockCommitRepository
@@ -47,30 +45,15 @@ class MockCommitRepository
   }
 }
 
-class MockRemote implements Remote<unknown, unknown, unknown> {
-  constructor(readonly onEvent: OnRemoteEventFn<unknown, unknown, unknown>) {}
-
-  send(event: SyncEvent<unknown, unknown, unknown>): void {
-    //
-  }
-
-  shutdown(): void | Promise<void> {
-    //
-  }
-
-  configureLogger() {
-    /* no-op */
-  }
-}
-
 describe('CoordinatingLocalStore', () => {
   it('handle double shutdown', async () => {
     const fn = jest.fn();
-    const store = new CoordinatingLocalStore('', '', '', {
-      onStoreEvent: fn,
+    const store = new CoordinatingLocalStore('', '', {
       commitRepo: new MockCommitRepository(),
       localChannel: new MemoryEventChannel('dummy'),
     });
+
+    store.listen(fn);
     await store.shutdown();
     await store.shutdown();
     expect(fn.mock.calls).toMatchInlineSnapshot(`
@@ -93,32 +76,65 @@ describe('CoordinatingLocalStore', () => {
       ]
     `);
   });
-  it('does not send two client join events if the current state is online', async () => {
+  it('correctly buffers events emitted before listening', async () => {
+    const store = new CoordinatingLocalStore('', '', {
+      commitRepo: new MockCommitRepository(),
+      localChannel: new MemoryEventChannel('dummy'),
+    });
+    await timeout();
     const fn = jest.fn();
-    let mockRemote: MockRemote;
-    let sendSpy: jest.SpyInstance;
-    let localStore: CoordinatingLocalStore<unknown, unknown, unknown>;
+    store.listen(fn);
+    expect(fn.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "connect": "offline",
+            "read": "offline",
+            "save": "ready",
+            "type": "remote-state",
+          },
+          false,
+        ],
+        [
+          {
+            "type": "ready",
+          },
+          false,
+        ],
+        [
+          {
+            "info": {
+              "clientId": "",
+              "presence": undefined,
+              "ref": undefined,
+              "userId": "",
+            },
+            "type": "client-presence",
+          },
+          false,
+        ],
+      ]
+    `);
+  });
+  it('does not send two client join events if the current state is online', async () => {
+    const remote = new MockRemote();
+    const sendSpy: jest.SpyInstance = jest.spyOn(remote, 'send');
 
-    await new Promise<void>((resolve) => {
-      localStore = new CoordinatingLocalStore('', '', '', {
-        onStoreEvent: fn,
-        commitRepo: new MockCommitRepository(),
-        getRemote: (_, __, ___, onEvent) => {
-          mockRemote = new MockRemote(onEvent);
-          sendSpy = jest.spyOn(mockRemote, 'send');
-          resolve();
-          return mockRemote;
-        },
-        localChannel: new MemoryEventChannel('dummy'),
-      });
+    const localStore = new CoordinatingLocalStore('', '', {
+      commitRepo: new MockCommitRepository(),
+      remote,
+      localChannel: new MemoryEventChannel('repeated-online-events'),
     });
 
-    mockRemote!.onEvent({ type: 'remote-state', connect: 'online' });
-    mockRemote!.onEvent({ type: 'remote-state', connect: 'online' });
+    // Wait for coordinating local store to listen to the remote.
+    await remote.onConnected();
+
+    remote.emit({ type: 'remote-state', connect: 'online' });
+    remote.emit({ type: 'remote-state', connect: 'online' });
 
     await timeout();
 
-    expect(sendSpy!.mock.calls).toMatchInlineSnapshot(`
+    expect(sendSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
           {
@@ -136,30 +152,20 @@ describe('CoordinatingLocalStore', () => {
             "type": "client-join",
           },
         ],
-        [
-          {
-            "info": {
-              "clientId": "",
-              "presence": undefined,
-              "ref": undefined,
-              "userId": "",
-            },
-            "type": "client-presence",
-          },
-        ],
       ]
     `);
 
-    await localStore!.shutdown();
+    await localStore.shutdown();
   });
 
   it('handle empty update call', async () => {
     const fn = jest.fn();
-    const store = new CoordinatingLocalStore('', '', '', {
-      onStoreEvent: fn,
+    const store = new CoordinatingLocalStore('', '', {
       commitRepo: new MockCommitRepository(),
       localChannel: new MemoryEventChannel('dummy'),
     });
+    store.listen(fn);
+
     await store.update([], undefined);
     expect(fn.mock.calls).toMatchInlineSnapshot(`
       [
