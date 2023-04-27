@@ -1,4 +1,3 @@
-
 # Examples
 
 This directory is used for demonstrating how a client application may use trimerge-sync to create a real-time collaborative multiplayer application.

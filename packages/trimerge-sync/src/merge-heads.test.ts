@@ -1,10 +1,9 @@
 import { mergeHeads, MergeCommitsFn, SortRefsFn } from './merge-heads';
 import { CommitInfo } from './types';
 
-
 const commitMap: Map<string, CommitInfo> = new Map();
 const sortMap: Map<string, number> = new Map();
-const alphaSort: SortRefsFn = (a, b) => (a.localeCompare(b));
+const alphaSort: SortRefsFn = (a, b) => a.localeCompare(b);
 const insertSequenceSort: SortRefsFn = (a, b) => {
   const aIdx = sortMap.get(a);
   if (aIdx === undefined) {
@@ -17,7 +16,7 @@ const insertSequenceSort: SortRefsFn = (a, b) => {
   return aIdx - bIdx;
 };
 const basicMerge: MergeCommitsFn = (baseRef, leftRef, rightRef) => {
-  const ref = `(${baseRef ?? '-'}:${leftRef}+${rightRef})`
+  const ref = `(${baseRef ?? '-'}:${leftRef}+${rightRef})`;
   sortMap.set(ref, sortMap.size);
   return ref;
 };
@@ -69,7 +68,7 @@ describe('mergeHeads()', () => {
     ]);
     const mergeFn = jest.fn(basicMerge);
     const heads = ['foo', 'bar', 'baz'];
-    expect(mergeHeads(heads, alphaSort, getCommit, mergeFn),).toEqual(
+    expect(mergeHeads(heads, alphaSort, getCommit, mergeFn)).toEqual(
       '(-:(-:bar+baz)+foo)',
     );
     expect(mergeFn.mock.calls).toEqual([

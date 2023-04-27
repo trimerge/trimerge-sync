@@ -1,4 +1,4 @@
-# 
+#
 
 ## TrimergeClient
 
@@ -9,8 +9,7 @@
 
 It uses a `TrimergeSyncBackend` to connect to a backend
 
-
 ## Syncing with remotes
 
 - Track which nodes are local synced vs remote synced.
-- 
+-

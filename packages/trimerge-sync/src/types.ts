@@ -313,48 +313,48 @@ type BaseLoggerEvent<Payload = never> = {
 };
 
 type SendEventLoggerEvent = BaseLoggerEvent<{
-    recipientId: string;
-    event: SyncEvent<unknown, unknown, unknown>;
-  }> & {
+  recipientId: string;
+  event: SyncEvent<unknown, unknown, unknown>;
+}> & {
   type: 'send-event';
 };
 
 type BroadcastEventLoggerEvent = BaseLoggerEvent<{
-    event: SyncEvent<unknown, unknown, unknown>;
-    remoteOrigin: boolean;
-  }> & {
+  event: SyncEvent<unknown, unknown, unknown>;
+  remoteOrigin: boolean;
+}> & {
   type: 'broadcast-event';
 };
 
 type ReceiveEventLoggerEvent = BaseLoggerEvent<{
-    senderId?: string;
-    event: SyncEvent<unknown, unknown, unknown>;
-  }> & {
+  senderId?: string;
+  event: SyncEvent<unknown, unknown, unknown>;
+}> & {
   type: 'receive-event';
 };
 
 type EmitStatusLoggerEvent = BaseLoggerEvent<{
-    status: SyncStatus;
-  }> & {
+  status: SyncStatus;
+}> & {
   type: 'emit-status';
 };
 
 type UpdateStoreLoggerEvent = BaseLoggerEvent<{
-    commits: Commit[];
-  }> & {
+  commits: Commit[];
+}> & {
   type: 'update-store';
 };
 
 type EmitErrorLoggerEvent = BaseLoggerEvent<{
-    error: unknown;
-  }> & {
+  error: unknown;
+}> & {
   type: 'emit-error';
 };
 
 type LogMessageLoggerEvent = BaseLoggerEvent<{
-    level: 'debug' | 'info' | 'warn' | 'error';
-    message: any[];
-  }> & {
+  level: 'debug' | 'info' | 'warn' | 'error';
+  message: any[];
+}> & {
   type: 'log-message';
 };
 

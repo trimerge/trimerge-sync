@@ -129,7 +129,7 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     startSyncCursor?: string,
   ): Promise<CommitsEvent<CommitMetadata, Delta, Presence> | undefined> {
     if (this.commits.length === 0) {
-        return undefined;
+      return undefined;
     }
     return await this.queue.add(async () => ({
       type: 'commits',
