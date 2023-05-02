@@ -82,12 +82,15 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private readonly loggingPrefix: string;
 
   /** Any events emitted before we have a listener are buffered. */
-  private eventBuffer:
+  private clientEventBuffer:
     | {
         event: SyncEvent<CommitMetadata, Delta, Presence>;
         remoteOrigin: boolean;
       }[]
     | undefined = [];
+
+  /** Any events emitted while we're connecting to the remote are buffered and replayed to the remote. */
+  private remoteEventBuffer: SyncEvent<CommitMetadata, Delta, Presence>[] = [];
 
   constructor(
     private readonly userId: string,
@@ -128,13 +131,13 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       throw new Error('CoordinatingLocalStore can only have one listener');
     }
     this.onStoreEvent = cb;
-    if (this.eventBuffer) {
-      for (const { event, remoteOrigin } of this.eventBuffer) {
+    if (this.clientEventBuffer) {
+      for (const { event, remoteOrigin } of this.clientEventBuffer) {
         cb(event, remoteOrigin);
       }
     }
 
-    this.eventBuffer = undefined;
+    this.clientEventBuffer = undefined;
   }
 
   public get isRemoteLeader(): boolean {
@@ -279,7 +282,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   };
 
   private async sendRemoteStatus() {
-    if (this.remote?.active) {
+    if (this.remote) {
       await this.sendEvent(this.remoteSyncState, { local: true, self: true });
     }
   }
@@ -296,6 +299,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   }
 
   async shutdown(): Promise<void> {
+    this.logger?.debug('requested shutdown');
     if (this.closed) {
       return;
     }
@@ -317,6 +321,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     }
 
     await this.closeRemote();
+    await this.remote?.shutdown();
 
     try {
       this.leaderManager?.shutdown();
@@ -389,6 +394,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           cursor: remoteSyncInfo.lastSyncCursor,
         });
         await this.remote.connect(remoteSyncInfo);
+
         let saving = false;
         for await (const event of this.commitRepo.getCommitsForRemote()) {
           for (const { ref } of event.commits) {
@@ -401,9 +407,21 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
             });
             saving = true;
           }
-          await this.sendEvent(event, { remote: true });
+          this.remote.send(event);
         }
-        await this.sendEvent({ type: 'ready' }, { remote: true });
+        for (const event of this.remoteEventBuffer) {
+          this.logger?.event?.({
+            type: 'send-event',
+            sourceId: this.loggingPrefix,
+            payload: {
+              recipientId: 'remote',
+              event,
+            },
+          });
+          this.remote.send(event);
+        }
+        this.remoteEventBuffer = [];
+        this.remote.send({ type: 'ready' });
       })
       .catch((e) => {
         this.logger?.warn(`error connecting to remote`, e);
@@ -458,12 +476,12 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         },
       });
       if (!this.onStoreEvent) {
-        if (!this.eventBuffer) {
+        if (!this.clientEventBuffer) {
           throw new Error(
             'eventBuffer should not be undefined before the local store has been listened to.',
           );
         }
-        this.eventBuffer.push({ event, remoteOrigin });
+        this.clientEventBuffer.push({ event, remoteOrigin });
       } else {
         try {
           this.onStoreEvent(event, remoteOrigin);
@@ -486,16 +504,24 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       await this.localChannel.sendEvent({ event, remoteOrigin });
     }
     if (remote) {
-      if (this.remote?.active) {
-        this.logger?.event?.({
-          type: 'send-event',
-          sourceId: this.loggingPrefix,
-          payload: {
-            recipientId: 'remote',
-            event,
-          },
-        });
-        this.remote.send(event);
+      if (
+        this.remote?.active &&
+        this.remoteSyncState.connect &&
+        ['online', 'connecting'].includes(this.remoteSyncState.connect)
+      ) {
+        if (this.remoteSyncState.connect === 'connecting') {
+          this.remoteEventBuffer.push(event);
+        } else {
+          this.logger?.event?.({
+            type: 'send-event',
+            sourceId: this.loggingPrefix,
+            payload: {
+              recipientId: 'remote',
+              event,
+            },
+          });
+          this.remote.send(event);
+        }
       } else {
         this.logger?.info(
           'got an event for remote but remote is not active',

@@ -720,6 +720,7 @@ export class TrimergeClient<
   }
 
   public async shutdown(): Promise<void> {
+    this.logger?.debug('requested shutdown');
     invariant(!this.isShutdown, 'already shutdown');
     this.isShutdown = true;
 
