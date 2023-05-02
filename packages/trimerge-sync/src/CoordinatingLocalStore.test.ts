@@ -238,6 +238,7 @@ describe('CoordinatingLocalStore', () => {
       },
     });
 
+    await remote.onConnected();
     const sendSpy = jest.spyOn(remote, 'send');
 
     await store.update(
