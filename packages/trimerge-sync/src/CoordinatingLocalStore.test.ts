@@ -82,7 +82,7 @@ describe('CoordinatingLocalStore', () => {
   it('correctly buffers events emitted before listening', async () => {
     const store = new CoordinatingLocalStore('', '', {
       commitRepo: new MockCommitRepository(),
-      localChannel: new MemoryEventChannel('dummy'),
+      localChannel: new MemoryEventChannel('buffers-events'),
     });
     await timeout();
     const fn = jest.fn();
@@ -101,18 +101,6 @@ describe('CoordinatingLocalStore', () => {
         [
           {
             "type": "ready",
-          },
-          false,
-        ],
-        [
-          {
-            "info": {
-              "clientId": "",
-              "presence": undefined,
-              "ref": undefined,
-              "userId": "",
-            },
-            "type": "client-presence",
           },
           false,
         ],
@@ -142,17 +130,6 @@ describe('CoordinatingLocalStore', () => {
         [
           {
             "type": "ready",
-          },
-        ],
-        [
-          {
-            "info": {
-              "clientId": "",
-              "presence": undefined,
-              "ref": undefined,
-              "userId": "",
-            },
-            "type": "client-join",
           },
         ],
       ]
