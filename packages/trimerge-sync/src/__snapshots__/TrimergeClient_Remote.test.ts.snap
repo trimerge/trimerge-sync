@@ -1,0 +1,272 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Remote sync syncs two client stores to a remote store 4`] = `
+[
+  [
+    [
+      {
+        "clientId": "testClientA",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "testUserA",
+      },
+    ],
+    {
+      "origin": "subscribe",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientA",
+        "presence": undefined,
+        "ref": "Zob0dMmD",
+        "self": true,
+        "userId": "testUserA",
+      },
+    ],
+    {
+      "origin": "self",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientA",
+        "presence": undefined,
+        "ref": "Zob0dMmD",
+        "self": true,
+        "userId": "testUserA",
+      },
+    ],
+    {
+      "origin": "self",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientA",
+        "presence": undefined,
+        "ref": "leySPlIR",
+        "self": true,
+        "userId": "testUserA",
+      },
+    ],
+    {
+      "origin": "self",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientA",
+        "presence": undefined,
+        "ref": "leySPlIR",
+        "self": true,
+        "userId": "testUserA",
+      },
+    ],
+    {
+      "origin": "self",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientA",
+        "presence": undefined,
+        "ref": "x_n2sT7P",
+        "self": true,
+        "userId": "testUserA",
+      },
+    ],
+    {
+      "origin": "self",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientA",
+        "presence": undefined,
+        "ref": "x_n2sT7P",
+        "self": true,
+        "userId": "testUserA",
+      },
+    ],
+    {
+      "origin": "self",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientA",
+        "presence": undefined,
+        "ref": "x_n2sT7P",
+        "self": true,
+        "userId": "testUserA",
+      },
+      {
+        "clientId": "testClientB",
+        "presence": undefined,
+        "ref": "iOywLlrW",
+        "userId": "testUserB",
+      },
+    ],
+    {
+      "origin": "remote",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientA",
+        "presence": undefined,
+        "ref": "x_n2sT7P",
+        "self": true,
+        "userId": "testUserA",
+      },
+      {
+        "clientId": "testClientB",
+        "presence": undefined,
+        "ref": "ZLVXz73q",
+        "userId": "testUserB",
+      },
+    ],
+    {
+      "origin": "remote",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientA",
+        "presence": undefined,
+        "ref": "x_n2sT7P",
+        "self": true,
+        "userId": "testUserA",
+      },
+    ],
+    {
+      "origin": "remote",
+    },
+  ],
+]
+`;
+
+exports[`Remote sync syncs two client stores to a remote store 5`] = `
+[
+  [
+    [
+      {
+        "clientId": "testClientB",
+        "presence": undefined,
+        "ref": undefined,
+        "self": true,
+        "userId": "testUserB",
+      },
+    ],
+    {
+      "origin": "subscribe",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientB",
+        "presence": undefined,
+        "ref": "iOywLlrW",
+        "self": true,
+        "userId": "testUserB",
+      },
+    ],
+    {
+      "origin": "self",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientB",
+        "presence": undefined,
+        "ref": "iOywLlrW",
+        "self": true,
+        "userId": "testUserB",
+      },
+    ],
+    {
+      "origin": "self",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientB",
+        "presence": undefined,
+        "ref": "ZLVXz73q",
+        "self": true,
+        "userId": "testUserB",
+      },
+    ],
+    {
+      "origin": "self",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientB",
+        "presence": undefined,
+        "ref": "ZLVXz73q",
+        "self": true,
+        "userId": "testUserB",
+      },
+    ],
+    {
+      "origin": "self",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientB",
+        "presence": undefined,
+        "ref": "iOywLlrW",
+        "userId": "testUserB",
+      },
+    ],
+    {
+      "origin": "remote",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientB",
+        "presence": undefined,
+        "ref": "ZLVXz73q",
+        "userId": "testUserB",
+      },
+    ],
+    {
+      "origin": "remote",
+    },
+  ],
+  [
+    [
+      {
+        "clientId": "testClientB",
+        "presence": undefined,
+        "ref": "ZLVXz73q",
+        "userId": "testUserB",
+      },
+    ],
+    {
+      "origin": "remote",
+    },
+  ],
+]
+`;

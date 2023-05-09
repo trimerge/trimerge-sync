@@ -50,6 +50,7 @@ function makeClient(
   { userId, clientId }: { userId: string; clientId: string },
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
   server: MemoryServer<TestMetadata, Delta, TestPresence>,
+  logger: MemoryLogger = new MemoryLogger(),
 ): {
   client: TrimergeClient<
     TestSavedDoc,
@@ -66,7 +67,6 @@ function makeClient(
     ...TEST_OPTS,
     localStore: store.getLocalStore({ userId, clientId }, remote),
   });
-  const logger = new MemoryLogger();
 
   client.configureLogger(logger);
   return { client, remote, logger };
@@ -1040,7 +1040,6 @@ describe('Remote sync', () => {
         `);
   });
 
-  // stuck
   it('handles leader network split', async () => {
     const server = newServer();
     const localStore = newStore();
@@ -1350,371 +1349,8 @@ describe('Remote sync', () => {
               },
             ]
         `);
-    expect(client1ListSub.mock.calls).toMatchInlineSnapshot(`
-            [
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "self": true,
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "subscribe",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "Zob0dMmD",
-                    "self": true,
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "Zob0dMmD",
-                    "self": true,
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "self": true,
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "self": true,
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "self": true,
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "self": true,
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "self": true,
-                    "userId": "testUserA",
-                  },
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUserB",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "self": true,
-                    "userId": "testUserA",
-                  },
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": "iOywLlrW",
-                    "userId": "testUserB",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "self": true,
-                    "userId": "testUserA",
-                  },
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": "ZLVXz73q",
-                    "userId": "testUserB",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "self": true,
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-            ]
-        `);
-    expect(client2ListSub.mock.calls).toMatchInlineSnapshot(`
-            [
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "self": true,
-                    "userId": "testUserB",
-                  },
-                ],
-                {
-                  "origin": "subscribe",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "self": true,
-                    "userId": "testUserB",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "self": true,
-                    "userId": "testUserB",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": "iOywLlrW",
-                    "self": true,
-                    "userId": "testUserB",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": "iOywLlrW",
-                    "self": true,
-                    "userId": "testUserB",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": "ZLVXz73q",
-                    "self": true,
-                    "userId": "testUserB",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": "ZLVXz73q",
-                    "self": true,
-                    "userId": "testUserB",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": "iOywLlrW",
-                    "userId": "testUserB",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": "ZLVXz73q",
-                    "userId": "testUserB",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "x_n2sT7P",
-                    "userId": "testUserA",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": "ZLVXz73q",
-                    "userId": "testUserB",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-            ]
-        `);
+    expect(client1ListSub.mock.calls).toMatchSnapshot();
+    expect(client2ListSub.mock.calls).toMatchSnapshot();
   });
 
   it('syncs three clients with two local stores', async () => {
@@ -1757,26 +1393,22 @@ describe('Remote sync', () => {
     await timeout();
 
     expect(basicClients(client1)).toMatchInlineSnapshot(`
-            {
-              "testUserA:testClientA": undefined,
-              "testUserB:testClientB1": undefined,
-              "testUserB:testClientB2": undefined,
-            }
-        `);
+      {
+        "testUserA:testClientA": undefined,
+      }
+    `);
     expect(basicClients(client2)).toMatchInlineSnapshot(`
-            {
-              "testUserA:testClientA": undefined,
-              "testUserB:testClientB1": undefined,
-              "testUserB:testClientB2": undefined,
-            }
-        `);
+      {
+        "testUserB:testClientB1": undefined,
+        "testUserB:testClientB2": undefined,
+      }
+    `);
     expect(basicClients(client3)).toMatchInlineSnapshot(`
-            {
-              "testUserA:testClientA": undefined,
-              "testUserB:testClientB1": undefined,
-              "testUserB:testClientB2": undefined,
-            }
-        `);
+      {
+        "testUserB:testClientB1": undefined,
+        "testUserB:testClientB2": undefined,
+      }
+    `);
 
     client1.updatePresence('presence 1');
     client2.updatePresence('presence 2');

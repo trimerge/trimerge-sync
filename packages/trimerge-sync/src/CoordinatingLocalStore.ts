@@ -185,7 +185,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         throw new Error('got leader event with no manager');
       }
       this.leaderManager.receiveEvent(event);
-      await this.sendRemoteStatus();
+      await this.broadcastRemoteStatus();
       return;
     }
 
@@ -269,7 +269,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           }
           await this.setRemoteState(event);
         } else {
-          await this.sendRemoteStatus();
+          await this.broadcastRemoteStatus();
         }
         break;
       case 'error':
@@ -281,8 +281,8 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     }
   };
 
-  private async sendRemoteStatus() {
-    if (this.remote) {
+  private async broadcastRemoteStatus() {
+    if (this.isRemoteLeader) {
       await this.sendEvent(this.remoteSyncState, { local: true, self: true });
     }
   }
