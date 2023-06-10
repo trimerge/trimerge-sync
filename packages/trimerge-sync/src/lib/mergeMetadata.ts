@@ -5,6 +5,10 @@ export function mergeMetadata(
   existingMetadata: unknown,
   newMetadata: unknown,
 ): unknown {
+  if (existingMetadata === newMetadata) {
+    return existingMetadata;
+  }
+
   // check for null
   if (existingMetadata === undefined || existingMetadata === null) {
     return newMetadata;

@@ -91,14 +91,14 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
     remoteSyncId?: string,
   ): Promise<AckCommitsEvent<CommitMetadata>> {
     return this.queue.add(async () => {
-      const refs = new Set<string>();
+      const refs = new Map<string, CommitMetadata>();
       for (const commit of commits) {
-        const { ref } = commit;
+        const { ref, metadata } = commit;
         if (!this.localCommitRefs.has(ref)) {
           this.commits.push(commit);
           this.localCommitRefs.add(ref);
         }
-        refs.add(ref);
+        refs.set(ref, metadata);
       }
       if (remoteSyncId !== undefined) {
         for (const { ref } of commits) {
@@ -108,7 +108,10 @@ export class MemoryStore<CommitMetadata, Delta, Presence> {
       }
       return {
         type: 'ack',
-        acks: Array.from(refs, (ref) => ({ ref })),
+        acks: Array.from(refs.entries(), ([ref, metadata]) => ({
+          ref,
+          metadata,
+        })),
         syncId: this.syncCursor,
       };
     });

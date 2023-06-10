@@ -36,7 +36,7 @@ function newStore() {
 }
 
 function makeClient(
-  userId: string,
+  id: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
   optsOverrides?: Partial<
     TrimergeClientOptions<
@@ -48,7 +48,8 @@ function makeClient(
     >
   >,
 ): TrimergeClient<TestSavedDoc, TestDoc, TestMetadata, Delta, TestPresence> {
-  const clientId = 'test';
+  const userId = `user-${id}`;
+  const clientId = `client-${id}`;
   return new TrimergeClient(userId, clientId, {
     ...opts,
     localStore: store.getLocalStore({ userId, clientId }),
@@ -110,6 +111,8 @@ describe('TrimergeClient: 2 users', () => {
 
     await timeout();
 
+    await client.shutdown();
+
     expect(basicGraph(store, client)).toMatchInlineSnapshot(`
       [
         {
@@ -141,10 +144,11 @@ describe('TrimergeClient: 2 users', () => {
 
     const onStateChange = jest.fn();
     const unsub = client.subscribeDoc(onStateChange);
-    void client.updateDoc(undefined, { message: 'initialize' });
+    await client.updateDoc(undefined, { message: 'initialize' });
+    await client.updateDoc(undefined, { message: 'initialize' });
+
     await timeout();
-    void client.updateDoc(undefined, { message: 'initialize' });
-    await timeout();
+    await client.shutdown();
 
     expect(onStateChange.mock.calls).toMatchInlineSnapshot(`
       [
@@ -167,18 +171,20 @@ describe('TrimergeClient: 2 users', () => {
     client.updatePresence({ message: 'blah' });
     await timeout();
 
+    await client.shutdown();
+
     expect(onStateChange.mock.calls.slice(-1)).toMatchInlineSnapshot(`
       [
         [
           [
             {
-              "clientId": "test",
+              "clientId": "client-a",
               "presence": {
                 "message": "blah",
               },
               "ref": undefined,
               "self": true,
-              "userId": "a",
+              "userId": "user-a",
             },
           ],
           {
@@ -210,6 +216,9 @@ describe('TrimergeClient: 2 users', () => {
 
     await writePromise;
 
+    // wait for change to propagate
+    await timeout();
+
     // Client2 is updated now
     expect(client1.doc).toEqual({});
     expect(client2.doc).toEqual({});
@@ -235,6 +244,9 @@ describe('TrimergeClient: 2 users', () => {
         "remoteSave": "saving",
       }
     `);
+
+    await client1.shutdown();
+    await client2.shutdown();
   });
 
   it('sends presence information correctly', async () => {
@@ -250,16 +262,16 @@ describe('TrimergeClient: 2 users', () => {
     // Initial values
     expect(client1.clients).toEqual([
       {
-        userId: 'a',
+        userId: 'user-a',
         self: true,
-        clientId: 'test',
+        clientId: 'client-a',
       },
     ]);
     expect(client2.clients).toEqual([
       {
-        userId: 'b',
+        userId: 'user-b',
         self: true,
-        clientId: 'test',
+        clientId: 'client-b',
       },
     ]);
 
@@ -267,9 +279,9 @@ describe('TrimergeClient: 2 users', () => {
       [
         [
           {
-            userId: 'a',
+            userId: 'user-a',
             self: true,
-            clientId: 'test',
+            clientId: 'client-a',
           },
         ],
         { origin: 'subscribe' },
@@ -280,9 +292,9 @@ describe('TrimergeClient: 2 users', () => {
       [
         [
           {
-            userId: 'b',
+            userId: 'user-b',
             self: true,
-            clientId: 'test',
+            clientId: 'client-b',
           },
         ],
         { origin: 'subscribe' },
@@ -295,34 +307,34 @@ describe('TrimergeClient: 2 users', () => {
     expect(sortedClients(client1)).toMatchInlineSnapshot(`
       [
         {
-          "clientId": "test",
+          "clientId": "client-a",
           "presence": undefined,
           "ref": undefined,
           "self": true,
-          "userId": "a",
+          "userId": "user-a",
         },
         {
-          "clientId": "test",
+          "clientId": "client-b",
           "presence": undefined,
           "ref": undefined,
-          "userId": "b",
+          "userId": "user-b",
         },
       ]
     `);
     expect(sortedClients(client2)).toMatchInlineSnapshot(`
       [
         {
-          "clientId": "test",
+          "clientId": "client-a",
           "presence": undefined,
           "ref": undefined,
-          "userId": "a",
+          "userId": "user-a",
         },
         {
-          "clientId": "test",
+          "clientId": "client-b",
           "presence": undefined,
           "ref": undefined,
           "self": true,
-          "userId": "b",
+          "userId": "user-b",
         },
       ]
     `);
@@ -332,11 +344,11 @@ describe('TrimergeClient: 2 users', () => {
         [
           [
             {
-              "clientId": "test",
+              "clientId": "client-a",
               "presence": undefined,
               "ref": undefined,
               "self": true,
-              "userId": "a",
+              "userId": "user-a",
             },
           ],
           {
@@ -346,37 +358,17 @@ describe('TrimergeClient: 2 users', () => {
         [
           [
             {
-              "clientId": "test",
+              "clientId": "client-a",
               "presence": undefined,
               "ref": undefined,
               "self": true,
-              "userId": "a",
+              "userId": "user-a",
             },
             {
-              "clientId": "test",
+              "clientId": "client-b",
               "presence": undefined,
               "ref": undefined,
-              "userId": "b",
-            },
-          ],
-          {
-            "origin": "local",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "test",
-              "presence": undefined,
-              "ref": undefined,
-              "self": true,
-              "userId": "a",
-            },
-            {
-              "clientId": "test",
-              "presence": undefined,
-              "ref": undefined,
-              "userId": "b",
+              "userId": "user-b",
             },
           ],
           {
@@ -390,11 +382,11 @@ describe('TrimergeClient: 2 users', () => {
         [
           [
             {
-              "clientId": "test",
+              "clientId": "client-b",
               "presence": undefined,
               "ref": undefined,
               "self": true,
-              "userId": "b",
+              "userId": "user-b",
             },
           ],
           {
@@ -404,37 +396,17 @@ describe('TrimergeClient: 2 users', () => {
         [
           [
             {
-              "clientId": "test",
+              "clientId": "client-b",
               "presence": undefined,
               "ref": undefined,
               "self": true,
-              "userId": "b",
+              "userId": "user-b",
             },
             {
-              "clientId": "test",
+              "clientId": "client-a",
               "presence": undefined,
               "ref": undefined,
-              "userId": "a",
-            },
-          ],
-          {
-            "origin": "local",
-          },
-        ],
-        [
-          [
-            {
-              "clientId": "test",
-              "presence": undefined,
-              "ref": undefined,
-              "self": true,
-              "userId": "b",
-            },
-            {
-              "clientId": "test",
-              "presence": undefined,
-              "ref": undefined,
-              "userId": "a",
+              "userId": "user-a",
             },
           ],
           {
@@ -456,17 +428,17 @@ describe('TrimergeClient: 2 users', () => {
 
     expect(sortedClients(client2)).toEqual([
       {
-        clientId: 'test',
+        clientId: 'client-a',
         ref: undefined,
         state: undefined,
-        userId: 'a',
+        userId: 'user-a',
       },
       {
-        clientId: 'test',
+        clientId: 'client-b',
         ref: undefined,
         self: true,
         state: undefined,
-        userId: 'b',
+        userId: 'user-b',
       },
     ]);
 
@@ -474,11 +446,11 @@ describe('TrimergeClient: 2 users', () => {
 
     expect(sortedClients(client2)).toEqual([
       {
-        clientId: 'test',
+        clientId: 'client-b',
         ref: undefined,
         self: true,
         state: undefined,
-        userId: 'b',
+        userId: 'user-b',
       },
     ]);
   });
@@ -490,16 +462,16 @@ describe('TrimergeClient: 2 users', () => {
     // Initial values
     expect(client1.clients).toEqual([
       {
-        userId: 'a',
+        userId: 'user-a',
         self: true,
-        clientId: 'test',
+        clientId: 'client-a',
       },
     ]);
     expect(client2.clients).toEqual([
       {
-        userId: 'b',
+        userId: 'user-b',
         self: true,
-        clientId: 'test',
+        clientId: 'client-b',
       },
     ]);
 
@@ -509,32 +481,32 @@ describe('TrimergeClient: 2 users', () => {
 
     expect(sortedClients(client1)).toEqual([
       {
-        clientId: 'test',
+        clientId: 'client-a',
         ref: undefined,
         self: true,
         presence: 'hello',
-        userId: 'a',
+        userId: 'user-a',
       },
       {
-        clientId: 'test',
+        clientId: 'client-b',
         ref: undefined,
         presence: undefined,
-        userId: 'b',
+        userId: 'user-b',
       },
     ]);
     expect(sortedClients(client2)).toEqual([
       {
-        clientId: 'test',
+        clientId: 'client-a',
         ref: undefined,
         presence: 'hello',
-        userId: 'a',
+        userId: 'user-a',
       },
       {
-        clientId: 'test',
+        clientId: 'client-b',
         ref: undefined,
         self: true,
         presence: undefined,
-        userId: 'b',
+        userId: 'user-b',
       },
     ]);
   });
@@ -644,17 +616,17 @@ describe('TrimergeClient: 2 users', () => {
           },
         },
         {
-          "graph": "Zob0dMmD -> JQGldkEn",
-          "step": "add world",
-          "value": {
-            "world": "world",
-          },
-        },
-        {
           "graph": "leySPlIR -> x_n2sT7P",
           "step": "change hello",
           "value": {
             "hello": "vorld",
+          },
+        },
+        {
+          "graph": "Zob0dMmD -> JQGldkEn",
+          "step": "add world",
+          "value": {
+            "world": "world",
           },
         },
         {
@@ -684,6 +656,9 @@ describe('TrimergeClient: 2 users', () => {
     expect(client2.doc).toEqual(undefined);
     await timeout();
     expect(client2.doc).toEqual({ hello: 'vorld' });
+
+    await client1.shutdown();
+    await client2.shutdown();
 
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
       [
@@ -739,6 +714,9 @@ describe('TrimergeClient: 2 users', () => {
 
     unsubscribeFn();
 
+    await client1.shutdown();
+    await client2.shutdown();
+
     expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
       [
         {
@@ -781,302 +759,97 @@ describe('TrimergeClient: 2 users', () => {
 
   it('works with lots of character typing', async () => {
     const store = newStore();
-    const client1 = makeClient('a', store);
+    const client = makeClient('a', store);
 
-    void client1.updateDoc({}, { message: 'initialize' });
-    void client1.updateDoc({ hello: 'world' }, { message: 'add hello' });
-    void client1.updateDoc({ hello: 'world. t' }, { message: 'typing' });
-    void client1.updateDoc({ hello: 'world. th' }, { message: 'typing' });
-    void client1.updateDoc({ hello: 'world. thi' }, { message: 'typing' });
-    void client1.updateDoc({ hello: 'world. this' }, { message: 'typing' });
-    void client1.updateDoc({ hello: 'world. this ' }, { message: 'typing' });
-    void client1.updateDoc({ hello: 'world. this i' }, { message: 'typing' });
-    void client1.updateDoc({ hello: 'world. this is' }, { message: 'typing' });
-    void client1.updateDoc({ hello: 'world. this is ' }, { message: 'typing' });
-    void client1.updateDoc(
-      { hello: 'world. this is a' },
-      { message: 'typing' },
-    );
-    void client1.updateDoc(
+    void client.updateDoc({}, { message: 'initialize' });
+    void client.updateDoc({ hello: 'world' }, { message: 'add hello' });
+    void client.updateDoc({ hello: 'world. t' }, { message: 'typing' });
+    void client.updateDoc({ hello: 'world. th' }, { message: 'typing' });
+    void client.updateDoc({ hello: 'world. thi' }, { message: 'typing' });
+    void client.updateDoc({ hello: 'world. this' }, { message: 'typing' });
+    void client.updateDoc({ hello: 'world. this ' }, { message: 'typing' });
+    void client.updateDoc({ hello: 'world. this i' }, { message: 'typing' });
+    void client.updateDoc({ hello: 'world. this is' }, { message: 'typing' });
+    void client.updateDoc({ hello: 'world. this is ' }, { message: 'typing' });
+    void client.updateDoc({ hello: 'world. this is a' }, { message: 'typing' });
+    void client.updateDoc(
       { hello: 'world. this is a t' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a te' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a tes' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test ' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test o' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test of' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test of ' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test of c' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test of ch' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test of cha' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test of char' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test of chara' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test of charac' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test of charact' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test of characte' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test of character' },
       { message: 'typing' },
     );
-    void client1.updateDoc(
+    void client.updateDoc(
       { hello: 'world. this is a test of character.' },
       { message: 'typing' },
     );
 
     await timeout();
 
-    expect(basicGraph(store, client1)).toMatchInlineSnapshot(`
-      [
-        {
-          "graph": "undefined -> Zob0dMmD",
-          "step": "initialize",
-          "value": {},
-        },
-        {
-          "graph": "Zob0dMmD -> leySPlIR",
-          "step": "add hello",
-          "value": {
-            "hello": "world",
-          },
-        },
-        {
-          "graph": "leySPlIR -> YAy0M_J2",
-          "step": "typing",
-          "value": {
-            "hello": "world. t",
-          },
-        },
-        {
-          "graph": "YAy0M_J2 -> LsIxqujJ",
-          "step": "typing",
-          "value": {
-            "hello": "world. th",
-          },
-        },
-        {
-          "graph": "LsIxqujJ -> yoPegGx6",
-          "step": "typing",
-          "value": {
-            "hello": "world. thi",
-          },
-        },
-        {
-          "graph": "yoPegGx6 -> eTLOHYa-",
-          "step": "typing",
-          "value": {
-            "hello": "world. this",
-          },
-        },
-        {
-          "graph": "eTLOHYa- -> WDzPFBwe",
-          "step": "typing",
-          "value": {
-            "hello": "world. this ",
-          },
-        },
-        {
-          "graph": "WDzPFBwe -> YoyNjiZ6",
-          "step": "typing",
-          "value": {
-            "hello": "world. this i",
-          },
-        },
-        {
-          "graph": "YoyNjiZ6 -> rOUBm7c2",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is",
-          },
-        },
-        {
-          "graph": "rOUBm7c2 -> MsplY0xo",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is ",
-          },
-        },
-        {
-          "graph": "MsplY0xo -> JnbUEhpb",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a",
-          },
-        },
-        {
-          "graph": "JnbUEhpb -> POK9sZXI",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a t",
-          },
-        },
-        {
-          "graph": "POK9sZXI -> yEO3XYgv",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a te",
-          },
-        },
-        {
-          "graph": "yEO3XYgv -> VIhrAVTG",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a tes",
-          },
-        },
-        {
-          "graph": "VIhrAVTG -> 9HSyQTMd",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test",
-          },
-        },
-        {
-          "graph": "9HSyQTMd -> xGjtRo_F",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test ",
-          },
-        },
-        {
-          "graph": "xGjtRo_F -> GFUqLq42",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test o",
-          },
-        },
-        {
-          "graph": "GFUqLq42 -> 8Zpd5VpF",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test of",
-          },
-        },
-        {
-          "graph": "8Zpd5VpF -> 0JCZFqxq",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test of ",
-          },
-        },
-        {
-          "graph": "0JCZFqxq -> 5Y4GtM8z",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test of c",
-          },
-        },
-        {
-          "graph": "5Y4GtM8z -> W-adW2a-",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test of ch",
-          },
-        },
-        {
-          "graph": "W-adW2a- -> 1nf6gXl1",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test of cha",
-          },
-        },
-        {
-          "graph": "1nf6gXl1 -> xF9W97WS",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test of char",
-          },
-        },
-        {
-          "graph": "xF9W97WS -> E8TIq05x",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test of chara",
-          },
-        },
-        {
-          "graph": "E8TIq05x -> 3hCls5tY",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test of charac",
-          },
-        },
-        {
-          "graph": "3hCls5tY -> Hl2TeGle",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test of charact",
-          },
-        },
-        {
-          "graph": "Hl2TeGle -> NXbxkJK2",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test of characte",
-          },
-        },
-        {
-          "graph": "NXbxkJK2 -> Uc41cdXS",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test of character",
-          },
-        },
-        {
-          "graph": "Uc41cdXS -> QNhbrQRR",
-          "step": "typing",
-          "value": {
-            "hello": "world. this is a test of character.",
-          },
-        },
-      ]
-    `);
+    await client.shutdown();
+
+    expect(basicGraph(store, client)).toMatchSnapshot();
   });
 
   it('does not generate a new commit if docs are deep equal but not reference equal', async () => {
@@ -1143,57 +916,6 @@ describe('TrimergeClient: 2 users', () => {
       { message: 'blah' },
     );
 
-    expect(store.getCommits()).toMatchInlineSnapshot(`
-      [
-        {
-          "baseRef": undefined,
-          "delta": [
-            {
-              "hi": "world",
-              "other": "world",
-            },
-          ],
-          "metadata": {
-            "message": "blah",
-          },
-          "ref": "83C7ugjw",
-        },
-        {
-          "baseRef": undefined,
-          "delta": [
-            {
-              "hi": "world",
-            },
-          ],
-          "metadata": {
-            "message": "blah",
-          },
-          "ref": "guqurHSi",
-        },
-        {
-          "baseRef": "83C7ugjw",
-          "delta": undefined,
-          "mergeRef": "guqurHSi",
-          "metadata": {
-            "message": "merge",
-            "ref": "(83C7ugjw+guqurHSi)",
-          },
-          "ref": "jBSIed8b",
-        },
-        {
-          "baseRef": "jBSIed8b",
-          "delta": {
-            "other": [
-              "world",
-              "worldly",
-            ],
-          },
-          "metadata": {
-            "message": "blah",
-          },
-          "ref": "FM-iAbj3",
-        },
-      ]
-    `);
+    expect(store.getCommits()).toMatchSnapshot();
   });
 });

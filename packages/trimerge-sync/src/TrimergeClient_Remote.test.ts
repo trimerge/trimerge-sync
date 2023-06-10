@@ -4,7 +4,6 @@ import { TrimergeClient } from './TrimergeClient';
 import { getBasicGraph } from './lib/GraphVisualizers';
 import { SyncStatus } from './types';
 import { timeout } from './lib/Timeout';
-import { resetAll } from './testLib/MemoryBroadcastChannel';
 import {
   TEST_OPTS,
   TestDoc,
@@ -16,29 +15,17 @@ import { MemoryRemote, MemoryServer } from './testLib/MemoryRemote';
 
 type TestMetadata = string;
 
-const stores = new Set<MemoryStore<TestMetadata, Delta, TestPresence>>();
-
-afterEach(async () => {
-  for (const store of stores) {
-    await store.shutdown();
-  }
-  stores.clear();
-  resetAll();
-});
-
 /** A server is a thin wrapper around a store that represents the entity that
  *  the memory remote is connecting to. A server allows you to create multiple remotes
  *  by supplying clientInfo.
  */
 function newServer() {
   const store = new MemoryStore<TestMetadata, Delta, TestPresence>(undefined);
-  stores.add(store);
   return new MemoryServer(store);
 }
 
 function newStore() {
   const store = new MemoryStore<TestMetadata, Delta, TestPresence>(undefined);
-  stores.add(store);
   return store;
 }
 
@@ -145,6 +132,8 @@ describe('Remote sync', () => {
 
     await timeout();
 
+    await client.shutdown();
+
     const localGraph1 = basicGraph(localStore, client);
     const remoteGraph1 = basicGraph(server.store, client);
     expect(remoteGraph1).toEqual(localGraph1);
@@ -165,65 +154,65 @@ describe('Remote sync', () => {
                   ]
             `);
     expect(syncStatusDiffs(syncUpdates)).toMatchInlineSnapshot(`
-            [
-              {
-                "localRead": "loading",
-                "localSave": "ready",
-                "remoteConnect": "offline",
-                "remoteRead": "loading",
-                "remoteSave": "ready",
-              },
-              {
-                "localRead": "ready",
-              },
-              {
-                "remoteConnect": "connecting",
-              },
-              {
-                "localSave": "saving",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteConnect": "online",
-              },
-              {
-                "remoteConnect": "connecting",
-                "remoteSave": "saving",
-              },
-              {
-                "remoteConnect": "online",
-              },
-              {
-                "localSave": "ready",
-              },
-              {
-                "localSave": "saving",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteRead": "ready",
-              },
-              {
-                "remoteSave": "saving",
-              },
-              {
-                "remoteSave": "ready",
-              },
-              {
-                "localSave": "ready",
-              },
-              {
-                "remoteCursor": "1",
-              },
-              {
-                "remoteCursor": "2",
-              },
-            ]
-        `);
+      [
+        {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "loading",
+          "remoteSave": "ready",
+        },
+        {
+          "localRead": "ready",
+        },
+        {
+          "remoteConnect": "connecting",
+        },
+        {
+          "localSave": "saving",
+        },
+        {
+          "remoteSave": "pending",
+        },
+        {
+          "remoteSave": "saving",
+        },
+        {
+          "localSave": "ready",
+        },
+        {
+          "localSave": "saving",
+        },
+        {
+          "remoteSave": "pending",
+        },
+        {
+          "remoteSave": "saving",
+        },
+        {
+          "remoteConnect": "online",
+        },
+        {
+          "remoteRead": "ready",
+        },
+        {
+          "localSave": "ready",
+        },
+        {
+          "remoteSave": "ready",
+        },
+        {
+          "remoteCursor": "1",
+        },
+        {
+          "remoteCursor": "2",
+        },
+        {
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+        },
+      ]
+    `);
   });
   it('handles shutdown while connecting', async () => {
     const { client } = makeClient(
@@ -266,6 +255,7 @@ describe('Remote sync', () => {
     // Wait for reconnect
     await timeout(50);
 
+    await client.shutdown();
     const localGraph1 = basicGraph(localStore, client);
     const remoteGraph1 = basicGraph(server.store, client);
     expect(remoteGraph1).toEqual(localGraph1);
@@ -374,389 +364,79 @@ describe('Remote sync', () => {
 
     await timeout();
 
+    await client1.shutdown();
+    await client2.shutdown();
+
     expect(syncStatusDiffs(syncUpdates1)).toMatchInlineSnapshot(`
-            [
-              {
-                "localRead": "loading",
-                "localSave": "ready",
-                "remoteConnect": "offline",
-                "remoteRead": "loading",
-                "remoteSave": "ready",
-              },
-              {
-                "localSave": "saving",
-              },
-              {
-                "localRead": "ready",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteSave": "saving",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteSave": "saving",
-              },
-              {
-                "localSave": "ready",
-              },
-              {
-                "remoteConnect": "connecting",
-              },
-              {
-                "remoteConnect": "online",
-              },
-              {
-                "remoteRead": "ready",
-              },
-              {
-                "remoteSave": "ready",
-              },
-              {
-                "remoteCursor": "2",
-              },
-            ]
-        `);
+      [
+        {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "loading",
+          "remoteSave": "ready",
+        },
+        {
+          "localSave": "saving",
+        },
+        {
+          "remoteSave": "pending",
+        },
+        {
+          "localRead": "ready",
+        },
+        {
+          "remoteSave": "saving",
+        },
+        {
+          "localSave": "ready",
+        },
+        {
+          "remoteConnect": "connecting",
+        },
+        {
+          "remoteConnect": "online",
+        },
+        {
+          "remoteRead": "ready",
+        },
+        {
+          "remoteSave": "ready",
+        },
+        {
+          "remoteCursor": "2",
+        },
+        {
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+        },
+      ]
+    `);
     expect(syncStatusDiffs(syncUpdates2)).toMatchInlineSnapshot(`
-            [
-              {
-                "localRead": "loading",
-                "localSave": "ready",
-                "remoteConnect": "offline",
-                "remoteRead": "loading",
-                "remoteSave": "ready",
-              },
-              {
-                "localRead": "ready",
-              },
-              {
-                "remoteConnect": "online",
-                "remoteCursor": "2",
-                "remoteRead": "ready",
-              },
-            ]
-        `);
-    expect(client1Sub.mock.calls).toMatchInlineSnapshot(`
-            [
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "self": true,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "subscribe",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "Zob0dMmD",
-                    "self": true,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "Zob0dMmD",
-                    "self": true,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "self": true,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "self": true,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "self",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "self": true,
-                    "userId": "testUser",
-                  },
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "local",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "self": true,
-                    "userId": "testUser",
-                  },
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "self": true,
-                    "userId": "testUser",
-                  },
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "local",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "userId": "testUser",
-                  },
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "userId": "testUser",
-                  },
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "userId": "testUser",
-                  },
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-            ]
-        `);
-    expect(client2Sub.mock.calls).toMatchInlineSnapshot(`
-            [
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "self": true,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "subscribe",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUser",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "local",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUser",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUser",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "local",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUser",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-              [
-                [
-                  {
-                    "clientId": "testClientB",
-                    "presence": undefined,
-                    "ref": undefined,
-                    "userId": "testUser",
-                  },
-                  {
-                    "clientId": "testClientA",
-                    "presence": undefined,
-                    "ref": "leySPlIR",
-                    "userId": "testUser",
-                  },
-                ],
-                {
-                  "origin": "remote",
-                },
-              ],
-            ]
-        `);
+      [
+        {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "loading",
+          "remoteSave": "ready",
+        },
+        {
+          "localRead": "ready",
+        },
+        {
+          "remoteConnect": "online",
+          "remoteCursor": "2",
+          "remoteRead": "ready",
+        },
+        {
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+        },
+      ]
+    `);
+    expect(client1Sub.mock.calls).toMatchSnapshot();
+    expect(client2Sub.mock.calls).toMatchSnapshot();
   });
 
   it('syncs two clients to remote with a local split', async () => {
@@ -799,14 +479,14 @@ describe('Remote sync', () => {
                   ]
             `);
     expect(states2).toMatchInlineSnapshot(`
-                  [
-                    undefined,
-                    {},
-                    {
-                      "hello": "world",
-                    },
-                  ]
-            `);
+      [
+        undefined,
+        {},
+        {
+          "hello": "world",
+        },
+      ]
+    `);
 
     localStore.localNetworkPaused = true;
 
@@ -830,18 +510,18 @@ describe('Remote sync', () => {
             ]
         `);
     expect(states2).toMatchInlineSnapshot(`
-                  [
-                    undefined,
-                    {},
-                    {
-                      "hello": "world",
-                    },
-                    {
-                      "hello": "world",
-                      "world": "hello",
-                    },
-                  ]
-            `);
+      [
+        undefined,
+        {},
+        {
+          "hello": "world",
+        },
+        {
+          "hello": "world",
+          "world": "hello",
+        },
+      ]
+    `);
 
     localStore.localNetworkPaused = false;
 
@@ -861,18 +541,18 @@ describe('Remote sync', () => {
                   ]
             `);
     expect(states2).toMatchInlineSnapshot(`
-                  [
-                    undefined,
-                    {},
-                    {
-                      "hello": "world",
-                    },
-                    {
-                      "hello": "world",
-                      "world": "hello",
-                    },
-                  ]
-            `);
+      [
+        undefined,
+        {},
+        {
+          "hello": "world",
+        },
+        {
+          "hello": "world",
+          "world": "hello",
+        },
+      ]
+    `);
   });
 
   it('syncs one client to a store multiple times', async () => {
@@ -949,95 +629,89 @@ describe('Remote sync', () => {
     expect(remoteGraph3).toEqual(localGraph3);
 
     expect(syncStatusDiffs(syncUpdates)).toMatchInlineSnapshot(`
-            [
-              {
-                "localRead": "loading",
-                "localSave": "ready",
-                "remoteConnect": "offline",
-                "remoteRead": "loading",
-                "remoteSave": "ready",
-              },
-              {
-                "localSave": "saving",
-              },
-              {
-                "localRead": "ready",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteSave": "saving",
-              },
-              {
-                "localSave": "ready",
-              },
-              {
-                "localSave": "saving",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteSave": "saving",
-              },
-              {
-                "localSave": "ready",
-              },
-              {
-                "remoteConnect": "connecting",
-              },
-              {
-                "remoteConnect": "online",
-              },
-              {
-                "remoteRead": "ready",
-              },
-              {
-                "remoteSave": "ready",
-              },
-              {
-                "remoteCursor": "2",
-              },
-              {
-                "localSave": "saving",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteConnect": "offline",
-                "remoteRead": "offline",
-              },
-              {
-                "remoteSave": "saving",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteSave": "saving",
-              },
-              {
-                "localSave": "ready",
-              },
-              {
-                "remoteConnect": "connecting",
-              },
-              {
-                "remoteConnect": "online",
-              },
-              {
-                "remoteRead": "ready",
-              },
-              {
-                "remoteSave": "ready",
-              },
-              {
-                "remoteCursor": "4",
-              },
-            ]
-        `);
+      [
+        {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "loading",
+          "remoteSave": "ready",
+        },
+        {
+          "localSave": "saving",
+        },
+        {
+          "remoteSave": "pending",
+        },
+        {
+          "localRead": "ready",
+        },
+        {
+          "remoteSave": "saving",
+        },
+        {
+          "localSave": "ready",
+        },
+        {
+          "localSave": "saving",
+        },
+        {
+          "remoteSave": "pending",
+        },
+        {
+          "remoteSave": "saving",
+        },
+        {
+          "localSave": "ready",
+        },
+        {
+          "remoteConnect": "connecting",
+        },
+        {
+          "remoteConnect": "online",
+        },
+        {
+          "remoteRead": "ready",
+        },
+        {
+          "remoteSave": "ready",
+        },
+        {
+          "remoteCursor": "2",
+        },
+        {
+          "localSave": "saving",
+        },
+        {
+          "remoteSave": "pending",
+        },
+        {
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+        },
+        {
+          "remoteSave": "saving",
+        },
+        {
+          "localSave": "ready",
+        },
+        {
+          "remoteConnect": "connecting",
+        },
+        {
+          "remoteConnect": "online",
+        },
+        {
+          "remoteRead": "ready",
+        },
+        {
+          "remoteSave": "ready",
+        },
+        {
+          "remoteCursor": "4",
+        },
+      ]
+    `);
   });
 
   it('handles leader network split', async () => {
@@ -1230,125 +904,107 @@ describe('Remote sync', () => {
     await client2.shutdown();
 
     expect(syncStatusDiffs(syncUpdates1)).toMatchInlineSnapshot(`
-            [
-              {
-                "localRead": "loading",
-                "localSave": "ready",
-                "remoteConnect": "offline",
-                "remoteRead": "loading",
-                "remoteSave": "ready",
-              },
-              {
-                "localSave": "saving",
-              },
-              {
-                "localRead": "ready",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteSave": "saving",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteSave": "saving",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteSave": "saving",
-              },
-              {
-                "localSave": "ready",
-              },
-              {
-                "remoteConnect": "connecting",
-              },
-              {
-                "remoteConnect": "online",
-              },
-              {
-                "remoteRead": "ready",
-              },
-              {
-                "remoteSave": "ready",
-              },
-              {
-                "remoteCursor": "3",
-              },
-              {
-                "remoteCursor": "4",
-              },
-              {
-                "remoteCursor": "5",
-              },
-              {
-                "remoteConnect": "offline",
-                "remoteRead": "offline",
-              },
-            ]
-        `);
+      [
+        {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "loading",
+          "remoteSave": "ready",
+        },
+        {
+          "localSave": "saving",
+        },
+        {
+          "remoteSave": "pending",
+        },
+        {
+          "localRead": "ready",
+        },
+        {
+          "remoteSave": "saving",
+        },
+        {
+          "localSave": "ready",
+        },
+        {
+          "remoteConnect": "connecting",
+        },
+        {
+          "remoteConnect": "online",
+        },
+        {
+          "remoteRead": "ready",
+        },
+        {
+          "remoteSave": "ready",
+        },
+        {
+          "remoteCursor": "3",
+        },
+        {
+          "remoteCursor": "4",
+        },
+        {
+          "remoteCursor": "5",
+        },
+        {
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+        },
+      ]
+    `);
     expect(syncStatusDiffs(syncUpdates2)).toMatchInlineSnapshot(`
-            [
-              {
-                "localRead": "loading",
-                "localSave": "ready",
-                "remoteConnect": "offline",
-                "remoteRead": "loading",
-                "remoteSave": "ready",
-              },
-              {
-                "localRead": "ready",
-              },
-              {
-                "remoteCursor": "3",
-              },
-              {
-                "remoteConnect": "connecting",
-              },
-              {
-                "remoteConnect": "online",
-              },
-              {
-                "remoteRead": "ready",
-              },
-              {
-                "localSave": "saving",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteSave": "saving",
-              },
-              {
-                "remoteSave": "pending",
-              },
-              {
-                "remoteSave": "saving",
-              },
-              {
-                "remoteSave": "ready",
-              },
-              {
-                "localSave": "ready",
-              },
-              {
-                "remoteCursor": "4",
-              },
-              {
-                "remoteCursor": "5",
-              },
-              {
-                "remoteConnect": "offline",
-                "remoteRead": "offline",
-              },
-            ]
-        `);
+      [
+        {
+          "localRead": "loading",
+          "localSave": "ready",
+          "remoteConnect": "offline",
+          "remoteRead": "loading",
+          "remoteSave": "ready",
+        },
+        {
+          "localRead": "ready",
+        },
+        {
+          "remoteCursor": "3",
+        },
+        {
+          "remoteConnect": "connecting",
+        },
+        {
+          "remoteConnect": "online",
+        },
+        {
+          "remoteRead": "ready",
+        },
+        {
+          "localSave": "saving",
+        },
+        {
+          "remoteSave": "pending",
+        },
+        {
+          "remoteSave": "saving",
+        },
+        {
+          "localSave": "ready",
+        },
+        {
+          "remoteSave": "ready",
+        },
+        {
+          "remoteCursor": "4",
+        },
+        {
+          "remoteCursor": "5",
+        },
+        {
+          "remoteConnect": "offline",
+          "remoteRead": "offline",
+        },
+      ]
+    `);
     expect(client1ListSub.mock.calls).toMatchSnapshot();
     expect(client2ListSub.mock.calls).toMatchSnapshot();
   });
@@ -1395,6 +1051,7 @@ describe('Remote sync', () => {
     expect(basicClients(client1)).toMatchInlineSnapshot(`
       {
         "testUserA:testClientA": undefined,
+        "testUserB:testClientB2": undefined,
       }
     `);
     expect(basicClients(client2)).toMatchInlineSnapshot(`

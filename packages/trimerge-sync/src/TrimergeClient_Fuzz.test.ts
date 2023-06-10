@@ -18,10 +18,11 @@ function newStore() {
 }
 
 function makeClient(
-  userId: string,
+  id: string,
   store: MemoryStore<TestMetadata, Delta, TestPresence>,
 ): TrimergeClient<TestSavedDoc, TestDoc, TestMetadata, Delta, TestPresence> {
-  const clientId = 'test';
+  const clientId = `client-${id}`;
+  const userId = `user-${id}`;
   return new TrimergeClient(userId, clientId, {
     ...TEST_OPTS,
     localStore: store.getLocalStore({ userId, clientId }),
@@ -35,7 +36,7 @@ describe('TrimergeClient Fuzz', () => {
     const clientB = makeClient('b', store);
     const clientC = makeClient('c', store);
 
-    void clientA.updateDoc('', { ref: 'ROOT', message: 'init' });
+    await clientA.updateDoc('', { ref: 'ROOT', message: 'init' });
 
     await timeout();
 
@@ -65,7 +66,7 @@ describe('TrimergeClient Fuzz', () => {
           break;
       }
     }
-    await timeout(100);
+    await timeout();
     // Synchronized
     expect(clientA.doc).toEqual(clientB.doc);
     expect(clientA.doc).toEqual(clientC.doc);

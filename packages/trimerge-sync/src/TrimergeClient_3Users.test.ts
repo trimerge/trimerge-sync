@@ -170,17 +170,17 @@ describe('TrimergeClient: 3 users', () => {
           },
         },
         {
-          "graph": "undefined -> AUJdfMae",
-          "step": "add world",
-          "value": {
-            "world": "world",
-          },
-        },
-        {
           "graph": "HgR3uUrD -> eaef2Px0",
           "step": "change hello",
           "value": {
             "hello": "vorld",
+          },
+        },
+        {
+          "graph": "undefined -> AUJdfMae",
+          "step": "add world",
+          "value": {
+            "world": "world",
           },
         },
         {

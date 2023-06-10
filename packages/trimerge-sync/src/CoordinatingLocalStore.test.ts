@@ -58,7 +58,7 @@ describe('CoordinatingLocalStore', () => {
 
     store.listen(fn);
     await store.shutdown();
-    await store.shutdown();
+    await expect(store.shutdown()).rejects.toThrow();
     expect(fn.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -125,6 +125,8 @@ describe('CoordinatingLocalStore', () => {
 
     await timeout();
 
+    await localStore.shutdown();
+
     expect(sendSpy.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -132,10 +134,15 @@ describe('CoordinatingLocalStore', () => {
             "type": "ready",
           },
         ],
+        [
+          {
+            "clientId": "",
+            "type": "client-leave",
+            "userId": "",
+          },
+        ],
       ]
     `);
-
-    await localStore.shutdown();
   });
 
   it('handle empty update call', async () => {
@@ -155,6 +162,12 @@ describe('CoordinatingLocalStore', () => {
             "read": "offline",
             "save": "ready",
             "type": "remote-state",
+          },
+          false,
+        ],
+        [
+          {
+            "type": "ready",
           },
           false,
         ],

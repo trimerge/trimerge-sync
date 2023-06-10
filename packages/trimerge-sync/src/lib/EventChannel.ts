@@ -9,8 +9,6 @@ export type EventChannel<CommitMetadata, Delta, Presence> = {
   onEvent(
     cb: (ev: BroadcastEvent<CommitMetadata, Delta, Presence>) => void,
   ): void;
-  sendEvent(
-    ev: BroadcastEvent<CommitMetadata, Delta, Presence>,
-  ): void | Promise<void>;
+  sendEvent(ev: BroadcastEvent<CommitMetadata, Delta, Presence>): void;
   shutdown(): void | Promise<void>;
 };

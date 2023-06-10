@@ -16,9 +16,10 @@ import {
   LeaderManager,
   LeaderSettings,
 } from './lib/LeaderManager';
-import { PromiseQueue } from './lib/PromiseQueue';
 import { BroadcastEvent, EventChannel } from './lib/EventChannel';
 import { PrefixLogger } from './lib/PrefixLogger';
+import invariant from 'invariant';
+import PQueue from 'p-queue';
 
 export type NetworkSettings = Readonly<
   {
@@ -48,7 +49,7 @@ export type CoordinatingLocalStoreOptions<CommitMetadata, Delta, Presence> = {
 export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   implements LocalStore<CommitMetadata, Delta, Presence>
 {
-  private closed = false;
+  private isShutdown = false;
   private presence: ClientPresenceRef<Presence> = {
     ref: undefined,
     presence: undefined,
@@ -62,8 +63,12 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     read: 'loading',
   };
   private readonly unacknowledgedRefs = new Set<string>();
-  private readonly localQueue = new PromiseQueue();
-  private readonly remoteQueue = new PromiseQueue();
+  private readonly localQueue = new PQueue({
+    concurrency: 1,
+  });
+  private readonly remoteQueue = new PQueue({
+    concurrency: 1,
+  });
   private readonly remote: Remote<CommitMetadata, Delta, Presence> | undefined;
   private readonly commitRepo: CommitRepository<
     CommitMetadata,
@@ -149,7 +154,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     return { userId, clientId, ...this.presence };
   }
 
-  private async setRemoteState(update: RemoteStateEvent): Promise<void> {
+  private setRemoteState(update: RemoteStateEvent): void {
     const lastState = this.remoteSyncState;
     update = { ...lastState, ...update };
     if (
@@ -161,7 +166,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       return;
     }
     this.remoteSyncState = update;
-    await this.sendEvent(update, { local: true, self: true });
+    this.sendEvent(update, { local: true, self: true });
   }
 
   protected processEvent = async (
@@ -185,13 +190,13 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         throw new Error('got leader event with no manager');
       }
       this.leaderManager.receiveEvent(event);
-      await this.broadcastRemoteStatus();
+      this.broadcastRemoteStatus();
       return;
     }
 
     // Re-broadcast event to other channels
     const remoteOrigin = origin === 'remote' || origin === 'remote-via-local';
-    await this.sendEvent(
+    this.sendEvent(
       event,
       {
         self: true,
@@ -205,18 +210,18 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       case 'ready':
         // Reset reconnect timeout
         this.reconnectDelayMs = this.networkSettings.initialDelayMs;
-        await this.setRemoteState({ type: 'remote-state', read: 'ready' });
+        this.setRemoteState({ type: 'remote-state', read: 'ready' });
         break;
 
       case 'commits':
         if (origin === 'remote') {
           if (event.syncId) {
-            await this.setRemoteState({
+            this.setRemoteState({
               type: 'remote-state',
               cursor: event.syncId,
             });
           }
-          await this.commitRepo.addCommits(event.commits, event.syncId);
+          void this.commitRepo.addCommits(event.commits, event.syncId);
         }
         break;
 
@@ -230,15 +235,15 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
             this.unacknowledgedRefs.delete(ref.ref);
           }
           if (event.refErrors && Object.keys(event.refErrors).length > 0) {
-            await this.setRemoteState({ type: 'remote-state', save: 'error' });
+            this.setRemoteState({ type: 'remote-state', save: 'error' });
           } else if (this.unacknowledgedRefs.size === 0) {
-            await this.setRemoteState({ type: 'remote-state', save: 'ready' });
+            this.setRemoteState({ type: 'remote-state', save: 'ready' });
           }
         }
         break;
 
       case 'client-join':
-        await this.sendEvent(
+        this.sendEvent(
           {
             type: 'client-presence',
             info: this.clientInfo,
@@ -246,7 +251,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           { local: true, remote: true },
         );
         if (origin === 'local' && this.remote?.active) {
-          await this.sendEvent(this.remoteSyncState, { local: true });
+          this.sendEvent(this.remoteSyncState, { local: true });
         }
         break;
       case 'client-presence':
@@ -259,7 +264,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
             event.connect === 'online' &&
             this.remoteSyncState.connect !== 'online'
           ) {
-            await this.sendEvent(
+            this.sendEvent(
               {
                 type: 'client-join',
                 info: this.clientInfo,
@@ -267,9 +272,9 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
               { local: true, remote: true },
             );
           }
-          await this.setRemoteState(event);
+          this.setRemoteState(event);
         } else {
-          await this.broadcastRemoteStatus();
+          this.broadcastRemoteStatus();
         }
         break;
       case 'error':
@@ -281,9 +286,9 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     }
   };
 
-  private async broadcastRemoteStatus() {
+  private broadcastRemoteStatus() {
     if (this.isRemoteLeader) {
-      await this.sendEvent(this.remoteSyncState, { local: true, self: true });
+      this.sendEvent(this.remoteSyncState, { local: true, self: true });
     }
   }
 
@@ -300,34 +305,30 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
 
   async shutdown(): Promise<void> {
     this.logger?.debug('requested shutdown');
-    if (this.closed) {
-      return;
-    }
-
-    this.closed = true;
+    invariant(!this.isShutdown, 'already shut down');
+    this.isShutdown = true;
 
     const { userId, clientId } = this;
-    try {
-      await this.sendEvent(
-        {
-          type: 'client-leave',
-          userId,
-          clientId,
-        },
-        { local: true, remote: true },
-      );
-    } catch (error) {
-      this.logger?.warn('ignoring error while shutting down', error);
-    }
+    this.sendEvent(
+      {
+        type: 'client-leave',
+        userId,
+        clientId,
+      },
+      { local: true, remote: true },
+    );
 
     await this.closeRemote();
     await this.remote?.shutdown();
+    await this.remoteQueue.onIdle();
 
     try {
       this.leaderManager?.shutdown();
     } catch (error) {
       this.logger?.warn('ignoring error while shutting down', error);
     }
+
+    await this.localQueue.onIdle();
 
     await this.commitRepo.shutdown();
   }
@@ -344,7 +345,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
 
         // If read was error when shutting down we leave it as error
         // otherwise we set it to offline.
-        await this.setRemoteState({
+        this.setRemoteState({
           type: 'remote-state',
           connect: 'offline',
           read: this.remoteSyncState.read === 'error' ? 'error' : 'offline',
@@ -379,8 +380,8 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         this.logger?.info(`connecting to remote`);
         this.clearReconnectTimeout();
         const remoteSyncInfo = await this.commitRepo.getRemoteSyncInfo();
-        if (this.closed || !this.remote) {
-          await this.setRemoteState({
+        if (this.isShutdown || !this.remote) {
+          this.setRemoteState({
             type: 'remote-state',
             connect: 'offline',
             read: this.remoteSyncState.read === 'error' ? 'error' : 'offline',
@@ -388,7 +389,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           });
           return;
         }
-        await this.setRemoteState({
+        this.setRemoteState({
           type: 'remote-state',
           connect: 'connecting',
           cursor: remoteSyncInfo.lastSyncCursor,
@@ -401,7 +402,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
             this.unacknowledgedRefs.add(ref);
           }
           if (!saving) {
-            await this.setRemoteState({
+            this.setRemoteState({
               type: 'remote-state',
               save: 'saving',
             });
@@ -450,13 +451,10 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           fatal: true,
         },
         { self: true },
-      ).catch((e) => {
-        this.logger?.warn(`error ending error message: ${e}`);
-      });
-      void this.shutdown();
+      );
     };
   }
-  protected async sendEvent(
+  protected sendEvent(
     event: SyncEvent<CommitMetadata, Delta, Presence>,
     {
       remote = false,
@@ -464,7 +462,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       self = false,
     }: { remote?: boolean; local?: boolean; self?: boolean },
     remoteOrigin: boolean = false,
-  ): Promise<void> {
+  ): void {
     this.logger?.debug('sending event', event, { remote, local, self });
     if (self) {
       this.logger?.event?.({
@@ -501,7 +499,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           remoteOrigin,
         },
       });
-      await this.localChannel.sendEvent({ event, remoteOrigin });
+      this.localChannel.sendEvent({ event, remoteOrigin });
     }
     if (remote) {
       if (
@@ -556,24 +554,20 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
           }
         },
         (event) => {
-          void this.localChannel.sendEvent({ event, remoteOrigin: false });
+          this.localChannel.sendEvent({ event, remoteOrigin: false });
         },
         networkSettings,
       );
     } else {
-      this.remoteQueue
-        .add(async () => {
-          await this.setRemoteState({
-            type: 'remote-state',
-            connect: 'offline',
-            read: 'offline',
-          });
-        })
-        .catch(this.handleAsError('internal'));
+      this.setRemoteState({
+        type: 'remote-state',
+        connect: 'offline',
+        read: 'offline',
+      });
     }
     // Do only this part async
     return this.localQueue.add(async () => {
-      await this.sendEvent(
+      this.sendEvent(
         {
           type: 'client-join',
           info: this.clientInfo,
@@ -581,27 +575,21 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         { local: true },
       );
       for await (const event of this.commitRepo.getLocalCommits()) {
-        await this.sendEvent(event, { self: true });
+        this.sendEvent(event, { self: true });
       }
-      await this.sendEvent({ type: 'ready' }, { self: true });
+      this.sendEvent({ type: 'ready' }, { self: true });
     });
   }
   async update(
     commits: Commit<CommitMetadata, Delta>[],
     presence: ClientPresenceRef<Presence> | undefined,
   ): Promise<void> {
-    if (this.closed || (commits.length === 0 && !presence)) {
+    invariant(!this.isShutdown, 'cannot update a closed client');
+
+    if (commits.length === 0 && !presence) {
       return;
     }
-    return await this.localQueue
-      .add(() => this.doUpdate(commits, presence))
-      .catch((e) => {
-        this.handleAsError('invalid-commits')(e);
-        // throw this so that the
-        // error is propagated to the
-        // `updateDoc` call.
-        throw e;
-      });
+    return await this.doUpdate(commits, presence);
   }
 
   private async doUpdate(
@@ -618,15 +606,24 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       clientId: this.clientId,
     };
     if (commits.length > 0) {
-      await this.setRemoteState({ type: 'remote-state', save: 'pending' });
+      this.setRemoteState({ type: 'remote-state', save: 'pending' });
       // If we have commits, we'll send the commits and the client info together
+      this.logger?.debug('saving commits locally commits', commits);
       const ack = await this.commitRepo.addCommits(commits, undefined);
-      await this.sendEvent(ack, { self: true });
-      await this.setRemoteState({ type: 'remote-state', save: 'saving' });
-      await this.sendEvent(
+      const ackMap = new Map(ack.acks.map((c) => [c.ref, c.metadata]));
+      const ackedCommits: Commit<CommitMetadata, Delta>[] = [];
+      for (const commit of commits) {
+        const ackedMetadata = ackMap.get(commit.ref);
+        if (ackedMetadata !== undefined) {
+          ackedCommits.push({ ...commit, metadata: ackedMetadata });
+        }
+      }
+      this.sendEvent(ack, { self: true });
+      this.setRemoteState({ type: 'remote-state', save: 'saving' });
+      this.sendEvent(
         {
           type: 'commits',
-          commits,
+          commits: ackedCommits,
           syncId: ack.syncId,
           clientInfo,
         },
@@ -634,7 +631,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       );
     } else if (clientInfo) {
       // If we don't have commits, we'll just send the client presence information.
-      await this.sendEvent(
+      this.sendEvent(
         { type: 'client-presence', info: clientInfo },
         { local: true, remote: true },
       );
