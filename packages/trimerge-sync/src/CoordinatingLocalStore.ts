@@ -221,6 +221,13 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
               cursor: event.syncId,
             });
           }
+          /**
+           * If the commits haven't been acked, but we receive them from
+           * the remote, we'll consider them acknowledged.
+           */
+          for (const ref of event.commits) {
+            this.unacknowledgedRefs.delete(ref.ref);
+          }
           void this.commitRepo.addCommits(event.commits, event.syncId);
         }
         break;
