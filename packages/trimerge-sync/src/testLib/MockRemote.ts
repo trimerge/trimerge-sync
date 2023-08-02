@@ -8,6 +8,8 @@ export class MockRemote<CommitMetadata = any, Delta = any, Presence = any>
 {
   private _active = false;
 
+  loggingHandle = 'MOCK_REMOTE';
+
   set active(active: boolean) {
     this._active = active;
     if (active) {

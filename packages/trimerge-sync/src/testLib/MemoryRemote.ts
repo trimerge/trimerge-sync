@@ -30,12 +30,15 @@ export class MemoryRemote<CommitMetadata, Delta, Presence>
   private isShutdown = false;
   private connectedPromise: Promise<void> | undefined;
   private connectedResolve: (() => void) | undefined;
+  readonly loggingHandle: string;
 
   constructor(
     private readonly parent: MemoryServer<CommitMetadata, Delta, Presence>,
     readonly clientInfo: ClientInfo,
     public online: boolean = true,
-  ) {}
+  ) {
+    this.loggingHandle = `MEMORY_REMOTE:${clientInfo.clientId}`;
+  }
 
   send(event: SyncEvent<CommitMetadata, Delta, Presence>): void {
     invariant(!this.isShutdown, 'send() called after shutdown');

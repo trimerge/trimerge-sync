@@ -11,6 +11,7 @@ export class MemoryLogger implements Logger {
         level: 'info',
         message: args,
       },
+      timestamp: Date.now(),
     });
   }
   debug(...args: unknown[]): void {
@@ -21,6 +22,7 @@ export class MemoryLogger implements Logger {
         level: 'debug',
         message: args,
       },
+      timestamp: Date.now(),
     });
   }
   info(...args: unknown[]): void {
@@ -31,6 +33,7 @@ export class MemoryLogger implements Logger {
         level: 'info',
         message: args,
       },
+      timestamp: Date.now(),
     });
   }
   warn(...args: unknown[]): void {
@@ -41,6 +44,7 @@ export class MemoryLogger implements Logger {
         level: 'warn',
         message: args,
       },
+      timestamp: Date.now(),
     });
   }
   error(...args: unknown[]): void {
@@ -51,9 +55,10 @@ export class MemoryLogger implements Logger {
         level: 'error',
         message: args,
       },
+      timestamp: Date.now(),
     });
   }
   event(event: LoggerEvent): void {
-    this._events.push(event);
+    this._events.push({ timestamp: Date.now(), ...event });
   }
 }

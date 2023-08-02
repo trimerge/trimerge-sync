@@ -29,6 +29,7 @@ import { mergeMetadata } from './lib/mergeMetadata';
 import { InMemoryDocCache } from './InMemoryDocCache';
 import invariant from 'invariant';
 import { PrefixLogger } from './lib/PrefixLogger';
+import fastDeepEqual from 'fast-deep-equal';
 
 const DIFF_PATCH_DURATION_WARNING_MS = 32;
 
@@ -94,13 +95,7 @@ export class TrimergeClient<
   );
   private syncStateSubs = new SubscriberList<SyncStatus, SubscribeEvent>(
     () => this.syncState,
-    (a, b) =>
-      a.localRead === b.localRead &&
-      a.localSave === b.localSave &&
-      a.remoteRead === b.remoteRead &&
-      a.remoteSave === b.remoteSave &&
-      a.remoteConnect === b.remoteConnect &&
-      a.remoteCursor === b.remoteCursor,
+    (a, b) => fastDeepEqual(a, b),
   );
   private clientListSubs = new SubscriberList<
     ClientList<Presence>,
@@ -129,7 +124,7 @@ export class TrimergeClient<
     | undefined;
 
   /** The user-defined shutdown callback. */
-  private readonly onShutdown: (() => void | Promise<void>) | undefined;
+  private readonly onShutdown: (() => void | Promise<unknown>) | undefined;
   private readonly docCache: DocCache<SavedDoc, CommitMetadata>;
   private tempCommits = new Map<string, Commit<CommitMetadata, Delta>>();
   private unsyncedCommits: Commit<CommitMetadata, Delta>[] = [];
@@ -140,7 +135,7 @@ export class TrimergeClient<
   private numPendingUpdates: number = 0;
 
   private isShutdown = false;
-  private readonly loggingPrefix;
+  readonly loggingHandle;
 
   private syncState: SyncStatus = {
     localRead: 'loading',
@@ -149,6 +144,7 @@ export class TrimergeClient<
     remoteRead: 'loading',
     remoteSave: 'ready',
     remoteCursor: undefined,
+    leader: false,
   };
 
   constructor(
@@ -191,12 +187,12 @@ export class TrimergeClient<
       { origin: 'self' },
     );
 
-    this.loggingPrefix = `TRIMERGE_CLIENT:${this.clientId}`;
+    this.loggingHandle = `TRIMERGE_CLIENT:${this.clientId}`;
   }
 
   configureLogger(logger: Logger | undefined): void {
     if (logger) {
-      this.logger = new PrefixLogger(this.loggingPrefix, logger);
+      this.logger = new PrefixLogger(this.loggingHandle, logger);
     } else {
       this.logger = undefined;
     }
@@ -221,8 +217,9 @@ export class TrimergeClient<
   ) => {
     this.logger?.event?.({
       type: 'receive-event',
-      sourceId: this.loggingPrefix,
+      sourceId: this.loggingHandle,
       payload: {
+        senderId: this.store.loggingHandle,
         event,
       },
     });
@@ -275,6 +272,9 @@ export class TrimergeClient<
         }
         if (event.cursor) {
           changes.remoteCursor = event.cursor;
+        }
+        if (event.leader) {
+          changes.leader = event.leader;
         }
         this.updateSyncState(changes);
         break;
@@ -512,7 +512,7 @@ export class TrimergeClient<
       try {
         this.logger?.event?.({
           type: 'update-store',
-          sourceId: this.loggingPrefix,
+          sourceId: this.loggingHandle,
           payload: {
             commits,
           },
@@ -719,7 +719,7 @@ export class TrimergeClient<
     return ref;
   }
 
-  public async shutdown(): Promise<void> {
+  public async shutdown(): Promise<unknown> {
     this.logger?.debug('requested shutdown');
     invariant(!this.isShutdown, 'already shutdown');
     this.isShutdown = true;
@@ -730,8 +730,11 @@ export class TrimergeClient<
     }
 
     const shutdownCallbackPromise = this.onShutdown?.();
+    let result = undefined;
     if (shutdownCallbackPromise) {
-      await shutdownCallbackPromise;
+      result = await shutdownCallbackPromise;
     }
+
+    return result;
   }
 }

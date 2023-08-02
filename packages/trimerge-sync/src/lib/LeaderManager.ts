@@ -41,6 +41,7 @@ export class LeaderManager implements Loggable {
   private leaderHeartbeat?: Interval = undefined;
   private heartbeatTimeout?: Timeout = undefined;
   private logger: Logger | undefined;
+  readonly loggingHandle;
 
   constructor(
     /**
@@ -57,6 +58,7 @@ export class LeaderManager implements Loggable {
     private readonly broadcastEvent: (event: LeaderEvent) => void,
     private readonly settings: LeaderSettings = DEFAULT_LEADER_SETTINGS,
   ) {
+    this.loggingHandle = `LEADER_MANAGER:${clientId}`;
     this.elect();
   }
 
@@ -69,7 +71,10 @@ export class LeaderManager implements Loggable {
   }
 
   private elect() {
+    this.logger?.debug('Election requested');
+    this.logger?.debug('my client id', this.clientId);
     if (this.electionTimeout) {
+      this.logger?.log('Election already in progress');
       return;
     }
     this.potentialLeaders.clear();
@@ -93,7 +98,14 @@ export class LeaderManager implements Loggable {
   }
   private finishElection() {
     this.electionTimeout = undefined;
-    this.setLeader(getSortedMin(this.potentialLeaders));
+    const winner = getSortedMin(this.potentialLeaders);
+    this.logger?.debug(
+      'Election finished, candidates',
+      this.potentialLeaders,
+      'winner',
+      winner,
+    );
+    this.setLeader(winner);
   }
 
   private setLeader(leaderId: string | undefined) {
@@ -109,6 +121,7 @@ export class LeaderManager implements Loggable {
         this.leaderHeartbeat = undefined;
       }
       if (isLeader) {
+        this.logger?.debug('announcing winner');
         this.broadcastEvent({ type: 'leader', action: 'current', clientId });
         this.leaderHeartbeat = setInterval(
           () => this.onLeaderHeartbeat(),

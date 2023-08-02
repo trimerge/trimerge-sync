@@ -16,6 +16,7 @@ import {
 class MockCommitRepository
   implements CommitRepository<unknown, unknown, unknown>
 {
+  loggingHandle = 'MOCK_COMMIT_REPOSITORY';
   configureLogger(logger: Logger): void {
     /* no-op */
   }

@@ -85,6 +85,7 @@ export type SyncStatus = {
   remoteRead: RemoteReadStatus;
   remoteSave: RemoteSaveStatus;
   remoteCursor: string | undefined;
+  leader: boolean;
 };
 
 export type ClientPresenceRef<Presence> = {
@@ -193,6 +194,7 @@ export type RemoteStateEvent = {
   read?: RemoteReadStatus;
   save?: RemoteSaveStatus;
   cursor?: string;
+  leader?: boolean;
 };
 
 export type LeaderEvent = {
@@ -292,7 +294,8 @@ export interface CommitRepository<CommitMetadata, Delta, Presence>
 
 /** Represents the ability supply a custom logger. */
 export interface Loggable {
-  configureLogger(logger: Logger | undefined): void;
+  configureLogger(logger: Logger | undefined, listenerHandle?: string): void;
+  loggingHandle: string;
 }
 
 type LoggerEventType =
@@ -310,6 +313,7 @@ type BaseLoggerEvent<Payload = never> = {
   type: LoggerEventType;
   sourceId: string;
   payload?: Payload;
+  timestamp?: number;
 };
 
 type SendEventLoggerEvent = BaseLoggerEvent<{

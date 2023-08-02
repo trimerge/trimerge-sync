@@ -120,6 +120,7 @@ export class IndexedDbCommitRepository<CommitMetadata, Delta, Presence>
   private readonly localIdGenerator: LocalIdGeneratorFn;
   private readonly addStoreMetadata?: AddStoreMetadataFn<CommitMetadata>;
   private logger: Logger | undefined;
+  readonly loggingHandle = 'INDEXED_DB_COMMIT_REPOSITORY';
 
   public constructor(
     docId: string,

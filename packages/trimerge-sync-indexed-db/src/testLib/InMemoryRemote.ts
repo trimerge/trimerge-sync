@@ -3,6 +3,7 @@ import { addInvalidRefsToAckEvent, validateCommitOrder } from 'trimerge-sync';
 
 export class InMemoryRemote implements Remote<any, any, any> {
   active = false;
+  loggingHandle = 'IN_MEMORY_REMOTE';
   private onEvent: OnRemoteEventFn<any, any, any> | undefined;
   constructor(
     private readonly commits: Map<string, Commit<any, any>> = new Map(),

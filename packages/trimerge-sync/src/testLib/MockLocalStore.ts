@@ -15,6 +15,8 @@ export class MockLocalStore<CommitMetadata = any, Delta = any, Presence = any>
     /* no-op */
   }
 
+  loggingHandle = 'MOCK_LOCAL_STORE';
+
   private onEvent: OnStoreEventFn<CommitMetadata, Delta, Presence> | undefined;
   isRemoteLeader = false;
   isShutdown = false;

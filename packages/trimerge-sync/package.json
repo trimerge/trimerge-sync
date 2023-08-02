@@ -42,7 +42,8 @@
   "dependencies": {
     "project-name-generator": "^2.1.9",
     "invariant": "^2.2.4",
-    "p-queue": "^6.6.2"
+    "p-queue": "^6.6.2",
+    "fast-deep-equal": "^3.1.1"
   },
   "files": [
     "dist/**/*",

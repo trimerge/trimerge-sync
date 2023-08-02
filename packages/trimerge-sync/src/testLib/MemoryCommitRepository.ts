@@ -15,6 +15,7 @@ export class MemoryCommitRepository<CommitMetadata, Delta, Presence>
     private readonly store: MemoryStore<CommitMetadata, Delta, Presence>,
   ) {}
 
+  loggingHandle = 'MEMORY_COMMIT_REPOSITORY';
   configureLogger(): void {
     /* no-op */
   }
