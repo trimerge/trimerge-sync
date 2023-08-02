@@ -176,6 +176,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     event: SyncEvent<CommitMetadata, Delta, Presence>,
     // Three sources of events: local broadcast, remote broadcast, and remote via local broadcast
     origin: 'local' | 'remote' | 'remote-via-local',
+    senderClientId?: string,
   ): Promise<void> => {
     this.logger?.event?.({
       type: 'receive-event',
@@ -184,9 +185,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
         senderId:
           origin === 'remote'
             ? this.remote?.loggingHandle
-            : // if this didn't come from the remote, it came from the broadcast channel and we don't know
-              // which client sent it.
-              undefined,
+            : `COORDINATING_LOCAL_STORE:${senderClientId}`,
         event,
       },
     });
@@ -294,10 +293,15 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
   private onLocalBroadcastEvent({
     event,
     remoteOrigin,
+    senderClientId,
   }: BroadcastEvent<CommitMetadata, Delta, Presence>): void {
     this.localQueue
       .add(() =>
-        this.processEvent(event, remoteOrigin ? 'remote-via-local' : 'local'),
+        this.processEvent(
+          event,
+          remoteOrigin ? 'remote-via-local' : 'local',
+          senderClientId,
+        ),
       )
       .catch(this.handleAsError('network'));
   }
@@ -462,7 +466,6 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
     }: { remote?: boolean; local?: boolean; self?: boolean },
     remoteOrigin: boolean = false,
   ): void {
-    this.logger?.debug('sending event', event, { remote, local, self });
     if (self) {
       if (!this.onStoreEvent) {
         if (!this.clientEventBuffer) {

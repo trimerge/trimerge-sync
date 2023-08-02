@@ -5,7 +5,10 @@ export function getBroadcastChannelEventChannel<
   CommitMetadata,
   Delta,
   Presence,
->(docId: string): EventChannel<CommitMetadata, Delta, Presence> {
+>(
+  docId: string,
+  clientId: string,
+): EventChannel<CommitMetadata, Delta, Presence> {
   let channel: BroadcastChannel | undefined = new BroadcastChannel(docId);
   const eventListenerCallbacks: ((e: MessageEvent) => void)[] = [];
 

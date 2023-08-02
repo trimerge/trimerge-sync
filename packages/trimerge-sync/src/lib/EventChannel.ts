@@ -2,6 +2,7 @@ import { SyncEvent } from '../types';
 
 export type BroadcastEvent<CommitMetadata, Delta, Presence> = {
   event: SyncEvent<CommitMetadata, Delta, Presence>;
+  senderClientId?: string;
   remoteOrigin: boolean;
 };
 
