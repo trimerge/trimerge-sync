@@ -331,6 +331,8 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       this.logger?.warn('ignoring error while shutting down', error);
     }
 
+    await this.localChannel.shutdown();
+
     await this.localQueue.onIdle();
 
     await this.commitRepo.shutdown();
