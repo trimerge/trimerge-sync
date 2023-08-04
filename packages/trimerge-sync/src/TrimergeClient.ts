@@ -233,6 +233,10 @@ export class TrimergeClient<
             this.addCommit(commit, 'external');
           }
           this.mergeHeads();
+          this.logger?.event?.({
+            type: 'emit-doc',
+            sourceId: this.loggingHandle,
+          });
           this.docSubs.emitChange({ origin });
           void this.sync();
           if (clientInfo) {
@@ -493,6 +497,10 @@ export class TrimergeClient<
   }
 
   private emitError(type: TrimergeClientErrorType, cause: unknown) {
+    this.logger?.event?.({
+      type: 'emit-error',
+      sourceId: this.loggingHandle,
+    });
     const wrappedCause =
       cause instanceof Error ? cause : new Error(String(cause));
     for (const onError of this.errorSubs) {
@@ -539,6 +547,13 @@ export class TrimergeClient<
 
   private updateSyncState(update: Partial<SyncStatus>): void {
     this.syncState = { ...this.syncState, ...update };
+    this.logger?.event?.({
+      type: 'emit-status',
+      sourceId: this.loggingHandle,
+      payload: {
+        status: this.syncState,
+      },
+    });
     this.syncStateSubs.emitChange({ origin: 'local' });
   }
   private addHead(
