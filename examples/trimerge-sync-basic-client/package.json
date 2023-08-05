@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-basic-client",
-  "version": "0.20.0",
+  "version": "0.21.0-testbuild",
   "description": "basic websocket client for trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
@@ -46,8 +46,8 @@
     "@rollup/plugin-node-resolve": "13.0.6",
     "rollup": "2.58.0",
     "rollup-plugin-typescript2": "0.30.0",
-    "trimerge-sync": "0.20.0",
-    "trimerge-sync-indexed-db": "0.20.0",
+    "trimerge-sync": "0.21.0-testbuild",
+    "trimerge-sync-indexed-db": "0.21.0-testbuild",
     "@types/node": "^16.9.4",
     "ts-node": "^10.3.0",
     "ts-node-dev": "^1.1.8",

@@ -1,6 +1,6 @@
 {
   "name": "trimerge-sync-basic-server",
-  "version": "0.20.0",
+  "version": "0.21.0-testbuild",
   "description": "basic websocket server for trimerge-sync",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
@@ -38,7 +38,7 @@
   "dependencies": {
     "@types/ws": "^8.2.0",
     "fs-extra": "^10.0.0",
-    "trimerge-sync": "0.20.0",
+    "trimerge-sync": "0.21.0-testbuild",
     "ws": "^8.2.3"
   },
   "files": [
@@ -56,7 +56,7 @@
     "better-sqlite3": "^7.4.3",
     "rollup": "2.58.0",
     "rollup-plugin-typescript2": "0.30.0",
-    "trimerge-sync": "0.20.0",
+    "trimerge-sync": "0.21.0-testbuild",
     "@types/node": "^16.9.4",
     "ts-node": "^10.3.0",
     "ts-node-dev": "^1.1.8",
