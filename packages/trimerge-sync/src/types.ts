@@ -330,6 +330,7 @@ type BroadcastEventLoggerEvent = BaseLoggerEvent<{
   type: 'broadcast-event';
 };
 
+// Represents some entity receiving a SyncEvent
 type ReceiveEventLoggerEvent = BaseLoggerEvent<{
   senderId?: string;
   event: SyncEvent<unknown, unknown, unknown>;
@@ -337,10 +338,26 @@ type ReceiveEventLoggerEvent = BaseLoggerEvent<{
   type: 'receive-event';
 };
 
+// Represents TrimergeClient emitting a sync status
 type EmitStatusLoggerEvent = BaseLoggerEvent<{
   status: SyncStatus;
+  listenerId?: string;
 }> & {
   type: 'emit-status';
+};
+
+// Represents TrimergeClient emitting a sync status
+type EmitDocLoggerEvent = BaseLoggerEvent<{
+  listenerId?: string;
+}> & {
+  type: 'emit-doc';
+};
+
+// Represents a client of TrimergeClient calling updateDoc
+type UpdateDocLoggerEvent = BaseLoggerEvent<{
+  callerId?: string;
+}> & {
+  type: 'update-doc';
 };
 
 type UpdateStoreLoggerEvent = BaseLoggerEvent<{
@@ -351,6 +368,7 @@ type UpdateStoreLoggerEvent = BaseLoggerEvent<{
 
 type EmitErrorLoggerEvent = BaseLoggerEvent<{
   error: unknown;
+  listenerId?: string;
 }> & {
   type: 'emit-error';
 };
@@ -366,11 +384,13 @@ export type LoggerEvent =
   | BaseLoggerEvent
   | SendEventLoggerEvent
   | EmitStatusLoggerEvent
-  | UpdateStoreLoggerEvent
+  | EmitDocLoggerEvent
   | EmitErrorLoggerEvent
+  | UpdateStoreLoggerEvent
   | ReceiveEventLoggerEvent
   | BroadcastEventLoggerEvent
-  | LogMessageLoggerEvent;
+  | LogMessageLoggerEvent
+  | UpdateDocLoggerEvent;
 
 /** Super simple logging interface that's compatible with console but allows customization. */
 export interface Logger {

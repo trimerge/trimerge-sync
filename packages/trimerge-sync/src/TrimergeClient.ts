@@ -130,6 +130,8 @@ export class TrimergeClient<
   private unsyncedCommits: Commit<CommitMetadata, Delta>[] = [];
   private logger: Logger | undefined;
 
+  private listenerHandle: string | undefined;
+
   private newPresence: ClientInfo<Presence> | undefined;
 
   private numPendingUpdates: number = 0;
@@ -190,12 +192,13 @@ export class TrimergeClient<
     this.loggingHandle = `TRIMERGE_CLIENT:${this.clientId}`;
   }
 
-  configureLogger(logger: Logger | undefined): void {
+  configureLogger(logger: Logger | undefined, listenerHandle?: string): void {
     if (logger) {
       this.logger = new PrefixLogger(this.loggingHandle, logger);
     } else {
       this.logger = undefined;
     }
+    this.listenerHandle = listenerHandle;
     this.store.configureLogger(logger);
   }
 
@@ -236,6 +239,9 @@ export class TrimergeClient<
           this.logger?.event?.({
             type: 'emit-doc',
             sourceId: this.loggingHandle,
+            payload: {
+              listenerId: this.listenerHandle,
+            },
           });
           this.docSubs.emitChange({ origin });
           void this.sync();
@@ -351,6 +357,13 @@ export class TrimergeClient<
     presence?: Presence,
   ): Promise<string | undefined> {
     invariant(!this.isShutdown, 'attempting to update doc after shutdown');
+    this.logger?.event?.({
+      type: 'update-doc',
+      sourceId: this.loggingHandle,
+      payload: {
+        callerId: this.listenerHandle,
+      },
+    });
 
     const ref = this.addNewCommit(doc, metadata, false);
     this.logger?.debug('updateDoc:', ref);
@@ -500,6 +513,10 @@ export class TrimergeClient<
     this.logger?.event?.({
       type: 'emit-error',
       sourceId: this.loggingHandle,
+      payload: {
+        listenerId: this.listenerHandle,
+        error: { type, cause },
+      },
     });
     const wrappedCause =
       cause instanceof Error ? cause : new Error(String(cause));
@@ -552,6 +569,7 @@ export class TrimergeClient<
       sourceId: this.loggingHandle,
       payload: {
         status: this.syncState,
+        listenerId: this.listenerHandle,
       },
     });
     this.syncStateSubs.emitChange({ origin: 'local' });
