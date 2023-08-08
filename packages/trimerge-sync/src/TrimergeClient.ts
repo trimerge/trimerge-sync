@@ -38,7 +38,9 @@ type AddCommitType =
   // Added from outside the client (e.g. a store)
   | 'external'
   // Added from this client, but don't sync to store
-  | 'temp';
+  | 'temp'
+  // this is a synthetic commit that should not be synced to the store
+  | 'reference';
 
 export type SubscribeEvent = {
   origin:
@@ -113,6 +115,9 @@ export class TrimergeClient<
   private clientList: ClientList<Presence> = [];
 
   private commits = new Map<string, Commit<CommitMetadata, Delta>>();
+
+  /** This records a mapping of left and right commits to commit refs. */
+  private mergeRefs = new Map<string, string>();
   private allHeadRefs = new Set<string>();
   private nonTempHeadRefs = new Set<string>();
 
@@ -389,17 +394,45 @@ export class TrimergeClient<
     throw new UnknownRefError(`unknown ref "${ref}"`);
   };
 
+  getMerge = (leftRef: string, rightRef: string) => {
+    return this.mergeRefs.get(`${leftRef}+${rightRef}`);
+  };
+
+  /** In some cases, temp work can get blown away because of the new commits from remote
+   *  but we can reuse the merge commit. This method essentially "reapplies" the merge
+   *  to the current resolution state.
+   */
+  reuseMerge = (ref: string) => {
+    const mergeCommit = this.getCommit(ref);
+    const { baseRef, mergeRef } = asCommitRefs(mergeCommit);
+    if (!mergeRef || !baseRef) {
+      throw new Error(`not a valid merge commit: ${ref}`);
+    }
+
+    this.tempCommits.set(mergeCommit.ref, mergeCommit);
+    this.addHead(this.allHeadRefs, mergeCommit);
+    const currentRef = this.lastSavedDocRef;
+    if (!currentRef || currentRef === baseRef || currentRef === mergeRef) {
+      this.lastSavedDocRef = mergeCommit.ref;
+      this.latestDoc = undefined;
+    }
+    return mergeCommit.ref;
+  };
+
   private mergeHelpers: MergeHelpers<LatestDoc, CommitMetadata> = {
     getCommitInfo: this.getCommit,
+    getMergeRef: this.getMerge,
     computeLatestDoc: (ref) => this.migrateCommit(this.getCommitDoc(ref)),
-    addMerge: (doc, metadata, temp, leftRef, rightRef) =>
+    addMerge: (doc, metadata, temp, leftRef, rightRef, reference) =>
       this.addNewCommit(
         doc,
         metadata,
         temp,
         this.getCommitDoc(leftRef),
         rightRef,
+        reference,
       ),
+    reuseMerge: this.reuseMerge,
   };
 
   getCommitDoc(headRef: string): CommitDoc<SavedDoc, CommitMetadata> {
@@ -593,7 +626,6 @@ export class TrimergeClient<
       }
       // Remove all temp commits
       for (const ref1 of this.tempCommits.keys()) {
-        this.commits.delete(ref1);
         this.docCache.delete(ref1);
       }
       // Roll back heads
@@ -602,7 +634,13 @@ export class TrimergeClient<
     }
 
     this.commits.set(ref, commit);
-    this.addHead(this.allHeadRefs, commit);
+    if (mergeRef !== undefined) {
+      this.mergeRefs.set(`${baseRef}+${mergeRef}`, ref);
+    }
+    // reference commits are never heads
+    if (type !== 'reference') {
+      this.addHead(this.allHeadRefs, commit);
+    }
     const currentRef = this.lastSavedDocRef;
     if (!currentRef || currentRef === baseRef || currentRef === mergeRef) {
       this.lastSavedDocRef = commit.ref;
@@ -621,7 +659,7 @@ export class TrimergeClient<
         this.unsyncedCommits.push(commit);
         break;
     }
-    if (type !== 'temp') {
+    if (type !== 'temp' && type !== 'reference') {
       this.addHead(this.nonTempHeadRefs, commit);
     }
   }
@@ -669,6 +707,7 @@ export class TrimergeClient<
     temp: boolean,
     base: CommitDoc<SavedDoc, CommitMetadata> | undefined,
     mergeRef: string,
+    reference?: boolean,
   ): string;
   private addNewCommit(
     newDoc: LatestDoc,
@@ -676,6 +715,7 @@ export class TrimergeClient<
     temp: boolean,
     base?: CommitDoc<SavedDoc, CommitMetadata> | undefined,
     mergeRef?: string,
+    reference?: boolean,
   ): string | undefined;
   private addNewCommit(
     newDoc: LatestDoc,
@@ -683,6 +723,7 @@ export class TrimergeClient<
     temp: boolean,
     base: CommitDoc<SavedDoc, CommitMetadata> | undefined = this.lastSavedDoc,
     mergeRef?: string,
+    reference: boolean = false,
   ): string | undefined {
     const start = performance.now();
     const delta = this.differ.diff(base?.doc, newDoc);
@@ -715,7 +756,7 @@ export class TrimergeClient<
       mergeRef !== undefined
         ? { ref, baseRef, mergeRef, delta, metadata }
         : { ref, baseRef, delta, metadata };
-    this.addCommit(commit, temp ? 'temp' : 'local');
+    this.addCommit(commit, reference ? 'reference' : temp ? 'temp' : 'local');
     return ref;
   }
 

@@ -96,6 +96,7 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
 
   /** Any events emitted while we're connecting to the remote are buffered and replayed to the remote. */
   private remoteEventBuffer: SyncEvent<CommitMetadata, Delta, Presence>[] = [];
+  private readonly locallyAddedCommitRefs = new Set<string>();
 
   constructor(
     private readonly userId: string,
@@ -607,6 +608,20 @@ export class CoordinatingLocalStore<CommitMetadata, Delta, Presence>
       this.presence = presenceRef;
     }
 
+    // FIXME: why is trimerge client resending commits?
+    commits = commits.filter(
+      (commit) => !this.locallyAddedCommitRefs.has(commit.ref),
+    );
+
+    if (commits.length > 0) {
+      this.setRemoteState({ type: 'remote-state', save: 'pending' });
+    }
+
+    const resp = await this.commitRepo.addCommits(commits, undefined);
+    for (const ack of resp.acks) {
+      this.locallyAddedCommitRefs.add(ack.ref);
+    }
+    this.sendEvent(resp, { self: true });
     const clientInfo: ClientInfo<Presence> | undefined = presenceRef && {
       ...presenceRef,
       userId: this.userId,
