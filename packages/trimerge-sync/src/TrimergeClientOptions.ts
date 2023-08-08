@@ -40,6 +40,7 @@ export interface DocCache<SavedDoc, CommitMetadata> {
 
 export type MergeHelpers<LatestDoc, CommitMetadata> = {
   getCommitInfo(ref: string): CommitInfo;
+  getMergeRef(leftRef: string, rightRef: string): string | undefined;
   computeLatestDoc(ref: string): CommitDoc<LatestDoc, CommitMetadata>;
   addMerge(
     doc: LatestDoc,
@@ -47,7 +48,9 @@ export type MergeHelpers<LatestDoc, CommitMetadata> = {
     temp: boolean,
     leftRef: string,
     rightRef: string,
+    reference?: boolean,
   ): string;
+  reuseMerge(mergeRef: string): string;
 };
 export type MergeAllBranchesFn<LatestDoc, CommitMetadata> = (
   branchHeadRefs: string[],

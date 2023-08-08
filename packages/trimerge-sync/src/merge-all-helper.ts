@@ -19,12 +19,17 @@ export function makeMergeAllBranchesFn<LatestDoc, CommitMetadata>(
   sortRefs: SortRefsFn,
   merge: MergeDocFn<LatestDoc, CommitMetadata>,
 ): MergeAllBranchesFn<LatestDoc, CommitMetadata> {
-  return (headRefs, { addMerge, getCommitInfo, computeLatestDoc }) => {
+  return (
+    headRefs,
+    { addMerge, getCommitInfo, getMergeRef, computeLatestDoc, reuseMerge },
+  ) => {
     mergeHeads(
       headRefs,
       sortRefs,
       getCommitInfo,
-      (baseRef, leftRef, rightRef) => {
+      getMergeRef,
+      reuseMerge,
+      (baseRef, leftRef, rightRef, _, reference) => {
         const migratedBase =
           baseRef !== undefined ? computeLatestDoc(baseRef) : undefined;
         const migratedLeft = computeLatestDoc(leftRef);
@@ -42,6 +47,7 @@ export function makeMergeAllBranchesFn<LatestDoc, CommitMetadata>(
           temp,
           migratedLeft.ref,
           migratedRight.ref,
+          reference,
         );
       },
     );
