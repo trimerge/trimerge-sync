@@ -167,10 +167,26 @@ export type ClientLeaveEvent = {
 export type ErrorEvent = {
   type: 'error';
   code: ErrorCode;
-  message?: string;
+  message: string;
   fatal?: boolean;
   reconnect?: boolean;
 };
+
+/** This is an 'Error-ified' version of the ErrorEvent */
+export class ErrorEventError extends Error {
+  readonly name = 'TrimergeClientError';
+  readonly code: ErrorCode;
+  readonly fatal: boolean | undefined;
+  readonly reconnect: boolean | undefined;
+
+  constructor({ code, message, fatal, reconnect }: ErrorEvent) {
+    super(message);
+    this.code = code;
+    this.fatal = fatal;
+    this.reconnect = reconnect;
+  }
+}
+
 export type RemoteStateEvent = {
   type: 'remote-state';
   connect?: RemoteConnectStatus;
