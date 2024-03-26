@@ -66,7 +66,6 @@ function makeIndexedDbCoordinatingLocalStoreFactory(
       userId,
       clientId,
       storeId,
-      storeId,
       onEvent,
       new IndexedDbCommitRepository(docId, {
         localIdGenerator: () => storeId,
@@ -128,14 +127,7 @@ async function makeTestClientWithRemoteOnEventHandle(
           docId,
           storeId,
           (userId, localStoreId, remoteInfo, onEventParam) => {
-          (userId, localStoreId, remoteInfo, onEventParam) => {
             onRemoteEvent = onEventParam;
-            const mockRemote = getMockRemote(
-              userId,
-              localStoreId,
-              remoteInfo,
-              onEventParam,
-            );
             const mockRemote = getMockRemote(
               userId,
               localStoreId,
@@ -452,17 +444,10 @@ describe('createIndexedDbBackendFactory', () => {
       (
         userId: string,
         localStoreId: string,
-        localStoreId: string,
         remoteSyncInfo: RemoteSyncInfo,
         onRemoteEvent: OnRemoteEventFn<any, any, any>,
       ) => {
         onEvent = onRemoteEvent;
-        return getMockRemote(
-          userId,
-          localStoreId,
-          remoteSyncInfo,
-          onRemoteEvent,
-        );
         return getMockRemote(
           userId,
           localStoreId,
